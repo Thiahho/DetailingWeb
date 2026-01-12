@@ -16,8 +16,7 @@ const packs = [
     price: "Desde $85.000",
     time: "1-2 días",
     slug: "brillo-total",
-    image:
-      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=900&q=80",
+    image:"/img/2.webp",
     details: [
       "Corrección de pintura 1 paso",
       "Sellador cerámico 6 meses",
@@ -29,8 +28,7 @@ const packs = [
     price: "Desde $180.000",
     time: "2-4 días",
     slug: "proteccion-pro",
-    image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+    image:"/img/8.webp",
     details: [
       "Coating cerámico 3-5 años",
       "PPF parcial frontal",
@@ -41,34 +39,33 @@ const packs = [
 
 const gallery = [
   {
-    title: "Audi A3 · Corrección de pintura",
-    image:
-      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=80",
+    title: "Ford Raptor · Lavado detallado - Limpieza detallada interior - Detallado en llantas - Limpieza de pasa ruedas - Limpieza cara externa chasis",
+    image:"/img/Ram.webp"
   },
   {
-    title: "Hilux · Interior intensivo",
+    title: "PEUGEOT PARTNER · Limpieza de guardaplast - Limpieza de llanta interna/extarna - Limpieza de interior - Lavado detallado",
     image:
-      "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=900&q=80",
+      "/img/fio.webp",
   },
   {
-    title: "BMW 320i · Cerámico full",
+    title: "Audi A3 35TFSI · Cerámico full",
     image:
-      "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=80",
+      "/img/bm.webp",
   },
   {
-    title: "Amarok · Limpieza premium",
+    title: "DOMINAR BAJAJ 250 · Limpieza de llantas - Limpieza de distribución - Limpieza de motor - Lavado al detalle ",
     image:
-      "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=900&q=80",
+      "/img/moto.webp",
   },
   {
-    title: "Onix · Renovación total",
+    title: "DONGFENG dfrc · Detallado de chasis - Detallado interior - Detallado de caja -Lavado detallado - Hidratación de plásticos",
     image:
-      "https://images.unsplash.com/photo-1485291571150-772bcfc10da5?auto=format&fit=crop&w=900&q=80",
+      "/img/camion.webp",
   },
   {
-    title: "Corolla · Detallado express",
+    title: "FORD RANGER v6 · Limpieza detallada interior - Limpieza y acondicionamiento de pasa ruedas - Limpieza interna/externa de llantas - Acondicionamiento de plásticos exterior",
     image:
-      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=900&q=80",
+      "/img/ford.webp",
   },
 ];
 
