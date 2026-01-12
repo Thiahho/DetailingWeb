@@ -85,29 +85,49 @@ const packs = [
 
 const gallery = [
   {
-    title: "Audi A3 · Corrección de pintura",
+    title: "FORD RAPTOR PERFORMANCE",
+    details:[
+      "Lavado detallado",
+      "Limpieza detallada interior",
+      "Detallado en llantas",
+      "Limpieza de pasa ruedas",
+      "Limpieza cara externa chasis"
+    ],
     image:
-      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=80"
+      "/img/Ram.webp",
   },
   {
-    title: "Hilux · Interior intensivo",
+    title: "PEUGEOT PARTNER",
+    details:[],
     image:
-      "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=900&q=80"
+      "/img/fio.webp"
   },
   {
-    title: "BMW 320i · Cerámico full",
+    title: "Audi A3 35TFS",
+    details:["Cerámico full"],
     image:
-      "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=80"
+      "/img/bm.webp"
   },
   {
-    title: "Amarok · Limpieza premium",
+    title: "DOMINAR BAJAJ 250",
+    details:[
+      "Limpieza de llantas",
+      "Limpieza de distribución",
+      "Limpieza de motor",
+      "Lavado al detalle"],
     image:
-      "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=900&q=80"
+      "/img/moto.webp"
   },
   {
-    title: "Onix · Renovación total",
+    title: "DONGFENG dfrc",
+    details:[
+      "Detallado de chasis",
+      "Detallado interior",
+      "Detallado de caja",
+      "Lavado detallado",
+      "Hidratación de plásticos"],
     image:
-      "https://images.unsplash.com/photo-1485291571150-772bcfc10da5?auto=format&fit=crop&w=900&q=80"
+      "/img/camion.webp"
   },
   {
     title: "Corolla · Detallado express",
