@@ -3,6 +3,9 @@ const packs = [
     title: "Pack Daily Reset",
     price: "Desde $45.000",
     time: "4-6 hs",
+    slug: "daily-reset",
+    image:
+      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=80",
     details: [
       "Lavado premium + sellado rápido",
       "Interior profundo + tapizados",
@@ -13,6 +16,9 @@ const packs = [
     title: "Pack Brillo Total",
     price: "Desde $85.000",
     time: "1-2 días",
+    slug: "brillo-total",
+    image:
+      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=900&q=80",
     details: [
       "Corrección de pintura 1 paso",
       "Sellador cerámico 6 meses",
@@ -23,6 +29,9 @@ const packs = [
     title: "Pack Protección Pro",
     price: "Desde $180.000",
     time: "2-4 días",
+    slug: "proteccion-pro",
+    image:
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
     details: [
       "Coating cerámico 3-5 años",
       "PPF parcial frontal",
@@ -32,12 +41,36 @@ const packs = [
 ];
 
 const gallery = [
-  "Audi A3 · Corrección de pintura",
-  "Hilux · Interior intensivo",
-  "BMW 320i · Cerámico full",
-  "Amarok · Limpieza premium",
-  "Onix · Renovación total",
-  "Corolla · Detallado express"
+  {
+    title: "Audi A3 · Corrección de pintura",
+    image:
+      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    title: "Hilux · Interior intensivo",
+    image:
+      "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    title: "BMW 320i · Cerámico full",
+    image:
+      "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    title: "Amarok · Limpieza premium",
+    image:
+      "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    title: "Onix · Renovación total",
+    image:
+      "https://images.unsplash.com/photo-1485291571150-772bcfc10da5?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    title: "Corolla · Detallado express",
+    image:
+      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=900&q=80"
+  }
 ];
 
 const testimonials = [
@@ -176,6 +209,13 @@ export default function Home() {
         <div className="grid gap-6 md:grid-cols-3">
           {packs.map((pack) => (
             <article key={pack.title} className="glass-card flex h-full flex-col gap-4 p-6">
+              <div className="overflow-hidden rounded-xl border border-white/10">
+                <img
+                  alt={`Servicio ${pack.title}`}
+                  className="h-40 w-full object-cover"
+                  src={pack.image}
+                />
+              </div>
               <div>
                 <h4 className="text-xl font-semibold">{pack.title}</h4>
                 <p className="text-sm text-white/60">{pack.time}</p>
@@ -187,9 +227,12 @@ export default function Home() {
               </ul>
               <div className="mt-auto flex items-center justify-between">
                 <span className="text-lg font-semibold text-lux">{pack.price}</span>
-                <button className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/60 transition hover:border-lux/50 hover:text-white">
+                <a
+                  className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/60 transition hover:border-lux/50 hover:text-white"
+                  href={`/servicios/${pack.slug}`}
+                >
                   Ver detalle
-                </button>
+                </a>
               </div>
             </article>
           ))}
@@ -212,10 +255,14 @@ export default function Home() {
 
         <div className="grid gap-6 md:grid-cols-3">
           {gallery.map((item) => (
-            <div key={item} className="glass-card group overflow-hidden">
-              <div className="h-40 bg-gradient-to-br from-white/10 via-white/5 to-white/0 transition duration-500 group-hover:scale-[1.02]"></div>
+            <div key={item.title} className="glass-card group overflow-hidden">
+              <img
+                alt={`Trabajo ${item.title}`}
+                className="h-40 w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                src={item.image}
+              />
               <div className="p-4">
-                <p className="text-sm text-white/70">{item}</p>
+                <p className="text-sm text-white/70">{item.title}</p>
                 <button className="mt-3 text-xs uppercase tracking-[0.2em] text-electric">Ver proceso</button>
               </div>
             </div>
