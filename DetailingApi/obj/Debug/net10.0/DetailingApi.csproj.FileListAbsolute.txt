@@ -44,9 +44,7 @@ E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\BuildHost-netcore\ru\Sy
 E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\BuildHost-netcore\tr\System.CommandLine.resources.dll
 E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\BuildHost-netcore\zh-Hans\System.CommandLine.resources.dll
 E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\BuildHost-netcore\zh-Hant\System.CommandLine.resources.dll
-E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\appsettings.Development.json
 E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\appsettings.json
-E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\credentials.json
 E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\DetailingApi.staticwebassets.endpoints.json
 E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\DetailingApi.exe
 E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\DetailingApi.deps.json
@@ -194,3 +192,4 @@ E:\Proyectos\DetailingWeb\DetailingApi\obj\Debug\net10.0\refint\DetailingApi.dll
 E:\Proyectos\DetailingWeb\DetailingApi\obj\Debug\net10.0\DetailingApi.pdb
 E:\Proyectos\DetailingWeb\DetailingApi\obj\Debug\net10.0\DetailingApi.genruntimeconfig.cache
 E:\Proyectos\DetailingWeb\DetailingApi\obj\Debug\net10.0\ref\DetailingApi.dll
+E:\Proyectos\DetailingWeb\DetailingApi\bin\Debug\net10.0\credentials.json

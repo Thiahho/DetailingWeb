@@ -1,0 +1,33 @@
+# .NET
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+
+# Node.js (frontend)
+node_modules/
+.next/
+out/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+
+# Archivos sensibles (se crearán desde variables de entorno)
+**/credentials.json
+**/token.json/
+
+# Documentación
+*.md
+LICENSE
+
+# Otros
+**/.DS_Store
+**/Thumbs.db
+**/*.log
