@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 const packs = [
   {
@@ -85,64 +85,34 @@ const packs = [
 
 const gallery = [
   {
-    title: "FORD RAPTOR PERFORMANCE",
-    details:[
-      "Lavado detallado",
-      "Limpieza detallada interior",
-      "Detallado en llantas",
-      "Limpieza de pasa ruedas",
-      "Limpieza cara externa chasis"
-    ],
+    title: "Audi A3 · Corrección de pintura",
     image:
-      "/img/i1.webp",
+      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=80"
   },
   {
-    title: "PEUGEOT PARTNER",
-    details:[
-      "Limpieza de guardaplast",
-      "Limpieza de llanta interna/extarna",
-"Limpieza de interior",
-"Lavado detallado"
-    ],
+    title: "Hilux · Interior intensivo",
     image:
-      "/img/i2.webp"
+      "https://images.unsplash.com/photo-1493238792000-8113da705763?auto=format&fit=crop&w=900&q=80"
   },
   {
-    title: "Audi A3 35TFS",
-    details:["Cerámico full"],
+    title: "BMW 320i · Cerámico full",
     image:
-      "/img/i4.webp"
+      "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=900&q=80"
   },
   {
-    title: "DOMINAR BAJAJ 250",
-    details:[
-      "Limpieza de llantas",
-      "Limpieza de distribución",
-      "Limpieza de motor",
-      "Lavado al detalle"],
+    title: "Amarok · Limpieza premium",
     image:
-      "/img/i3.webp"
+      "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=900&q=80"
   },
   {
-    title: "DONGFENG dfrc",
-    details:[
-      "Detallado de chasis",
-      "Detallado interior",
-      "Detallado de caja",
-      "Lavado detallado",
-      "Hidratación de plásticos"],
+    title: "Onix · Renovación total",
     image:
-      "/img/i5.webp"
+      "https://images.unsplash.com/photo-1485291571150-772bcfc10da5?auto=format&fit=crop&w=900&q=80"
   },
   {
-    title: "FORD RANGER v6",
-    details:[
-      "Limpieza detallada interior",
-      "Limpieza y acondicionamiento de pasa ruedas",
-      "Limpieza interna/externa de llantas",
-      "Acondicionamiento de plásticos exterior"],
+    title: "Corolla · Detallado express",
     image:
-      "/img/i6.webp"
+      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=900&q=80"
   }
 ];
 
@@ -182,6 +152,42 @@ const faqs = [
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
   const packsToShow = packs.slice(0, visiblePacks);
+  const [formData, setFormData] = useState({
+    name: "",
+    vehicle: "",
+    whatsapp: "",
+    dateTime: "",
+    message: ""
+  });
+
+  const handleFormChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCalendarSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!formData.dateTime) {
+      return;
+    }
+
+    const startDate = new Date(formData.dateTime);
+    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+    const formatDate = (date: Date) =>
+      date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
+    const calendarUrl = new URL("https://calendar.google.com/calendar/render");
+    calendarUrl.searchParams.set("action", "TEMPLATE");
+    calendarUrl.searchParams.set("text", `Detalle de servicio · ${formData.vehicle || "Auto"}`);
+    calendarUrl.searchParams.set(
+      "details",
+      `Cliente: ${formData.name}\nWhatsApp: ${formData.whatsapp}\nConsulta: ${formData.message}`
+    );
+    calendarUrl.searchParams.set("location", "Moreno, Zona Oeste");
+    calendarUrl.searchParams.set("dates", `${formatDate(startDate)}/${formatDate(endDate)}`);
+
+    window.open(calendarUrl.toString(), "_blank", "noopener,noreferrer");
+  };
 
   return (
     <main className="min-h-screen bg-midnight text-slate-100">
@@ -351,12 +357,8 @@ export default function Home() {
                 src={item.image}
               />
               <div className="p-4">
-                <h4 className="text-xl font-semibold">{item.title}</h4>
-                 <ul className="space-y-2 text-sm text-white/70">
-                {item.details.map((detail) => (
-                  <li key={detail}>• {detail}</li>
-                ))}
-              </ul>
+                <p className="text-sm text-white/70">{item.title}</p>
+                <button className="mt-3 text-xs uppercase tracking-[0.2em] text-electric">Ver proceso</button>
               </div>
             </div>
           ))}
@@ -424,25 +426,66 @@ export default function Home() {
           </div>
         </div>
 
-        <form className="glass-card space-y-4 p-6">
+        <form className="glass-card space-y-4 p-6" onSubmit={handleCalendarSubmit}>
           <div>
             <label className="text-xs uppercase tracking-[0.2em] text-white/50">Nombre</label>
-            <input className="form-input mt-2" placeholder="Tu nombre" />
+            <input
+              className="form-input mt-2"
+              onChange={(event) => handleFormChange("name", event.target.value)}
+              placeholder="Tu nombre"
+              required
+              value={formData.name}
+            />
           </div>
           <div>
             <label className="text-xs uppercase tracking-[0.2em] text-white/50">Vehículo</label>
-            <input className="form-input mt-2" placeholder="Modelo y año" />
+            <input
+              className="form-input mt-2"
+              onChange={(event) => handleFormChange("vehicle", event.target.value)}
+              placeholder="Modelo y año"
+              required
+              value={formData.vehicle}
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-[0.2em] text-white/50">WhatsApp</label>
+            <input
+              className="form-input mt-2"
+              onChange={(event) => handleFormChange("whatsapp", event.target.value)}
+              placeholder="+54 9 11 1234 5678"
+              required
+              value={formData.whatsapp}
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-[0.2em] text-white/50">Fecha y hora</label>
+            <input
+              className="form-input mt-2"
+              onChange={(event) => handleFormChange("dateTime", event.target.value)}
+              required
+              type="datetime-local"
+              value={formData.dateTime}
+            />
           </div>
           <div>
             <label className="text-xs uppercase tracking-[0.2em] text-white/50">Consulta</label>
-            <textarea className="form-input mt-2 min-h-[140px]" placeholder="¿Qué servicio buscás?" />
+            <textarea
+              className="form-input mt-2 min-h-[140px]"
+              onChange={(event) => handleFormChange("message", event.target.value)}
+              placeholder="¿Qué servicio buscás?"
+              required
+              value={formData.message}
+            />
           </div>
           <button
             className="w-full rounded-full bg-electric px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01]"
             type="submit"
           >
-            Enviar consulta
+            Agendar en Google Calendar
           </button>
+          <p className="text-xs text-white/50">
+            Al enviar se abrirá Google Calendar para crear el turno con tus datos.
+          </p>
         </form>
       </section>
 
