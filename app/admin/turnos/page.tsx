@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, logout, fetchWithAuth } from "../../../src/lib/auth";
+import { API_BASE_URL } from "../../../src/lib/config";
+import { logError } from "../../../src/lib/logger";
 
 interface TimeSlot {
   id: number;
@@ -35,14 +37,14 @@ export default function TurnosPage() {
   const loadSlots = async () => {
     try {
       const response = await fetchWithAuth(
-        "http://localhost:5048/api/timeslots"
+        `${API_BASE_URL}/api/timeslots`
       );
       if (response.ok) {
         const data = await response.json();
         setSlots(data);
       }
     } catch (error) {
-      console.error("Error cargando turnos:", error);
+      logError("Error cargando turnos:", error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export default function TurnosPage() {
       const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60000);
 
       const response = await fetchWithAuth(
-        "http://localhost:5048/api/timeslots",
+        `${API_BASE_URL}/api/timeslots`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -78,7 +80,7 @@ export default function TurnosPage() {
       }
     } catch (error) {
       alert("❌ Error de conexión");
-      console.error(error);
+      logError(error);
     } finally {
       setCreating(false);
     }
@@ -103,7 +105,7 @@ export default function TurnosPage() {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
 
       const response = await fetchWithAuth(
-        `http://localhost:5048/api/timeslots/${editingSlot.id}`,
+        `${API_BASE_URL}/api/timeslots/${editingSlot.id}`,
         {
           method: "PUT",
           body: JSON.stringify({
@@ -124,7 +126,7 @@ export default function TurnosPage() {
       }
     } catch (error) {
       alert("❌ Error de conexión");
-      console.error(error);
+      logError(error);
     } finally {
       setCreating(false);
     }
@@ -140,7 +142,7 @@ export default function TurnosPage() {
 
     try {
       const response = await fetchWithAuth(
-        `http://localhost:5048/api/timeslots/${id}`,
+        `${API_BASE_URL}/api/timeslots/${id}`,
         {
           method: "DELETE",
         }
@@ -154,7 +156,7 @@ export default function TurnosPage() {
         alert("❌ " + (data.message || "Error al eliminar"));
       }
     } catch (error) {
-      console.error(error);
+      logError(error);
     }
   };
 

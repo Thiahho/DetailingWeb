@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { LogIn, ArrowLeft } from "lucide-react"; // Añadí ArrowLeft por si quieres un botón de volver
 import Link from "next/link"; // Usamos Link de Next.js para mejor navegación
+import { API_BASE_URL } from "../../../src/lib/config";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5048/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

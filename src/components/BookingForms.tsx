@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
+import { API_BASE_URL } from "../lib/config";
+import { logError } from "../lib/logger";
 
 interface TimeSlot {
   id: number;
@@ -31,16 +33,16 @@ export default function BookingForm() {
   const loadAvailableSlots = async () => {
     try {
       const response = await fetch(
-        "http://localhost:5048/api/timeslots/available"
+        `${API_BASE_URL}/api/timeslots/available`
       );
       if (response.ok) {
         const data = await response.json();
         setTimeSlots(data);
       } else {
-        console.error("Error cargando turnos");
+        logError("Error cargando turnos");
       }
     } catch (error) {
-      console.error("Error:", error);
+      logError("Error:", error);
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ export default function BookingForm() {
         (s) => s.id === formData.selectedSlotId
       );
 
-      const response = await fetch("http://localhost:5048/api/bookings", {
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -101,7 +103,7 @@ export default function BookingForm() {
       }
     } catch (error) {
       alert("❌ Error de conexión con el servidor");
-      console.error(error);
+      logError(error);
     } finally {
       setSubmitting(false);
     }
