@@ -38,13 +38,13 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();    
-// Add services to the container.
 builder.Services.AddControllers();
 
-// Configurar GoogleCalendarService
+// Configurar servicios
 builder.Services.AddScoped<GoogleCalendarService>();
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
+
 // Configurar CORS
 builder.Services.AddCors(options =>
 {
@@ -58,6 +58,14 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            // Fallback para desarrollo o si no hay config
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
                   .AllowAnyMethod();
         }
     });
@@ -65,18 +73,23 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
-
+// CORS debe ir PRIMERO, antes de cualquier otro middleware
 app.UseCors();
+
+// Solo usar HTTPS redirect en desarrollo (Render maneja HTTPS en el load balancer)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
+// Seed solo en desarrollo
 if (app.Environment.IsDevelopment())
 {
-    // Después de app.Build() y antes de app.Run()
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await DatabaseSeeder.SeedAsync(context);
