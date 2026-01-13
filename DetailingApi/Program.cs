@@ -45,42 +45,25 @@ builder.Services.AddScoped<GoogleCalendarService>();
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
 
-// Configurar CORS
+// Configurar CORS - Hardcodeado para producción
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("ProductionPolicy", policy =>
     {
-        var allowedOrigins = builder.Configuration
-            .GetSection("Cors:AllowedOrigins")
-            .Get<string[]>();
-
-        if (allowedOrigins is { Length: > 0 })
-        {
-            policy.WithOrigins(allowedOrigins)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-        }
-        else
-        {
-            // Fallback para desarrollo o si no hay config
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        }
+        policy.WithOrigins(
+                "https://detailing-web-five.vercel.app",
+                "http://localhost:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
-// CORS debe ir PRIMERO, antes de cualquier otro middleware
-app.UseCors();
-
-// Solo usar HTTPS redirect en desarrollo (Render maneja HTTPS en el load balancer)
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+// CORS PRIMERO - siempre usar la política
+app.UseCors("ProductionPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
