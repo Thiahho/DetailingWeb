@@ -94,19 +94,24 @@ const gallery = [
       "Limpieza cara externa chasis"
     ],
     image:
-      "/img/Ram.webp",
+      "/img/i1.webp",
   },
   {
     title: "PEUGEOT PARTNER",
-    details:[],
+    details:[
+      "Limpieza de guardaplast",
+      "Limpieza de llanta interna/extarna",
+"Limpieza de interior",
+"Lavado detallado"
+    ],
     image:
-      "/img/fio.webp"
+      "/img/i2.webp"
   },
   {
     title: "Audi A3 35TFS",
     details:["Cerámico full"],
     image:
-      "/img/bm.webp"
+      "/img/i4.webp"
   },
   {
     title: "DOMINAR BAJAJ 250",
@@ -116,7 +121,7 @@ const gallery = [
       "Limpieza de motor",
       "Lavado al detalle"],
     image:
-      "/img/moto.webp"
+      "/img/i3.webp"
   },
   {
     title: "DONGFENG dfrc",
@@ -127,12 +132,17 @@ const gallery = [
       "Lavado detallado",
       "Hidratación de plásticos"],
     image:
-      "/img/camion.webp"
+      "/img/i5.webp"
   },
   {
-    title: "Corolla · Detallado express",
+    title: "FORD RANGER v6",
+    details:[
+      "Limpieza detallada interior",
+      "Limpieza y acondicionamiento de pasa ruedas",
+      "Limpieza interna/externa de llantas",
+      "Acondicionamiento de plásticos exterior"],
     image:
-      "https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=900&q=80"
+      "/img/i6.webp"
   }
 ];
 
@@ -341,8 +351,12 @@ export default function Home() {
                 src={item.image}
               />
               <div className="p-4">
-                <p className="text-sm text-white/70">{item.title}</p>
-                <button className="mt-3 text-xs uppercase tracking-[0.2em] text-electric">Ver proceso</button>
+                <h4 className="text-xl font-semibold">{item.title}</h4>
+                 <ul className="space-y-2 text-sm text-white/70">
+                {item.details.map((detail) => (
+                  <li key={detail}>• {detail}</li>
+                ))}
+              </ul>
               </div>
             </div>
           ))}
