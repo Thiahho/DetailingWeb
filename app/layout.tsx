@@ -1,6 +1,17 @@
 // app/layout.tsx
 import "./globals.css"; // Ruta corregida para Vercel
 import Navbar from "../src/components/Navbar";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "MKS Detailing",
+  description: "Servicios profesionales de detailing automotriz",
+  icons: {
+    icon: "/img/logo.png",
+    shortcut: "/img/logo.png",
+    apple: "/img/logo.png",
+  },
+};
 
 export default function RootLayout({
   children,
