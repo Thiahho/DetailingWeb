@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Google.Apis.Util.Store;
 using DetailingApi.Models;
 using System.Web;
+using System.Globalization;
 
 namespace DetailingApi.Services;
 
@@ -95,8 +96,14 @@ public class GoogleCalendarService
             phoneClean = "54" + phoneClean;
         }
 
-        // Crear mensaje para WhatsApp
-        var whatsappMessage = $"Hola {turno.Name}! Te contactamos de Detailing Zona Oeste por tu turno. Vehículo: {turno.Vehicle}. {turno.Message}";
+        // Formatear fecha y hora en español
+        var cultura = new CultureInfo("es-AR");
+        var fechaFormateada = turno.DateTime.ToString("dddd d 'de' MMMM", cultura);
+        var horaFormateada = turno.DateTime.ToString("HH:mm", cultura);
+        var fechaHoraCompleta = $"{fechaFormateada} a las {horaFormateada} hs";
+
+        // Crear mensaje para WhatsApp con fecha y hora
+        var whatsappMessage = $"Hola {turno.Name}! Te contactamos de Detailing Zona Oeste por tu turno del {fechaHoraCompleta}. Vehículo: {turno.Vehicle}. {turno.Message}";
         var whatsappMessageEncoded = HttpUtility.UrlEncode(whatsappMessage);
         
         // Link directo de WhatsApp
@@ -110,6 +117,7 @@ public class GoogleCalendarService
 👤 Nombre: {turno.Name}
 🚗 Vehículo: {turno.Vehicle}
 📝 Servicio: {turno.Message}
+📅 Turno: {fechaHoraCompleta}
 
 ═══════════════════════════
 📱 CONTACTAR POR WHATSAPP
