@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { API_BASE_URL } from "../../../src/lib/config";
+import { setLoggedIn, isAuthenticated } from "../../../src/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Si ya está autenticado, redirigir a turnos
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.push("/admin/turnos");
+    }
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -18,6 +26,7 @@ export default function LoginPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
+        credentials: "include", // Importante para recibir cookies HttpOnly
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
@@ -26,9 +35,8 @@ export default function LoginPage() {
       if (!response.ok)
         throw new Error(data.message || "Error al iniciar sesión");
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("email", data.email);
-      localStorage.setItem("role", data.role);
+      // Marcar como logueado (el token está en la cookie HttpOnly)
+      setLoggedIn(data.email);
 
       router.push("/admin/turnos");
     } catch (err: any) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, logout, fetchWithAuth } from "../../../src/lib/auth";
+import { isAuthenticated, verifySession, fetchWithAuth } from "../../../src/lib/auth";
 import { API_BASE_URL } from "../../../src/lib/config";
 import { logError } from "../../../src/lib/logger";
 
@@ -36,11 +36,24 @@ export default function TurnosPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/admin/login");
-    } else {
+    const checkAuthAndLoad = async () => {
+      // Primero verificar si hay indicador local
+      if (!isAuthenticated()) {
+        router.push("/admin/login");
+        return;
+      }
+
+      // Verificar sesión con el backend (validar cookie HttpOnly)
+      const isValid = await verifySession();
+      if (!isValid) {
+        router.push("/admin/login");
+        return;
+      }
+
       loadSlots();
-    }
+    };
+
+    checkAuthAndLoad();
   }, [router]);
 
   const loadSlots = async () => {
@@ -206,14 +219,9 @@ export default function TurnosPage() {
   return (
     <div className="min-h-screen bg-midnight p-6">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8">
           <h1 className="text-3xl font-bold text-white">Gestión de Turnos</h1>
-          <button
-            onClick={logout}
-            className="rounded-lg border border-red-500/50 px-4 py-2 text-red-400 transition hover:bg-red-500/10"
-          >
-            Cerrar Sesión
-          </button>
+          <p className="text-white/50 text-sm mt-1">Administra los turnos disponibles para reservas</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">

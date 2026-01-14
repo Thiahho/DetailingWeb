@@ -1,14 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { LogIn, Menu, X } from "lucide-react";
+import { LogIn, LogOut, Menu, X, Calendar } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Verificar autenticación al cargar y cuando cambia
+  useEffect(() => {
+    const checkAuth = () => {
+      const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+      setIsLoggedIn(isLoggedIn);
+    };
+
+    checkAuth();
+
+    // Escuchar cambios en localStorage (para sincronizar entre tabs)
+    window.addEventListener("storage", checkAuth);
+    // Escuchar evento personalizado de auth
+    window.addEventListener("auth-change", checkAuth);
+
+    return () => {
+      window.removeEventListener("storage", checkAuth);
+      window.removeEventListener("auth-change", checkAuth);
+    };
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    // Importar dinámicamente para evitar errores de SSR
+    const { logout } = await import("../lib/auth");
+    setMobileMenuOpen(false);
+    await logout();
+  };
 
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
@@ -71,9 +99,29 @@ export default function Navbar() {
           >
             Contacto
           </Link>
-          <Link href="/admin/login" className="transition hover:text-white">
-            <LogIn size={20} />
-          </Link>
+          {isLoggedIn ? (
+            <>
+              <Link
+                href="/admin/turnos"
+                className={`flex items-center gap-2 transition hover:text-white ${
+                  pathname === "/admin/turnos" ? "text-electric" : ""
+                }`}
+              >
+                <Calendar size={18} />
+                Turnos
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-red-400 transition hover:text-red-300"
+              >
+                <LogOut size={18} />
+              </button>
+            </>
+          ) : (
+            <Link href="/admin/login" className="transition hover:text-white">
+              <LogIn size={20} />
+            </Link>
+          )}
         </nav>
 
         {/* MOBILE TOGGLE */}
@@ -111,13 +159,35 @@ export default function Navbar() {
             >
               Contacto
             </Link>
-            <Link
-              href="/admin/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-lux"
-            >
-              Admin Login
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href="/admin/turnos"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center justify-center gap-2 ${
+                    pathname === "/admin/turnos" ? "text-electric" : "text-lux"
+                  }`}
+                >
+                  <Calendar size={20} />
+                  Gestión de Turnos
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center justify-center gap-2 text-red-400"
+                >
+                  <LogOut size={20} />
+                  Cerrar Sesión
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/admin/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-lux"
+              >
+                Admin Login
+              </Link>
+            )}
           </nav>
         </div>
       )}

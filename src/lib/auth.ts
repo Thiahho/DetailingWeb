@@ -1,31 +1,63 @@
+import { API_BASE_URL } from "./config";
+
+// Verificar si hay sesión activa (indicador UI)
 export function isAuthenticated(): boolean {
   if (typeof window === "undefined") return false;
-  return !!localStorage.getItem("token");
+  return localStorage.getItem("isLoggedIn") === "true";
 }
 
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
+// Marcar sesión como activa (solo para UI)
+export function setLoggedIn(email?: string): void {
+  localStorage.setItem("isLoggedIn", "true");
+  if (email) localStorage.setItem("email", email);
+  // Disparar evento para que otros componentes se actualicen
+  window.dispatchEvent(new Event("auth-change"));
 }
 
-export function logout(): void {
-  localStorage.removeItem("token");
+// Cerrar sesión
+export async function logout(): Promise<void> {
+  try {
+    // Llamar al backend para invalidar la cookie
+    await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch (error) {
+    // Continuar con logout local aunque falle el backend
+  }
+
+  localStorage.removeItem("isLoggedIn");
   localStorage.removeItem("email");
-  localStorage.removeItem("role");
-  window.location.href = "/admin/login";
+  window.dispatchEvent(new Event("auth-change"));
+  window.location.href = "/";
 }
 
-export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  // const token = getToken();
+// Verificar sesión con el backend (útil al cargar la página)
+export async function verifySession(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+      method: "GET",
+      credentials: "include",
+    });
 
-  // return fetch(url, {
-  //   ...options,
-  //   headers: {
-  //     ...options.headers,
-  //     Authorization: `Bearer ${token}`,
-  //     "Content-Type": "application/json",
-  //   },
-  // });
+    if (response.ok) {
+      const data = await response.json();
+      setLoggedIn(data.email);
+      return true;
+    } else {
+      // Sesión inválida, limpiar localStorage
+      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("email");
+      window.dispatchEvent(new Event("auth-change"));
+      return false;
+    }
+  } catch (error) {
+    return false;
+  }
+}
+
+// Fetch con credenciales (cookies HttpOnly)
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return fetch(url, {
     ...options,
     credentials: "include",
