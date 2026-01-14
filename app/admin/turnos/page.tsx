@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, verifySession, fetchWithAuth } from "../../../src/lib/auth";
+import { isAuthenticated, fetchWithAuth } from "../../../src/lib/auth";
 import { API_BASE_URL } from "../../../src/lib/config";
 import { logError } from "../../../src/lib/logger";
 
@@ -36,24 +36,13 @@ export default function TurnosPage() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const checkAuthAndLoad = async () => {
-      // Primero verificar si hay indicador local
-      if (!isAuthenticated()) {
-        router.push("/admin/login");
-        return;
-      }
+    // Solo verificar indicador local por ahora
+    if (!isAuthenticated()) {
+      router.push("/admin/login");
+      return;
+    }
 
-      // Verificar sesión con el backend (validar cookie HttpOnly)
-      const isValid = await verifySession();
-      if (!isValid) {
-        router.push("/admin/login");
-        return;
-      }
-
-      loadSlots();
-    };
-
-    checkAuthAndLoad();
+    loadSlots();
   }, [router]);
 
   const loadSlots = async () => {
