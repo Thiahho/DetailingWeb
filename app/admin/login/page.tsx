@@ -24,24 +24,35 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log("Iniciando login...", API_BASE_URL);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
-        credentials: "include", // Importante para recibir cookies HttpOnly
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
+      console.log("Response status:", response.status);
+
       const data = await response.json();
-      if (!response.ok)
+      console.log("Response data:", data);
+
+      if (!response.ok) {
         throw new Error(data.message || "Error al iniciar sesión");
+      }
 
-      // Marcar como logueado (el token está en la cookie HttpOnly)
+      // Marcar como logueado
       setLoggedIn(data.email);
+      console.log("Login exitoso, redirigiendo...");
 
-      // Usar window.location para redirección más confiable después del login
-      window.location.href = "/admin/turnos";
+      // Redirección
+      window.location.replace("/admin/turnos");
+      return; // Evitar que continue ejecutándose
+
     } catch (err: any) {
-      setError(err.message);
+      console.error("Error en login:", err);
+      setError(err.message || "Error de conexión");
     } finally {
       setLoading(false);
     }
