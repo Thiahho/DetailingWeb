@@ -2,20 +2,26 @@
 
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "../../../src/lib/config";
-import { setLoggedIn, isAuthenticated } from "../../../src/lib/auth";
+import { setLoggedIn, verifySession } from "../../../src/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  // Si ya está autenticado, redirigir a turnos
+  // Verificar con el backend si hay sesión activa
   useEffect(() => {
-    if (isAuthenticated()) {
-      router.push("/admin/turnos");
-    }
+    const checkSession = async () => {
+      const isValid = await verifySession();
+      if (isValid) {
+        router.push("/admin/turnos");
+      } else {
+        setChecking(false);
+      }
+    };
+    checkSession();
   }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -24,14 +30,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      console.log("Iniciando login...", API_BASE_URL);
-
-      // const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      //   method: "POST",
-      //   credentials: "include",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(formData),
-      // });
       const response = await fetch("/api/auth/login", {
         method: "POST",
         credentials: "include",
@@ -39,26 +37,29 @@ export default function LoginPage() {
         body: JSON.stringify(formData),
       });
 
-      console.log("Response status:", response.status);
-
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (!response.ok) {
         throw new Error(data.message || "Error al iniciar sesión");
       }
 
-      // Marcar como logueado
       setLoggedIn(data.email);
-      console.log("Login exitoso, redirigiendo...");
       router.push("/admin/turnos");
     } catch (err: any) {
-      console.error("Error en login:", err);
       setError(err.message || "Error de conexión");
     } finally {
       setLoading(false);
     }
   };
+
+  // Mostrar loader mientras verifica sesión
+  if (checking) {
+    return (
+      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-midnight">
+        <div className="text-white/60">Verificando sesión...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-midnight px-6">
