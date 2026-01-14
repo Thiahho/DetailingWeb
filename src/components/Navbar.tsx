@@ -137,37 +137,33 @@ export default function Navbar() {
       </div>
 
       {/* MENÚ MOBILE */}
-      {/* MENÚ MOBILE */}
       {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-[9999] flex flex-col p-6 md:hidden"
-          style={{ backgroundColor: "#09090b" }}
-        >
+        <div className="fixed inset-0 z-[9999] flex flex-col p-6 md:hidden bg-[#0a0a0c]">
           <div className="flex justify-between items-center mb-10">
             <h1 className="text-lg font-bold text-white">MENÚ</h1>
             <button onClick={() => setMobileMenuOpen(false)}>
               <X size={28} className="text-white" />
             </button>
           </div>
-          <nav className="flex flex-col gap-8 text-xl text-center text-white">
+          <nav className="flex flex-col gap-4 text-lg">
             <Link
               href="/#servicios"
               onClick={(e) => handleNavClick(e, "servicios")}
-              className="hover:text-lux transition"
+              className="py-4 px-6 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-lux/50 transition text-center"
             >
               Servicios
             </Link>
             <Link
               href="/#trabajos"
               onClick={(e) => handleNavClick(e, "trabajos")}
-              className="hover:text-lux transition"
+              className="py-4 px-6 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-lux/50 transition text-center"
             >
               Trabajos
             </Link>
             <Link
               href="/#contacto"
               onClick={(e) => handleNavClick(e, "contacto")}
-              className="hover:text-lux transition"
+              className="py-4 px-6 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-lux/50 transition text-center"
             >
               Contacto
             </Link>
@@ -178,8 +174,10 @@ export default function Navbar() {
                     setMobileMenuOpen(false);
                     router.push("/admin/turnos");
                   }}
-                  className={`flex items-center justify-center gap-2 ${
-                    pathname === "/admin/turnos" ? "text-electric" : "text-lux"
+                  className={`flex items-center justify-center gap-2 py-4 px-6 rounded-xl border transition ${
+                    pathname === "/admin/turnos"
+                      ? "bg-electric/20 border-electric text-electric"
+                      : "bg-lux/10 border-lux/50 text-lux"
                   }`}
                 >
                   <Calendar size={20} />
@@ -187,7 +185,7 @@ export default function Navbar() {
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center justify-center gap-2 text-red-400"
+                  className="flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition"
                 >
                   <LogOut size={20} />
                   Cerrar Sesión
@@ -199,7 +197,7 @@ export default function Navbar() {
                   setMobileMenuOpen(false);
                   router.push("/admin/login");
                 }}
-                className="text-lux"
+                className="py-4 px-6 rounded-xl bg-lux/10 border border-lux/50 text-lux hover:bg-lux/20 transition"
               >
                 Admin Login
               </button>
