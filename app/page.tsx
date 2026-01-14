@@ -158,20 +158,20 @@ export default function Home() {
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                {/* <div className="absolute inset-0 bg-gradient-to-t from-midnight/90 via-midnight/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end p-6">
+                <div className="absolute inset-0 bg-gradient-to-t from-midnight/90 via-midnight/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end p-6">
                   <span className="text-lux text-xs uppercase tracking-widest mb-1">
-                    {item.category}
+                    {item.title}
                   </span>
                   <h4 className="text-xl font-bold text-white">{item.title}</h4>
-                </div>*/}
+                </div>
               </div>
-              {/* Información visible siempre si prefieres el estilo de las tarjetas de servicios 
+              {/* Información visible siempre si prefieres el estilo de las tarjetas de servicios */}
               <div className="p-4">
                 <h4 className="text-lg font-medium text-white/90">
                   {item.title}
                 </h4>
-                <p className="text-sm text-white/50">{item.description}</p>
-              </div> */}
+                <p className="text-sm text-white/50">{item.title}</p>
+              </div>
             </article>
           ))}
         </div>
