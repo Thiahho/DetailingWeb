@@ -12,7 +12,6 @@ interface Booking {
   customerPhone: string;
   vehicle: string;
   service: string;
-  status: string;
 }
 
 interface TimeSlot {
@@ -165,8 +164,14 @@ export default function TurnosPage() {
     }
   };
 
-  const releaseSlot = async (id: number) => {
-    if (!confirm("¿Liberar este turno? La reserva será cancelada.")) return;
+  // Habilitar turno (liberar)
+  const habilitarTurno = async (id: number) => {
+    if (
+      !confirm(
+        "¿Habilitar este turno? La reserva será cancelada y el turno volverá a estar disponible."
+      )
+    )
+      return;
 
     try {
       const response = await fetchWithAuth(
@@ -179,68 +184,14 @@ export default function TurnosPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert("✅ Turno liberado exitosamente");
+        alert("✅ Turno habilitado exitosamente");
         loadSlots();
       } else {
-        alert("❌ " + (data.message || "Error al liberar turno"));
+        alert("❌ " + (data.message || "Error al habilitar turno"));
       }
     } catch (error) {
       alert("❌ Error de conexión");
       logError(error);
-    }
-  };
-
-  const updateBookingStatus = async (bookingId: number, status: string) => {
-    try {
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/bookings/${bookingId}/status`,
-        {
-          method: "PUT",
-          body: JSON.stringify({ status }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert(`✅ Estado actualizado a "${status}"`);
-        loadSlots();
-      } else {
-        alert("❌ " + (data.message || "Error al actualizar estado"));
-      }
-    } catch (error) {
-      alert("❌ Error de conexión");
-      logError(error);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return "text-yellow-400";
-      case "Confirmed":
-        return "text-green-400";
-      case "Cancelled":
-        return "text-red-400";
-      case "Completed":
-        return "text-blue-400";
-      default:
-        return "text-white/50";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "Pending":
-        return "⏳ Pendiente";
-      case "Confirmed":
-        return "✅ Confirmado";
-      case "Cancelled":
-        return "❌ Cancelado";
-      case "Completed":
-        return "✔️ Completado";
-      default:
-        return status;
     }
   };
 
@@ -358,18 +309,24 @@ export default function TurnosPage() {
                         ? "bg-electric/20 border-electric"
                         : slot.isAvailable
                         ? "bg-green-500/10 border-green-500/30"
-                        : "bg-red-500/10 border-red-500/30"
+                        : "bg-orange-500/10 border-orange-500/30"
                     }`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="text-white font-medium">{slot.label}</p>
-                        <p className="text-white/50 text-xs mt-1">
-                          {slot.isAvailable ? "✅ Disponible" : "🔴 Reservado"}
+                        <p
+                          className={`text-sm font-semibold mt-1 ${
+                            slot.isAvailable
+                              ? "text-green-400"
+                              : "text-orange-400"
+                          }`}
+                        >
+                          {slot.isAvailable ? "🟢 HABILITADO" : "🟠 RESERVADO"}
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        {slot.isAvailable && slot.bookingsCount === 0 && (
+                        {slot.isAvailable ? (
                           <>
                             <button
                               onClick={() => startEditing(slot)}
@@ -384,21 +341,23 @@ export default function TurnosPage() {
                               Eliminar
                             </button>
                           </>
-                        )}
-                        {!slot.isAvailable && (
+                        ) : (
                           <button
-                            onClick={() => releaseSlot(slot.id)}
-                            className="text-yellow-400 hover:text-yellow-300 text-sm font-medium"
+                            onClick={() => habilitarTurno(slot.id)}
+                            className="px-3 py-1 bg-green-500/20 text-green-400 rounded text-sm font-medium hover:bg-green-500/30"
                           >
-                            Liberar
+                            Habilitar
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Info de la reserva */}
-                    {slot.booking && (
+                    {/* Info de la reserva si está reservado */}
+                    {!slot.isAvailable && slot.booking && (
                       <div className="mt-3 pt-3 border-t border-white/10">
+                        <p className="text-white/50 text-xs mb-2">
+                          Datos de la reserva:
+                        </p>
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div>
                             <span className="text-white/50">Cliente:</span>
@@ -408,9 +367,16 @@ export default function TurnosPage() {
                           </div>
                           <div>
                             <span className="text-white/50">Tel:</span>
-                            <span className="text-white ml-1">
+                            <a
+                              href={`https://wa.me/${slot.booking.customerPhone.replace(
+                                /\D/g,
+                                ""
+                              )}`}
+                              target="_blank"
+                              className="text-green-400 ml-1 hover:underline"
+                            >
                               {slot.booking.customerPhone}
-                            </span>
+                            </a>
                           </div>
                           <div>
                             <span className="text-white/50">Vehículo:</span>
@@ -424,59 +390,6 @@ export default function TurnosPage() {
                               {slot.booking.service}
                             </span>
                           </div>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between">
-                          <span
-                            className={`text-sm font-medium ${getStatusColor(
-                              slot.booking.status
-                            )}`}
-                          >
-                            {getStatusLabel(slot.booking.status)}
-                          </span>
-
-                          {slot.booking.status === "Pending" && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() =>
-                                  updateBookingStatus(
-                                    slot.booking!.id,
-                                    "Confirmed"
-                                  )
-                                }
-                                className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs hover:bg-green-500/30"
-                              >
-                                Confirmar
-                              </button>
-                              <button
-                                onClick={() =>
-                                  updateBookingStatus(
-                                    slot.booking!.id,
-                                    "Cancelled"
-                                  )
-                                }
-                                className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/30"
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          )}
-
-                          {slot.booking.status === "Confirmed" && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() =>
-                                  updateBookingStatus(
-                                    slot.booking!.id,
-                                    "Completed"
-                                  )
-                                }
-                                className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs hover:bg-blue-500/30"
-                              >
-                                Completado
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     )}

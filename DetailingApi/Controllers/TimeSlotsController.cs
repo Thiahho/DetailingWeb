@@ -37,7 +37,7 @@ public class TimeSlotsController : ControllerBase
         return Ok(slots);
     }
 
-    // GET: api/timeslots (admin - todos los turnos)
+    // GET: api/timeslots (admin - todos los turnos con info de reserva)
     [HttpGet]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllSlots()
@@ -60,8 +60,7 @@ public class TimeSlotsController : ControllerBase
                     customerName = b.CustomerName,
                     customerPhone = b.CustomerPhone,
                     vehicle = b.Vehicle,
-                    service = b.Service,
-                    status = b.Status
+                    service = b.Service
                 }).FirstOrDefault()
             })
             .ToListAsync();
@@ -69,7 +68,7 @@ public class TimeSlotsController : ControllerBase
         return Ok(slots);
     }
 
-    // POST: api/timeslots (admin - crear turno manual)
+    // POST: api/timeslots (admin - crear turno)
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateSlot([FromBody] CreateTimeSlotRequest request)
@@ -116,6 +115,7 @@ public class TimeSlotsController : ControllerBase
         });
     }
 
+    // PUT: api/timeslots/5 (admin - editar turno)
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateSlot(int id, [FromBody] UpdateTimeSlotRequest request)
@@ -129,9 +129,10 @@ public class TimeSlotsController : ControllerBase
             return NotFound(new { message = "Turno no encontrado" });
         }
 
-        if (slot.Bookings.Any())
+        // No permitir editar si está reservado
+        if (!slot.IsAvailable)
         {
-            return BadRequest(new { message = "No se puede editar un turno con reservas" });
+            return BadRequest(new { message = "No se puede editar un turno reservado. Habilitalo primero." });
         }
 
         if (request.StartDateTime <= DateTime.Now)
@@ -165,7 +166,7 @@ public class TimeSlotsController : ControllerBase
         });
     }
 
-    // PUT: api/timeslots/5/release (admin - liberar turno)
+    // PUT: api/timeslots/5/release (admin - HABILITAR turno reservado)
     [HttpPut("{id}/release")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ReleaseSlot(int id)
@@ -179,13 +180,13 @@ public class TimeSlotsController : ControllerBase
             return NotFound(new { message = "Turno no encontrado" });
         }
 
-        // Cancelar todas las reservas asociadas
-        foreach (var booking in slot.Bookings)
+        // Eliminar todas las reservas asociadas
+        if (slot.Bookings.Any())
         {
-            booking.Status = "Cancelled";
+            _context.Bookings.RemoveRange(slot.Bookings);
         }
 
-        // Marcar turno como disponible
+        // Marcar turno como HABILITADO
         slot.IsAvailable = true;
 
         await _context.SaveChangesAsync();
@@ -193,30 +194,7 @@ public class TimeSlotsController : ControllerBase
         return Ok(new
         {
             success = true,
-            message = "Turno liberado exitosamente. Las reservas fueron canceladas."
-        });
-    }
-
-    // PUT: api/timeslots/5/block (admin - bloquear turno sin reserva)
-    [HttpPut("{id}/block")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> BlockSlot(int id)
-    {
-        var slot = await _context.TimeSlots.FindAsync(id);
-
-        if (slot == null)
-        {
-            return NotFound(new { message = "Turno no encontrado" });
-        }
-
-        slot.IsAvailable = false;
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new
-        {
-            success = true,
-            message = "Turno bloqueado exitosamente"
+            message = "Turno habilitado exitosamente"
         });
     }
 
@@ -234,9 +212,10 @@ public class TimeSlotsController : ControllerBase
             return NotFound(new { message = "Turno no encontrado" });
         }
 
-        if (slot.Bookings.Any())
+        // No permitir eliminar si está reservado
+        if (!slot.IsAvailable)
         {
-            return BadRequest(new { message = "No se puede eliminar un turno con reservas. Liberalo primero." });
+            return BadRequest(new { message = "No se puede eliminar un turno reservado. Habilitalo primero." });
         }
 
         _context.TimeSlots.Remove(slot);
@@ -246,7 +225,7 @@ public class TimeSlotsController : ControllerBase
     }
 }
 
-// DTO
+// DTOs
 public class CreateTimeSlotRequest
 {
     public DateTime StartDateTime { get; set; }
