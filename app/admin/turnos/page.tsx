@@ -224,8 +224,6 @@ export default function TurnosPage() {
         return "text-red-400";
       case "Completed":
         return "text-blue-400";
-      case "NoShow":
-        return "text-orange-400";
       default:
         return "text-white/50";
     }
@@ -241,8 +239,6 @@ export default function TurnosPage() {
         return "❌ Cancelado";
       case "Completed":
         return "✔️ Completado";
-      case "NoShow":
-        return "🚫 No asistió";
       default:
         return status;
     }
@@ -478,17 +474,6 @@ export default function TurnosPage() {
                                 className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs hover:bg-blue-500/30"
                               >
                                 Completado
-                              </button>
-                              <button
-                                onClick={() =>
-                                  updateBookingStatus(
-                                    slot.booking!.id,
-                                    "NoShow"
-                                  )
-                                }
-                                className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs hover:bg-orange-500/30"
-                              >
-                                No asistió
                               </button>
                             </div>
                           )}

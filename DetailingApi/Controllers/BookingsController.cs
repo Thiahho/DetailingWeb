@@ -180,7 +180,7 @@ public class BookingsController : ControllerBase
             return NotFound(new { message = "Reserva no encontrada" });
         }
 
-        var validStatuses = new[] { "Pending", "Confirmed", "Cancelled", "Completed", "NoShow" };
+        var validStatuses = new[] { "Pending", "Confirmed", "Cancelled", "Completed" };
         if (!validStatuses.Contains(request.Status))
         {
             return BadRequest(new { message = "Estado inválido" });
@@ -190,7 +190,7 @@ public class BookingsController : ControllerBase
         booking.Status = request.Status;
 
         // Si se cancela o no asistió, liberar el turno
-        if (request.Status == "Cancelled" || request.Status == "NoShow")
+        if (request.Status == "Cancelled" )
         {
             booking.TimeSlot.IsAvailable = true;
         }
@@ -205,7 +205,7 @@ public class BookingsController : ControllerBase
             {
                 id = booking.Id,
                 status = booking.Status,
-                timeSlotReleased = request.Status == "Cancelled" || request.Status == "NoShow"
+                timeSlotReleased = request.Status == "Cancelled"
             }
         });
     }
