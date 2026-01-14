@@ -53,7 +53,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col bg-midnight">
       {/* HEADER */}
-      <header className="w-full border-b border-white/5 bg-midnight/50 backdrop-blur-md">
+      {/* <header className="w-full border-b border-white/5 bg-midnight/50 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <Link
             href="/"
@@ -76,7 +76,7 @@ export default function LoginPage() {
             </div>
           </Link>
 
-          {/* Botón hamburguesa - solo mobile */}
+          {/* Botón hamburguesa - solo mobile *
           <button
             className="flex items-center justify-center p-2 text-white/70 transition hover:text-white md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -85,7 +85,7 @@ export default function LoginPage() {
             {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
 
-          {/* Nav desktop */}
+          {/* Nav desktop *
           <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
             <Link className="transition hover:text-white" href="/#servicios">
               Servicios
@@ -104,7 +104,7 @@ export default function LoginPage() {
             </Link>
           </nav>
         </div>
-      </header>
+      </header> */}
 
       {/* Menú mobile desplegable */}
       {mobileMenuOpen && (
