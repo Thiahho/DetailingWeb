@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import BookingForm from "../src/components/BookingForms";
-import { packs } from "../src/lib/data"; // Importamos solo lo necesario
+import { packs, gallery } from "../src/lib/data"; // Importamos solo lo necesario
 
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
+  const [visibleGallery, setVisibleGallery] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
   const packsToShow = packs.slice(0, visiblePacks);
-  const gallery = packs.slice(0, visiblePacks);
+  const galleryToShow = gallery.slice(0, visibleGallery);
 
   const reels = [
     "https://www.youtube.com/shorts/mj2ssaWQoSM",
@@ -120,21 +121,21 @@ export default function Home() {
 
         {/* Contenedor de la grilla */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {gallery.map((item, index) => (
+          {galleryToShow.map((galleryItem) => (
             <article
-              key={index}
+              key={galleryItem.title}
               className="glass-card group overflow-hidden border border-white/10 p-4"
             >
               <div className="relative aspect-video overflow-hidden rounded-xl">
                 <img
-                  src={item.image}
-                  alt={item.title}
+                  src={galleryItem.image}
+                  alt={galleryItem.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               </div>
               <div className="mt-4">
                 <h4 className="text-lg font-medium text-white/90 group-hover:text-lux transition-colors">
-                  {item.title}
+                  {galleryItem.title}
                 </h4>
                 <p className="text-xs uppercase tracking-widest text-white/40 mt-1">
                   Detalle Premium
