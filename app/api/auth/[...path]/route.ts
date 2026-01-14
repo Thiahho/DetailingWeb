@@ -9,6 +9,15 @@ export async function POST(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path.join("/");
+
+  // Logout: borrar cookie y retornar
+  if (path === "logout") {
+    const response = NextResponse.json({ message: "Sesión cerrada" });
+    response.cookies.delete("token");
+    return response;
+  }
+
+  // Para otras rutas (login), parsear el body
   const body = await request.json();
 
   try {
@@ -37,7 +46,7 @@ export async function POST(
           {
             httpOnly: true,
             secure: true,
-            sameSite: "lax", // Ahora puede ser 'lax' porque es same-origin
+            sameSite: "lax",
             maxAge: 60 * 60, // 1 hora
             path: "/",
           }
