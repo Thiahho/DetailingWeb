@@ -1,29 +1,18 @@
-import "./globals.css";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Detailing premium en Zona Oeste | Moreno",
-  description:
-    "Detailing premium con resultados visibles. Cerámico, PPF y limpieza profunda con turnos rápidos por WhatsApp.",
-  metadataBase: new URL("https://detailing-zonaoeste.example"),
-  openGraph: {
-    title: "Detailing premium en Zona Oeste",
-    description: "Antes y después reales. Protección cerámica, PPF y turnos rápidos.",
-    url: "https://detailing-zonaoeste.example",
-    siteName: "Detailing Zona Oeste",
-    locale: "es_AR",
-    type: "website"
-  }
-};
+// app/layout.tsx
+import Navbar from "../src/components/Navbar";
 
 export default function RootLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" className="scroll-smooth">
+      <body>
+        <Navbar />
+        {/* pt-20 para dar espacio al header fijo */}
+        <div className="pt-20">{children}</div>
+      </body>
     </html>
   );
 }

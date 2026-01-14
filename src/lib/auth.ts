@@ -16,13 +16,21 @@ export function logout(): void {
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = getToken();
+  // const token = getToken();
 
+  // return fetch(url, {
+  //   ...options,
+  //   headers: {
+  //     ...options.headers,
+  //     Authorization: `Bearer ${token}`,
+  //     "Content-Type": "application/json",
+  //   },
+  // });
   return fetch(url, {
     ...options,
+    credentials: "include",
     headers: {
       ...options.headers,
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   });

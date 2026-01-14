@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 import BookingForm from "../src/components/BookingForms";
-import { packs, gallery, testimonials, faqs } from "../src/lib/data";
-import { LogIn, Menu, X } from "lucide-react";
-import Link from "next/link";
+import { packs } from "../src/lib/data"; // Solo importamos lo necesario
 
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const packsToShow = packs.slice(0, visiblePacks);
 
   const reels = [
@@ -32,145 +29,13 @@ export default function Home() {
     }, 100);
   };
 
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false);
-  };
-
   return (
     <main className="min-h-screen bg-midnight text-slate-100">
+      {/* ELIMINADO: El <header> y el menú mobile ya no van aquí. 
+          Ahora están en src/components/Navbar.tsx y se renderizan desde layout.tsx 
+      */}
+
       <div className="hero-grid">
-        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="flex items-center gap-3 transition hover:opacity-80"
-            >
-              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
-                <img
-                  src="/img/logowhite.webp"
-                  alt="LK Detailing Logo"
-                  className="h-full w-full object-contain p-1.5"
-                />
-              </div>
-              <div>
-                <p className="text-sm uppercase tracking-[0.35em] text-white/60">
-                  Detailing premium
-                </p>
-                <h1 className="text-lg font-semibold">Zona Oeste | Moreno</h1>
-              </div>
-            </Link>
-          </div>
-
-          {/* Botón hamburguesa - solo mobile */}
-          <button
-            className="flex items-center justify-center p-2 text-white/70 transition hover:text-white md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Menú"
-          >
-            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
-
-          {/* Nav desktop */}
-          <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
-            <a className="transition hover:text-white" href="#servicios">
-              Servicios
-            </a>
-            <a className="transition hover:text-white" href="#trabajos">
-              Trabajos
-            </a>
-            <a className="transition hover:text-white" href="#faq">
-              FAQ
-            </a>
-            <a
-              className="rounded-full border border-white/10 px-4 py-2 transition hover:border-lux/60"
-              href="#contacto"
-            >
-              Contacto
-            </a>
-            <a
-              className="flex items-center gap-2 transition hover:text-white"
-              href="/admin/login"
-              title="Iniciar sesión"
-            >
-              <LogIn size={20} strokeWidth={1.5} />
-              <span className="sr-only">Iniciar sesión</span>
-            </a>
-          </nav>
-        </header>
-
-        {/* Menú mobile desplegable */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-midnight/95 backdrop-blur-sm md:hidden">
-            <div className="flex items-center justify-between px-6 py-6">
-              <Link
-                href="/"
-                className="flex items-center gap-3"
-                onClick={closeMobileMenu}
-              >
-                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
-                  <img
-                    src="/img/logowhite.webp"
-                    alt="LK Detailing Logo"
-                    className="h-full w-full object-contain p-1.5"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm uppercase tracking-[0.35em] text-white/60">
-                    Detailing premium
-                  </p>
-                  <h1 className="text-lg font-semibold">Zona Oeste | Moreno</h1>
-                </div>
-              </Link>
-              <button
-                className="p-2 text-white/70 transition hover:text-white"
-                onClick={closeMobileMenu}
-                aria-label="Cerrar menú"
-              >
-                <X size={28} />
-              </button>
-            </div>
-
-            <nav className="flex flex-col items-center gap-6 px-6 pt-10 text-lg">
-              <a
-                className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
-                href="#servicios"
-                onClick={closeMobileMenu}
-              >
-                Servicios
-              </a>
-              <a
-                className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
-                href="#trabajos"
-                onClick={closeMobileMenu}
-              >
-                Trabajos
-              </a>
-              <a
-                className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
-                href="#faq"
-                onClick={closeMobileMenu}
-              >
-                FAQ
-              </a>
-              <a
-                className="w-full text-center py-3 rounded-full border border-lux/60 text-lux transition hover:bg-lux/10"
-                href="#contacto"
-                onClick={closeMobileMenu}
-              >
-                Contacto
-              </a>
-              <a
-                className="flex items-center gap-2 py-3 text-white/70 transition hover:text-white"
-                href="/admin/login"
-                onClick={closeMobileMenu}
-              >
-                <LogIn size={20} strokeWidth={1.5} />
-                <span>Iniciar sesión</span>
-              </a>
-            </nav>
-          </div>
-        )}
-
         <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-10 md:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <span className="badge">Auto detailing premium</span>
@@ -276,6 +141,13 @@ export default function Home() {
         )}
       </section>
 
+      {/* SECCIÓN TRABAJOS (Aquí puedes mapear tu galería si la tienes) */}
+      <section id="trabajos" className="mx-auto max-w-6xl px-6 py-16">
+        <span className="badge">Nuestros Trabajos</span>
+        <h3 className="text-3xl font-semibold mb-8">Galería de resultados</h3>
+        {/* Aquí iría tu componente de galería */}
+      </section>
+
       {/* SECCIÓN REELS */}
       <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
         <div>
@@ -360,19 +232,6 @@ export default function Home() {
           Reservar
         </a>
       </div>
-
-      {/* SEO SCHEMA */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "AutoRepair",
-            name: "Detailing premium Zona Oeste",
-            address: { "@type": "PostalAddress", addressLocality: "Moreno" },
-          }),
-        }}
-      />
     </main>
   );
 }

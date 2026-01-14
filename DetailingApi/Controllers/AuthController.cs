@@ -28,7 +28,21 @@ public class AuthController : ControllerBase
             if (response == null)
                 return Unauthorized(new { message = "Email o contraseña incorrectos" });
 
-            return Ok(response);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddHours(1),
+                SameSite = SameSiteMode.None,
+                Secure = true,
+                Path="/"
+            };
+
+            Response.Cookies.Append("token", response.Token, cookieOptions);
+            return Ok(new
+            {
+              email=response.Email,
+              role=response.Role,  
+            });
         }
         catch (Exception ex)
         {
@@ -78,6 +92,12 @@ public class AuthController : ControllerBase
         });
     }
 
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("token");
+        return Ok(new { message = "Sesión cerrada" });
+    }
     // POST: api/auth/change-password
     [Authorize]
     [HttpPost("change-password")]
