@@ -105,33 +105,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-      {/* SECCIÓN REELS */}
-      <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-        <div>
-          <span className="badge">Reels destacados</span>
-          <h3 className="text-3xl font-semibold">Contenido destacado</h3>
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {reels.map((link) => (
-            <div key={link} className="glass-card overflow-hidden p-4">
-              <p className="mb-4 text-xs uppercase tracking-[0.2em] text-white/60">
-                Video destacado
-              </p>
-              <div className="flex justify-center bg-black/20 rounded-xl overflow-hidden aspect-[9/16] w-full">
-                <iframe
-                  src={getEmbedUrl(link)}
-                  title="YouTube Video"
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* SECCIÓN TRABAJOS REALIZADOS */}
       <section
         id="trabajos"
@@ -176,6 +149,33 @@ export default function Home() {
           ))}
         </div>
       </section>
+      {/* SECCIÓN REELS */}
+      <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
+        <div>
+          <span className="badge">Reels destacados</span>
+          <h3 className="text-3xl font-semibold">Contenido destacado</h3>
+        </div>
+
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {reels.map((link) => (
+            <div key={link} className="glass-card overflow-hidden p-4">
+              <p className="mb-4 text-xs uppercase tracking-[0.2em] text-white/60">
+                Video destacado
+              </p>
+              <div className="flex justify-center bg-black/20 rounded-xl overflow-hidden aspect-[9/16] w-full">
+                <iframe
+                  src={getEmbedUrl(link)}
+                  title="YouTube Video"
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* SECCIÓN CONTACTO */}
       <section
         id="contacto"
