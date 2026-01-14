@@ -5,7 +5,7 @@ public class Booking
     public int Id { get; set; }
     public int TimeSlotId { get; set; }
     public TimeSlot TimeSlot { get; set; } = null!;
-    
+    public string? Service{get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public string Vehicle { get; set; } = string.Empty;

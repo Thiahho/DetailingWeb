@@ -30,7 +30,6 @@ public class TimeSlotsController : ControllerBase
                 id = s.Id,
                 startDateTime = s.StartDateTime,
                 endDateTime = s.EndDateTime,
-                // Cambiar formato: solo mostrar día y hora
                 label = s.StartDateTime.ToString("ddd dd/MMM · HH:mm", new System.Globalization.CultureInfo("es-AR"))
             })
             .ToListAsync();
@@ -44,6 +43,7 @@ public class TimeSlotsController : ControllerBase
     public async Task<IActionResult> GetAllSlots()
     {
         var slots = await _context.TimeSlots
+            .Include(t => t.Bookings)
             .OrderBy(t => t.StartDateTime)
             .Select(s => new
             {
@@ -52,8 +52,17 @@ public class TimeSlotsController : ControllerBase
                 endDateTime = s.EndDateTime,
                 isAvailable = s.IsAvailable,
                 bookingsCount = s.Bookings.Count,
-                // Cambiar formato admin
-                label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR"))
+                label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
+                // Info de la reserva si existe
+                booking = s.Bookings.Select(b => new
+                {
+                    id = b.Id,
+                    customerName = b.CustomerName,
+                    customerPhone = b.CustomerPhone,
+                    vehicle = b.Vehicle,
+                    service = b.Service,
+                    status = b.Status
+                }).FirstOrDefault()
             })
             .ToListAsync();
 
@@ -65,19 +74,16 @@ public class TimeSlotsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateSlot([FromBody] CreateTimeSlotRequest request)
     {
-        // Validar que la fecha sea futura
         if (request.StartDateTime <= DateTime.Now)
         {
             return BadRequest(new { message = "La fecha debe ser futura" });
         }
 
-        // Validar que el final sea después del inicio
         if (request.EndDateTime <= request.StartDateTime)
         {
             return BadRequest(new { message = "La hora de fin debe ser posterior al inicio" });
         }
 
-        // Verificar que no exista un turno en el mismo horario
         var exists = await _context.TimeSlots
             .AnyAsync(t => t.StartDateTime == request.StartDateTime);
 
@@ -123,19 +129,16 @@ public class TimeSlotsController : ControllerBase
             return NotFound(new { message = "Turno no encontrado" });
         }
 
-        // No permitir editar si tiene reservas
         if (slot.Bookings.Any())
         {
             return BadRequest(new { message = "No se puede editar un turno con reservas" });
         }
 
-        // Validar que la fecha sea futura
         if (request.StartDateTime <= DateTime.Now)
         {
             return BadRequest(new { message = "La fecha debe ser futura" });
         }
 
-        // Verificar que no exista otro turno en el mismo horario
         var exists = await _context.TimeSlots
             .AnyAsync(t => t.StartDateTime == request.StartDateTime && t.Id != id);
 
@@ -144,9 +147,8 @@ public class TimeSlotsController : ControllerBase
             return BadRequest(new { message = "Ya existe otro turno en este horario" });
         }
 
-        // Actualizar
         slot.StartDateTime = request.StartDateTime;
-        slot.EndDateTime = request.StartDateTime.AddHours(2); // 2 horas después
+        slot.EndDateTime = request.StartDateTime.AddHours(2);
 
         await _context.SaveChangesAsync();
 
@@ -162,6 +164,62 @@ public class TimeSlotsController : ControllerBase
             }
         });
     }
+
+    // PUT: api/timeslots/5/release (admin - liberar turno)
+    [HttpPut("{id}/release")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ReleaseSlot(int id)
+    {
+        var slot = await _context.TimeSlots
+            .Include(t => t.Bookings)
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (slot == null)
+        {
+            return NotFound(new { message = "Turno no encontrado" });
+        }
+
+        // Cancelar todas las reservas asociadas
+        foreach (var booking in slot.Bookings)
+        {
+            booking.Status = "Cancelled";
+        }
+
+        // Marcar turno como disponible
+        slot.IsAvailable = true;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Turno liberado exitosamente. Las reservas fueron canceladas."
+        });
+    }
+
+    // PUT: api/timeslots/5/block (admin - bloquear turno sin reserva)
+    [HttpPut("{id}/block")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> BlockSlot(int id)
+    {
+        var slot = await _context.TimeSlots.FindAsync(id);
+
+        if (slot == null)
+        {
+            return NotFound(new { message = "Turno no encontrado" });
+        }
+
+        slot.IsAvailable = false;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Turno bloqueado exitosamente"
+        });
+    }
+
     // DELETE: api/timeslots/5 (admin - eliminar turno)
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
@@ -176,10 +234,9 @@ public class TimeSlotsController : ControllerBase
             return NotFound(new { message = "Turno no encontrado" });
         }
 
-        // No permitir eliminar si tiene reservas
         if (slot.Bookings.Any())
         {
-            return BadRequest(new { message = "No se puede eliminar un turno con reservas" });
+            return BadRequest(new { message = "No se puede eliminar un turno con reservas. Liberalo primero." });
         }
 
         _context.TimeSlots.Remove(slot);

@@ -3,6 +3,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { API_BASE_URL } from "../lib/config";
 import { logError } from "../lib/logger";
+import { packs } from "../lib/data";
 
 interface TimeSlot {
   id: number;
@@ -17,6 +18,7 @@ export default function BookingForm() {
     vehicle: "",
     whatsapp: "",
     selectedSlotId: null as number | null,
+    selectedService: "",
     message: "",
   });
 
@@ -32,9 +34,7 @@ export default function BookingForm() {
 
   const loadAvailableSlots = async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/timeslots/available`
-      );
+      const response = await fetch(`${API_BASE_URL}/api/timeslots/available`);
       if (response.ok) {
         const data = await response.json();
         setTimeSlots(data);
@@ -56,13 +56,14 @@ export default function BookingForm() {
       return;
     }
 
+    if (!formData.selectedService) {
+      alert("Por favor seleccioná un servicio");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const selectedSlot = timeSlots.find(
-        (s) => s.id === formData.selectedSlotId
-      );
-
       const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,6 +72,7 @@ export default function BookingForm() {
           customerName: formData.name,
           customerPhone: formData.whatsapp,
           vehicle: formData.vehicle,
+          service: formData.selectedService,
           message: formData.message,
         }),
       });
@@ -78,13 +80,8 @@ export default function BookingForm() {
       const data = await response.json();
 
       if (data.success || response.ok) {
-        alert("✅ Turno agendado exitosamente!");
-
-        // WhatsApp opcional
-        const whatsappMsg = `Turno confirmado para ${formData.vehicle} el ${selectedSlot?.label}`;
-        window.open(
-          `https://wa.me/5491112345678?text=${encodeURIComponent(whatsappMsg)}`,
-          "_blank"
+        alert(
+          "✅ Turno agendado exitosamente! Nos pondremos en contacto para confirmar."
         );
 
         // Limpiar formulario
@@ -93,6 +90,7 @@ export default function BookingForm() {
           vehicle: "",
           whatsapp: "",
           selectedSlotId: null,
+          selectedService: "",
           message: "",
         });
 
@@ -111,6 +109,7 @@ export default function BookingForm() {
 
   const slotsToShow = timeSlots.slice(0, visibleSlots);
   const selectedSlot = timeSlots.find((s) => s.id === formData.selectedSlotId);
+  const selectedPack = packs.find((p) => p.slug === formData.selectedService);
 
   if (loading) {
     return (
@@ -189,6 +188,35 @@ export default function BookingForm() {
         />
       </div>
 
+      {/* Selector de Servicio */}
+      <div>
+        <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
+          Seleccioná el servicio
+        </label>
+        <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+          {packs.map((pack) => (
+            <button
+              key={pack.slug}
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, selectedService: pack.slug }))
+              }
+              className={`rounded-lg border px-4 py-3 text-left transition ${
+                formData.selectedService === pack.slug
+                  ? "border-lux bg-lux/20 text-lux"
+                  : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
+              }`}
+            >
+              <span className="block text-sm font-medium">{pack.title}</span>
+              <span className="block text-xs text-white/50 mt-1">
+                {pack.price} · {pack.time}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Selector de Turno */}
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
           Seleccioná tu turno
@@ -225,15 +253,14 @@ export default function BookingForm() {
 
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50">
-          Consulta
+          Consulta adicional (opcional)
         </label>
         <textarea
-          className="form-input mt-2 min-h-[140px]"
+          className="form-input mt-2 min-h-[100px]"
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, message: e.target.value }))
           }
-          placeholder="¿Qué servicio buscás?"
-          required
+          placeholder="¿Algún detalle adicional?"
           value={formData.message}
         />
       </div>
@@ -241,15 +268,19 @@ export default function BookingForm() {
       <button
         className="w-full rounded-full bg-electric px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
         type="submit"
-        disabled={submitting || !formData.selectedSlotId}
+        disabled={
+          submitting || !formData.selectedSlotId || !formData.selectedService
+        }
       >
         {submitting ? "Agendando..." : "Agendar turno"}
       </button>
 
-      {selectedSlot && (
-        <p className="text-center text-xs text-white/50">
-          Turno seleccionado: {selectedSlot.label}
-        </p>
+      {/* Resumen de selección */}
+      {(selectedSlot || selectedPack) && (
+        <div className="text-center text-xs text-white/50 space-y-1">
+          {selectedPack && <p>Servicio: {selectedPack.title}</p>}
+          {selectedSlot && <p>Turno: {selectedSlot.label}</p>}
+        </div>
       )}
     </form>
   );
