@@ -24,11 +24,9 @@ public class GoogleCalendarService
 
     private async Task EnsureCredentialsFileExists()
     {
-        // Si el archivo existe, no hacer nada
         if (File.Exists(_credentialsPath))
             return;
 
-        // Intentar crear desde variable de entorno
         var credentialsJson = _configuration["Google:CredentialsJson"];
         if (!string.IsNullOrEmpty(credentialsJson))
         {
@@ -48,11 +46,9 @@ public class GoogleCalendarService
         var tokenPath = Path.Combine(_env.ContentRootPath, "token.json");
         var tokenFile = Path.Combine(tokenPath, "Google.Apis.Auth.OAuth2.Responses.TokenResponse-user");
 
-        // Si el archivo existe, no hacer nada
         if (File.Exists(tokenFile))
             return;
 
-        // Intentar crear desde variable de entorno
         var tokenJson = _configuration["Google:TokenJson"];
         if (!string.IsNullOrEmpty(tokenJson))
         {
@@ -68,7 +64,6 @@ public class GoogleCalendarService
 
     public async Task<string> CrearTurnoAsync(TurnoRequest turno)
     {
-        // Asegurar que los archivos existan (desde variables de entorno si es necesario)
         await EnsureCredentialsFileExists();
         await EnsureTokenFileExists();
 
@@ -101,23 +96,36 @@ public class GoogleCalendarService
         }
 
         // Crear mensaje para WhatsApp
-        var whatsappMessage = $"Hola {turno.Name}! Te contactamos de Detailing Zona Oeste por tu turno. " +
-                             $"Vehículo: {turno.Vehicle}. " +
-                             $"{turno.Message}";
-        
+        var whatsappMessage = $"Hola {turno.Name}! Te contactamos de Detailing Zona Oeste por tu turno. Vehículo: {turno.Vehicle}. {turno.Message}";
         var whatsappMessageEncoded = HttpUtility.UrlEncode(whatsappMessage);
-        var whatsappLink = $"https://api.whatsapp.com/send/?phone={phoneClean}&text={whatsappMessageEncoded}&type=phone_number&app_absent=0";
+        
+        // Link directo de WhatsApp
+        var whatsappLink = $"https://wa.me/{phoneClean}?text={whatsappMessageEncoded}";
 
-        // Descripción del evento con link de WhatsApp clickeable
-        var descripcion = $"👤 Cliente: {turno.Name}\n" +
-                         $"📱 WhatsApp: {turno.WhatsApp}\n" +
-                         $"🔗 Contactar: {whatsappLink}\n" +
-                         $"🚗 Vehículo: {turno.Vehicle}\n" +
-                         $"📝 Detalle: {turno.Message}";
+        // Descripción del evento con formato claro
+        var descripcion = $@"═══════════════════════════
+📋 DATOS DEL CLIENTE
+═══════════════════════════
+
+👤 Nombre: {turno.Name}
+🚗 Vehículo: {turno.Vehicle}
+📝 Servicio: {turno.Message}
+
+═══════════════════════════
+📱 CONTACTAR POR WHATSAPP
+═══════════════════════════
+
+Teléfono: {turno.WhatsApp}
+Número completo: +{phoneClean}
+
+🔗 Click para enviar mensaje:
+{whatsappLink}
+
+═══════════════════════════";
 
         var evento = new Event
         {
-            Summary = $"🚗 Detailing - {turno.Vehicle}",
+            Summary = $"🚗 {turno.Vehicle} - {turno.Name}",
             Description = descripcion,
             Location = "Moreno, Zona Oeste, Buenos Aires",
             Start = new EventDateTime
