@@ -1,26 +1,35 @@
 "use client";
 
 import { useState } from "react";
-// Path de importación según tu estructura
 import BookingForm from "../src/components/BookingForms";
 import { packs, gallery, testimonials, faqs } from "../src/lib/data";
 import { LogIn } from "lucide-react";
-import { InstagramEmbed } from "react-social-media-embed";
-import Image from "next/image";
 
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
+  const [preselectedService, setPreselectedService] = useState("");
   const packsToShow = packs.slice(0, visiblePacks);
 
   const reels = [
-    "https://www.youtube.com/shorts/mj2ssaWQoSM", // Tu primer video
-    "https://youtube.com/shorts/iBBjQgkdPVU", // Tu segundo video
+    "https://www.youtube.com/shorts/mj2ssaWQoSM",
+    "https://youtube.com/shorts/iBBjQgkdPVU",
   ];
-  // Definimos los links de los reels aquí adentro
-  const getEmbedUrl = (link) => {
-    // Cambia 'shorts/' o 'watch?v=' por 'embed/'
-    const videoId = link.split("/").pop().split("?v=").pop();
+
+  const getEmbedUrl = (link: string) => {
+    const videoId = link.split("/").pop()?.split("?v=").pop();
     return `https://www.youtube.com/embed/${videoId}`;
+  };
+
+  // Función para seleccionar servicio y hacer scroll al formulario
+  const handlePresupuestar = (slug: string) => {
+    setPreselectedService(slug);
+    // Pequeño delay para asegurar que el estado se actualizó
+    setTimeout(() => {
+      const contactSection = document.getElementById("contacto");
+      if (contactSection) {
+        contactSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
   };
 
   return (
@@ -104,9 +113,9 @@ export default function Home() {
               </h3>
             </div>
             <div className="space-y-3 text-sm text-white/70">
-              <p>✔ Limpieza total y detallado con acabados premium.</p>
-              <p>✔ Protección real con cerámico y PPF garantizado.</p>
-              <p>✔ Atención rápida y turnos coordinados por WhatsApp.</p>
+              <p>✓ Limpieza total y detallado con acabados premium.</p>
+              <p>✓ Protección real con cerámico y PPF garantizado.</p>
+              <p>✓ Atención rápida y turnos coordinados por WhatsApp.</p>
             </div>
           </div>
         </section>
@@ -151,19 +160,30 @@ export default function Home() {
                 <span className="text-lg font-semibold text-lux">
                   {pack.price}
                 </span>
-                <a
+                <button
+                  onClick={() => handlePresupuestar(pack.slug)}
                   className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase text-white/60 hover:text-white hover:border-lux/50 transition"
-                  href="#contacto"
                 >
                   Presupuestar
-                </a>
+                </button>
               </div>
             </article>
           ))}
         </div>
+
+        {visiblePacks < packs.length && (
+          <div className="text-center">
+            <button
+              onClick={() => setVisiblePacks((prev) => prev + 3)}
+              className="rounded-full border border-white/10 px-6 py-3 text-sm text-white/60 hover:text-white hover:border-lux/50 transition"
+            >
+              Ver más servicios ({packs.length - visiblePacks} más)
+            </button>
+          </div>
+        )}
       </section>
 
-      {/* SECCIÓN REELS (Integrada correctamente) */}
+      {/* SECCIÓN REELS */}
       <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
         <div>
           <span className="badge">Reels destacados</span>
@@ -171,8 +191,6 @@ export default function Home() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {" "}
-          {/* Agregué 3 columnas opcional */}
           {reels.map((link) => (
             <div key={link} className="glass-card overflow-hidden p-4">
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-white/60">
@@ -224,7 +242,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <BookingForm />
+        <BookingForm preselectedService={preselectedService} />
       </section>
 
       <footer className="border-t border-white/5 px-6 py-10 text-center text-xs text-white/50">

@@ -5,6 +5,7 @@ using Google.Apis.Services;
 using Microsoft.Extensions.Options;
 using Google.Apis.Util.Store;
 using DetailingApi.Models;
+using System.Web;
 
 namespace DetailingApi.Services;
 
@@ -90,23 +91,45 @@ public class GoogleCalendarService
             ApplicationName = "Detailing Zona Oeste"
         });
 
+        // Limpiar número de teléfono (solo dígitos)
+        var phoneClean = new string(turno.WhatsApp.Where(char.IsDigit).ToArray());
+        
+        // Si no empieza con 54, agregarlo (Argentina)
+        if (!phoneClean.StartsWith("54"))
+        {
+            phoneClean = "54" + phoneClean;
+        }
+
+        // Crear mensaje para WhatsApp
+        var whatsappMessage = $"Hola {turno.Name}! Te contactamos de Detailing Zona Oeste por tu turno. " +
+                             $"Vehículo: {turno.Vehicle}. " +
+                             $"{turno.Message}";
+        
+        var whatsappMessageEncoded = HttpUtility.UrlEncode(whatsappMessage);
+        var whatsappLink = $"https://api.whatsapp.com/send/?phone={phoneClean}&text={whatsappMessageEncoded}&type=phone_number&app_absent=0";
+
+        // Descripción del evento con link de WhatsApp clickeable
+        var descripcion = $"👤 Cliente: {turno.Name}\n" +
+                         $"📱 WhatsApp: {turno.WhatsApp}\n" +
+                         $"🔗 Contactar: {whatsappLink}\n" +
+                         $"🚗 Vehículo: {turno.Vehicle}\n" +
+                         $"📝 Detalle: {turno.Message}";
+
         var evento = new Event
         {
-            Summary = $"Detailing - {turno.Vehicle}",
-            Description = $"Cliente: {turno.Name}\n" +
-                         $"WhatsApp: {turno.WhatsApp}\n" +
-                         $"Consulta: {turno.Message}",
+            Summary = $"🚗 Detailing - {turno.Vehicle}",
+            Description = descripcion,
             Location = "Moreno, Zona Oeste, Buenos Aires",
             Start = new EventDateTime
-{
-    DateTimeDateTimeOffset = new DateTimeOffset(turno.DateTime), // ✅ CORRECTO
-    TimeZone = "America/Argentina/Buenos_Aires"
-},
-End = new EventDateTime
-{
-    DateTimeDateTimeOffset = new DateTimeOffset(turno.DateTime.AddHours(2)), // ✅ CORRECTO
-    TimeZone = "America/Argentina/Buenos_Aires"
-},
+            {
+                DateTimeDateTimeOffset = new DateTimeOffset(turno.DateTime),
+                TimeZone = "America/Argentina/Buenos_Aires"
+            },
+            End = new EventDateTime
+            {
+                DateTimeDateTimeOffset = new DateTimeOffset(turno.DateTime.AddHours(2)),
+                TimeZone = "America/Argentina/Buenos_Aires"
+            },
             Reminders = new Event.RemindersData
             {
                 UseDefault = false,

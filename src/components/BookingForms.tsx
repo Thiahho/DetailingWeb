@@ -12,7 +12,11 @@ interface TimeSlot {
   label: string;
 }
 
-export default function BookingForm() {
+interface BookingFormProps {
+  preselectedService?: string;
+}
+
+export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     vehicle: "",
@@ -31,6 +35,13 @@ export default function BookingForm() {
   useEffect(() => {
     loadAvailableSlots();
   }, []);
+
+  // Actualizar servicio cuando cambia la prop preselectedService
+  useEffect(() => {
+    if (preselectedService) {
+      setFormData((prev) => ({ ...prev, selectedService: preselectedService }));
+    }
+  }, [preselectedService]);
 
   const loadAvailableSlots = async () => {
     try {
