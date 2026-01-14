@@ -3,12 +3,13 @@
 import { useState } from "react";
 import BookingForm from "../src/components/BookingForms";
 import { packs, gallery, testimonials, faqs } from "../src/lib/data";
-import { LogIn } from "lucide-react";
-import Link from "next/link"; // Usamos Link de Next.js para mejor navegación
+import { LogIn, Menu, X } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const packsToShow = packs.slice(0, visiblePacks);
 
   const reels = [
@@ -21,16 +22,18 @@ export default function Home() {
     return `https://www.youtube.com/embed/${videoId}`;
   };
 
-  // Función para seleccionar servicio y hacer scroll al formulario
   const handlePresupuestar = (slug: string) => {
     setPreselectedService(slug);
-    // Pequeño delay para asegurar que el estado se actualizó
     setTimeout(() => {
       const contactSection = document.getElementById("contacto");
       if (contactSection) {
         contactSection.scrollIntoView({ behavior: "smooth" });
       }
     }, 100);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -57,6 +60,17 @@ export default function Home() {
               </div>
             </Link>
           </div>
+
+          {/* Botón hamburguesa - solo mobile */}
+          <button
+            className="flex items-center justify-center p-2 text-white/70 transition hover:text-white md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Menú"
+          >
+            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+
+          {/* Nav desktop */}
           <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
             <a className="transition hover:text-white" href="#servicios">
               Servicios
@@ -83,6 +97,79 @@ export default function Home() {
             </a>
           </nav>
         </header>
+
+        {/* Menú mobile desplegable */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 bg-midnight/95 backdrop-blur-sm md:hidden">
+            <div className="flex items-center justify-between px-6 py-6">
+              <Link
+                href="/"
+                className="flex items-center gap-3"
+                onClick={closeMobileMenu}
+              >
+                <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
+                  <img
+                    src="/img/logowhite.webp"
+                    alt="LK Detailing Logo"
+                    className="h-full w-full object-contain p-1.5"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-[0.35em] text-white/60">
+                    Detailing premium
+                  </p>
+                  <h1 className="text-lg font-semibold">Zona Oeste | Moreno</h1>
+                </div>
+              </Link>
+              <button
+                className="p-2 text-white/70 transition hover:text-white"
+                onClick={closeMobileMenu}
+                aria-label="Cerrar menú"
+              >
+                <X size={28} />
+              </button>
+            </div>
+
+            <nav className="flex flex-col items-center gap-6 px-6 pt-10 text-lg">
+              <a
+                className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
+                href="#servicios"
+                onClick={closeMobileMenu}
+              >
+                Servicios
+              </a>
+              <a
+                className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
+                href="#trabajos"
+                onClick={closeMobileMenu}
+              >
+                Trabajos
+              </a>
+              <a
+                className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
+                href="#faq"
+                onClick={closeMobileMenu}
+              >
+                FAQ
+              </a>
+              <a
+                className="w-full text-center py-3 rounded-full border border-lux/60 text-lux transition hover:bg-lux/10"
+                href="#contacto"
+                onClick={closeMobileMenu}
+              >
+                Contacto
+              </a>
+              <a
+                className="flex items-center gap-2 py-3 text-white/70 transition hover:text-white"
+                href="/admin/login"
+                onClick={closeMobileMenu}
+              >
+                <LogIn size={20} strokeWidth={1.5} />
+                <span>Iniciar sesión</span>
+              </a>
+            </nav>
+          </div>
+        )}
 
         <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-10 md:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
@@ -221,7 +308,7 @@ export default function Home() {
         id="contacto"
         className="mx-auto max-w-6xl gap-10 px-6 py-16 md:grid md:grid-cols-[1.1fr_0.9fr]"
       >
-        <div className="space-y-6">
+        <div className="space-y-6 mb-6 md:mb-0">
           <div>
             <span className="badge">Contacto directo</span>
             <h3 className="text-3xl font-semibold">
@@ -232,7 +319,10 @@ export default function Home() {
             <div className="text-sm text-white/70">
               <p>
                 WhatsApp:{" "}
-                <a href="#" className="text-white hover:text-lux">
+                <a
+                  href="https://wa.me/5491112345678"
+                  className="text-white hover:text-lux"
+                >
                   +54 9 11 1234 5678
                 </a>
               </p>
@@ -256,7 +346,7 @@ export default function Home() {
       </footer>
 
       {/* BOTONES FLOTANTES */}
-      <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 gap-3">
+      <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 gap-3">
         <a
           className="rounded-full bg-lux px-5 py-3 text-xs font-semibold uppercase text-black shadow-gold"
           href="https://wa.me/5491112345678"

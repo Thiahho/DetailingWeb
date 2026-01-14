@@ -2,8 +2,8 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { LogIn, ArrowLeft } from "lucide-react"; // Añadí ArrowLeft por si quieres un botón de volver
-import Link from "next/link"; // Usamos Link de Next.js para mejor navegación
+import { LogIn, ArrowLeft, Menu, X } from "lucide-react";
+import Link from "next/link";
 import { API_BASE_URL } from "../../../src/lib/config";
 
 export default function LoginPage() {
@@ -14,6 +14,7 @@ export default function LoginPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -45,9 +46,13 @@ export default function LoginPage() {
     }
   };
 
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-midnight">
-      {/* HEADER AJUSTADO */}
+      {/* HEADER */}
       <header className="w-full border-b border-white/5 bg-midnight/50 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <Link
@@ -71,6 +76,16 @@ export default function LoginPage() {
             </div>
           </Link>
 
+          {/* Botón hamburguesa - solo mobile */}
+          <button
+            className="flex items-center justify-center p-2 text-white/70 transition hover:text-white md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Menú"
+          >
+            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+
+          {/* Nav desktop */}
           <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
             <Link className="transition hover:text-white" href="/#servicios">
               Servicios
@@ -88,13 +103,80 @@ export default function LoginPage() {
               Contacto
             </Link>
           </nav>
-
-          {/* Botón volver móvil */}
-          <Link href="/" className="md:hidden text-white/70">
-            <ArrowLeft size={24} />
-          </Link>
         </div>
       </header>
+
+      {/* Menú mobile desplegable */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-midnight/95 backdrop-blur-sm md:hidden">
+          <div className="flex items-center justify-between px-6 py-6 border-b border-white/5">
+            <Link
+              href="/"
+              className="flex items-center gap-3"
+              onClick={closeMobileMenu}
+            >
+              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
+                <img
+                  src="/img/logowhite.webp"
+                  alt="LK Detailing Logo"
+                  className="h-full w-full object-contain p-1.5"
+                />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-white/60">
+                  Detailing premium
+                </p>
+                <h1 className="text-base font-semibold">Zona Oeste | Moreno</h1>
+              </div>
+            </Link>
+            <button
+              className="p-2 text-white/70 transition hover:text-white"
+              onClick={closeMobileMenu}
+              aria-label="Cerrar menú"
+            >
+              <X size={28} />
+            </button>
+          </div>
+
+          <nav className="flex flex-col items-center gap-6 px-6 pt-10 text-lg">
+            <Link
+              className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
+              href="/#servicios"
+              onClick={closeMobileMenu}
+            >
+              Servicios
+            </Link>
+            <Link
+              className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
+              href="/#trabajos"
+              onClick={closeMobileMenu}
+            >
+              Trabajos
+            </Link>
+            <Link
+              className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
+              href="/#faq"
+              onClick={closeMobileMenu}
+            >
+              FAQ
+            </Link>
+            <Link
+              className="w-full text-center py-3 rounded-full border border-lux/60 text-lux transition hover:bg-lux/10"
+              href="/#contacto"
+              onClick={closeMobileMenu}
+            >
+              Contacto
+            </Link>
+            <Link
+              className="w-full text-center py-3 text-white/70 transition hover:text-white border-b border-white/10"
+              href="/"
+              onClick={closeMobileMenu}
+            >
+              ← Volver al inicio
+            </Link>
+          </nav>
+        </div>
+      )}
 
       {/* CONTENIDO DEL LOGIN CENTRADO */}
       <main className="flex flex-1 items-center justify-center px-6">
