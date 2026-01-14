@@ -62,6 +62,19 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Aplicar migraciones automáticamente
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    context.Database.Migrate();
+    
+    // Seed en desarrollo
+    if (app.Environment.IsDevelopment())
+    {
+        await DatabaseSeeder.SeedAsync(context);
+    }
+}
+
 // CORS PRIMERO - siempre usar la política
 app.UseCors("ProductionPolicy");
 
@@ -69,13 +82,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Seed solo en desarrollo
-if (app.Environment.IsDevelopment())
-{
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await DatabaseSeeder.SeedAsync(context);
-}
 
 app.Run();
