@@ -8,6 +8,7 @@ export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
   const packsToShow = packs.slice(0, visiblePacks);
+  const gallery = packs.slice(0, visiblePacks);
 
   const reels = [
     "https://www.youtube.com/shorts/mj2ssaWQoSM",
@@ -104,7 +105,77 @@ export default function Home() {
           ))}
         </div>
       </section>
+      {/* SECCIÓN REELS */}
+      <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
+        <div>
+          <span className="badge">Reels destacados</span>
+          <h3 className="text-3xl font-semibold">Contenido destacado</h3>
+        </div>
 
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {reels.map((link) => (
+            <div key={link} className="glass-card overflow-hidden p-4">
+              <p className="mb-4 text-xs uppercase tracking-[0.2em] text-white/60">
+                Video destacado
+              </p>
+              <div className="flex justify-center bg-black/20 rounded-xl overflow-hidden aspect-[9/16] w-full">
+                <iframe
+                  src={getEmbedUrl(link)}
+                  title="YouTube Video"
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SECCIÓN TRABAJOS REALIZADOS */}
+      <section
+        id="trabajos"
+        className="mx-auto max-w-6xl space-y-10 px-6 py-16"
+      >
+        <div className="space-y-3">
+          <span className="badge">Galería</span>
+          <h3 className="text-3xl font-semibold">Trabajos Realizados</h3>
+          <p className="text-white/60 max-w-2xl">
+            Una muestra de la dedicación y el detalle que aplicamos en cada
+            vehículo que confía en nosotros.
+          </p>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {gallery.map((item, index) => (
+            <article
+              key={index}
+              className="glass-card group overflow-hidden border border-white/10"
+            >
+              <div className="relative aspect-video overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                {/* <div className="absolute inset-0 bg-gradient-to-t from-midnight/90 via-midnight/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end p-6">
+                  <span className="text-lux text-xs uppercase tracking-widest mb-1">
+                    {item.category}
+                  </span>
+                  <h4 className="text-xl font-bold text-white">{item.title}</h4>
+                </div>*/}
+              </div>
+              {/* Información visible siempre si prefieres el estilo de las tarjetas de servicios 
+              <div className="p-4">
+                <h4 className="text-lg font-medium text-white/90">
+                  {item.title}
+                </h4>
+                <p className="text-sm text-white/50">{item.description}</p>
+              </div> */}
+            </article>
+          ))}
+        </div>
+      </section>
       {/* SECCIÓN CONTACTO */}
       <section
         id="contacto"
