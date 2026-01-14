@@ -186,6 +186,33 @@ export default function Home() {
           <h3 className="text-3xl font-semibold">
             Reservá tu turno en minutos
           </h3>
+          <p className="text-white/70">
+            Completa el formulario y nos pondremos en contacto para confirmar tu
+            turno. ¡Tu auto merece el mejor cuidado!
+          </p>
+          <p className="text-white/70">
+            <strong>
+              <a
+                href="https://wa.me/5491112345678"
+                className="underline hover:text-lux transition"
+              >
+                También podés reservar por WhatsApp
+              </a>
+            </strong>
+          </p>
+          <p className="text-white/70">
+            Estamos ubicados en Moreno, Zona Oeste. Atendemos con turno previo
+            para asegurar una entrega rápida y un servicio de calidad.
+          </p>
+          <p className="text-white/70">
+            Instagram:{" "}
+            <a
+              href="https://www.instagram.com/lk_detailing/"
+              className="underline hover:text-lux transition"
+            >
+              @lk_detailing
+            </a>
+          </p>
         </div>
         <BookingForm preselectedService={preselectedService} />
       </section>
