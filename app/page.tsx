@@ -112,38 +112,33 @@ export default function Home() {
       >
         <div className="space-y-3">
           <span className="badge">Galería</span>
-          <h3 className="text-3xl font-semibold">Trabajos Realizados</h3>
-          <p className="text-white/60 max-w-2xl">
-            Una muestra de la dedicación y el detalle que aplicamos en cada
-            vehículo que confía en nosotros.
+          <h3 className="text-3xl font-semibold">Nuestros Trabajos</h3>
+          <p className="text-white/60">
+            Resultados reales en vehículos de la zona.
           </p>
         </div>
 
+        {/* Contenedor de la grilla */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {gallery.map((item, index) => (
             <article
               key={index}
-              className="glass-card group overflow-hidden border border-white/10"
+              className="glass-card group overflow-hidden border border-white/10 p-4"
             >
-              <div className="relative aspect-video overflow-hidden">
+              <div className="relative aspect-video overflow-hidden rounded-xl">
                 <img
                   src={item.image}
                   alt={item.title}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-midnight/90 via-midnight/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex flex-col justify-end p-6">
-                  <span className="text-lux text-xs uppercase tracking-widest mb-1">
-                    {item.title}
-                  </span>
-                  <h4 className="text-xl font-bold text-white">{item.title}</h4>
-                </div>
               </div>
-              {/* Información visible siempre si prefieres el estilo de las tarjetas de servicios */}
-              <div className="p-4">
-                <h4 className="text-lg font-medium text-white/90">
+              <div className="mt-4">
+                <h4 className="text-lg font-medium text-white/90 group-hover:text-lux transition-colors">
                   {item.title}
                 </h4>
-                <p className="text-sm text-white/50">{item.title}</p>
+                <p className="text-xs uppercase tracking-widest text-white/40 mt-1">
+                  Detalle Premium
+                </p>
               </div>
             </article>
           ))}
@@ -207,7 +202,7 @@ export default function Home() {
           <p className="text-white/70">
             Instagram:{" "}
             <a
-              href="https://www.instagram.com/lk_detailing/"
+              href="https://www.instagram.com/lk_detailingg/"
               className="underline hover:text-lux transition"
             >
               @lk_detailing
