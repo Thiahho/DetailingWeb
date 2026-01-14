@@ -26,7 +26,13 @@ export default function LoginPage() {
     try {
       console.log("Iniciando login...", API_BASE_URL);
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      // const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      //   method: "POST",
+      //   credentials: "include",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(formData),
+      // });
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -45,11 +51,7 @@ export default function LoginPage() {
       // Marcar como logueado
       setLoggedIn(data.email);
       console.log("Login exitoso, redirigiendo...");
-
-      // Redirección
-      window.location.replace("/admin/turnos");
-      return; // Evitar que continue ejecutándose
-
+      router.push("/admin/turnos");
     } catch (err: any) {
       console.error("Error en login:", err);
       setError(err.message || "Error de conexión");
