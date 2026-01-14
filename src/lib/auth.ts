@@ -26,10 +26,21 @@ export async function logout(): Promise<void> {
     // Continuar con logout local aunque falle el backend
   }
 
+  // Limpiar todo el localStorage relacionado con auth
   localStorage.removeItem("isLoggedIn");
   localStorage.removeItem("email");
+  localStorage.removeItem("token"); // Limpiar residuo de versión anterior
+  localStorage.removeItem("role");
   window.dispatchEvent(new Event("auth-change"));
   window.location.href = "/";
+}
+
+// Limpiar datos residuales de versiones anteriores
+export function cleanupLegacyStorage(): void {
+  // Si existe "token" en localStorage, eliminarlo (ahora usamos HttpOnly cookie)
+  if (localStorage.getItem("token")) {
+    localStorage.removeItem("token");
+  }
 }
 
 // Verificar sesión con el backend (útil al cargar la página)

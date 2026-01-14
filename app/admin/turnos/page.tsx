@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, fetchWithAuth } from "../../../src/lib/auth";
-import { API_BASE_URL } from "../../../src/lib/config";
+import { isAuthenticated } from "../../../src/lib/auth";
 import { logError } from "../../../src/lib/logger";
 
 interface Booking {
@@ -47,7 +46,7 @@ export default function TurnosPage() {
 
   const loadSlots = async () => {
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/timeslots`);
+      const response = await fetch("/api/timeslots");
       if (response.ok) {
         const data = await response.json();
         setSlots(data);
@@ -67,8 +66,9 @@ export default function TurnosPage() {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
       const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60000);
 
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/timeslots`, {
+      const response = await fetch("/api/timeslots", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           startDateTime: startDateTime.toISOString(),
           endDateTime: endDateTime.toISOString(),
@@ -78,14 +78,14 @@ export default function TurnosPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert("✅ Turno creado exitosamente");
+        alert("Turno creado exitosamente");
         setFormData({ date: "", time: "" });
         loadSlots();
       } else {
-        alert("❌ " + (data.message || "Error al crear turno"));
+        alert(data.message || "Error al crear turno");
       }
     } catch (error) {
-      alert("❌ Error de conexión");
+      alert("Error de conexión");
       logError(error);
     } finally {
       setCreating(false);
@@ -110,28 +110,26 @@ export default function TurnosPage() {
     try {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
 
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/timeslots/${editingSlot.id}`,
-        {
-          method: "PUT",
-          body: JSON.stringify({
-            startDateTime: startDateTime.toISOString(),
-          }),
-        }
-      );
+      const response = await fetch(`/api/timeslots/${editingSlot.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDateTime: startDateTime.toISOString(),
+        }),
+      });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert("✅ Turno actualizado exitosamente");
+        alert("Turno actualizado exitosamente");
         setFormData({ date: "", time: "" });
         setEditingSlot(null);
         loadSlots();
       } else {
-        alert("❌ " + (data.message || "Error al actualizar turno"));
+        alert(data.message || "Error al actualizar turno");
       }
     } catch (error) {
-      alert("❌ Error de conexión");
+      alert("Error de conexión");
       logError(error);
     } finally {
       setCreating(false);
@@ -147,19 +145,16 @@ export default function TurnosPage() {
     if (!confirm("¿Eliminar este turno?")) return;
 
     try {
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/timeslots/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await fetch(`/api/timeslots/${id}`, {
+        method: "DELETE",
+      });
 
       if (response.ok) {
-        alert("✅ Turno eliminado");
+        alert("Turno eliminado");
         loadSlots();
       } else {
         const data = await response.json();
-        alert("❌ " + (data.message || "Error al eliminar"));
+        alert(data.message || "Error al eliminar");
       }
     } catch (error) {
       logError(error);
@@ -176,23 +171,20 @@ export default function TurnosPage() {
       return;
 
     try {
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/timeslots/${id}/release`,
-        {
-          method: "PUT",
-        }
-      );
+      const response = await fetch(`/api/timeslots/${id}/release`, {
+        method: "PUT",
+      });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert("✅ Turno habilitado exitosamente");
+        alert("Turno habilitado exitosamente");
         loadSlots();
       } else {
-        alert("❌ " + (data.message || "Error al habilitar turno"));
+        alert(data.message || "Error al habilitar turno");
       }
     } catch (error) {
-      alert("❌ Error de conexión");
+      alert("Error de conexión");
       logError(error);
     }
   };
