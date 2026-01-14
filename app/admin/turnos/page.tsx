@@ -6,6 +6,15 @@ import { isAuthenticated, logout, fetchWithAuth } from "../../../src/lib/auth";
 import { API_BASE_URL } from "../../../src/lib/config";
 import { logError } from "../../../src/lib/logger";
 
+interface Booking {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  vehicle: string;
+  service: string;
+  status: string;
+}
+
 interface TimeSlot {
   id: number;
   startDateTime: string;
@@ -13,6 +22,7 @@ interface TimeSlot {
   isAvailable: boolean;
   bookingsCount: number;
   label: string;
+  booking?: Booking;
 }
 
 export default function TurnosPage() {
@@ -36,9 +46,7 @@ export default function TurnosPage() {
 
   const loadSlots = async () => {
     try {
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/timeslots`
-      );
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/timeslots`);
       if (response.ok) {
         const data = await response.json();
         setSlots(data);
@@ -58,16 +66,13 @@ export default function TurnosPage() {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
       const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60000);
 
-      const response = await fetchWithAuth(
-        `${API_BASE_URL}/api/timeslots`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            startDateTime: startDateTime.toISOString(),
-            endDateTime: endDateTime.toISOString(),
-          }),
-        }
-      );
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/timeslots`, {
+        method: "POST",
+        body: JSON.stringify({
+          startDateTime: startDateTime.toISOString(),
+          endDateTime: endDateTime.toISOString(),
+        }),
+      });
 
       const data = await response.json();
 
@@ -157,6 +162,89 @@ export default function TurnosPage() {
       }
     } catch (error) {
       logError(error);
+    }
+  };
+
+  const releaseSlot = async (id: number) => {
+    if (!confirm("¿Liberar este turno? La reserva será cancelada.")) return;
+
+    try {
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/timeslots/${id}/release`,
+        {
+          method: "PUT",
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("✅ Turno liberado exitosamente");
+        loadSlots();
+      } else {
+        alert("❌ " + (data.message || "Error al liberar turno"));
+      }
+    } catch (error) {
+      alert("❌ Error de conexión");
+      logError(error);
+    }
+  };
+
+  const updateBookingStatus = async (bookingId: number, status: string) => {
+    try {
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/bookings/${bookingId}/status`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ status }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`✅ Estado actualizado a "${status}"`);
+        loadSlots();
+      } else {
+        alert("❌ " + (data.message || "Error al actualizar estado"));
+      }
+    } catch (error) {
+      alert("❌ Error de conexión");
+      logError(error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "text-yellow-400";
+      case "Confirmed":
+        return "text-green-400";
+      case "Cancelled":
+        return "text-red-400";
+      case "Completed":
+        return "text-blue-400";
+      case "NoShow":
+        return "text-orange-400";
+      default:
+        return "text-white/50";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "⏳ Pendiente";
+      case "Confirmed":
+        return "✅ Confirmado";
+      case "Cancelled":
+        return "❌ Cancelado";
+      case "Completed":
+        return "✔️ Completado";
+      case "NoShow":
+        return "🚫 No asistió";
+      default:
+        return status;
     }
   };
 
@@ -260,7 +348,7 @@ export default function TurnosPage() {
             <h2 className="text-xl font-semibold text-white mb-4">
               Turnos Creados ({slots.length})
             </h2>
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {slots.length === 0 ? (
                 <p className="text-white/50 text-sm text-center py-8">
                   No hay turnos creados. Creá el primero ↑
@@ -283,30 +371,130 @@ export default function TurnosPage() {
                         <p className="text-white/50 text-xs mt-1">
                           {slot.isAvailable ? "✅ Disponible" : "🔴 Reservado"}
                         </p>
-                        {slot.bookingsCount > 0 && (
-                          <p className="text-white/50 text-xs">
-                            {slot.bookingsCount} reserva(s)
-                          </p>
-                        )}
                       </div>
                       <div className="flex gap-2">
-                        {slot.bookingsCount === 0 && (
+                        {slot.isAvailable && slot.bookingsCount === 0 && (
+                          <>
+                            <button
+                              onClick={() => startEditing(slot)}
+                              className="text-blue-400 hover:text-blue-300 text-sm"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => deleteSlot(slot.id)}
+                              className="text-red-400 hover:text-red-300 text-sm"
+                            >
+                              Eliminar
+                            </button>
+                          </>
+                        )}
+                        {!slot.isAvailable && (
                           <button
-                            onClick={() => startEditing(slot)}
-                            className="text-blue-400 hover:text-blue-300 text-sm"
+                            onClick={() => releaseSlot(slot.id)}
+                            className="text-yellow-400 hover:text-yellow-300 text-sm font-medium"
                           >
-                            Editar
+                            Liberar
                           </button>
                         )}
-                        <button
-                          onClick={() => deleteSlot(slot.id)}
-                          className="text-red-400 hover:text-red-300 text-sm"
-                          disabled={slot.bookingsCount > 0}
-                        >
-                          {slot.bookingsCount > 0 ? "🔒" : "Eliminar"}
-                        </button>
                       </div>
                     </div>
+
+                    {/* Info de la reserva */}
+                    {slot.booking && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-white/50">Cliente:</span>
+                            <span className="text-white ml-1">
+                              {slot.booking.customerName}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/50">Tel:</span>
+                            <span className="text-white ml-1">
+                              {slot.booking.customerPhone}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/50">Vehículo:</span>
+                            <span className="text-white ml-1">
+                              {slot.booking.vehicle}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/50">Servicio:</span>
+                            <span className="text-white ml-1">
+                              {slot.booking.service}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <span
+                            className={`text-sm font-medium ${getStatusColor(
+                              slot.booking.status
+                            )}`}
+                          >
+                            {getStatusLabel(slot.booking.status)}
+                          </span>
+
+                          {slot.booking.status === "Pending" && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() =>
+                                  updateBookingStatus(
+                                    slot.booking!.id,
+                                    "Confirmed"
+                                  )
+                                }
+                                className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs hover:bg-green-500/30"
+                              >
+                                Confirmar
+                              </button>
+                              <button
+                                onClick={() =>
+                                  updateBookingStatus(
+                                    slot.booking!.id,
+                                    "Cancelled"
+                                  )
+                                }
+                                className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs hover:bg-red-500/30"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          )}
+
+                          {slot.booking.status === "Confirmed" && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() =>
+                                  updateBookingStatus(
+                                    slot.booking!.id,
+                                    "Completed"
+                                  )
+                                }
+                                className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs hover:bg-blue-500/30"
+                              >
+                                Completado
+                              </button>
+                              <button
+                                onClick={() =>
+                                  updateBookingStatus(
+                                    slot.booking!.id,
+                                    "NoShow"
+                                  )
+                                }
+                                className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs hover:bg-orange-500/30"
+                              >
+                                No asistió
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
