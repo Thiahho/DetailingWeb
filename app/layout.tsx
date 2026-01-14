@@ -1,6 +1,6 @@
 // app/layout.tsx
-import "./globals.css"; // Verifica que globals.css esté en la carpeta /app
-import Navbar from "../src/components/Navbar"; // Ruta según tu estructura
+import "./globals.css"; // Ruta corregida para Vercel
+import Navbar from "../src/components/Navbar";
 
 export default function RootLayout({
   children,
@@ -11,8 +11,8 @@ export default function RootLayout({
     <html lang="es" className="scroll-smooth">
       <body className="bg-midnight antialiased text-slate-100">
         <Navbar />
-        {/* Agregamos un margen superior para que el contenido no quede bajo el Navbar fijo */}
-        <div className="pt-2">{children}</div>
+        {/* El pt-20 evita que el contenido quede oculto bajo el navbar fijo */}
+        <div className="pt-20">{children}</div>
       </body>
     </html>
   );
