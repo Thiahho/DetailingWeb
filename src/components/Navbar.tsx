@@ -138,7 +138,7 @@ export default function Navbar() {
 
       {/* MENÚ MOBILE */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-midnight/95 flex flex-col p-6 md:hidden">
+        <div className="fixed inset-0 z-50 bg-gradient-to-b from-[#0d0d12] to-[#08080c] flex flex-col p-6 md:hidden">
           <div className="flex justify-between items-center mb-10">
             <h1 className="text-lg font-bold">MENÚ</h1>
             <X size={28} onClick={() => setMobileMenuOpen(false)} />
