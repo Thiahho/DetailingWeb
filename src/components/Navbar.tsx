@@ -101,15 +101,15 @@ export default function Navbar() {
           </Link>
           {isLoggedIn ? (
             <>
-              <Link
-                href="/admin/turnos"
+              <button
+                onClick={() => router.push("/admin/turnos")}
                 className={`flex items-center gap-2 transition hover:text-white ${
                   pathname === "/admin/turnos" ? "text-electric" : ""
                 }`}
               >
                 <Calendar size={18} />
                 Turnos
-              </Link>
+              </button>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-red-400 transition hover:text-red-300"
@@ -118,9 +118,12 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link href="/admin/login" className="transition hover:text-white">
+            <button
+              onClick={() => router.push("/admin/login")}
+              className="transition hover:text-white"
+            >
               <LogIn size={20} />
-            </Link>
+            </button>
           )}
         </nav>
 
@@ -161,16 +164,18 @@ export default function Navbar() {
             </Link>
             {isLoggedIn ? (
               <>
-                <Link
-                  href="/admin/turnos"
-                  onClick={() => setMobileMenuOpen(false)}
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    router.push("/admin/turnos");
+                  }}
                   className={`flex items-center justify-center gap-2 ${
                     pathname === "/admin/turnos" ? "text-electric" : "text-lux"
                   }`}
                 >
                   <Calendar size={20} />
                   Gestión de Turnos
-                </Link>
+                </button>
                 <button
                   onClick={handleLogout}
                   className="flex items-center justify-center gap-2 text-red-400"
@@ -180,13 +185,15 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/admin/login"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  router.push("/admin/login");
+                }}
                 className="text-lux"
               >
                 Admin Login
-              </Link>
+              </button>
             )}
           </nav>
         </div>

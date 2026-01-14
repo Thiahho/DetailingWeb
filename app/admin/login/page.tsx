@@ -38,7 +38,8 @@ export default function LoginPage() {
       // Marcar como logueado (el token está en la cookie HttpOnly)
       setLoggedIn(data.email);
 
-      router.push("/admin/turnos");
+      // Usar window.location para redirección más confiable después del login
+      window.location.href = "/admin/turnos";
     } catch (err: any) {
       setError(err.message);
     } finally {
