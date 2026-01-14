@@ -78,26 +78,46 @@ export default function Home() {
         id="servicios"
         className="mx-auto max-w-6xl space-y-10 px-6 py-16"
       >
-        <h3 className="text-3xl font-semibold">Servicios y packs premium</h3>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="space-y-3">
+            <span className="badge">Packs claros</span>
+            <h3 className="text-3xl font-semibold">
+              Servicios y packs premium
+            </h3>
+          </div>
+        </div>
+
         <div className="grid gap-6 md:grid-cols-3">
           {packsToShow.map((pack) => (
             <article
               key={pack.title}
               className="glass-card flex h-full flex-col gap-4 p-6"
             >
-              <img
-                alt={pack.title}
-                className="h-40 w-full object-cover rounded-xl"
-                src={pack.image}
-              />
+              <div className="overflow-hidden rounded-xl border border-white/10">
+                <img
+                  alt={pack.title}
+                  className="h-40 w-full object-cover transition-transform duration-500 hover:scale-105"
+                  src={pack.image}
+                />
+              </div>
               <h4 className="text-xl font-semibold">{pack.title}</h4>
-              <div className="mt-auto flex items-center justify-between">
+
+              {/* Opcional: Lista de detalles si quieres que se vean los beneficios */}
+              <ul className="space-y-2 text-sm text-white/60 mb-4">
+                {pack.details?.map((detail, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className="text-lux text-xs">✓</span> {detail}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
                 <span className="text-lg font-semibold text-lux">
                   {pack.price}
                 </span>
                 <button
                   onClick={() => handlePresupuestar(pack.slug)}
-                  className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase text-white/60 hover:text-white hover:border-lux/50 transition"
+                  className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase text-white/60 hover:text-white hover:border-lux/50 transition-all"
                 >
                   Presupuestar
                 </button>
@@ -105,6 +125,18 @@ export default function Home() {
             </article>
           ))}
         </div>
+
+        {/* BOTÓN VER MÁS */}
+        {visiblePacks < packs.length && (
+          <div className="text-center pt-8">
+            <button
+              onClick={() => setVisiblePacks((prev) => prev + 3)}
+              className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:border-white/20 hover:text-white"
+            >
+              Ver más servicios ({packs.length - visiblePacks} restantes)
+            </button>
+          </div>
+        )}
       </section>
       {/* SECCIÓN TRABAJOS REALIZADOS */}
       <section
