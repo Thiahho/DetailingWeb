@@ -4,7 +4,7 @@ import Navbar from "../src/components/Navbar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "MKS Detailing",
+  title: "LK Detailing",
   description: "Servicios profesionales de detailing automotriz",
   icons: {
     icon: "/img/logo.png",
