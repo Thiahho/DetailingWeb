@@ -59,86 +59,91 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-midnight/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        {/* LOGO */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 transition hover:opacity-80"
-        >
-          <div className="relative h-12 w-12 rounded-full border border-white/10 bg-white/5">
-            <img
-              src="/img/logowhite.webp"
-              alt="Logo"
-              className="h-full w-full object-contain p-1.5"
-            />
-          </div>
-          <h1 className="text-lg font-semibold text-white">LK DETAILING</h1>
-        </Link>
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-midnight/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          {/* LOGO */}
+          <Link
+            href="/"
+            className="flex items-center gap-3 transition hover:opacity-80"
+          >
+            <div className="relative h-12 w-12 rounded-full border border-white/10 bg-white/5">
+              <img
+                src="/img/logowhite.webp"
+                alt="Logo"
+                className="h-full w-full object-contain p-1.5"
+              />
+            </div>
+            <h1 className="text-lg font-semibold text-white">LK DETAILING</h1>
+          </Link>
 
-        {/* NAV DESKTOP */}
-        <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
-          <Link
-            href="/#servicios"
-            onClick={(e) => handleNavClick(e, "servicios")}
-            className="transition hover:text-white"
-          >
-            Servicios
-          </Link>
-          <Link
-            href="/#trabajos"
-            onClick={(e) => handleNavClick(e, "trabajos")}
-            className="transition hover:text-white"
-          >
-            Trabajos
-          </Link>
-          <Link
-            href="/#contacto"
-            onClick={(e) => handleNavClick(e, "contacto")}
-            className="rounded-full border border-white/10 px-4 py-2 transition hover:border-lux/60 hover:text-white"
-          >
-            Contacto
-          </Link>
-          {isLoggedIn ? (
-            <>
-              <button
-                onClick={() => router.push("/admin/turnos")}
-                className={`flex items-center gap-2 transition hover:text-white ${
-                  pathname === "/admin/turnos" ? "text-electric" : ""
-                }`}
-              >
-                <Calendar size={18} />
-                Turnos
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-red-400 transition hover:text-red-300"
-              >
-                <LogOut size={18} />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => router.push("/admin/login")}
+          {/* NAV DESKTOP */}
+          <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
+            <Link
+              href="/#servicios"
+              onClick={(e) => handleNavClick(e, "servicios")}
               className="transition hover:text-white"
             >
-              <LogIn size={20} />
-            </button>
-          )}
-        </nav>
+              Servicios
+            </Link>
+            <Link
+              href="/#trabajos"
+              onClick={(e) => handleNavClick(e, "trabajos")}
+              className="transition hover:text-white"
+            >
+              Trabajos
+            </Link>
+            <Link
+              href="/#contacto"
+              onClick={(e) => handleNavClick(e, "contacto")}
+              className="rounded-full border border-white/10 px-4 py-2 transition hover:border-lux/60 hover:text-white"
+            >
+              Contacto
+            </Link>
+            {isLoggedIn ? (
+              <>
+                <button
+                  onClick={() => router.push("/admin/turnos")}
+                  className={`flex items-center gap-2 transition hover:text-white ${
+                    pathname === "/admin/turnos" ? "text-electric" : ""
+                  }`}
+                >
+                  <Calendar size={18} />
+                  Turnos
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-red-400 transition hover:text-red-300"
+                >
+                  <LogOut size={18} />
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => router.push("/admin/login")}
+                className="transition hover:text-white"
+              >
+                <LogIn size={20} />
+              </button>
+            )}
+          </nav>
 
-        {/* MOBILE TOGGLE */}
-        <button
-          className="md:hidden text-white"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
-      </div>
+          {/* MOBILE TOGGLE */}
+          <button
+            className="md:hidden text-white"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
+      </header>
 
-      {/* MENÚ MOBILE */}
+      {/* MENÚ MOBILE - Fuera del header para evitar problemas de z-index */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[9999] flex flex-col p-6 md:hidden bg-[#0a0a0c]">
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col p-6 md:hidden"
+          style={{ backgroundColor: "#0a0a0c" }}
+        >
           <div className="flex justify-between items-center mb-10">
             <h1 className="text-lg font-bold text-white">MENÚ</h1>
             <button onClick={() => setMobileMenuOpen(false)}>
@@ -205,6 +210,6 @@ export default function Navbar() {
           </nav>
         </div>
       )}
-    </header>
+    </>
   );
 }
