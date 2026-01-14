@@ -13,7 +13,6 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
-    // Suprimir advertencia de cambios pendientes en migraciones
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
 });
 
@@ -27,24 +26,31 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    // ✅ PRODUCCIÓN: Requiere HTTPS automáticamente
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.SaveToken = true;
-
+    
+    // ✅ PRODUCCIÓN: Acepta token desde Cookie o Authorization header
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
-            var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-
-            if (!string.IsNullOrEmpty(token))
+            // Primero buscar en Authorization header
+            var token = context.Request.Headers["Authorization"]
+                .FirstOrDefault()?.Split(" ").Last();
+            
+            // Si no hay, buscar en cookie
+            if (string.IsNullOrEmpty(token))
             {
-                token= context.HttpRequestError.Cookies["token"];
+                token = context.Request.Cookies["token"];
             }
+            
             context.Token = token;
             return Task.CompletedTask;
         }
     };
-
+    
+    // ✅ PRODUCCIÓN: Validación completa del token
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
@@ -61,19 +67,19 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();    
 builder.Services.AddControllers();
 
-// Configurar servicios
+// Servicios
 builder.Services.AddScoped<GoogleCalendarService>();
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
 
-// Configurar CORS - Hardcodeado para producción
+// ✅ PRODUCCIÓN: CORS configurado correctamente
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ProductionPolicy", policy =>
     {
         policy.WithOrigins(
                 "https://detailing-web-five.vercel.app",
-                "http://localhost:3000"
+                "http://localhost:3000"  // Solo para testing local
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -83,25 +89,23 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Aplicar migraciones automáticamente
+// ✅ PRODUCCIÓN: Aplicar migraciones automáticamente
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     context.Database.Migrate();
     
-    // Seed en desarrollo
+    // ⚠️ SOLO DESARROLLO: Seed de datos
     if (app.Environment.IsDevelopment())
     {
         await DatabaseSeeder.SeedAsync(context);
     }
 }
 
-// CORS PRIMERO - siempre usar la política
+// ✅ PRODUCCIÓN: Configuración del pipeline
 app.UseCors("ProductionPolicy");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
