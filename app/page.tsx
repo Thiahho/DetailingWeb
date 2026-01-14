@@ -4,6 +4,7 @@ import { useState } from "react";
 import BookingForm from "../src/components/BookingForms";
 import { packs, gallery, testimonials, faqs } from "../src/lib/data";
 import { LogIn } from "lucide-react";
+import Link from "next/link"; // Usamos Link de Next.js para mejor navegación
 
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
@@ -37,19 +38,24 @@ export default function Home() {
       <div className="hero-grid">
         <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <div className="flex items-center gap-3">
-            <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
-              <img
-                src="/img/logowhite.webp"
-                alt="LK Detailing Logo"
-                className="h-full w-full object-contain p-1.5"
-              />
-            </div>
-            <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-white/60">
-                Detailing premium
-              </p>
-              <h1 className="text-lg font-semibold">Zona Oeste | Moreno</h1>
-            </div>
+            <Link
+              href="/"
+              className="flex items-center gap-3 transition hover:opacity-80"
+            >
+              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
+                <img
+                  src="/img/logowhite.webp"
+                  alt="LK Detailing Logo"
+                  className="h-full w-full object-contain p-1.5"
+                />
+              </div>
+              <div>
+                <p className="text-sm uppercase tracking-[0.35em] text-white/60">
+                  Detailing premium
+                </p>
+                <h1 className="text-lg font-semibold">Zona Oeste | Moreno</h1>
+              </div>
+            </Link>
           </div>
           <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
             <a className="transition hover:text-white" href="#servicios">

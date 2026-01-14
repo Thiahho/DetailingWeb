@@ -54,7 +54,13 @@ export default function LoginPage() {
             href="/"
             className="flex items-center gap-3 transition hover:opacity-80"
           >
-            <div className="h-10 w-10 rounded-full border border-white/10 bg-white/10"></div>
+            <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
+              <img
+                src="/img/logowhite.webp"
+                alt="LK Detailing Logo"
+                className="h-full w-full object-contain p-1.5"
+              />
+            </div>
             <div>
               <p className="text-sm uppercase tracking-[0.35em] text-white/60 text-[10px] md:text-sm">
                 Detailing premium
