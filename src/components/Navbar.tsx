@@ -137,28 +137,37 @@ export default function Navbar() {
       </div>
 
       {/* MENÚ MOBILE */}
+      {/* MENÚ MOBILE */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] flex flex-col p-6 md:hidden bg-neutral-950">
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col p-6 md:hidden"
+          style={{ backgroundColor: "#09090b" }}
+        >
           <div className="flex justify-between items-center mb-10">
-            <h1 className="text-lg font-bold">MENÚ</h1>
-            <X size={28} onClick={() => setMobileMenuOpen(false)} />
+            <h1 className="text-lg font-bold text-white">MENÚ</h1>
+            <button onClick={() => setMobileMenuOpen(false)}>
+              <X size={28} className="text-white" />
+            </button>
           </div>
-          <nav className="flex flex-col gap-8 text-xl text-center">
+          <nav className="flex flex-col gap-8 text-xl text-center text-white">
             <Link
               href="/#servicios"
               onClick={(e) => handleNavClick(e, "servicios")}
+              className="hover:text-lux transition"
             >
               Servicios
             </Link>
             <Link
               href="/#trabajos"
               onClick={(e) => handleNavClick(e, "trabajos")}
+              className="hover:text-lux transition"
             >
               Trabajos
             </Link>
             <Link
               href="/#contacto"
               onClick={(e) => handleNavClick(e, "contacto")}
+              className="hover:text-lux transition"
             >
               Contacto
             </Link>
