@@ -1,153 +1,124 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { LogIn, Menu, X, ShieldCheck, LogOut } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { LogIn, Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
-  // Verificar si hay sesión activa mediante el endpoint /me
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch("http://localhost:5000/api/auth/me", {
-          credentials: "include", // Necesario para enviar la cookie HttpOnly
-        });
-        setIsLoggedIn(res.ok);
-      } catch {
-        setIsLoggedIn(false);
-      }
-    };
-    checkAuth();
-  }, [pathname]); // Re-verificar si cambia la ruta
-
-  const closeMobileMenu = () => setMobileMenuOpen(false);
-
-  // Función para manejar el scroll suave en la misma página
-  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    id: string
+  ) => {
+    // Si ya estamos en el Home ("/")
     if (pathname === "/") {
       e.preventDefault();
       const element = document.getElementById(id);
-      element?.scrollIntoView({ behavior: "smooth" });
-      closeMobileMenu();
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
     }
+    // Si estamos en cualquier otra página (como /admin/login)
+    else {
+      // El comportamiento por defecto del <Link> nos llevará a "/#id"
+      // pero cerramos el menú mobile por si acaso
+    }
+    setMobileMenuOpen(false);
   };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-midnight/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        {/* LOGO - Siempre vuelve arriba */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        {/* LOGO */}
         <Link
           href="/"
           className="flex items-center gap-3 transition hover:opacity-80"
         >
-          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5">
+          <div className="relative h-12 w-12 rounded-full border border-white/10 bg-white/5">
             <img
               src="/img/logowhite.webp"
               alt="Logo"
               className="h-full w-full object-contain p-1.5"
             />
           </div>
-          <div className="hidden sm:block">
-            <p className="text-[10px] uppercase tracking-[0.35em] text-white/50">
-              Detailing premium
-            </p>
-            <h1 className="text-sm font-semibold text-white">LK DETAILING</h1>
-          </div>
+          <h1 className="text-lg font-semibold text-white">LK DETAILING</h1>
         </Link>
 
         {/* NAV DESKTOP */}
-        <nav className="hidden items-center gap-8 text-sm font-medium text-white/70 md:flex">
-          <a
-            href="#servicios"
-            onClick={(e) => handleScroll(e, "servicios")}
+        <nav className="hidden items-center gap-6 text-sm text-white/70 md:flex">
+          <Link
+            href="/#servicios"
+            onClick={(e) => handleNavClick(e, "servicios")}
             className="transition hover:text-white"
           >
             Servicios
-          </a>
-          <a
-            href="#trabajos"
-            onClick={(e) => handleScroll(e, "trabajos")}
+          </Link>
+          <Link
+            href="/#trabajos"
+            onClick={(e) => handleNavClick(e, "trabajos")}
             className="transition hover:text-white"
           >
             Trabajos
-          </a>
-
-          {isLoggedIn ? (
-            <>
-              <Link
-                href="/admin/turnos"
-                className="flex items-center gap-2 text-lux font-bold transition hover:opacity-80"
-              >
-                <ShieldCheck size={18} />
-                Panel Admin
-              </Link>
-            </>
-          ) : (
-            <a
-              href="#contacto"
-              onClick={(e) => handleScroll(e, "contacto")}
-              className="rounded-full border border-white/10 px-4 py-2 transition hover:border-lux/60 hover:text-white"
-            >
-              Contacto
-            </a>
-          )}
-
+          </Link>
           <Link
-            href="/admin/login"
-            className="transition hover:text-white"
-            title="Acceso Admin"
+            href="/#contacto"
+            onClick={(e) => handleNavClick(e, "contacto")}
+            className="rounded-full border border-white/10 px-4 py-2 transition hover:border-lux/60 hover:text-white"
           >
-            <LogIn size={20} className={isLoggedIn ? "text-lux" : ""} />
+            Contacto
+          </Link>
+          <Link href="/admin/login" className="transition hover:text-white">
+            <LogIn size={20} />
           </Link>
         </nav>
 
-        {/* MOBILE BUTTON */}
+        {/* MOBILE TOGGLE */}
         <button
           className="md:hidden text-white"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
-      {/* MOBILE MENU */}
+      {/* MENÚ MOBILE */}
       {mobileMenuOpen && (
-        <div className="absolute top-full left-0 w-full bg-midnight/95 border-b border-white/10 p-6 flex flex-col gap-6 md:hidden animate-in fade-in slide-in-from-top-4">
-          <a
-            href="#servicios"
-            onClick={(e) => handleScroll(e, "servicios")}
-            className="text-lg text-white/70"
-          >
-            Servicios
-          </a>
-          <a
-            href="#trabajos"
-            onClick={(e) => handleScroll(e, "trabajos")}
-            className="text-lg text-white/70"
-          >
-            Trabajos
-          </a>
-          {isLoggedIn && (
+        <div className="fixed inset-0 z-50 bg-midnight/95 flex flex-col p-6 md:hidden">
+          <div className="flex justify-between items-center mb-10">
+            <h1 className="text-lg font-bold">MENÚ</h1>
+            <X size={28} onClick={() => setMobileMenuOpen(false)} />
+          </div>
+          <nav className="flex flex-col gap-8 text-xl text-center">
             <Link
-              href="/admin/turnos"
-              onClick={closeMobileMenu}
-              className="text-lg text-lux font-bold"
+              href="/#servicios"
+              onClick={(e) => handleNavClick(e, "servicios")}
             >
-              Panel Admin
+              Servicios
             </Link>
-          )}
-          <Link
-            href="/admin/login"
-            onClick={closeMobileMenu}
-            className="flex items-center gap-2 text-lg text-white/70"
-          >
-            <LogIn size={20} /> Iniciar Sesión
-          </Link>
+            <Link
+              href="/#trabajos"
+              onClick={(e) => handleNavClick(e, "trabajos")}
+            >
+              Trabajos
+            </Link>
+            <Link
+              href="/#contacto"
+              onClick={(e) => handleNavClick(e, "contacto")}
+            >
+              Contacto
+            </Link>
+            <Link
+              href="/admin/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-lux"
+            >
+              Admin Login
+            </Link>
+          </nav>
         </div>
       )}
     </header>
