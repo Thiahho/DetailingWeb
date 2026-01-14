@@ -1,5 +1,6 @@
-// app/layout.tsx
-import "../styles/globals.css";
+// Si el archivo está en la misma carpeta que el layout:
+import "./globals.css";
+
 import Navbar from "../src/components/Navbar";
 
 export default function RootLayout({
@@ -9,9 +10,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className="scroll-smooth">
-      <body>
+      <body className="bg-midnight antialiased text-slate-100">
         <Navbar />
-        {/* pt-20 para dar espacio al header fijo */}
         <div className="pt-20">{children}</div>
       </body>
     </html>
