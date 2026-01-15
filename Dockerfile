@@ -23,7 +23,7 @@ COPY --from=publish /app/publish .
 
 # Copiar credenciales de Google Calendar
 COPY DetailingApi/credentials.json ./credentials.json
-COPY DetailingApi/token.json ./token.json
+COPY DetailingApi/token.json/ ./Google.Apis.Auth.OAuth2.Responses.TokenResponse-user/
 
 # Configurar para escuchar en el puerto que Render asigna
 ENV ASPNETCORE_URLS=http://+:8080
