@@ -19,9 +19,8 @@ DetailingApi/bin/
 DetailingApi/obj/
 DetailingApi/*.user
 DetailingApi/*.suo
-DetailingApi/credentials.json
-DetailingApi/token.json
-# Sensitive files
+
+# Sensitive files (credentials.json y token.json se suben para Render - repo privado)
 DetailingApi/appsettings.Development.json
 DetailingApi/appsettings.Production.json
 
