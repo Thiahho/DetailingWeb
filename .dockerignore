@@ -19,10 +19,6 @@ out/
 .vscode/
 .idea/
 
-# Archivos sensibles (se crearán desde variables de entorno)
-**/credentials.json
-**/token.json/
-
 # Documentación
 *.md
 LICENSE
