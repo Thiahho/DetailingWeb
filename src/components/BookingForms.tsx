@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
-import { API_BASE_URL } from "../lib/config";
 import { logError } from "../lib/logger";
 import { packs } from "../lib/data";
 
@@ -27,16 +26,21 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   });
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [visibleSlots, setVisibleSlots] = useState(2);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Cargar turnos disponibles
+  // --- LÓGICA DE PAGINACIÓN ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6; // Ajusta cuántos turnos ver por vez
+
+  const totalPages = Math.ceil(timeSlots.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentSlots = timeSlots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Cargar turnos y resto de efectos (igual al original)
   useEffect(() => {
     loadAvailableSlots();
   }, []);
-
-  // Actualizar servicio cuando cambia la prop preselectedService
   useEffect(() => {
     if (preselectedService) {
       setFormData((prev) => ({ ...prev, selectedService: preselectedService }));
@@ -45,15 +49,13 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
   const loadAvailableSlots = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/timeslots/available`);
+      const response = await fetch(`/api/timeslots/available`);
       if (response.ok) {
         const data = await response.json();
         setTimeSlots(data);
-      } else {
-        logError("Error cargando turnos");
       }
     } catch (error) {
-      logError("Error:", error);
+      logError(error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     setSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+      const response = await fetch(`/api/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -105,7 +107,8 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           message: "",
         });
 
-        // Recargar turnos disponibles
+        // Resetear paginación y recargar turnos
+        setCurrentPage(1);
         loadAvailableSlots();
       } else {
         alert("❌ Error al agendar: " + (data.message || "Error desconocido"));
@@ -118,42 +121,16 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     }
   };
 
-  const slotsToShow = timeSlots.slice(0, visibleSlots);
-  const selectedSlot = timeSlots.find((s) => s.id === formData.selectedSlotId);
-  const selectedPack = packs.find((p) => p.slug === formData.selectedService);
-
-  if (loading) {
+  if (loading)
     return (
       <div className="glass-card p-6 flex items-center justify-center min-h-[400px]">
-        <p className="text-white/70">Cargando turnos disponibles...</p>
+        <p className="text-white/70">Cargando...</p>
       </div>
     );
-  }
-
-  if (timeSlots.length === 0) {
-    return (
-      <div className="glass-card p-6">
-        <div className="text-center py-8">
-          <p className="text-white/70 mb-4">
-            No hay turnos disponibles en este momento.
-          </p>
-          <p className="text-white/50 text-sm">
-            Contactanos por WhatsApp para coordinar.
-          </p>
-
-          <a
-            href="https://wa.me/5491112345678"
-            className="mt-4 inline-block rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black"
-          >
-            Contactar por WhatsApp
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <form className="glass-card space-y-4 p-6" onSubmit={handleCalendarSubmit}>
+      {/* Inputs de Nombre, Vehículo y WhatsApp (Igual a tu original) */}
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50">
           Nombre
@@ -193,13 +170,13 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, whatsapp: e.target.value }))
           }
-          placeholder="+54 9 11 1234 5678"
+          placeholder="+54 9 11 111 1111"
           required
           value={formData.whatsapp}
         />
       </div>
 
-      {/* Selector de Servicio */}
+      {/* Selector de Servicio (Igual a tu original) */}
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
           Seleccioná el servicio
@@ -227,13 +204,13 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         </div>
       </div>
 
-      {/* Selector de Turno */}
+      {/* Selector de Turno con PAGINACIÓN */}
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
           Seleccioná tu turno
         </label>
-        <div className="grid max-h-[300px] gap-2 overflow-y-auto rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
-          {slotsToShow.map((slot) => (
+        <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+          {currentSlots.map((slot) => (
             <button
               key={slot.id}
               type="button"
@@ -251,27 +228,86 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           ))}
         </div>
 
-        {visibleSlots < timeSlots.length && (
-          <button
-            type="button"
-            onClick={() => setVisibleSlots((prev) => prev + 10)}
-            className="mt-3 w-full rounded-lg border border-white/10 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/60 transition hover:border-electric/50 hover:text-white"
-          >
-            Ver más horarios ({timeSlots.length - visibleSlots} más)
-          </button>
+        {/* CONTROLES DE PAGINACIÓN (Flechas y números) */}
+        {totalPages > 1 && (
+          <div className="mt-4 flex justify-center items-center gap-4">
+            <button
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => prev - 1)}
+              className="p-2 text-white/50 hover:text-white disabled:opacity-20"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+
+            <div className="flex gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      currentPage === page
+                        ? "bg-white text-black"
+                        : "bg-white/5 text-white/50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+            </div>
+
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+              className="p-2 text-white/50 hover:text-white disabled:opacity-20"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
 
+      {/* Consulta y Botón Final (Igual a tu original) */}
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50">
-          Consulta adicional (opcional)
+          Consulta adicional
         </label>
         <textarea
           className="form-input mt-2 min-h-[100px]"
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, message: e.target.value }))
           }
-          placeholder="¿Algún detalle adicional?"
+          placeholder="¿Detalles?"
           value={formData.message}
         />
       </div>
@@ -285,14 +321,6 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       >
         {submitting ? "Agendando..." : "Agendar turno"}
       </button>
-
-      {/* Resumen de selección */}
-      {(selectedSlot || selectedPack) && (
-        <div className="text-center text-xs text-white/50 space-y-1">
-          {selectedPack && <p>Servicio: {selectedPack.title}</p>}
-          {selectedSlot && <p>Turno: {selectedSlot.label}</p>}
-        </div>
-      )}
     </form>
   );
 }

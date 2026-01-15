@@ -72,7 +72,8 @@ public class GoogleCalendarService
 
         using (var stream = new FileStream(_credentialsPath, FileMode.Open, FileAccess.Read))
         {
-            string credPath = "token.json";
+            // Usar ruta absoluta para que funcione desde cualquier directorio de ejecución
+            string credPath = Path.Combine(_env.ContentRootPath, "token.json");
             credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                 GoogleClientSecrets.FromStream(stream).Secrets,
                 new[] { CalendarService.Scope.Calendar },
