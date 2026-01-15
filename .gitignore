@@ -19,12 +19,11 @@ DetailingApi/bin/
 DetailingApi/obj/
 DetailingApi/*.user
 DetailingApi/*.suo
-
-# Sensitive files
 DetailingApi/credentials.json
+DetailingApi/token.json
+# Sensitive files
 DetailingApi/appsettings.Development.json
 DetailingApi/appsettings.Production.json
-DetailingApi/token.json/
 
 # IDEs
 .vs/

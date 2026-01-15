@@ -21,6 +21,10 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Copiar credenciales de Google Calendar
+COPY DetailingApi/credentials.json ./credentials.json
+COPY DetailingApi/token.json ./token.json
+
 # Configurar para escuchar en el puerto que Render asigna
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
