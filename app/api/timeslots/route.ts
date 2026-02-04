@@ -2,8 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_URL =
-  //process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5048";
+ process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
   
 // GET: Obtener todos los timeslots (admin)
 export async function GET(request: NextRequest) {
