@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { logError } from "../lib/logger";
 import { packs } from "../lib/data";
 
@@ -13,6 +13,164 @@ interface TimeSlot {
 
 interface BookingFormProps {
   preselectedService?: string;
+}
+
+// --- Toast Types ---
+type ToastType = "success" | "error" | "warning" | "info";
+
+interface Toast {
+  id: number;
+  type: ToastType;
+  title: string;
+  message?: string;
+  duration?: number;
+}
+
+// --- Toast Component para Cliente ---
+function ClientToast({ toast, onClose }: { toast: Toast; onClose: () => void }) {
+  const [isExiting, setIsExiting] = useState(false);
+  const [progress, setProgress] = useState(100);
+
+  useEffect(() => {
+    const duration = toast.duration || 5000;
+    const interval = 50;
+    const decrement = (interval / duration) * 100;
+
+    const progressTimer = setInterval(() => {
+      setProgress((prev) => Math.max(0, prev - decrement));
+    }, interval);
+
+    const exitTimer = setTimeout(() => setIsExiting(true), duration - 400);
+    const closeTimer = setTimeout(onClose, duration);
+
+    return () => {
+      clearInterval(progressTimer);
+      clearTimeout(exitTimer);
+      clearTimeout(closeTimer);
+    };
+  }, [toast.duration, onClose]);
+
+  const configs = {
+    success: {
+      bg: "from-green-500/95 to-emerald-600/95",
+      border: "border-green-400/50",
+      glow: "shadow-[0_0_40px_rgba(34,197,94,0.5),0_0_80px_rgba(34,197,94,0.2)]",
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      progressBg: "bg-green-300",
+    },
+    error: {
+      bg: "from-red-500/95 to-rose-600/95",
+      border: "border-red-400/50",
+      glow: "shadow-[0_0_40px_rgba(239,68,68,0.5),0_0_80px_rgba(239,68,68,0.2)]",
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      progressBg: "bg-red-300",
+    },
+    warning: {
+      bg: "from-amber-500/95 to-orange-600/95",
+      border: "border-amber-400/50",
+      glow: "shadow-[0_0_40px_rgba(245,158,11,0.5),0_0_80px_rgba(245,158,11,0.2)]",
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      ),
+      progressBg: "bg-amber-300",
+    },
+    info: {
+      bg: "from-blue-500/95 to-indigo-600/95",
+      border: "border-blue-400/50",
+      glow: "shadow-[0_0_40px_rgba(59,130,246,0.5),0_0_80px_rgba(59,130,246,0.2)]",
+      icon: (
+        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      progressBg: "bg-blue-300",
+    },
+  };
+
+  const config = configs[toast.type];
+
+  return (
+    <div
+      className={`
+        fixed inset-0 z-[9999] flex items-center justify-center p-4
+        transition-all duration-400
+        ${isExiting ? "opacity-0" : "opacity-100"}
+      `}
+      style={{ backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.6)" }}
+      onClick={() => {
+        setIsExiting(true);
+        setTimeout(onClose, 400);
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`
+          bg-gradient-to-br ${config.bg}
+          border-2 ${config.border}
+          ${config.glow}
+          rounded-2xl p-6 w-full max-w-sm
+          transform transition-all duration-400 ease-out
+          ${isExiting ? "scale-90 opacity-0" : "scale-100 opacity-100 animate-bounce-in"}
+        `}
+      >
+        {/* Icon */}
+        <div className="flex justify-center mb-4">
+          <div className="bg-white/20 p-4 rounded-full animate-pulse-glow">
+            {config.icon}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="text-center">
+          <h3 className="text-xl font-bold text-white mb-2">{toast.title}</h3>
+          {toast.message && (
+            <p className="text-white/90 text-sm leading-relaxed">{toast.message}</p>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        <div className="mt-5 h-1 bg-white/20 rounded-full overflow-hidden">
+          <div
+            className={`h-full ${config.progressBg} transition-all duration-100 ease-linear rounded-full`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Tap to close hint */}
+        <p className="text-center text-white/50 text-xs mt-3">Toca para cerrar</p>
+      </div>
+
+      {/* Estilos de animación */}
+      <style jsx>{`
+        @keyframes bounce-in {
+          0% { transform: scale(0.3); opacity: 0; }
+          50% { transform: scale(1.05); }
+          70% { transform: scale(0.95); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-bounce-in {
+          animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+          50% { box-shadow: 0 0 40px rgba(255,255,255,0.5); }
+        }
+        .animate-pulse-glow {
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+      `}</style>
+    </div>
+  );
 }
 
 export default function BookingForm({ preselectedService }: BookingFormProps) {
@@ -28,6 +186,15 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // --- Estado de Toast ---
+  const [toast, setToast] = useState<Toast | null>(null);
+
+  const showToast = useCallback((type: ToastType, title: string, message?: string, duration?: number) => {
+    setToast({ id: Date.now(), type, title, message, duration });
+  }, []);
+
+  const closeToast = useCallback(() => setToast(null), []);
 
   // --- LÓGICA DE PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,12 +232,12 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     event.preventDefault();
 
     if (!formData.selectedSlotId) {
-      alert("Por favor seleccioná un horario");
+      showToast("warning", "Seleccioná un horario", "Por favor elegí un turno disponible para continuar");
       return;
     }
 
     if (!formData.selectedService) {
-      alert("Por favor seleccioná un servicio");
+      showToast("warning", "Seleccioná un servicio", "Por favor elegí el servicio que necesitás");
       return;
     }
 
@@ -93,8 +260,11 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       const data = await response.json();
 
       if (data.success || response.ok) {
-        alert(
-          "✅ Turno agendado exitosamente! Nos pondremos en contacto para confirmar."
+        showToast(
+          "success",
+          "¡Turno Reservado!",
+          "Tu turno fue agendado exitosamente. Nos pondremos en contacto para confirmar.",
+          6000
         );
 
         // Limpiar formulario
@@ -111,10 +281,10 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         setCurrentPage(1);
         loadAvailableSlots();
       } else {
-        alert("❌ Error al agendar: " + (data.message || "Error desconocido"));
+        showToast("error", "Error al agendar", data.message || "No se pudo completar la reserva. Intentá nuevamente.");
       }
     } catch (error) {
-      alert("❌ Error de conexión con el servidor");
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor. Verificá tu conexión e intentá de nuevo.");
       logError(error);
     } finally {
       setSubmitting(false);
@@ -129,7 +299,11 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     );
 
   return (
-    <form className="glass-card space-y-4 p-6" onSubmit={handleCalendarSubmit}>
+    <>
+      {/* Toast Notification */}
+      {toast && <ClientToast toast={toast} onClose={closeToast} />}
+
+      <form className="glass-card space-y-4 p-6" onSubmit={handleCalendarSubmit}>
       {/* Inputs de Nombre, Vehículo y WhatsApp (Igual a tu original) */}
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50">
@@ -322,5 +496,6 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         {submitting ? "Agendando..." : "Agendar turno"}
       </button>
     </form>
+    </>
   );
 }

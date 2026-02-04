@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "../../../src/lib/auth";
 import { logError } from "../../../src/lib/logger";
@@ -24,6 +24,131 @@ interface TimeSlot {
   booking?: Booking;
 }
 
+// --- Toast Types ---
+type ToastType = "success" | "error" | "warning" | "info";
+
+interface Toast {
+  id: number;
+  type: ToastType;
+  title: string;
+  message?: string;
+  duration?: number;
+}
+
+// --- Toast Component ---
+function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => void }) {
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const duration = toast.duration || 4000;
+    const exitTimer = setTimeout(() => setIsExiting(true), duration - 300);
+    const closeTimer = setTimeout(onClose, duration);
+    return () => {
+      clearTimeout(exitTimer);
+      clearTimeout(closeTimer);
+    };
+  }, [toast.duration, onClose]);
+
+  const icons = {
+    success: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+      </svg>
+    ),
+    error: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    ),
+    warning: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+    info: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  };
+
+  const styles = {
+    success: {
+      bg: "bg-gradient-to-r from-green-600 to-green-500",
+      border: "border-green-400",
+      glow: "shadow-[0_0_30px_rgba(34,197,94,0.4)]",
+      icon: "bg-green-400/20",
+    },
+    error: {
+      bg: "bg-gradient-to-r from-red-600 to-red-500",
+      border: "border-red-400",
+      glow: "shadow-[0_0_30px_rgba(239,68,68,0.4)]",
+      icon: "bg-red-400/20",
+    },
+    warning: {
+      bg: "bg-gradient-to-r from-orange-600 to-orange-500",
+      border: "border-orange-400",
+      glow: "shadow-[0_0_30px_rgba(249,115,22,0.4)]",
+      icon: "bg-orange-400/20",
+    },
+    info: {
+      bg: "bg-gradient-to-r from-blue-600 to-blue-500",
+      border: "border-blue-400",
+      glow: "shadow-[0_0_30px_rgba(59,130,246,0.4)]",
+      icon: "bg-blue-400/20",
+    },
+  };
+
+  const style = styles[toast.type];
+
+  return (
+    <div
+      className={`
+        ${style.bg} ${style.glow}
+        border ${style.border}
+        rounded-xl p-4 pr-12 min-w-[320px] max-w-[420px]
+        transform transition-all duration-300 ease-out
+        ${isExiting ? "translate-x-[120%] opacity-0" : "translate-x-0 opacity-100"}
+        animate-slide-in
+      `}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`${style.icon} p-2 rounded-lg`}>
+          {icons[toast.type]}
+        </div>
+        <div className="flex-1 pt-0.5">
+          <p className="font-bold text-white text-[15px]">{toast.title}</p>
+          {toast.message && (
+            <p className="text-white/80 text-sm mt-1">{toast.message}</p>
+          )}
+        </div>
+      </div>
+      <button
+        onClick={() => {
+          setIsExiting(true);
+          setTimeout(onClose, 300);
+        }}
+        className="absolute top-3 right-3 text-white/60 hover:text-white transition p-1"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// --- Toast Container ---
+function ToastContainer({ toasts, removeToast }: { toasts: Toast[]; removeToast: (id: number) => void }) {
+  return (
+    <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3">
+      {toasts.map((toast) => (
+        <ToastNotification key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
+      ))}
+    </div>
+  );
+}
+
 // --- Componente Principal ---
 export default function TurnosPage() {
   const router = useRouter();
@@ -44,6 +169,19 @@ export default function TurnosPage() {
   // Estados de Selección Múltiple
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkAction, setBulkAction] = useState(false);
+
+  // Estados de Toast
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  let toastIdCounter = 0;
+
+  const showToast = useCallback((type: ToastType, title: string, message?: string, duration?: number) => {
+    const id = Date.now() + toastIdCounter++;
+    setToasts((prev) => [...prev, { id, type, title, message, duration }]);
+  }, []);
+
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -86,14 +224,14 @@ export default function TurnosPage() {
 
       const data = await response.json();
       if (response.ok) {
-        alert("Turno creado exitosamente");
+        showToast("success", "Turno Creado", `Turno para el ${formData.date} a las ${formData.time} creado exitosamente`, 5000);
         setFormData({ date: "", time: "" });
         loadSlots();
       } else {
-        alert(data.message || "Error al crear turno");
+        showToast("error", "Error al crear turno", data.message || "No se pudo crear el turno");
       }
     } catch (error) {
-      alert("Error de conexión");
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
       logError(error);
     } finally {
       setCreating(false);
@@ -114,12 +252,12 @@ export default function TurnosPage() {
         }),
       });
       if (response.ok) {
-        alert("Turno actualizado exitosamente");
+        showToast("success", "Turno Actualizado", "Los cambios se guardaron correctamente", 4000);
         setFormData({ date: "", time: "" });
         setEditingSlot(null);
         loadSlots();
       } else {
-        alert("Error al actualizar turno");
+        showToast("error", "Error al actualizar", "No se pudieron guardar los cambios");
       }
     } catch (error) {
       logError(error);
@@ -134,8 +272,12 @@ export default function TurnosPage() {
       const response = await fetch(`/api/timeslots/${id}`, {
         method: "DELETE",
       });
-      if (response.ok) loadSlots();
+      if (response.ok) {
+        showToast("warning", "Turno Eliminado", "El turno fue eliminado correctamente", 3500);
+        loadSlots();
+      }
     } catch (error) {
+      showToast("error", "Error", "No se pudo eliminar el turno");
       logError(error);
     }
   };
@@ -146,8 +288,12 @@ export default function TurnosPage() {
       const response = await fetch(`/api/timeslots/${id}/release`, {
         method: "PUT",
       });
-      if (response.ok) loadSlots();
+      if (response.ok) {
+        showToast("success", "Turno Habilitado", "El turno fue liberado y está disponible nuevamente", 5000);
+        loadSlots();
+      }
     } catch (error) {
+      showToast("error", "Error", "No se pudo habilitar el turno");
       logError(error);
     }
   };
@@ -182,7 +328,7 @@ export default function TurnosPage() {
       (s) => selectedIds.includes(s.id) && s.isAvailable
     );
     if (availableSelected.length === 0) {
-      alert("Solo se pueden eliminar turnos habilitados");
+      showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados");
       return;
     }
     if (!confirm(`¿Eliminar ${availableSelected.length} turno(s)?`)) return;
@@ -193,8 +339,10 @@ export default function TurnosPage() {
         await fetch(`/api/timeslots/${slot.id}`, { method: "DELETE" });
       }
       setSelectedIds([]);
+      showToast("warning", "Turnos Eliminados", `${availableSelected.length} turno(s) eliminado(s) correctamente`, 4000);
       loadSlots();
     } catch (error) {
+      showToast("error", "Error", "No se pudieron eliminar algunos turnos");
       logError(error);
     } finally {
       setBulkAction(false);
@@ -206,7 +354,7 @@ export default function TurnosPage() {
       (s) => selectedIds.includes(s.id) && !s.isAvailable
     );
     if (reservedSelected.length === 0) {
-      alert("Solo se pueden habilitar turnos reservados");
+      showToast("warning", "Acción no permitida", "Solo se pueden habilitar turnos reservados");
       return;
     }
     if (!confirm(`¿Habilitar ${reservedSelected.length} turno(s)? Las reservas serán canceladas.`)) return;
@@ -217,8 +365,10 @@ export default function TurnosPage() {
         await fetch(`/api/timeslots/${slot.id}/release`, { method: "PUT" });
       }
       setSelectedIds([]);
+      showToast("success", "Turnos Habilitados", `${reservedSelected.length} turno(s) liberado(s) y disponible(s) nuevamente`, 5000);
       loadSlots();
     } catch (error) {
+      showToast("error", "Error", "No se pudieron habilitar algunos turnos");
       logError(error);
     } finally {
       setBulkAction(false);
@@ -262,6 +412,26 @@ export default function TurnosPage() {
 
   return (
     <div className="min-h-screen bg-[#0f1115] p-6 font-sans">
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+
+      {/* Estilos de animación */}
+      <style jsx global>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
       <div className="mx-auto max-w-6xl">
         {/* Encabezado Principal */}
         <div className="mb-8">
