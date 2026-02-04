@@ -6,7 +6,6 @@ import type { Metadata } from "next";
 const siteUrl = "https://detailing-web-five.vercel.app";
 
 export const metadata: Metadata = {
-  title: "AutoDetail Studio",
   metadataBase: new URL(siteUrl),
   title: {
     default: "Detailing Cars",
