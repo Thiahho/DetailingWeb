@@ -158,7 +158,7 @@ export default function TurnosPage() {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
 
   // Estados de formulario
-  const [formData, setFormData] = useState({ date: "", time: "" });
+  const [formData, setFormData] = useState({ date: "", hour: "09", minute: "00" });
   const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -210,7 +210,7 @@ export default function TurnosPage() {
     e.preventDefault();
     setCreating(true);
     try {
-      const startDateTime = new Date(`${formData.date}T${formData.time}`);
+      const startDateTime = new Date(`${formData.date}T${formData.hour}:${formData.minute}`);
       const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60000); // 2 horas de duración
 
       const response = await fetch("/api/timeslots", {
@@ -224,8 +224,8 @@ export default function TurnosPage() {
 
       const data = await response.json();
       if (response.ok) {
-        showToast("success", "Turno Creado", `Turno para el ${formData.date} a las ${formData.time} creado exitosamente`, 5000);
-        setFormData({ date: "", time: "" });
+        showToast("success", "Turno Creado", `Turno para el ${formData.date} a las ${formData.hour}:${formData.minute} creado exitosamente`, 5000);
+        setFormData({ date: "", hour: "09", minute: "00" });
         loadSlots();
       } else {
         showToast("error", "Error al crear turno", data.message || "No se pudo crear el turno");
@@ -243,7 +243,7 @@ export default function TurnosPage() {
     if (!editingSlot) return;
     setCreating(true);
     try {
-      const startDateTime = new Date(`${formData.date}T${formData.time}`);
+      const startDateTime = new Date(`${formData.date}T${formData.hour}:${formData.minute}`);
       const response = await fetch(`/api/timeslots/${editingSlot.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -253,7 +253,7 @@ export default function TurnosPage() {
       });
       if (response.ok) {
         showToast("success", "Turno Actualizado", "Los cambios se guardaron correctamente", 4000);
-        setFormData({ date: "", time: "" });
+        setFormData({ date: "", hour: "09", minute: "00" });
         setEditingSlot(null);
         loadSlots();
       } else {
@@ -378,21 +378,21 @@ export default function TurnosPage() {
   const startEditing = (slot: TimeSlot) => {
     const date = new Date(slot.startDateTime);
     setEditingSlot(slot);
-    // Usar métodos locales para obtener fecha y hora consistentes
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
     setFormData({
       date: `${year}-${month}-${day}`,
-      time: `${hours}:${minutes}`,
+      hour,
+      minute,
     });
   };
 
   const cancelEditing = () => {
     setEditingSlot(null);
-    setFormData({ date: "", time: "" });
+    setFormData({ date: "", hour: "09", minute: "00" });
   };
 
   // --- Lógica de Paginación ---
@@ -476,15 +476,40 @@ export default function TurnosPage() {
                 <label className="text-white/70 text-sm font-medium">
                   Hora inicio
                 </label>
-                <input
-                  type="time"
-                  className="w-full mt-2 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition-colors"
-                  value={formData.time}
-                  onChange={(e) =>
-                    setFormData({ ...formData, time: e.target.value })
-                  }
-                  required
-                />
+                <div className="flex gap-2 mt-2">
+                  <select
+                    className="flex-1 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition-colors"
+                    value={formData.hour}
+                    onChange={(e) =>
+                      setFormData({ ...formData, hour: e.target.value })
+                    }
+                    required
+                  >
+                    {Array.from({ length: 24 }, (_, i) => {
+                      const hour = String(i).padStart(2, "0");
+                      return (
+                        <option key={hour} value={hour}>
+                          {hour}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <span className="text-white/50 flex items-center text-xl">:</span>
+                  <select
+                    className="flex-1 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition-colors"
+                    value={formData.minute}
+                    onChange={(e) =>
+                      setFormData({ ...formData, minute: e.target.value })
+                    }
+                    required
+                  >
+                    {["00", "15", "30", "45"].map((min) => (
+                      <option key={min} value={min}>
+                        {min}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-2">
