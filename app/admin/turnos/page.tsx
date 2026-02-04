@@ -466,7 +466,7 @@ export default function TurnosPage() {
                   className="w-full mt-2 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition-colors"
                   value={formData.date}
                   onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
+                    setFormData((prev) => ({ ...prev, date: e.target.value }))
                   }
                   required
                 />
@@ -485,11 +485,11 @@ export default function TurnosPage() {
                     value={formData.hour}
                     onChange={(e) => {
                       const val = e.target.value.slice(0, 2);
-                      setFormData({ ...formData, hour: val });
+                      setFormData((prev) => ({ ...prev, hour: val }));
                     }}
                     onBlur={(e) => {
                       const num = Math.min(23, Math.max(0, parseInt(e.target.value) || 0));
-                      setFormData({ ...formData, hour: String(num).padStart(2, "0") });
+                      setFormData((prev) => ({ ...prev, hour: String(num).padStart(2, "0") }));
                     }}
                     required
                   />
@@ -502,11 +502,11 @@ export default function TurnosPage() {
                     value={formData.minute}
                     onChange={(e) => {
                       const val = e.target.value.slice(0, 2);
-                      setFormData({ ...formData, minute: val });
+                      setFormData((prev) => ({ ...prev, minute: val }));
                     }}
                     onBlur={(e) => {
                       const num = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
-                      setFormData({ ...formData, minute: String(num).padStart(2, "0") });
+                      setFormData((prev) => ({ ...prev, minute: String(num).padStart(2, "0") }));
                     }}
                     required
                   />
