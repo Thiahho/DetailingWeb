@@ -503,11 +503,14 @@ export default function TurnosPage() {
                     }
                     required
                   >
-                    {["00", "15", "30", "45"].map((min) => (
-                      <option key={min} value={min}>
-                        {min}
-                      </option>
-                    ))}
+                    {Array.from({ length: 60 }, (_, i) => {
+                      const min = String(i).padStart(2, "0");
+                      return (
+                        <option key={min} value={min}>
+                          {min}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
