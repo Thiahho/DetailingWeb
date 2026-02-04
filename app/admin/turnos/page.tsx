@@ -256,6 +256,7 @@ export default function TurnosPage() {
     try {
       // Enviar fecha como string local (sin conversión UTC)
       const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
+      console.log("Enviando al servidor:", { date: formData.date, hour: formData.hour, minute: formData.minute, startDateTime });
       const response = await fetch(`/api/timeslots/${editingSlot.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
