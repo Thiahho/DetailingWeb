@@ -210,21 +210,16 @@ export default function TurnosPage() {
     e.preventDefault();
     setCreating(true);
     try {
-      const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
-      // Calcular endDateTime sumando 2 horas
-      const startDate = new Date(`${formData.date}T${formData.hour}:${formData.minute}`);
+      // Crear fecha local y convertir a ISO (UTC)
+      const startDate = new Date(`${formData.date}T${formData.hour}:${formData.minute}:00`);
       const endDate = new Date(startDate.getTime() + 2 * 60 * 60000);
-      const endHour = String(endDate.getHours()).padStart(2, "0");
-      const endMinute = String(endDate.getMinutes()).padStart(2, "0");
-      const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
-      const endDateTime = `${endDateStr}T${endHour}:${endMinute}:00`;
 
       const response = await fetch("/api/timeslots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          startDateTime,
-          endDateTime,
+          startDateTime: startDate.toISOString(),
+          endDateTime: endDate.toISOString(),
         }),
       });
 
@@ -249,7 +244,9 @@ export default function TurnosPage() {
     if (!editingSlot) return;
     setCreating(true);
     try {
-      const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
+      // Crear fecha local y convertir a ISO con zona horaria correcta
+      const localDate = new Date(`${formData.date}T${formData.hour}:${formData.minute}:00`);
+      const startDateTime = localDate.toISOString();
       const response = await fetch(`/api/timeslots/${editingSlot.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
