@@ -210,15 +210,21 @@ export default function TurnosPage() {
     e.preventDefault();
     setCreating(true);
     try {
-      const startDateTime = new Date(`${formData.date}T${formData.hour}:${formData.minute}`);
-      const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60000); // 2 horas de duración
+      const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
+      // Calcular endDateTime sumando 2 horas
+      const startDate = new Date(`${formData.date}T${formData.hour}:${formData.minute}`);
+      const endDate = new Date(startDate.getTime() + 2 * 60 * 60000);
+      const endHour = String(endDate.getHours()).padStart(2, "0");
+      const endMinute = String(endDate.getMinutes()).padStart(2, "0");
+      const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
+      const endDateTime = `${endDateStr}T${endHour}:${endMinute}:00`;
 
       const response = await fetch("/api/timeslots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          startDateTime: startDateTime.toISOString(),
-          endDateTime: endDateTime.toISOString(),
+          startDateTime,
+          endDateTime,
         }),
       });
 
@@ -243,12 +249,12 @@ export default function TurnosPage() {
     if (!editingSlot) return;
     setCreating(true);
     try {
-      const startDateTime = new Date(`${formData.date}T${formData.hour}:${formData.minute}`);
+      const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
       const response = await fetch(`/api/timeslots/${editingSlot.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          startDateTime: startDateTime.toISOString(),
+          startDateTime,
         }),
       });
       if (response.ok) {
