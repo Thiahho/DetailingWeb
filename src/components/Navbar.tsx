@@ -74,7 +74,7 @@ export default function Navbar() {
                 className="h-full w-full object-cover rounded-full"
               />
             </div>
-            <h1 className="text-lg font-semibold text-white">Detailing Cars</h1>
+            <h1 className="text-lg font-semibold text-white">AutoDetail Studio</h1>
           </Link>
 
           {/* NAV DESKTOP */}

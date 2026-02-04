@@ -1,72 +1,48 @@
-type Service = {
-  title: string;
-  price: string;
-  time: string;
-  summary: string;
-  image: string;
-  highlights: string[];
-  includes: string[];
-};
+import type { Metadata } from "next";
+import { services } from "../../../src/lib/service";
 
-const services: Record<string, Service> = {
-  "daily-reset": {
-    title: "Pack Daily Reset",
-    price: "Desde $45.000",
-    time: "4-6 hs",
-    summary: "Limpieza profunda para el auto de uso diario, con foco en interior y detalles visibles.",
-    image:
-      "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
-    highlights: [
-      "Resultados visibles en el mismo día",
-      "Ideal para autos daily y camionetas",
-      "Entrega rápida coordinada por WhatsApp"
-    ],
-    includes: [
-      "Lavado premium exterior",
-      "Limpieza profunda de interior",
-      "Renovación de plásticos y detalles",
-      "Sellado rápido para brillo inmediato"
-    ]
-  },
-  "brillo-total": {
-    title: "Pack Brillo Total",
-    price: "Desde $85.000",
-    time: "1-2 días",
-    summary: "Corrección de pintura ligera + sellado cerámico para lograr brillo espejo y protección.",
-    image:
-      "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1200&q=80",
-    highlights: [
-      "Brillo profundo con corrección 1 paso",
-      "Sellador cerámico 6 meses",
-      "Incluye detailing interior completo"
-    ],
-    includes: [
-      "Corrección de pintura 1 paso",
-      "Descontaminado y pulido",
-      "Sellador cerámico 6 meses",
-      "Detailing interior completo"
-    ]
-  },
-  "proteccion-pro": {
-    title: "Pack Protección Pro",
-    price: "Desde $180.000",
-    time: "2-4 días",
-    summary: "Protección premium con coating cerámico + PPF parcial para autos nuevos o alta gama.",
-    image:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
-    highlights: [
-      "Coating cerámico 3-5 años",
-      "PPF parcial frontal",
-      "Garantía escrita y plan de mantenimiento"
-    ],
-    includes: [
-      "Preparación de superficie",
-      "Aplicación cerámica premium",
-      "PPF frontal parcial",
-      "Checklist y plan de mantenimiento"
-    ]
-  }
-};
+const siteUrl = "https://detailing-web-five.vercel.app";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  const service = services[params.slug] ?? services["daily-reset"];
+  const description =
+    service.description ??
+    `${service.title} en Moreno, Zona Oeste. ${service.summary}`;
+  const canonicalUrl = `${siteUrl}/servicios/${params.slug}`;
+
+  return {
+    title: service.title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: service.title,
+      description,
+      url: canonicalUrl,
+      siteName: "Detailing Cars",
+      locale: "es_AR",
+      images: [
+        {
+          url: "/img/og.jpg",
+          width: 1200,
+          height: 630,
+          alt: `Detalle del servicio ${service.title}`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: service.title,
+      description,
+      images: ["/img/og.jpg"],
+    },
+  };
+}
 
 export default function ServiceDetail({ params }: { params: { slug: string } }) {
   const service = services[params.slug] ?? services["daily-reset"];

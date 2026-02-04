@@ -6,9 +6,10 @@ import { packs, gallery } from "../src/lib/data"; // Importamos solo lo necesari
 import WhatsAppFloat from "../src/components/WhatsAppFloat";
 
 const WHATSAPP_NUMBER = "+54112692061";
-const PHONE_NUMBER = "+54112692061";
-const WHATSAPP_MESSAGE =
-  "Hola, necesito asesoramiento urgente. Mi motivo es : []. Breve descripción: ____";
+//const PHONE_NUMBER = "+54112692061";
+// const WHATSAPP_MESSAGE =
+//   "Hola, necesito asesoramiento urgente. Mi motivo es : []. Breve descripción: ____";
+const SITE_URL = "https://detailing-web-five.vercel.app";
 
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
@@ -32,16 +33,38 @@ export default function Home() {
     }, 100);
   };
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: "Detailing Cars",
+    url: SITE_URL,
+    description:
+      "Servicios profesionales de detailing automotriz en Moreno, Zona Oeste. Turnos rápidos, protección cerámica, PPF y limpieza premium.",
+    areaServed: "Moreno, Zona Oeste, Buenos Aires",
+    telephone: WHATSAPP_NUMBER,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Moreno",
+      addressRegion: "Buenos Aires",
+      addressCountry: "AR",
+    },
+    sameAs: ["https://www.instagram.com/thiago_brizuela"],
+  };
+
   return (
     <main className="min-h-screen bg-midnight text-slate-100">
+       <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* SECCIÓN HERO - Sin el Header redundante */}
       <div className="hero-grid">
         <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-10 md:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <span className="badge">Auto detailing premium</span>
-            <h2 className="text-4xl font-semibold leading-tight md:text-5xl">
+            <h1 className="text-4xl font-semibold leading-tight md:text-5xl">
               Dejamos tu auto impecable, con protección real y turnos rápidos.
-            </h2>
+            </h1>
             <p className="text-base text-white/70 md:text-lg">
               Limpieza profunda, corrección de pintura, cerámico y PPF con
               resultados visibles.
