@@ -3,6 +3,12 @@
 import { useState } from "react";
 import BookingForm from "../src/components/BookingForms";
 import { packs, gallery } from "../src/lib/data"; // Importamos solo lo necesario
+import WhatsAppFloat from "../src/components/WhatsAppFloat";
+
+const WHATSAPP_NUMBER = "+54112692061";
+const PHONE_NUMBER = "+54112692061";
+const WHATSAPP_MESSAGE =
+  "Hola, necesito asesoramiento urgente. Mi motivo es : []. Breve descripción: ____";
 
 export default function Home() {
   const [visiblePacks, setVisiblePacks] = useState(3);
@@ -256,6 +262,7 @@ export default function Home() {
       <footer className="border-t border-white/5 px-6 py-10 text-center text-xs text-white/50">
         Detailing premium Zona Oeste · Moreno · Turnos rápidos por WhatsApp
       </footer>
+      <WhatsAppFloat whatsappNumber={WHATSAPP_NUMBER.replace(/\D/g, "")}></WhatsAppFloat>
     </main>
   );
 }
