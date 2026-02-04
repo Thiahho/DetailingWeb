@@ -476,42 +476,40 @@ export default function TurnosPage() {
                 <label className="text-white/70 text-sm font-medium">
                   Hora inicio
                 </label>
-                <div className="flex gap-2 mt-2">
-                  <select
-                    className="flex-1 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition-colors"
+                <div className="flex gap-2 mt-2 items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    max="23"
+                    className="w-20 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.hour}
-                    onChange={(e) =>
-                      setFormData({ ...formData, hour: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value.slice(0, 2);
+                      setFormData({ ...formData, hour: val });
+                    }}
+                    onBlur={(e) => {
+                      const num = Math.min(23, Math.max(0, parseInt(e.target.value) || 0));
+                      setFormData({ ...formData, hour: String(num).padStart(2, "0") });
+                    }}
                     required
-                  >
-                    {Array.from({ length: 24 }, (_, i) => {
-                      const hour = String(i).padStart(2, "0");
-                      return (
-                        <option key={hour} value={hour}>
-                          {hour}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <span className="text-white/50 flex items-center text-xl">:</span>
-                  <select
-                    className="flex-1 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition-colors"
+                  />
+                  <span className="text-white/50 text-xl font-bold">:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    className="w-20 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.minute}
-                    onChange={(e) =>
-                      setFormData({ ...formData, minute: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value.slice(0, 2);
+                      setFormData({ ...formData, minute: val });
+                    }}
+                    onBlur={(e) => {
+                      const num = Math.min(59, Math.max(0, parseInt(e.target.value) || 0));
+                      setFormData({ ...formData, minute: String(num).padStart(2, "0") });
+                    }}
                     required
-                  >
-                    {Array.from({ length: 60 }, (_, i) => {
-                      const min = String(i).padStart(2, "0");
-                      return (
-                        <option key={min} value={min}>
-                          {min}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  />
                 </div>
               </div>
 
