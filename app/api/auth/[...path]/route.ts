@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+  //process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5048";
 
 export async function POST(
   request: NextRequest,

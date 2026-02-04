@@ -69,12 +69,12 @@ export default function Navbar() {
           >
             <div className="relative h-12 w-12 rounded-full border border-white/10 bg-white/5">
               <img
-                src="/img/logowhite.webp"
+                src="/img/logow.png"
                 alt="Logo"
-                className="h-full w-full object-contain p-1.5"
+                className="h-full w-full object-cover rounded-full"
               />
             </div>
-            <h1 className="text-lg font-semibold text-white">LK DETAILING</h1>
+            <h1 className="text-lg font-semibold text-white">Detailing Cars</h1>
           </Link>
 
           {/* NAV DESKTOP */}

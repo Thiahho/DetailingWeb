@@ -12,14 +12,9 @@ export default function Home() {
   const galleryToShow = gallery.slice(0, visibleGallery);
 
   const reels = [
-    "https://www.youtube.com/shorts/mj2ssaWQoSM",
-    "https://youtube.com/shorts/iBBjQgkdPVU",
+    "/video/V1.mp4",
+    "/video/V2.mp4",
   ];
-
-  const getEmbedUrl = (link: string) => {
-    const videoId = link.split("/").pop()?.split("?v=").pop();
-    return `https://www.youtube.com/embed/${videoId}`;
-  };
 
   const handlePresupuestar = (slug: string) => {
     setPreselectedService(slug);
@@ -196,19 +191,21 @@ export default function Home() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {reels.map((link) => (
-            <div key={link} className="glass-card overflow-hidden p-4">
+          {reels.map((src) => (
+            <div key={src} className="glass-card overflow-hidden p-4">
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-white/60">
                 Video destacado
               </p>
               <div className="flex justify-center bg-black/20 rounded-xl overflow-hidden aspect-[9/16] w-full">
-                <iframe
-                  src={getEmbedUrl(link)}
-                  title="YouTube Video"
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
+                <video
+                  src={src}
+                  className="w-full h-full object-cover"
+                  playsInline
+                  preload="metadata"
+                  loop
+                  muted
+                  autoPlay
+                />
               </div>
             </div>
           ))}
@@ -246,10 +243,10 @@ export default function Home() {
           <p className="text-white/70">
             Instagram:{" "}
             <a
-              href="https://www.instagram.com/lk_detailingg/"
+              href="https://www.instagram.com/thiago_brizuela"
               className="underline hover:text-lux transition"
             >
-              @lk_detailing
+              @detailingcars
             </a>
           </p>
         </div>

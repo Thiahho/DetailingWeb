@@ -4,12 +4,12 @@ import Navbar from "../src/components/Navbar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "LK Detailing",
+  title: "Detailing Cars",
   description: "Servicios profesionales de detailing automotriz",
   icons: {
-    icon: "/img/logo.png",
-    shortcut: "/img/logo.png",
-    apple: "/img/logo.png",
+    icon: "/img/logocirclew.png",
+    shortcut: "/img/logocirclew.png",
+    apple: "/img/logocirclew.png",
   },
 };
 

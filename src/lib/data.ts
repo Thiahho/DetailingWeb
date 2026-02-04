@@ -82,27 +82,27 @@ export const packs = [
 export const gallery = [
   {
     title: "Ford Raptor · Corrección de pintura",
-    image: "/img/i1.webp",
+    image: "/img/raptor.png",
   },
-  {
-    title: "Hilux · Interior intensivo",
-    image: "/img/i2.webp",
-  },
+  // {
+  //   title: "Hilux · Interior intensivo",
+  //   image: "/img/i2.webp",
+  // },
   {
     title: "BMW 320i · Cerámico full",
-    image: "/img/i3.webp",
+    image: "/img/bmw.png",
   },
   {
     title: "Amarok · Limpieza premium",
-    image: "/img/i4.webp",
+    image: "/img/raptor.png",
   },
   {
     title: "Onix · Renovación total",
-    image: "/img/i5.webp",
+    image: "/img/onix.png",
   },
   {
     title: "Corolla · Detallado express",
-    image: "/img/i6.webp",
+    image: "/img/onix.png",
   },
 ];
 

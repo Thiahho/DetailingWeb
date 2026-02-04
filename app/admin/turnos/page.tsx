@@ -41,6 +41,10 @@ export default function TurnosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
+  // Estados de Selección Múltiple
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkAction, setBulkAction] = useState(false);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push("/admin/login");
@@ -145,6 +149,79 @@ export default function TurnosPage() {
       if (response.ok) loadSlots();
     } catch (error) {
       logError(error);
+    }
+  };
+
+  // --- Funciones de Selección Múltiple ---
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    if (selectedIds.length === slots.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(slots.map((s) => s.id));
+    }
+  };
+
+  const selectAllPage = () => {
+    const pageIds = currentSlots.map((s) => s.id);
+    const allPageSelected = pageIds.every((id) => selectedIds.includes(id));
+    if (allPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => [...new Set([...prev, ...pageIds])]);
+    }
+  };
+
+  const bulkDelete = async () => {
+    const availableSelected = slots.filter(
+      (s) => selectedIds.includes(s.id) && s.isAvailable
+    );
+    if (availableSelected.length === 0) {
+      alert("Solo se pueden eliminar turnos habilitados");
+      return;
+    }
+    if (!confirm(`¿Eliminar ${availableSelected.length} turno(s)?`)) return;
+
+    setBulkAction(true);
+    try {
+      for (const slot of availableSelected) {
+        await fetch(`/api/timeslots/${slot.id}`, { method: "DELETE" });
+      }
+      setSelectedIds([]);
+      loadSlots();
+    } catch (error) {
+      logError(error);
+    } finally {
+      setBulkAction(false);
+    }
+  };
+
+  const bulkRelease = async () => {
+    const reservedSelected = slots.filter(
+      (s) => selectedIds.includes(s.id) && !s.isAvailable
+    );
+    if (reservedSelected.length === 0) {
+      alert("Solo se pueden habilitar turnos reservados");
+      return;
+    }
+    if (!confirm(`¿Habilitar ${reservedSelected.length} turno(s)? Las reservas serán canceladas.`)) return;
+
+    setBulkAction(true);
+    try {
+      for (const slot of reservedSelected) {
+        await fetch(`/api/timeslots/${slot.id}/release`, { method: "PUT" });
+      }
+      setSelectedIds([]);
+      loadSlots();
+    } catch (error) {
+      logError(error);
+    } finally {
+      setBulkAction(false);
     }
   };
 
@@ -263,20 +340,48 @@ export default function TurnosPage() {
           {/* COLUMNA DERECHA: Lista Estilo Imagen */}
           <div className="bg-[#161b22] border border-white/5 rounded-xl p-6 flex flex-col h-[700px]">
             {/* Header de la lista */}
-            <div className="flex justify-between items-center mb-6 px-1">
-              <h2 className="text-xl font-bold text-white">
-                Turnos Creados{" "}
-                <span className="text-white/60 text-lg font-normal">
-                  ({slots.length})
+            <div className="flex justify-between items-center mb-4 px-1">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === slots.length && slots.length > 0}
+                  onChange={selectAll}
+                  className="w-4 h-4 accent-green-500 cursor-pointer"
+                  title="Seleccionar todos"
+                />
+                <h2 className="text-xl font-bold text-white">
+                  Turnos Creados{" "}
+                  <span className="text-white/60 text-lg font-normal">
+                    ({slots.length})
+                  </span>
+                </h2>
+              </div>
+              {selectedIds.length > 0 && (
+                <span className="text-sm text-white/50">
+                  {selectedIds.length} seleccionado(s)
                 </span>
-              </h2>
-              <button
-                onClick={() => setSlots([...slots]) /* Placeholder acción */}
-                className="text-blue-400 hover:text-blue-300 text-sm font-medium transition"
-              >
-                Ver todos ({slots.length})
-              </button>
+              )}
             </div>
+
+            {/* Acciones en lote */}
+            {selectedIds.length > 0 && (
+              <div className="flex gap-2 mb-4 px-1">
+                <button
+                  onClick={bulkRelease}
+                  disabled={bulkAction}
+                  className="flex-1 bg-green-600/20 border border-green-600/50 text-green-400 hover:bg-green-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                >
+                  {bulkAction ? "Procesando..." : "Habilitar seleccionados"}
+                </button>
+                <button
+                  onClick={bulkDelete}
+                  disabled={bulkAction}
+                  className="flex-1 bg-red-600/20 border border-red-600/50 text-red-400 hover:bg-red-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                >
+                  {bulkAction ? "Procesando..." : "Eliminar seleccionados"}
+                </button>
+              </div>
+            )}
 
             {/* Contenedor de Scroll y Lista */}
             <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
@@ -295,33 +400,42 @@ export default function TurnosPage() {
                           ? "bg-[#0f291e]/40 border-green-900/50 hover:border-green-700/50"
                           : "bg-orange-900/10 border-orange-900/30 hover:border-orange-700/50"
                       }
+                      ${selectedIds.includes(slot.id) ? "ring-2 ring-white/30" : ""}
                     `}
                   >
                     <div className="flex justify-between items-start">
-                      <div>
-                        {/* Fecha y Hora */}
-                        <p className="text-white font-medium text-[15px] tracking-wide">
-                          {formatDateFriendly(slot.startDateTime)}
-                        </p>
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(slot.id)}
+                          onChange={() => toggleSelect(slot.id)}
+                          className="w-4 h-4 mt-1 accent-green-500 cursor-pointer"
+                        />
+                        <div>
+                          {/* Fecha y Hora */}
+                          <p className="text-white font-medium text-[15px] tracking-wide">
+                            {formatDateFriendly(slot.startDateTime)}
+                          </p>
 
-                        {/* Estado */}
-                        <div className="flex items-center gap-2 mt-2">
-                          <span
-                            className={`w-2.5 h-2.5 rounded-full ${
-                              slot.isAvailable
-                                ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
-                                : "bg-orange-500"
-                            }`}
-                          ></span>
-                          <span
-                            className={`text-xs font-bold tracking-wider ${
-                              slot.isAvailable
-                                ? "text-green-500"
-                                : "text-orange-500"
-                            }`}
-                          >
-                            {slot.isAvailable ? "HABILITADO" : "RESERVADO"}
-                          </span>
+                          {/* Estado */}
+                          <div className="flex items-center gap-2 mt-2">
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full ${
+                                slot.isAvailable
+                                  ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                                  : "bg-orange-500"
+                              }`}
+                            ></span>
+                            <span
+                              className={`text-xs font-bold tracking-wider ${
+                                slot.isAvailable
+                                  ? "text-green-500"
+                                  : "text-orange-500"
+                              }`}
+                            >
+                              {slot.isAvailable ? "HABILITADO" : "RESERVADO"}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
