@@ -210,16 +210,26 @@ export default function TurnosPage() {
     e.preventDefault();
     setCreating(true);
     try {
-      // Crear fecha local y convertir a ISO (UTC)
-      const startDate = new Date(`${formData.date}T${formData.hour}:${formData.minute}:00`);
-      const endDate = new Date(startDate.getTime() + 2 * 60 * 60000);
+      // Enviar fecha como string local (sin conversión UTC)
+      const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
+      // Calcular endDateTime sumando 2 horas manualmente
+      let endHour = parseInt(formData.hour) + 2;
+      let endDate = formData.date;
+      if (endHour >= 24) {
+        endHour -= 24;
+        // Sumar un día
+        const nextDay = new Date(formData.date);
+        nextDay.setDate(nextDay.getDate() + 1);
+        endDate = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, "0")}-${String(nextDay.getDate()).padStart(2, "0")}`;
+      }
+      const endDateTime = `${endDate}T${String(endHour).padStart(2, "0")}:${formData.minute}:00`;
 
       const response = await fetch("/api/timeslots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          startDateTime: startDate.toISOString(),
-          endDateTime: endDate.toISOString(),
+          startDateTime,
+          endDateTime,
         }),
       });
 
@@ -244,9 +254,8 @@ export default function TurnosPage() {
     if (!editingSlot) return;
     setCreating(true);
     try {
-      // Crear fecha local y convertir a ISO con zona horaria correcta
-      const localDate = new Date(`${formData.date}T${formData.hour}:${formData.minute}:00`);
-      const startDateTime = localDate.toISOString();
+      // Enviar fecha como string local (sin conversión UTC)
+      const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
       const response = await fetch(`/api/timeslots/${editingSlot.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -379,17 +388,16 @@ export default function TurnosPage() {
   };
 
   const startEditing = (slot: TimeSlot) => {
-    const date = new Date(slot.startDateTime);
     setEditingSlot(slot);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hour = String(date.getHours()).padStart(2, "0");
-    const minute = String(date.getMinutes()).padStart(2, "0");
+    // Extraer fecha y hora directamente del string sin conversión de zona horaria
+    // El formato es "2024-02-04T17:35:00" o "2024-02-04T17:35:00Z"
+    const isoString = slot.startDateTime.replace("Z", "");
+    const [datePart, timePart] = isoString.split("T");
+    const [hour, minute] = timePart.split(":");
     setFormData({
-      date: `${year}-${month}-${day}`,
-      hour,
-      minute,
+      date: datePart,
+      hour: hour.padStart(2, "0"),
+      minute: minute.padStart(2, "0"),
     });
   };
 
@@ -481,13 +489,14 @@ export default function TurnosPage() {
                 </label>
                 <div className="flex gap-2 mt-2 items-center">
                   <input
-                    type="number"
-                    min="0"
-                    max="23"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    placeholder="HH"
                     className="w-20 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.hour}
                     onChange={(e) => {
-                      const val = e.target.value.slice(0, 2);
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 2);
                       setFormData((prev) => ({ ...prev, hour: val }));
                     }}
                     onBlur={(e) => {
@@ -498,13 +507,14 @@ export default function TurnosPage() {
                   />
                   <span className="text-white/50 text-xl font-bold">:</span>
                   <input
-                    type="number"
-                    min="0"
-                    max="59"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    placeholder="MM"
                     className="w-20 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.minute}
                     onChange={(e) => {
-                      const val = e.target.value.slice(0, 2);
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 2);
                       setFormData((prev) => ({ ...prev, minute: val }));
                     }}
                     onBlur={(e) => {
@@ -765,15 +775,16 @@ export default function TurnosPage() {
 
 // Helper para formatear fecha estilo "jue 15/01/2026 - 15:30"
 function formatDateFriendly(isoString: string) {
-  const date = new Date(isoString);
-  const days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  // Extraer valores directamente del string sin conversión de zona horaria
+  const cleanString = isoString.replace("Z", "");
+  const [datePart, timePart] = cleanString.split("T");
+  const [year, month, day] = datePart.split("-");
+  const [hours, minutes] = timePart.split(":");
 
+  // Calcular día de la semana
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
   const dayName = days[date.getDay()];
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const year = date.getFullYear();
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
 
   return `${dayName} ${day}/${month}/${year} - ${hours}:${minutes}`;
 }
