@@ -35,13 +35,12 @@ namespace DetailingApi.Migrations
                 oldClrType: typeof(DateTime),
                 oldType: "timestamp with time zone");
 
-            migrationBuilder.AlterColumn<DateTime>(
+            migrationBuilder.AddColumn<DateTime>(
                 name: "EndDateTime",
                 table: "TimeSlots",
                 type: "timestamp without time zone",
                 nullable: false,
-                oldClrType: typeof(DateTime),
-                oldType: "timestamp with time zone");
+                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "UpdatedAt",
@@ -103,13 +102,9 @@ namespace DetailingApi.Migrations
                 oldClrType: typeof(DateTime),
                 oldType: "timestamp without time zone");
 
-            migrationBuilder.AlterColumn<DateTime>(
+            migrationBuilder.DropColumn(
                 name: "EndDateTime",
-                table: "TimeSlots",
-                type: "timestamp with time zone",
-                nullable: false,
-                oldClrType: typeof(DateTime),
-                oldType: "timestamp without time zone");
+                table: "TimeSlots");
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "UpdatedAt",
