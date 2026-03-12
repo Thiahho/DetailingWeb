@@ -38,8 +38,10 @@ public class ApplicationDbContext : DbContext
         // Configuración Booking
         modelBuilder.Entity<Booking>(entity =>
         {
-            entity.HasIndex(e => e.TimeSlotId);
             entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.TimeSlotId)
+                .HasFilter("\"Status\" <> 'Cancelled'")
+                .IsUnique();
             
             entity.HasOne(b => b.TimeSlot)
                 .WithMany(t => t.Bookings)

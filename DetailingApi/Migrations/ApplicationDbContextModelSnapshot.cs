@@ -93,7 +93,9 @@ namespace DetailingApi.Migrations
 
                     b.HasIndex("Status");
 
-                    b.HasIndex("TimeSlotId");
+                    b.HasIndex("TimeSlotId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" <> 'Cancelled'");
 
                     b.ToTable("Bookings");
                 });

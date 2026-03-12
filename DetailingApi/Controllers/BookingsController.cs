@@ -22,19 +22,28 @@ public class BookingsController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var updatedRows = await _context.TimeSlots
+            .Where(t => t.Id == request.TimeSlotId && t.IsAvailable)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(t => t.IsAvailable, false));
+
+        if (updatedRows == 0)
+        {
+            var exists = await _context.TimeSlots.AnyAsync(t => t.Id == request.TimeSlotId);
+
+            if (!exists)
+            {
+                return NotFound(new { success = false, message = "Turno no encontrado" });
+            }
+
+            return Conflict(new { success = false, message = "turno ya reservado" });
+        }
+
         var timeSlot = await _context.TimeSlots
-            .Include(t => t.Bookings)
-            .FirstOrDefaultAsync(t => t.Id == request.TimeSlotId);
-
-        if (timeSlot == null)
-        {
-            return NotFound(new { success = false, message = "Turno no encontrado" });
-        }
-
-        if (!timeSlot.IsAvailable)
-        {
-            return BadRequest(new { success = false, message = "Este turno ya no está disponible" });
-        }
+            .AsNoTracking()
+            .FirstAsync(t => t.Id == request.TimeSlotId);
 
         var booking = new Booking
         {
@@ -49,10 +58,8 @@ public class BookingsController : ControllerBase
 
         _context.Bookings.Add(booking);
 
-        // Marcar turno como RESERVADO
-        timeSlot.IsAvailable = false;
-
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return Ok(new
         {
