@@ -27,6 +27,12 @@ interface TimeSlot {
 }
 
 // --- Toast Types ---
+
+const normalizeBookingStatus = (status: string) => {
+  if (status === "Reservado") return "Pending";
+  return status;
+};
+
 type ToastType = "success" | "error" | "warning" | "info";
 
 interface Toast {
@@ -201,8 +207,14 @@ export default function TurnosPage() {
     try {
       const response = await fetch("/api/timeslots");
       if (response.ok) {
-        const data = await response.json();
-        setSlots(data);
+        const data: TimeSlot[] = await response.json();
+        const normalizedSlots = data.map((slot) => ({
+          ...slot,
+          booking: slot.booking
+            ? { ...slot.booking, status: normalizeBookingStatus(slot.booking.status) }
+            : undefined,
+        }));
+        setSlots(normalizedSlots);
       }
     } catch (error) {
       logError("Error cargando turnos:", error);

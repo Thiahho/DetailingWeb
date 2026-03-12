@@ -62,7 +62,7 @@ public class TimeSlotsController : ControllerBase
                     vehicle = b.Vehicle,
                     service = b.Service,
                     message = b.Message,
-                    status = b.Status
+                    status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
                 }).FirstOrDefault()
             })
             .ToListAsync();

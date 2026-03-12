@@ -1,4 +1,5 @@
 using DetailingApi.Data;
+using DetailingApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,7 @@ public class AnalyticsController : ControllerBase
 
         // Reservas activas (pendientes o confirmadas)
         var activeBookings = await _context.Bookings
-            .Where(b => b.Status == "Pending" || b.Status == "Confirmed")
+            .Where(b => b.Status == BookingStatus.Pending || b.Status == BookingStatus.LegacyReserved || b.Status == BookingStatus.Confirmed)
             .CountAsync();
 
         // Turnos disponibles vs ocupados
@@ -82,7 +83,7 @@ public class AnalyticsController : ControllerBase
             .Include(b => b.TimeSlot)
             .Where(b => b.TimeSlot.StartDateTime >= now
                      && b.TimeSlot.StartDateTime <= nextWeek
-                     && (b.Status == "Pending" || b.Status == "Confirmed"))
+                     && (b.Status == BookingStatus.Pending || b.Status == BookingStatus.LegacyReserved || b.Status == BookingStatus.Confirmed))
             .OrderBy(b => b.TimeSlot.StartDateTime)
             .Select(b => new
             {

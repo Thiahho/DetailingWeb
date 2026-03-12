@@ -44,7 +44,7 @@ public class BookingsController : ControllerBase
             Vehicle = request.Vehicle,
             Service = request.Service,
             Message = request.Message,
-            Status = "Reservado"
+            Status = BookingStatus.Pending
         };
 
         _context.Bookings.Add(booking);
@@ -86,7 +86,7 @@ public class BookingsController : ControllerBase
                 vehicle = b.Vehicle,
                 service = b.Service,
                 message = b.Message,
-                status = b.Status,
+                status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status,
                 timeSlotId = b.TimeSlotId,
                 startDateTime = b.TimeSlot.StartDateTime,
                 endDateTime = b.TimeSlot.EndDateTime,
@@ -107,7 +107,7 @@ public class BookingsController : ControllerBase
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
 
-        booking.Status = "Confirmed";
+        booking.Status = BookingStatus.Confirmed;
         await _context.SaveChangesAsync();
 
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
