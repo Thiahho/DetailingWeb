@@ -68,7 +68,6 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
 // Servicios
-builder.Services.AddScoped<GoogleCalendarService>();
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
 

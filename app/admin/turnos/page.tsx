@@ -12,6 +12,8 @@ interface Booking {
   customerPhone: string;
   vehicle: string;
   service: string;
+  message?: string;
+  status: string;
 }
 
 interface TimeSlot {
@@ -169,6 +171,9 @@ export default function TurnosPage() {
   // Estados de Selección Múltiple
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkAction, setBulkAction] = useState(false);
+
+  // Estado modal detalle
+  const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
 
   // Estados de Toast
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -429,7 +434,7 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1115] p-6 font-sans">
+    <div className="p-4 md:p-6 font-sans">
       {/* Toast Container */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
@@ -452,9 +457,9 @@ export default function TurnosPage() {
 
       <div className="mx-auto max-w-6xl">
         {/* Encabezado Principal */}
-        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
+        <div className="mb-6 md:mb-8 flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Gestión de Turnos</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Gestión de Turnos</h1>
             <p className="text-white/50 text-sm mt-1">
               Administra los turnos disponibles para reservas
             </p>
@@ -695,12 +700,20 @@ export default function TurnosPage() {
                             </button>
                           </>
                         ) : (
-                          <button
-                            onClick={() => habilitarTurno(slot.id)}
-                            className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
-                          >
-                            Liberar
-                          </button>
+                          <>
+                            <button
+                              onClick={() => setDetailSlot(slot)}
+                              className="text-blue-400 hover:text-blue-300 text-xs font-medium uppercase tracking-wide transition"
+                            >
+                              Ver detalle
+                            </button>
+                            <button
+                              onClick={() => habilitarTurno(slot.id)}
+                              className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
+                            >
+                              Liberar
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -792,6 +805,85 @@ export default function TurnosPage() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DETALLE DE RESERVA */}
+      {detailSlot && detailSlot.booking && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setDetailSlot(null)}
+        >
+          <div
+            className="bg-[#161b22] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+              <div>
+                <h2 className="text-white font-semibold text-lg">Detalle de reserva</h2>
+                <p className="text-white/40 text-xs mt-0.5">{formatDateFriendly(detailSlot.startDateTime)}</p>
+              </div>
+              <button onClick={() => setDetailSlot(null)} className="text-white/40 hover:text-white transition text-xl">✕</button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              <Row label="Cliente" value={detailSlot.booking.customerName} />
+              <Row label="Teléfono" value={
+                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-400 hover:underline">
+                  {detailSlot.booking.customerPhone}
+                </a>
+              } />
+              <Row label="Vehículo" value={detailSlot.booking.vehicle} />
+              <Row label="Servicio" value={detailSlot.booking.service || "—"} />
+              {detailSlot.booking.message && (
+                <Row label="Mensaje" value={detailSlot.booking.message} />
+              )}
+              <Row label="Estado" value={
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  detailSlot.booking.status === "Confirmed"
+                    ? "bg-green-500/20 text-green-400"
+                    : detailSlot.booking.status === "Cancelled"
+                    ? "bg-red-500/20 text-red-400"
+                    : "bg-orange-500/20 text-orange-400"
+                }`}>
+                  {detailSlot.booking.status === "Confirmed" ? "Confirmado"
+                    : detailSlot.booking.status === "Cancelled" ? "Cancelado"
+                    : "Pendiente"}
+                </span>
+              } />
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-white/5 flex gap-3">
+              <a
+                href={`https://wa.me/+54${detailSlot.booking.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                  `Hola ${detailSlot.booking.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${formatDateFriendly(detailSlot.startDateTime)}\n🚗 *Vehículo:* ${detailSlot.booking.vehicle}\n🔧 *Servicio:* ${detailSlot.booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+              >
+                WhatsApp
+              </a>
+              <button
+                onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id); }}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-white/70 py-2.5 rounded-lg text-sm font-semibold transition"
+              >
+                Liberar turno
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-white/40 text-sm shrink-0">{label}</span>
+      <span className="text-white text-sm text-right">{value}</span>
     </div>
   );
 }

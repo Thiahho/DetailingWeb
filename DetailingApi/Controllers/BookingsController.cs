@@ -1,6 +1,5 @@
 using DetailingApi.Data;
 using DetailingApi.Models;
-using DetailingApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +11,10 @@ namespace DetailingApi.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-    private readonly GoogleCalendarService _calendarService;
 
-    public BookingsController(ApplicationDbContext context, GoogleCalendarService calendarService)
+    public BookingsController(ApplicationDbContext context)
     {
         _context = context;
-        _calendarService = calendarService;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -56,27 +53,6 @@ public class BookingsController : ControllerBase
         timeSlot.IsAvailable = false;
 
         await _context.SaveChangesAsync();
-
-        // Crear evento en Google Calendar (opcional, no falla la reserva)
-        try
-        {
-            var turnoRequest = new TurnoRequest
-            {
-                Name = request.CustomerName,
-                Vehicle = request.Vehicle,
-                WhatsApp = request.CustomerPhone,
-                DateTime = timeSlot.StartDateTime,
-                Message = $"Servicio: {request.Service}\n{request.Message ?? ""}"
-            };
-
-            var eventLink = await _calendarService.CrearTurnoAsync(turnoRequest);
-            booking.GoogleEventId = eventLink;
-            await _context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error creando evento en Google Calendar: {ex.Message}");
-        }
 
         return Ok(new
         {

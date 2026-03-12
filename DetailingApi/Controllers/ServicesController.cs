@@ -34,6 +34,7 @@ public class ServicesController : ControllerBase
                 s.Duration,
                 s.ImageUrl,
                 s.Details,
+                s.Description,
                 s.IsActive,
                 s.Order
             })
@@ -59,6 +60,7 @@ public class ServicesController : ControllerBase
                 s.Duration,
                 s.ImageUrl,
                 s.Details,
+                s.Description,
                 s.IsActive,
                 s.Order,
                 s.CreatedAt,
@@ -89,6 +91,7 @@ public class ServicesController : ControllerBase
             service.Duration,
             service.ImageUrl,
             service.Details,
+            service.Description,
             service.IsActive,
             service.Order
         });
@@ -114,6 +117,7 @@ public class ServicesController : ControllerBase
             Duration = request.Duration,
             ImageUrl = request.ImageUrl,
             Details = request.Details,
+            Description = request.Description,
             IsActive = request.IsActive,
             Order = request.Order
         };
@@ -130,6 +134,7 @@ public class ServicesController : ControllerBase
             service.Duration,
             service.ImageUrl,
             service.Details,
+            service.Description,
             service.IsActive,
             service.Order
         });
@@ -154,6 +159,7 @@ public class ServicesController : ControllerBase
         service.Duration = request.Duration;
         service.ImageUrl = request.ImageUrl;
         service.Details = request.Details;
+        service.Description = request.Description;
         service.IsActive = request.IsActive;
         service.Order = request.Order;
         service.UpdatedAt = DateTime.UtcNow;
@@ -184,8 +190,9 @@ public class ServiceRequest
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string Price { get; set; } = string.Empty;
-    public string Duration { get; set; } = string.Empty;
+    public string? Duration { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public List<string> Details { get; set; } = new();
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;

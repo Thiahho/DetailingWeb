@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using DetailingApi.Models;
 
@@ -56,8 +57,13 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Service>(entity =>
         {
             entity.HasIndex(e => e.Slug).IsUnique();
+            entity.Property(e=> e.Description);
             entity.Property(e => e.Details)
-                .HasColumnType("jsonb");
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>()
+                );
         });
     }
 }

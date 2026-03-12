@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "../../../src/lib/auth";
 import { logError } from "../../../src/lib/logger";
+import CloudinaryUpload from "../../../src/components/CloudinaryUpload";
 
 interface Service {
   id: number;
@@ -14,6 +15,7 @@ interface Service {
   imageUrl: string;
   details: string[];
   isActive: boolean;
+  description: string;
   order: number;
 }
 
@@ -22,6 +24,7 @@ const emptyForm = {
   slug: "",
   price: "",
   duration: "",
+  description: "",
   imageUrl: "",
   details: ["", "", ""],
   isActive: true,
@@ -109,6 +112,7 @@ export default function ServiciosAdminPage() {
       imageUrl: service.imageUrl,
       details: service.details.length >= 3 ? [...service.details] : [...service.details, "", "", ""].slice(0, 3),
       isActive: service.isActive,
+      description: service.description ?? "",
       order: service.order,
     });
     setShowForm(true);
@@ -175,7 +179,6 @@ export default function ServiciosAdminPage() {
       return { ...prev, details };
     });
   };
-
   // Auto-slug desde el título
   const handleTitleChange = (title: string) => {
     const slug = title
@@ -197,7 +200,7 @@ export default function ServiciosAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1115] p-6 font-sans">
+    <div className="min-h-screen bg-[#0f1115] p-4 md:p-6 font-sans">
       {/* Toasts */}
       <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3">
         {toasts.map((t) => (
@@ -207,26 +210,20 @@ export default function ServiciosAdminPage() {
 
       <div className="mx-auto max-w-6xl">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <button
-                onClick={() => router.push("/admin/turnos")}
-                className="text-white/40 hover:text-white text-sm transition"
-              >
-                ← Panel Admin
-              </button>
-            </div>
-            <h1 className="text-3xl font-bold text-white">Gestión de Servicios</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Gestión de Servicios</h1>
             <p className="text-white/50 text-sm mt-1">
               Administrá los servicios que se muestran en tu sitio y formulario de reserva
             </p>
           </div>
           <button
             onClick={openCreate}
-            className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg font-semibold transition flex items-center gap-2"
+            className="shrink-0 bg-green-600 hover:bg-green-500 text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold transition flex items-center gap-2 text-sm md:text-base"
           >
-            <span className="text-xl leading-none">+</span> Nuevo Servicio
+            <span className="text-xl leading-none">+</span>
+            <span className="hidden sm:inline">Nuevo Servicio</span>
+            <span className="sm:hidden">Nuevo</span>
           </button>
         </div>
 
@@ -378,22 +375,34 @@ export default function ServiciosAdminPage() {
                     value={formData.duration}
                     onChange={(e) => setFormData((prev) => ({ ...prev, duration: e.target.value }))}
                     placeholder="4-6 hs"
-                    required
                   />
                 </div>
               </div>
 
-              {/* Imagen URL */}
+              {/* Imagen */}
               <div>
-                <label className="text-white/60 text-xs font-medium uppercase tracking-wider">URL de imagen</label>
-                <input
-                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, imageUrl: e.target.value }))}
-                  placeholder="https://..."
-                />
+                <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Imagen</label>
+                <div className="mt-1.5">
+                  <CloudinaryUpload
+                    value={formData.imageUrl}
+                    onChange={(url) => setFormData((prev) => ({ ...prev, imageUrl: url }))}
+                  />
+                </div>
               </div>
 
+              {/*Descripcion */}
+              <div>
+                <label className="text-white/60 text-xs font-medium uppercase tracking-wider">
+                  Descripción
+                </label>
+                <textarea
+                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm resize-none"
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Descripción del servicio..."
+                />
+              </div>
               {/* Detalles */}
               <div>
                 <label className="text-white/60 text-xs font-medium uppercase tracking-wider">

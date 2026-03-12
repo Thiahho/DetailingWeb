@@ -100,26 +100,20 @@ export default function EstadisticasPage() {
     ? Math.round(((data.bookingsThisMonth - data.bookingsLastMonth) / data.bookingsLastMonth) * 100)
     : null;
 
-  // Escalar barras del gráfico
-  const maxMonthCount = Math.max(...data.bookingsByMonth.map((m) => m.count), 1);
+  // Completar los 12 meses del año actual con 0 si no hay datos
+  const currentYear = new Date().getFullYear();
+  const allMonths = Array.from({ length: 12 }, (_, i) => {
+    const found = data.bookingsByMonth.find((m) => m.year === currentYear && m.month === i + 1);
+    return { year: currentYear, month: i + 1, count: found?.count ?? 0 };
+  });
+  const maxMonthCount = Math.max(...allMonths.map((m) => m.count), 1);
 
   return (
-    <div className="min-h-screen bg-[#0f1115] p-6 font-sans">
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
-        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <div className="mb-1">
-              <button
-                onClick={() => router.push("/admin/turnos")}
-                className="text-white/40 hover:text-white text-sm transition"
-              >
-                ← Panel Admin
-              </button>
-            </div>
-            <h1 className="text-3xl font-bold text-white">Estadísticas</h1>
-            <p className="text-white/50 text-sm mt-1">Resumen de actividad del negocio</p>
-          </div>
+    <div className="p-4 md:p-6 font-sans">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Estadísticas</h1>
+          <p className="text-white/50 text-sm mt-1">Resumen de actividad del negocio</p>
         </div>
 
         {/* KPIs principales */}
@@ -157,27 +151,28 @@ export default function EstadisticasPage() {
           {/* Reservas por mes (gráfico de barras simple) */}
           <div className="bg-[#161b22] border border-white/5 rounded-xl p-6">
             <h2 className="text-white font-semibold mb-5">Reservas por mes</h2>
-            {data.bookingsByMonth.length === 0 ? (
-              <p className="text-white/30 text-sm">Sin datos aún</p>
-            ) : (
-              <div className="flex items-end gap-2 h-36">
-                {data.bookingsByMonth.map((m) => {
+              <div className="flex items-end gap-1.5 h-36">
+                {allMonths.map((m) => {
                   const height = Math.round((m.count / maxMonthCount) * 100);
+                  const isCurrent = m.month === new Date().getMonth() + 1;
                   return (
-                    <div key={`${m.year}-${m.month}`} className="flex-1 flex flex-col items-center gap-1">
-                      <span className="text-white/50 text-[10px]">{m.count}</span>
-                      <div
-                        className="w-full bg-green-600/70 rounded-t-sm transition-all"
-                        style={{ height: `${Math.max(height, 4)}%` }}
-                      />
-                      <span className="text-white/40 text-[10px]">
+                    <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
+                      {m.count > 0 && (
+                        <span className="text-white/50 text-[9px]">{m.count}</span>
+                      )}
+                      <div className="w-full flex-1 flex items-end">
+                        <div
+                          className={`w-full rounded-t-sm transition-all ${isCurrent ? "bg-green-500" : "bg-green-800/60"}`}
+                          style={{ height: m.count > 0 ? `${Math.max(height, 6)}%` : "3px" }}
+                        />
+                      </div>
+                      <span className={`text-[9px] ${isCurrent ? "text-green-400 font-semibold" : "text-white/30"}`}>
                         {MONTH_NAMES[m.month - 1]}
                       </span>
                     </div>
                   );
                 })}
               </div>
-            )}
           </div>
 
           {/* Servicios más solicitados */}
@@ -228,15 +223,15 @@ export default function EstadisticasPage() {
                 return (
                   <div
                     key={b.id}
-                    className="flex items-center justify-between py-3 border-b border-white/5 last:border-0"
+                    className="flex items-center justify-between gap-3 py-3 border-b border-white/5 last:border-0"
                   >
-                    <div>
-                      <p className="text-white text-sm font-medium">{b.customerName}</p>
-                      <p className="text-white/40 text-xs mt-0.5">
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{b.customerName}</p>
+                      <p className="text-white/40 text-xs mt-0.5 truncate">
                         {b.vehicle} · {b.service?.replace(/-/g, " ")}
                       </p>
                     </div>
-                    <span className="text-white/60 text-sm font-mono">{label}</span>
+                    <span className="text-white/60 text-xs font-mono shrink-0">{label}</span>
                   </div>
                 );
               })}
