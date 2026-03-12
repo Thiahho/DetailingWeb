@@ -90,6 +90,34 @@ public class AuthService
         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
+    public async Task ChangePasswordAsync(string email, ChangePasswordRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+        if (user == null)
+            throw new UnauthorizedAccessException("Usuario no autorizado");
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            throw new UnauthorizedAccessException("La contraseña actual es incorrecta");
+
+        ValidateNewPasswordPolicy(request);
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        await _context.SaveChangesAsync();
+    }
+
+    private static void ValidateNewPasswordPolicy(ChangePasswordRequest request)
+    {
+        if (request.NewPassword != request.ConfirmNewPassword)
+            throw new ArgumentException("Las contraseñas nuevas no coinciden");
+
+        if (request.NewPassword.Length < 6)
+            throw new ArgumentException("La nueva contraseña debe tener al menos 6 caracteres");
+
+        if (request.NewPassword == request.CurrentPassword)
+            throw new ArgumentException("La nueva contraseña debe ser diferente a la actual");
+    }
+
     private string GenerateJwtToken(User user)
     {
         var jwtKey = _configuration["Jwt:Key"];
