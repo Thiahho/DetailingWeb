@@ -86,6 +86,7 @@ public class BookingsController : ControllerBase
                 vehicle = b.Vehicle,
                 service = b.Service,
                 message = b.Message,
+                status = b.Status,
                 timeSlotId = b.TimeSlotId,
                 startDateTime = b.TimeSlot.StartDateTime,
                 endDateTime = b.TimeSlot.EndDateTime,
@@ -95,6 +96,21 @@ public class BookingsController : ControllerBase
             .ToListAsync();
 
         return Ok(bookings);
+    }
+
+    // PATCH: api/bookings/{id}/confirm (admin)
+    [HttpPatch("{id}/confirm")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ConfirmBooking(int id)
+    {
+        var booking = await _context.Bookings.FindAsync(id);
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        booking.Status = "Confirmed";
+        await _context.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
 }
 

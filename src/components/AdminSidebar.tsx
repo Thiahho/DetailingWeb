@@ -5,13 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
-  List, LayoutDashboard, Menu, X,
+  List, LayoutDashboard, Menu, X, ClipboardList,
 } from "lucide-react";
 
 const navItems = [
   { href: "/admin",             label: "Panel",      icon: LayoutDashboard },
   { href: "/admin/turnos",      label: "Turnos",     icon: List },
   { href: "/admin/calendario",  label: "Calendario", icon: CalendarDays },
+  { href: "/admin/historial",   label: "Historial",  icon: ClipboardList },
   { href: "/admin/servicios",   label: "Servicios",  icon: Wrench },
   { href: "/admin/estadisticas",label: "Stats",      icon: BarChart2 },
 ];
@@ -94,7 +95,7 @@ export default function AdminSidebar() {
           MOBILE — bottom tab bar (siempre visible)
           ════════════════════════════════════ */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-white/5 z-40">
-        <div className="grid grid-cols-5 h-14">
+        <div className="grid grid-cols-6 h-14">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(href);
             return (

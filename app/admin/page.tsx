@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { isAuthenticated } from "../../src/lib/auth";
 
 interface Booking {
+  id: number;
   customerName: string;
   customerPhone: string;
   vehicle: string;
   service: string;
   message?: string;
+  status: string;
 }
 
 interface Slot {
@@ -50,7 +52,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"todos" | "reservados" | "libres">("todos");
+  const [filter, setFilter] = useState<"todos" | "reservados" | "confirmados" | "libres">("todos");
 
   useEffect(() => {
     if (!isAuthenticated()) { router.push("/admin/login"); return; }
@@ -69,12 +71,14 @@ export default function AdminDashboard() {
   }, [router]);
 
   const filtered = slots.filter((s) => {
-    if (filter === "reservados") return !s.isAvailable;
+    if (filter === "reservados") return !s.isAvailable && s.booking?.status !== "Confirmed";
+    if (filter === "confirmados") return s.booking?.status === "Confirmed";
     if (filter === "libres") return s.isAvailable;
     return true;
   });
 
-  const totalReservados = slots.filter((s) => !s.isAvailable).length;
+  const totalReservados = slots.filter((s) => !s.isAvailable && s.booking?.status !== "Confirmed").length;
+  const totalConfirmados = slots.filter((s) => s.booking?.status === "Confirmed").length;
   const totalLibres = slots.filter((s) => s.isAvailable).length;
 
   const handleLiberar = async (id: number) => {
@@ -104,7 +108,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats rápidas */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
           <div className="bg-[#161b22] border border-white/5 rounded-xl p-3 md:p-4 text-center">
             <p className="text-2xl md:text-3xl font-bold text-white">{slots.length}</p>
             <p className="text-white/40 text-[11px] md:text-xs mt-1">Próximos</p>
@@ -113,6 +117,10 @@ export default function AdminDashboard() {
             <p className="text-2xl md:text-3xl font-bold text-orange-400">{totalReservados}</p>
             <p className="text-white/40 text-[11px] md:text-xs mt-1">Reservados</p>
           </div>
+          <div className="bg-[#161b22] border border-blue-900/30 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-blue-400">{totalConfirmados}</p>
+            <p className="text-white/40 text-[11px] md:text-xs mt-1">Confirmados</p>
+          </div>
           <div className="bg-[#161b22] border border-green-900/30 rounded-xl p-3 md:p-4 text-center">
             <p className="text-2xl md:text-3xl font-bold text-green-400">{totalLibres}</p>
             <p className="text-white/40 text-[11px] md:text-xs mt-1">Disponibles</p>
@@ -120,8 +128,8 @@ export default function AdminDashboard() {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-2 mb-4">
-          {(["todos", "reservados", "libres"] as const).map((f) => (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {(["todos", "reservados", "confirmados", "libres"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -168,10 +176,16 @@ export default function AdminDashboard() {
                         <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                           slot.isAvailable
                             ? "bg-green-500/10 text-green-400"
+                            : slot.booking?.status === "Confirmed"
+                            ? "bg-blue-500/10 text-blue-400"
                             : "bg-orange-500/10 text-orange-400"
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${slot.isAvailable ? "bg-green-400" : "bg-orange-400"}`} />
-                          {slot.isAvailable ? "Libre" : "Reservado"}
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            slot.isAvailable ? "bg-green-400"
+                            : slot.booking?.status === "Confirmed" ? "bg-blue-400"
+                            : "bg-orange-400"
+                          }`} />
+                          {slot.isAvailable ? "Libre" : slot.booking?.status === "Confirmed" ? "Confirmado" : "Reservado"}
                         </span>
                       </div>
                       {/* Acción */}
@@ -238,10 +252,16 @@ export default function AdminDashboard() {
                           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
                             slot.isAvailable
                               ? "bg-green-500/10 text-green-400"
+                              : slot.booking?.status === "Confirmed"
+                              ? "bg-blue-500/10 text-blue-400"
                               : "bg-orange-500/10 text-orange-400"
                           }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${slot.isAvailable ? "bg-green-400" : "bg-orange-400"}`} />
-                            {slot.isAvailable ? "Libre" : "Reservado"}
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              slot.isAvailable ? "bg-green-400"
+                              : slot.booking?.status === "Confirmed" ? "bg-blue-400"
+                              : "bg-orange-400"
+                            }`} />
+                            {slot.isAvailable ? "Libre" : slot.booking?.status === "Confirmed" ? "Confirmado" : "Reservado"}
                           </span>
                         </td>
                         <td className="px-5 py-4">

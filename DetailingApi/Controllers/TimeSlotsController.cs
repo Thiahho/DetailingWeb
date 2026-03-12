@@ -60,7 +60,9 @@ public class TimeSlotsController : ControllerBase
                     customerName = b.CustomerName,
                     customerPhone = b.CustomerPhone,
                     vehicle = b.Vehicle,
-                    service = b.Service
+                    service = b.Service,
+                    message = b.Message,
+                    status = b.Status
                 }).FirstOrDefault()
             })
             .ToListAsync();

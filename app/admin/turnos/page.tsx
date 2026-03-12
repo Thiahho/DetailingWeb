@@ -300,6 +300,33 @@ export default function TurnosPage() {
     }
   };
 
+  const confirmarTurno = async (bookingId: number) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/confirm`, {
+        method: "PATCH",
+      });
+      if (response.ok) {
+        showToast("success", "Turno Confirmado", "La reserva fue marcada como confirmada", 4000);
+        setDetailSlot((prev) =>
+          prev && prev.booking
+            ? { ...prev, booking: { ...prev.booking, status: "Confirmed" } }
+            : prev
+        );
+        setSlots((prev) =>
+          prev.map((s) =>
+            s.booking?.id === bookingId
+              ? { ...s, booking: { ...s.booking!, status: "Confirmed" } }
+              : s
+          )
+        );
+      } else {
+        showToast("error", "Error", "No se pudo confirmar el turno");
+      }
+    } catch {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+    }
+  };
+
   const habilitarTurno = async (id: number) => {
     if (!confirm("¿Habilitar este turno? La reserva será cancelada.")) return;
     try {
@@ -854,20 +881,30 @@ export default function TurnosPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/5 flex gap-3">
-              <a
-                href={`https://wa.me/+54${detailSlot.booking.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                  `Hola ${detailSlot.booking.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${formatDateFriendly(detailSlot.startDateTime)}\n🚗 *Vehículo:* ${detailSlot.booking.vehicle}\n🔧 *Servicio:* ${detailSlot.booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
-              >
-                WhatsApp
-              </a>
+            <div className="px-6 py-4 border-t border-white/5 flex flex-col gap-2">
+              <div className="flex gap-3">
+                <a
+                  href={`https://wa.me/+54${detailSlot.booking.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                    `Hola ${detailSlot.booking.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${formatDateFriendly(detailSlot.startDateTime)}\n🚗 *Vehículo:* ${detailSlot.booking.vehicle}\n🔧 *Servicio:* ${detailSlot.booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+                >
+                  WhatsApp
+                </a>
+                {detailSlot.booking.status !== "Confirmed" && (
+                  <button
+                    onClick={() => confirmarTurno(detailSlot.booking!.id)}
+                    className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition"
+                  >
+                    Confirmar
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id); }}
-                className="flex-1 bg-white/5 hover:bg-white/10 text-white/70 py-2.5 rounded-lg text-sm font-semibold transition"
+                className="w-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/70 py-2 rounded-lg text-sm font-medium transition"
               >
                 Liberar turno
               </button>
