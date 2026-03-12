@@ -28,6 +28,11 @@ interface AnalyticsSummary {
   bookingsThisMonth: number;
   bookingsLastMonth: number;
   totalBookings: number;
+  confirmedThisMonth: number;
+  cancelledThisMonth: number;
+  confirmationRate: number;
+  cancellationRate: number;
+  avgLeadTimeHours: number;
   activeBookings: number;
   totalSlots: number;
   availableSlots: number;
@@ -144,6 +149,25 @@ export default function EstadisticasPage() {
             label="Turnos disponibles"
             value={data.availableSlots}
             sub={`${data.activeBookings} reservas activas`}
+          />
+        </div>
+
+        {/* KPIs V2 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <StatCard
+            label="Confirmadas (mes)"
+            value={data.confirmedThisMonth}
+            sub={`${data.confirmationRate}% confirmación`}
+          />
+          <StatCard
+            label="Canceladas (mes)"
+            value={data.cancelledThisMonth}
+            sub={`${data.cancellationRate}% cancelación`}
+          />
+          <StatCard
+            label="Lead time prom."
+            value={`${data.avgLeadTimeHours}h`}
+            sub="Desde reserva a turno"
           />
         </div>
 

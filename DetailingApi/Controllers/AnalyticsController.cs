@@ -31,6 +31,15 @@ public class AnalyticsController : ControllerBase
             .Where(b => b.CreatedAt >= startOfMonth)
             .CountAsync();
 
+        // Reservas confirmadas/canceladas del mes actual
+        var confirmedThisMonth = await _context.Bookings
+            .Where(b => b.CreatedAt >= startOfMonth && b.Status == BookingStatus.Confirmed)
+            .CountAsync();
+
+        var cancelledThisMonth = await _context.Bookings
+            .Where(b => b.CreatedAt >= startOfMonth && b.Status == BookingStatus.Cancelled)
+            .CountAsync();
+
         // Total reservas del mes anterior
         var bookingsLastMonth = await _context.Bookings
             .Where(b => b.CreatedAt >= startOfLastMonth && b.CreatedAt < startOfMonth)
@@ -38,6 +47,15 @@ public class AnalyticsController : ControllerBase
 
         // Total reservas históricas
         var totalBookings = await _context.Bookings.CountAsync();
+
+        // Tasa de confirmación y cancelación del mes actual
+        var confirmationRate = bookingsThisMonth > 0
+            ? Math.Round((double)confirmedThisMonth / bookingsThisMonth * 100, 1)
+            : 0;
+
+        var cancellationRate = bookingsThisMonth > 0
+            ? Math.Round((double)cancelledThisMonth / bookingsThisMonth * 100, 1)
+            : 0;
 
         // Reservas activas (pendientes o confirmadas)
         var activeBookings = await _context.Bookings
@@ -62,6 +80,13 @@ public class AnalyticsController : ControllerBase
             .OrderByDescending(g => g.Count)
             .Take(5)
             .ToListAsync();
+
+        // Anticipación promedio de reserva (en horas) del mes actual
+        var avgLeadTimeHours = await _context.Bookings
+            .Include(b => b.TimeSlot)
+            .Where(b => b.CreatedAt >= startOfMonth)
+            .Select(b => (double?)EF.Functions.DateDiffHour(b.CreatedAt, b.TimeSlot.StartDateTime))
+            .AverageAsync() ?? 0;
 
         // Reservas de los últimos 6 meses (por mes)
         var sixMonthsAgo = startOfMonth.AddMonths(-5);
@@ -101,11 +126,16 @@ public class AnalyticsController : ControllerBase
             bookingsThisMonth,
             bookingsLastMonth,
             totalBookings,
+            confirmedThisMonth,
+            cancelledThisMonth,
+            confirmationRate,
+            cancellationRate,
             activeBookings,
             totalSlots,
             availableSlots,
             occupiedSlots,
             occupancyRate,
+            avgLeadTimeHours = Math.Round(avgLeadTimeHours, 1),
             topServices,
             bookingsByMonth,
             upcomingBookings

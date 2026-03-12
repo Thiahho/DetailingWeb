@@ -312,7 +312,7 @@ export default function TurnosPage() {
     }
   };
 
-  const confirmarTurno = async (bookingId: number) => {
+  const confirmarTurno = async (bookingId: number): Promise<boolean> => {
     try {
       const response = await fetch(`/api/bookings/${bookingId}/confirm`, {
         method: "PATCH",
@@ -331,11 +331,42 @@ export default function TurnosPage() {
               : s
           )
         );
+        return true;
       } else {
         showToast("error", "Error", "No se pudo confirmar el turno");
+        return false;
       }
     } catch {
       showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      return false;
+    }
+  };
+
+  const buildWhatsAppUrl = (slot: TimeSlot) => {
+    const booking = slot.booking;
+    if (!booking) return "";
+
+    const phone = booking.customerPhone.replace(/\D/g, "");
+    const message = encodeURIComponent(
+      `Hola ${booking.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${formatDateFriendly(slot.startDateTime)}\n🚗 *Vehículo:* ${booking.vehicle}\n🔧 *Servicio:* ${booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
+    );
+
+    return `https://wa.me/+54${phone}?text=${message}`;
+  };
+
+  const confirmarYEnviarWhatsApp = async (slot: TimeSlot) => {
+    if (!slot.booking) return;
+
+    const alreadyConfirmed = slot.booking.status === "Confirmed";
+
+    if (!alreadyConfirmed) {
+      const confirmed = await confirmarTurno(slot.booking.id);
+      if (!confirmed) return;
+    }
+
+    const whatsappUrl = buildWhatsAppUrl(slot);
+    if (whatsappUrl) {
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -895,16 +926,12 @@ export default function TurnosPage() {
             {/* Footer */}
             <div className="px-6 py-4 border-t border-white/5 flex flex-col gap-2">
               <div className="flex gap-3">
-                <a
-                  href={`https://wa.me/+54${detailSlot.booking.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                    `Hola ${detailSlot.booking.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${formatDateFriendly(detailSlot.startDateTime)}\n🚗 *Vehículo:* ${detailSlot.booking.vehicle}\n🔧 *Servicio:* ${detailSlot.booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => confirmarYEnviarWhatsApp(detailSlot)}
                   className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
                 >
-                  WhatsApp
-                </a>
+                  Confirmar + WhatsApp
+                </button>
                 {detailSlot.booking.status !== "Confirmed" && (
                   <button
                     onClick={() => confirmarTurno(detailSlot.booking!.id)}
