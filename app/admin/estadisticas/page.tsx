@@ -1,0 +1,249 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { isAuthenticated } from "../../../src/lib/auth";
+import { logError } from "../../../src/lib/logger";
+
+interface TopService {
+  service: string;
+  count: number;
+}
+
+interface MonthlyBooking {
+  year: number;
+  month: number;
+  count: number;
+}
+
+interface UpcomingBooking {
+  id: number;
+  customerName: string;
+  vehicle: string;
+  service: string;
+  startDateTime: string;
+}
+
+interface AnalyticsSummary {
+  bookingsThisMonth: number;
+  bookingsLastMonth: number;
+  totalBookings: number;
+  activeBookings: number;
+  totalSlots: number;
+  availableSlots: number;
+  occupiedSlots: number;
+  occupancyRate: number;
+  topServices: TopService[];
+  bookingsByMonth: MonthlyBooking[];
+  upcomingBookings: UpcomingBooking[];
+}
+
+const MONTH_NAMES = [
+  "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
+];
+
+function StatCard({
+  label,
+  value,
+  sub,
+  accent = false,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className={`bg-[#161b22] border rounded-xl p-5 ${accent ? "border-green-900/50" : "border-white/5"}`}>
+      <p className="text-white/50 text-xs font-medium uppercase tracking-wider">{label}</p>
+      <p className={`text-3xl font-bold mt-2 ${accent ? "text-green-400" : "text-white"}`}>{value}</p>
+      {sub && <p className="text-white/40 text-xs mt-1">{sub}</p>}
+    </div>
+  );
+}
+
+export default function EstadisticasPage() {
+  const router = useRouter();
+  const [data, setData] = useState<AnalyticsSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push("/admin/login");
+      return;
+    }
+    fetch("/api/analytics/summary")
+      .then((res) => res.json())
+      .then((json) => setData(json))
+      .catch((err) => logError("Error cargando estadísticas:", err))
+      .finally(() => setLoading(false));
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0f1115]">
+        <p className="text-white">Cargando estadísticas...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0f1115]">
+        <p className="text-red-400">Error al cargar estadísticas</p>
+      </div>
+    );
+  }
+
+  const trend = data.bookingsLastMonth > 0
+    ? Math.round(((data.bookingsThisMonth - data.bookingsLastMonth) / data.bookingsLastMonth) * 100)
+    : null;
+
+  // Escalar barras del gráfico
+  const maxMonthCount = Math.max(...data.bookingsByMonth.map((m) => m.count), 1);
+
+  return (
+    <div className="min-h-screen bg-[#0f1115] p-6 font-sans">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <div className="mb-1">
+              <button
+                onClick={() => router.push("/admin/turnos")}
+                className="text-white/40 hover:text-white text-sm transition"
+              >
+                ← Panel Admin
+              </button>
+            </div>
+            <h1 className="text-3xl font-bold text-white">Estadísticas</h1>
+            <p className="text-white/50 text-sm mt-1">Resumen de actividad del negocio</p>
+          </div>
+        </div>
+
+        {/* KPIs principales */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <StatCard
+            label="Reservas este mes"
+            value={data.bookingsThisMonth}
+            sub={
+              trend !== null
+                ? trend >= 0
+                  ? `↑ ${trend}% vs mes anterior`
+                  : `↓ ${Math.abs(trend)}% vs mes anterior`
+                : "Primer mes con datos"
+            }
+            accent
+          />
+          <StatCard
+            label="Total histórico"
+            value={data.totalBookings}
+            sub="Reservas acumuladas"
+          />
+          <StatCard
+            label="Tasa de ocupación"
+            value={`${data.occupancyRate}%`}
+            sub={`${data.occupiedSlots} ocupados / ${data.totalSlots} turnos`}
+          />
+          <StatCard
+            label="Turnos disponibles"
+            value={data.availableSlots}
+            sub={`${data.activeBookings} reservas activas`}
+          />
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Reservas por mes (gráfico de barras simple) */}
+          <div className="bg-[#161b22] border border-white/5 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-5">Reservas por mes</h2>
+            {data.bookingsByMonth.length === 0 ? (
+              <p className="text-white/30 text-sm">Sin datos aún</p>
+            ) : (
+              <div className="flex items-end gap-2 h-36">
+                {data.bookingsByMonth.map((m) => {
+                  const height = Math.round((m.count / maxMonthCount) * 100);
+                  return (
+                    <div key={`${m.year}-${m.month}`} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-white/50 text-[10px]">{m.count}</span>
+                      <div
+                        className="w-full bg-green-600/70 rounded-t-sm transition-all"
+                        style={{ height: `${Math.max(height, 4)}%` }}
+                      />
+                      <span className="text-white/40 text-[10px]">
+                        {MONTH_NAMES[m.month - 1]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Servicios más solicitados */}
+          <div className="bg-[#161b22] border border-white/5 rounded-xl p-6">
+            <h2 className="text-white font-semibold mb-5">Servicios más solicitados</h2>
+            {data.topServices.length === 0 ? (
+              <p className="text-white/30 text-sm">Sin datos aún</p>
+            ) : (
+              <div className="space-y-3">
+                {data.topServices.map((s, i) => {
+                  const maxCount = data.topServices[0].count;
+                  const pct = Math.round((s.count / maxCount) * 100);
+                  return (
+                    <div key={s.service}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-white/80 text-sm capitalize">
+                          {s.service.replace(/-/g, " ")}
+                        </span>
+                        <span className="text-white/50 text-xs font-mono">
+                          {s.count} {s.count === 1 ? "reserva" : "reservas"}
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${i === 0 ? "bg-green-500" : "bg-green-800"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Próximas reservas */}
+        <div className="mt-6 bg-[#161b22] border border-white/5 rounded-xl p-6">
+          <h2 className="text-white font-semibold mb-5">Próximas reservas (7 días)</h2>
+          {data.upcomingBookings.length === 0 ? (
+            <p className="text-white/30 text-sm">No hay reservas en los próximos 7 días</p>
+          ) : (
+            <div className="space-y-3">
+              {data.upcomingBookings.map((b) => {
+                const dt = new Date(b.startDateTime.replace("Z", ""));
+                const days = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+                const label = `${days[dt.getDay()]} ${dt.getDate()}/${dt.getMonth() + 1} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+                return (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between py-3 border-b border-white/5 last:border-0"
+                  >
+                    <div>
+                      <p className="text-white text-sm font-medium">{b.customerName}</p>
+                      <p className="text-white/40 text-xs mt-0.5">
+                        {b.vehicle} · {b.service?.replace(/-/g, " ")}
+                      </p>
+                    </div>
+                    <span className="text-white/60 text-sm font-mono">{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

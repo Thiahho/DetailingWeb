@@ -452,11 +452,33 @@ export default function TurnosPage() {
 
       <div className="mx-auto max-w-6xl">
         {/* Encabezado Principal */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Gestión de Turnos</h1>
-          <p className="text-white/50 text-sm mt-1">
-            Administra los turnos disponibles para reservas
-          </p>
+        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Gestión de Turnos</h1>
+            <p className="text-white/50 text-sm mt-1">
+              Administra los turnos disponibles para reservas
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <a
+              href="/admin/estadisticas"
+              className="bg-[#161b22] border border-white/10 hover:border-white/20 text-white/70 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Estadísticas
+            </a>
+            <a
+              href="/admin/servicios"
+              className="bg-[#161b22] border border-white/10 hover:border-white/20 text-white/70 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Servicios
+            </a>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">

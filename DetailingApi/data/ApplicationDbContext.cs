@@ -15,6 +15,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<BlockedDate> BlockedDates { get; set; }
     public DbSet<TimeSlot> TimeSlots { get; set; }
     public DbSet<Booking> Bookings { get; set; }
+    public DbSet<Service> Services { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +50,14 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<BlockedDate>(entity =>
         {
             entity.HasIndex(e => e.Date).IsUnique();
+        });
+
+        // Configuración Service — Details almacenado como JSON
+        modelBuilder.Entity<Service>(entity =>
+        {
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.Property(e => e.Details)
+                .HasColumnType("jsonb");
         });
     }
 }
