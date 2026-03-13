@@ -10,6 +10,7 @@ interface Booking {
   id: number;
   customerName: string;
   customerPhone: string;
+  email?: string;
   vehicle: string;
   service: string;
   message?: string;
@@ -312,10 +313,18 @@ export default function TurnosPage() {
     }
   };
 
-  const confirmarTurno = async (bookingId: number): Promise<boolean> => {
+  const confirmarTurno = async (bookingId: number, booking?: Booking, slotStartDateTime?: string): Promise<boolean> => {
     try {
       const response = await fetch(`/api/bookings/${bookingId}/confirm`, {
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: booking?.email,
+          customerName: booking?.customerName,
+          vehicle: booking?.vehicle,
+          service: booking?.service,
+          startDateTime: slotStartDateTime,
+        }),
       });
       if (response.ok) {
         showToast("success", "Turno Confirmado", "La reserva fue marcada como confirmada", 4000);
@@ -360,7 +369,7 @@ export default function TurnosPage() {
     const alreadyConfirmed = slot.booking.status === "Confirmed";
 
     if (!alreadyConfirmed) {
-      const confirmed = await confirmarTurno(slot.booking.id);
+      const confirmed = await confirmarTurno(slot.booking.id, slot.booking, slot.startDateTime);
       if (!confirmed) return;
     }
 
@@ -986,7 +995,7 @@ export default function TurnosPage() {
                     </button>
                     {detailSlot.booking.status !== "Confirmed" && (
                       <button
-                        onClick={() => confirmarTurno(detailSlot.booking!.id)}
+                        onClick={() => confirmarTurno(detailSlot.booking!.id, detailSlot.booking!, detailSlot.startDateTime)}
                         className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition"
                       >
                         Confirmar

@@ -8,6 +8,7 @@ interface BookingRecord {
   id: number;
   customerName: string;
   customerPhone: string;
+  email?: string;
   vehicle: string;
   service: string;
   message?: string;
@@ -86,10 +87,20 @@ export default function HistorialPage() {
   // Reset página al cambiar filtro o búsqueda
   useEffect(() => { setPage(1); }, [filter, search]);
 
-  const confirmBooking = async (id: number) => {
+  const confirmBooking = async (id: number, booking?: BookingRecord) => {
     setConfirming(true);
     try {
-      const res = await fetch(`/api/bookings/${id}/confirm`, { method: "PATCH" });
+      const res = await fetch(`/api/bookings/${id}/confirm`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: booking?.email,
+          customerName: booking?.customerName,
+          vehicle: booking?.vehicle,
+          service: booking?.service,
+          startDateTime: booking?.startDateTime,
+        }),
+      });
       if (res.ok) {
         setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "Confirmed" } : b));
         setDetail((prev) => prev?.id === id ? { ...prev, status: "Confirmed" } : prev);
@@ -290,7 +301,7 @@ export default function HistorialPage() {
                       <td className="px-5 py-4 text-right">
                         {b.status !== "Confirmed" && b.status !== "Cancelled" && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); confirmBooking(b.id); }}
+                            onClick={(e) => { e.stopPropagation(); confirmBooking(b.id, b); }}
                             className="text-xs text-blue-400 hover:text-blue-300 font-medium transition"
                           >
                             Confirmar
@@ -397,7 +408,7 @@ export default function HistorialPage() {
               </a>
               {detail.status !== "Confirmed" && detail.status !== "Cancelled" && (
                 <button
-                  onClick={() => confirmBooking(detail.id)}
+                  onClick={() => confirmBooking(detail.id, detail)}
                   disabled={confirming}
                   className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition disabled:opacity-50"
                 >

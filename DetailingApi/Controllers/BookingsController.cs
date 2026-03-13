@@ -53,6 +53,7 @@ public class BookingsController : ControllerBase
             TimeSlotId = request.TimeSlotId,
             CustomerName = request.CustomerName,
             CustomerPhone = request.CustomerPhone,
+            Email = request.Email,
             Vehicle = request.Vehicle,
             Service = request.Service,
             Message = request.Message,
@@ -99,6 +100,7 @@ public class BookingsController : ControllerBase
                 id = x.Booking.Id,
                 customerName = x.Booking.CustomerName,
                 customerPhone = x.Booking.CustomerPhone,
+                Email = x.Booking.Email,
                 vehicle = x.Booking.Vehicle,
                 service = x.Booking.Service,
                 message = x.Booking.Message,
@@ -157,6 +159,7 @@ public class CreateBookingRequest
     public int TimeSlotId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string Vehicle { get; set; } = string.Empty;
     public string Service { get; set; } = string.Empty;
     public string? Message { get; set; }

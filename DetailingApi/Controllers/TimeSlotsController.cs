@@ -61,6 +61,7 @@ public class TimeSlotsController : ControllerBase
                         id = b.Id,
                         customerName = b.CustomerName,
                         customerPhone = b.CustomerPhone,
+                        email = b.Email,
                         vehicle = b.Vehicle,
                         service = b.Service,
                         message = b.Message,
