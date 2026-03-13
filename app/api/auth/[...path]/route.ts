@@ -49,7 +49,7 @@ export async function POST(
             httpOnly: true,
             secure: true,
             sameSite: "lax",
-            maxAge: 60 * 60, // 1 hora
+            // Sin maxAge → cookie de sesión, se borra al cerrar el navegador
             path: "/",
           }
         );
