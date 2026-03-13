@@ -82,11 +82,14 @@ public class AnalyticsController : ControllerBase
             .ToListAsync();
 
         // Anticipación promedio de reserva (en horas) del mes actual
-        var avgLeadTimeHours = await _context.Bookings
+        var leadTimes = await _context.Bookings
             .Include(b => b.TimeSlot)
             .Where(b => b.CreatedAt >= startOfMonth)
-            .Select(b => (double?)EF.Functions.DateDiffHour(b.CreatedAt, b.TimeSlot.StartDateTime))
-            .AverageAsync() ?? 0;
+            .Select(b => new { b.CreatedAt, b.TimeSlot.StartDateTime })
+            .ToListAsync();
+        var avgLeadTimeHours = leadTimes.Any()
+            ? leadTimes.Average(b => (b.StartDateTime - b.CreatedAt).TotalHours)
+            : 0;
 
         // Reservas de los últimos 6 meses (por mes)
         var sixMonthsAgo = startOfMonth.AddMonths(-5);

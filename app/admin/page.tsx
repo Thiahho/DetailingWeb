@@ -81,8 +81,11 @@ export default function AdminDashboard() {
   const totalConfirmados = slots.filter((s) => s.booking?.status === "Confirmed").length;
   const totalLibres = slots.filter((s) => s.isAvailable).length;
 
-  const handleLiberar = async (id: number) => {
-    if (!confirm("¿Liberar este turno? La reserva será cancelada.")) return;
+  const handleLiberar = async (id: number, isConfirmed = false) => {
+    const msg = isConfirmed
+      ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
+      : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
+    if (!confirm(msg)) return;
     const res = await fetch(`/api/timeslots/${id}/release`, { method: "PUT" });
     if (res.ok) {
       setSlots((prev) =>
@@ -191,10 +194,10 @@ export default function AdminDashboard() {
                       {/* Acción */}
                       {!slot.isAvailable && (
                         <button
-                          onClick={() => handleLiberar(slot.id)}
+                          onClick={() => handleLiberar(slot.id, slot.booking?.status === "Confirmed")}
                           className="text-xs text-red-400/60 hover:text-red-400 transition font-medium shrink-0"
                         >
-                          Liberar
+                          {slot.booking?.status === "Confirmed" ? "Cancelar" : "Liberar"}
                         </button>
                       )}
                     </div>
@@ -283,10 +286,10 @@ export default function AdminDashboard() {
                         <td className="px-5 py-4 text-right">
                           {!slot.isAvailable && (
                             <button
-                              onClick={() => handleLiberar(slot.id)}
+                              onClick={() => handleLiberar(slot.id, slot.booking?.status === "Confirmed")}
                               className="text-xs text-red-400/60 hover:text-red-400 transition font-medium"
                             >
-                              Liberar
+                              {slot.booking?.status === "Confirmed" ? "Cancelar" : "Liberar"}
                             </button>
                           )}
                         </td>

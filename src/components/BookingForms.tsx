@@ -391,7 +391,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
             >
               <span className="block text-sm font-medium">{pack.title}</span>
               <span className="block text-xs text-white/50 mt-1">
-                {pack.price} · {pack.duration}
+                ${pack.price} · {pack.duration}
               </span>
             </button>
           ))}

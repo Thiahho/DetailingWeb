@@ -13,4 +13,5 @@ public class Booking
     public string? GoogleEventId { get; set; }
     public string Status { get; set; } = BookingStatus.Pending;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CancelledAt { get; set; }
 }

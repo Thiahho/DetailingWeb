@@ -54,16 +54,18 @@ public class TimeSlotsController : ControllerBase
                 bookingsCount = s.Bookings.Count,
                 label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
                 // Info de la reserva si existe
-                booking = s.Bookings.Select(b => new
-                {
-                    id = b.Id,
-                    customerName = b.CustomerName,
-                    customerPhone = b.CustomerPhone,
-                    vehicle = b.Vehicle,
-                    service = b.Service,
-                    message = b.Message,
-                    status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
-                }).FirstOrDefault()
+                booking = s.Bookings
+                    .Where(b => b.Status != BookingStatus.Cancelled)
+                    .Select(b => new
+                    {
+                        id = b.Id,
+                        customerName = b.CustomerName,
+                        customerPhone = b.CustomerPhone,
+                        vehicle = b.Vehicle,
+                        service = b.Service,
+                        message = b.Message,
+                        status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
+                    }).FirstOrDefault()
             })
             .ToListAsync();
 
@@ -182,10 +184,15 @@ public class TimeSlotsController : ControllerBase
             return NotFound(new { message = "Turno no encontrado" });
         }
 
-        // Eliminar todas las reservas asociadas
-        if (slot.Bookings.Any())
+        // Confirmed → marcar como Cancelled; Pending → eliminar
+        var toDelete = slot.Bookings.Where(b => b.Status != BookingStatus.Confirmed).ToList();
+        var toCancel = slot.Bookings.Where(b => b.Status == BookingStatus.Confirmed).ToList();
+
+        _context.Bookings.RemoveRange(toDelete);
+        foreach (var booking in toCancel)
         {
-            _context.Bookings.RemoveRange(slot.Bookings);
+            booking.Status = BookingStatus.Cancelled;
+            booking.CancelledAt = DateTime.UtcNow;
         }
 
         // Marcar turno como HABILITADO

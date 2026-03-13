@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { fetchWithAuth } from "../../../src/lib/auth";
+import { Eye, EyeOff } from "lucide-react";
 
 type MessageType = "success" | "error" | "warning";
 
@@ -12,6 +13,9 @@ export default function CuentaPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<MessageType>("success");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -87,37 +91,64 @@ export default function CuentaPage() {
 
             <div className="space-y-1.5">
               <label className="text-sm text-white/70">Contraseña actual</label>
-              <input
-                type="password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-electric/50 outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  type={showCurrent ? "text" : "password"}
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-11 text-white focus:border-electric/50 outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                >
+                  {showCurrent ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm text-white/70">Nueva contraseña</label>
-              <input
-                type="password"
-                minLength={6}
-                required
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-electric/50 outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  type={showNew ? "text" : "password"}
+                  minLength={6}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-11 text-white focus:border-electric/50 outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                >
+                  {showNew ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm text-white/70">Confirmar nueva contraseña</label>
-              <input
-                type="password"
-                minLength={6}
-                required
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-electric/50 outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  minLength={6}
+                  required
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-11 text-white focus:border-electric/50 outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                >
+                  {showConfirm ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             <button

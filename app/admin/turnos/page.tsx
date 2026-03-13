@@ -370,18 +370,28 @@ export default function TurnosPage() {
     }
   };
 
-  const habilitarTurno = async (id: number) => {
-    if (!confirm("¿Habilitar este turno? La reserva será cancelada.")) return;
+  const habilitarTurno = async (id: number, isConfirmed = false) => {
+    const msg = isConfirmed
+      ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
+      : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
+    if (!confirm(msg)) return;
     try {
       const response = await fetch(`/api/timeslots/${id}/release`, {
         method: "PUT",
       });
       if (response.ok) {
-        showToast("success", "Turno Habilitado", "El turno fue liberado y está disponible nuevamente", 5000);
+        showToast(
+          "success",
+          isConfirmed ? "Turno cancelado" : "Turno liberado",
+          isConfirmed
+            ? "La reserva fue cancelada y el turno está disponible nuevamente"
+            : "El turno está disponible nuevamente",
+          5000
+        );
         loadSlots();
       }
     } catch (error) {
-      showToast("error", "Error", "No se pudo habilitar el turno");
+      showToast("error", "Error", isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno");
       logError(error);
     }
   };
@@ -445,7 +455,7 @@ export default function TurnosPage() {
       showToast("warning", "Acción no permitida", "Solo se pueden habilitar turnos reservados");
       return;
     }
-    if (!confirm(`¿Habilitar ${reservedSelected.length} turno(s)? Las reservas serán canceladas.`)) return;
+    if (!confirm(`¿Cancelar ${reservedSelected.length} turno(s)? Las reservas quedarán canceladas y las fechas se liberarán.`)) return;
 
     setBulkAction(true);
     try {
@@ -711,6 +721,8 @@ export default function TurnosPage() {
                       ${
                         slot.isAvailable
                           ? "bg-[#0f291e]/40 border-green-900/50 hover:border-green-700/50"
+                          : slot.booking?.status === "Confirmed"
+                          ? "bg-blue-900/10 border-blue-900/30 hover:border-blue-700/50"
                           : "bg-orange-900/10 border-orange-900/30 hover:border-orange-700/50"
                       }
                       ${selectedIds.includes(slot.id) ? "ring-2 ring-white/30" : ""}
@@ -736,6 +748,8 @@ export default function TurnosPage() {
                               className={`w-2.5 h-2.5 rounded-full ${
                                 slot.isAvailable
                                   ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                                  : slot.booking?.status === "Confirmed"
+                                  ? "bg-blue-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                                   : "bg-orange-500"
                               }`}
                             ></span>
@@ -743,10 +757,12 @@ export default function TurnosPage() {
                               className={`text-xs font-bold tracking-wider ${
                                 slot.isAvailable
                                   ? "text-green-500"
+                                  : slot.booking?.status === "Confirmed"
+                                  ? "text-blue-400"
                                   : "text-orange-500"
                               }`}
                             >
-                              {slot.isAvailable ? "HABILITADO" : "RESERVADO"}
+                              {slot.isAvailable ? "HABILITADO" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
                             </span>
                           </div>
                         </div>
@@ -791,7 +807,7 @@ export default function TurnosPage() {
                     {/* Información Extra si está reservado */}
                     {!slot.isAvailable && slot.booking && (
                       <div className="mt-3 pt-3 border-t border-white/5 text-xs text-white/60">
-                        Reservado por:{" "}
+                        {slot.booking?.status === "Confirmed" ? "Confirmado por:" : "Reservado por:"}{" "}
                         <span className="text-white">
                           {slot.booking.customerName}
                         </span>
@@ -942,10 +958,10 @@ export default function TurnosPage() {
                 )}
               </div>
               <button
-                onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id); }}
-                className="w-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/70 py-2 rounded-lg text-sm font-medium transition"
+                onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id, detailSlot.booking.status === "Confirmed"); }}
+                className="w-full bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 border border-transparent hover:border-red-500/20 py-2 rounded-lg text-sm font-medium transition"
               >
-                Liberar turno
+                {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
               </button>
             </div>
           </div>

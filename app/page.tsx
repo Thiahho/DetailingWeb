@@ -156,7 +156,7 @@ export default function Home() {
 
               <div className="mt-auto pt-4 border-t border-white/5 space-y-2">
                 <span className="text-lg font-semibold text-lux block">
-                  {pack.price}
+                  ${pack.price}
                 </span>
                 <div className="flex gap-2">
                   <button

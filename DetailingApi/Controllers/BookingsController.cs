@@ -98,7 +98,8 @@ public class BookingsController : ControllerBase
                 startDateTime = b.TimeSlot.StartDateTime,
                 endDateTime = b.TimeSlot.EndDateTime,
                 isAvailable = b.TimeSlot.IsAvailable,
-                createdAt = b.CreatedAt
+                createdAt = b.CreatedAt,
+                cancelledAt = b.CancelledAt
             })
             .ToListAsync();
 

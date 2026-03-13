@@ -135,8 +135,11 @@ export default function CalendarioPage() {
     }
   };
 
-  const liberarTurno = async (slotId: number) => {
-    if (!confirm("¿Liberar este turno? La reserva será cancelada.")) return;
+  const liberarTurno = async (slotId: number, isConfirmed = false) => {
+    const msg = isConfirmed
+      ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
+      : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
+    if (!confirm(msg)) return;
     const res = await fetch(`/api/timeslots/${slotId}/release`, { method: "PUT" });
     if (res.ok) {
       setDetailBooking(null);
@@ -215,6 +218,7 @@ export default function CalendarioPage() {
             {/* Leyenda */}
             <div className="flex gap-4 mt-4 justify-end text-xs text-white/40">
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Disponible</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-400" />Confirmado</span>
               <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400" />Reservado</span>
             </div>
           </div>
@@ -247,15 +251,21 @@ export default function CalendarioPage() {
                             className={`p-3 rounded-xl border transition ${
                               slot.isAvailable
                                 ? "border-green-900/40 bg-green-900/10"
+                                : slot.booking?.status === "Confirmed"
+                                ? "border-blue-900/40 bg-blue-900/10"
                                 : "border-orange-900/40 bg-orange-900/10"
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-white font-medium text-sm">{time}</span>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                slot.isAvailable ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400"
+                                slot.isAvailable
+                                  ? "bg-green-500/20 text-green-400"
+                                  : slot.booking?.status === "Confirmed"
+                                  ? "bg-blue-500/20 text-blue-400"
+                                  : "bg-orange-500/20 text-orange-400"
                               }`}>
-                                {slot.isAvailable ? "LIBRE" : "RESERVADO"}
+                                {slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
                               </span>
                             </div>
                             {!slot.isAvailable && slot.booking && (
@@ -424,10 +434,10 @@ export default function CalendarioPage() {
                 WhatsApp
               </a>
               <button
-                onClick={() => liberarTurno(detailBooking.slot.id)}
+                onClick={() => liberarTurno(detailBooking.slot.id, detailBooking.slot.booking?.status === "Confirmed")}
                 className="flex-1 bg-white/5 hover:bg-red-500/10 text-white/60 hover:text-red-400 border border-white/5 hover:border-red-500/30 py-2.5 rounded-lg text-sm font-semibold transition"
               >
-                Liberar turno
+                {detailBooking.slot.booking?.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
               </button>
             </div>
           </div>
