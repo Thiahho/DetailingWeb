@@ -70,6 +70,13 @@ builder.Services.AddControllers();
 // Servicios
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<NotificationTemplateService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddHttpClient<EmailProvider>();
+builder.Services.AddHttpClient<WhatsAppProvider>();
+builder.Services.AddScoped<INotificationProvider, EmailProvider>();
+builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
+builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 
 // ✅ PRODUCCIÓN: CORS configurado correctamente
 builder.Services.AddCors(options =>

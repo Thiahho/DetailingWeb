@@ -14,6 +14,17 @@ interface BookingRecord {
   status: string;
   startDateTime: string;
   createdAt: string;
+  notificationStatus?: string;
+}
+
+function NotificationBadge({ status }: { status?: string }) {
+  if (status === "Sent") {
+    return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Enviado</span>;
+  }
+  if (status === "Failed") {
+    return <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">Fallido</span>;
+  }
+  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">Pendiente</span>;
 }
 
 function formatDateFriendly(isoString: string) {
@@ -250,6 +261,7 @@ export default function HistorialPage() {
                     <th className="text-left px-5 py-3 font-medium">Vehículo</th>
                     <th className="text-left px-5 py-3 font-medium">Servicio</th>
                     <th className="text-left px-5 py-3 font-medium">Estado</th>
+                    <th className="text-left px-5 py-3 font-medium">Notificación</th>
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
@@ -271,6 +283,9 @@ export default function HistorialPage() {
                       <td className="px-5 py-4 text-white/60">{b.service || "—"}</td>
                       <td className="px-5 py-4">
                         <StatusBadge status={b.status} />
+                      </td>
+                      <td className="px-5 py-4">
+                        <NotificationBadge status={b.notificationStatus} />
                       </td>
                       <td className="px-5 py-4 text-right">
                         {b.status !== "Confirmed" && b.status !== "Cancelled" && (

@@ -1,5 +1,6 @@
 using DetailingApi.Data;
 using DetailingApi.Models;
+using DetailingApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,10 +12,12 @@ namespace DetailingApi.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly NotificationService _notificationService;
 
-    public BookingsController(ApplicationDbContext context)
+    public BookingsController(ApplicationDbContext context, NotificationService notificationService)
     {
         _context = context;
+        _notificationService = notificationService;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -60,6 +63,7 @@ public class BookingsController : ControllerBase
 
         await _context.SaveChangesAsync();
         await transaction.CommitAsync();
+        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCreated);
 
         return Ok(new
         {
@@ -84,22 +88,46 @@ public class BookingsController : ControllerBase
     {
         var bookings = await _context.Bookings
             .Include(b => b.TimeSlot)
-            .OrderByDescending(b => b.CreatedAt)
-            .Select(b => new
+            .GroupJoin(
+                _context.NotificationLogs,
+                b => b.Id,
+                n => n.BookingId,
+                (b, logs) => new { Booking = b, Logs = logs })
+            .OrderByDescending(x => x.Booking.CreatedAt)
+            .Select(x => new
             {
-                id = b.Id,
-                customerName = b.CustomerName,
-                customerPhone = b.CustomerPhone,
-                vehicle = b.Vehicle,
-                service = b.Service,
-                message = b.Message,
-                status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status,
-                timeSlotId = b.TimeSlotId,
-                startDateTime = b.TimeSlot.StartDateTime,
-                endDateTime = b.TimeSlot.EndDateTime,
-                isAvailable = b.TimeSlot.IsAvailable,
-                createdAt = b.CreatedAt,
-                cancelledAt = b.CancelledAt
+                id = x.Booking.Id,
+                customerName = x.Booking.CustomerName,
+                customerPhone = x.Booking.CustomerPhone,
+                vehicle = x.Booking.Vehicle,
+                service = x.Booking.Service,
+                message = x.Booking.Message,
+                status = x.Booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : x.Booking.Status,
+                timeSlotId = x.Booking.TimeSlotId,
+                startDateTime = x.Booking.TimeSlot.StartDateTime,
+                endDateTime = x.Booking.TimeSlot.EndDateTime,
+                isAvailable = x.Booking.TimeSlot.IsAvailable,
+                createdAt = x.Booking.CreatedAt,
+                cancelledAt = x.Booking.CancelledAt,
+                notificationStatus = x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Failed)
+                    ? NotificationDeliveryStatus.Failed
+                    : x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Pending)
+                        ? NotificationDeliveryStatus.Pending
+                        : x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Sent)
+                            ? NotificationDeliveryStatus.Sent
+                            : NotificationDeliveryStatus.Pending,
+                notificationLogs = x.Logs
+                    .OrderByDescending(l => l.CreatedAt)
+                    .Select(l => new
+                    {
+                        channel = l.Channel,
+                        eventType = l.EventType,
+                        status = l.Status,
+                        providerMessageId = l.ProviderMessageId,
+                        errorMessage = l.ErrorMessage,
+                        retryCount = l.RetryCount,
+                        lastAttemptAt = l.LastAttemptAt
+                    })
             })
             .ToListAsync();
 
@@ -117,6 +145,7 @@ public class BookingsController : ControllerBase
 
         booking.Status = BookingStatus.Confirmed;
         await _context.SaveChangesAsync();
+        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingConfirmed);
 
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
