@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
-const RESEND_API_URL = "https://api.resend.com/emails";
+
+function createTransporter() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+}
 
 function formatDateTime(iso?: string): string {
   if (!iso) return "No informado";
@@ -36,62 +46,54 @@ interface BookingDetail {
 }
 
 async function notifyClientBookingConfirmed(booking: BookingDetail) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
   const customerEmail = booking.email;
 
-  if (!apiKey) { console.error("[confirm-email] Falta RESEND_API_KEY"); return; }
-  if (!fromEmail) { console.error("[confirm-email] Falta RESEND_FROM_EMAIL"); return; }
-  if (!customerEmail) { console.error("[confirm-email] El booking no tiene email — revisar respuesta del backend"); return; }
+  if (!user || !pass) { console.error("[confirm-email] Faltan variables GMAIL_USER o GMAIL_APP_PASSWORD"); return; }
+  if (!customerEmail) { console.error("[confirm-email] El booking no tiene email"); return; }
 
   const turno = formatDateTime(booking.startDateTime ?? booking.timeSlot?.startDateTime);
   const name = booking.customerName || "Cliente";
 
-  const resendRes = await fetch(RESEND_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      from: fromEmail,
-      to: [customerEmail],
-      subject: "¡Turno confirmado! — AutoDetail Studio",
-      html: `<!DOCTYPE html>
-      <html lang="es">
-      <body style="margin:0;padding:0;background:#0f1115;font-family:Arial,sans-serif;">
-        <div style="max-width:520px;margin:40px auto;background:#161b22;border-radius:12px;overflow:hidden;border:1px solid #30363d;">
-          <div style="background:#0f2918;padding:32px 32px 24px;border-bottom:1px solid #1a3a24;">
-            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">AutoDetail Studio</h1>
-            <p style="margin:8px 0 0;color:#4ade80;font-size:14px;">✓ Turno confirmado</p>
-          </div>
-          <div style="padding:32px;">
-            <h2 style="margin:0 0 8px;color:#ffffff;font-size:18px;">¡Todo listo, ${name}!</h2>
-            <p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 24px;">
-              Tu turno fue <strong style="color:#4ade80;">confirmado</strong>. Te esperamos en el local.
-            </p>
-            <div style="background:#0d1117;border:1px solid #1a3a24;border-radius:8px;padding:20px;margin-bottom:24px;">
-              <p style="margin:0 0 12px;color:#4ade80;font-size:13px;text-transform:uppercase;letter-spacing:.1em;">Detalle de tu turno</p>
-              <table style="width:100%;border-collapse:collapse;">
-                <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Fecha y hora</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${turno}</td></tr>
-                <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Vehículo</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.vehicle || "—"}</td></tr>
-                <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Servicio</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.service || "—"}</td></tr>
-              </table>
-            </div>
-            <p style="color:#8b949e;font-size:13px;margin:0;line-height:1.6;">
-              Ante cualquier cambio o consulta, respondé este email o escribinos por WhatsApp.
-            </p>
-          </div>
-          <div style="padding:20px 32px;border-top:1px solid #30363d;">
-            <p style="margin:0;color:#484f58;font-size:12px;">© AutoDetail Studio — Este es un email automático.</p>
-          </div>
+  const transporter = createTransporter();
+  const info = await transporter.sendMail({
+    from: `"AutoDetail Studio" <${user}>`,
+    to: customerEmail,
+    subject: "¡Turno confirmado! — AutoDetail Studio",
+    html: `<!DOCTYPE html>
+    <html lang="es">
+    <body style="margin:0;padding:0;background:#0f1115;font-family:Arial,sans-serif;">
+      <div style="max-width:520px;margin:40px auto;background:#161b22;border-radius:12px;overflow:hidden;border:1px solid #30363d;">
+        <div style="background:#0f2918;padding:32px 32px 24px;border-bottom:1px solid #1a3a24;">
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">AutoDetail Studio</h1>
+          <p style="margin:8px 0 0;color:#4ade80;font-size:14px;">✓ Turno confirmado</p>
         </div>
-      </body>
-      </html>`,
-    }),
+        <div style="padding:32px;">
+          <h2 style="margin:0 0 8px;color:#ffffff;font-size:18px;">¡Todo listo, ${name}!</h2>
+          <p style="color:#8b949e;font-size:15px;line-height:1.6;margin:0 0 24px;">
+            Tu turno fue <strong style="color:#4ade80;">confirmado</strong>. Te esperamos en el local.
+          </p>
+          <div style="background:#0d1117;border:1px solid #1a3a24;border-radius:8px;padding:20px;margin-bottom:24px;">
+            <p style="margin:0 0 12px;color:#4ade80;font-size:13px;text-transform:uppercase;letter-spacing:.1em;">Detalle de tu turno</p>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Fecha y hora</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${turno}</td></tr>
+              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Vehículo</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.vehicle || "—"}</td></tr>
+              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Servicio</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.service || "—"}</td></tr>
+            </table>
+          </div>
+          <p style="color:#8b949e;font-size:13px;margin:0;line-height:1.6;">
+            Ante cualquier cambio o consulta, respondé este email o escribinos por WhatsApp.
+          </p>
+        </div>
+        <div style="padding:20px 32px;border-top:1px solid #30363d;">
+          <p style="margin:0;color:#484f58;font-size:12px;">© AutoDetail Studio — Este es un email automático.</p>
+        </div>
+      </div>
+    </body>
+    </html>`,
   });
-  const resendBody = await resendRes.json().catch(() => null);
-  console.log(`[confirm-email] Resend status: ${resendRes.status}`, JSON.stringify(resendBody));
+  console.log(`[confirm-email] Gmail enviado a ${customerEmail} — messageId: ${info.messageId}`);
 }
 
 // GET: ej. /api/bookings/5

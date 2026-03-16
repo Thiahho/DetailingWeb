@@ -1,4 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
+
+function createTransporter() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+}
 
 // GET: Obtener todas las reservas (admin)
 export async function GET(request: NextRequest) {
@@ -25,7 +36,6 @@ export async function GET(request: NextRequest) {
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
-const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 interface BookingPayload {
   timeSlotId?: number;
@@ -69,36 +79,24 @@ function formatDateTime(iso?: string): string {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  const apiKey = process.env.BREVO_API_KEY;
-  const fromEmail = process.env.BREVO_FROM_EMAIL;
-  const fromName = process.env.BREVO_FROM_NAME || "AutoDetail Studio";
-  if (!apiKey || !fromEmail) {
-    console.error("[Brevo] Faltan variables de entorno BREVO_API_KEY o BREVO_FROM_EMAIL");
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) {
+    console.error("[Gmail] Faltan variables GMAIL_USER o GMAIL_APP_PASSWORD");
     return;
   }
-  const res = await fetch(BREVO_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": apiKey,
-    },
-    body: JSON.stringify({
-      sender: { name: fromName, email: fromEmail },
-      to: [{ email: to }],
-      subject,
-      htmlContent: html,
-    }),
+  const transporter = createTransporter();
+  const info = await transporter.sendMail({
+    from: `"AutoDetail Studio" <${user}>`,
+    to,
+    subject,
+    html,
   });
-  if (!res.ok) {
-    const err = await res.text();
-    console.error(`[Brevo] Error al enviar a ${to}: ${res.status} ${err}`);
-  } else {
-    console.log(`[Brevo] Email enviado a ${to}`);
-  }
+  console.log(`[Gmail] Email enviado a ${to} — messageId: ${info.messageId}`);
 }
 
 async function notifyAdminNewBooking(booking: BookingPayload, bookingData: BookingResponse) {
-  const adminEmail = process.env.BREVO_ADMIN_EMAIL;
+  const adminEmail = process.env.GMAIL_ADMIN_EMAIL;
   if (!adminEmail) return;
 
   const safe = {
@@ -184,8 +182,8 @@ export async function POST(request: NextRequest) {
 
     if (response.ok) {
       const bookingData = data as BookingResponse;
-      notifyAdminNewBooking(body, bookingData).catch((e) => console.error("[Brevo] Admin notify error:", e));
-      notifyClientBookingReceived(body, bookingData).catch((e) => console.error("[Brevo] Client notify error:", e));
+      notifyAdminNewBooking(body, bookingData).catch((e) => console.error("[Gmail] Admin notify error:", e));
+      notifyClientBookingReceived(body, bookingData).catch((e) => console.error("[Gmail] Client notify error:", e));
     }
 
     return NextResponse.json(data, { status: response.status });
