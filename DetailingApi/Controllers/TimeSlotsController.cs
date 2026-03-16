@@ -61,6 +61,7 @@ public class TimeSlotsController : ControllerBase
                         id = b.Id,
                         customerName = b.CustomerName,
                         customerPhone = b.CustomerPhone,
+                        email = b.Email,
                         vehicle = b.Vehicle,
                         service = b.Service,
                         message = b.Message,
@@ -221,8 +222,8 @@ public class TimeSlotsController : ControllerBase
             return NotFound(new { message = "Turno no encontrado" });
         }
 
-        // No permitir eliminar si está reservado
-        if (!slot.IsAvailable)
+        // No permitir eliminar si está reservado, salvo que ya haya expirado
+        if (!slot.IsAvailable && slot.EndDateTime >= DateTime.UtcNow)
         {
             return BadRequest(new { message = "No se puede eliminar un turno reservado. Habilitalo primero." });
         }

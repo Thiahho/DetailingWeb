@@ -17,6 +17,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TimeSlot> TimeSlots { get; set; }
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<Service> Services { get; set; }
+    public DbSet<NotificationLog> NotificationLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +47,18 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(b => b.TimeSlot)
                 .WithMany(t => t.Bookings)
                 .HasForeignKey(b => b.TimeSlotId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<NotificationLog>(entity =>
+        {
+            entity.HasIndex(e => e.BookingId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.NextRetryAt);
+
+            entity.HasOne(e => e.Booking)
+                .WithMany()
+                .HasForeignKey(e => e.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

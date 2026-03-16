@@ -185,6 +185,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     name: "",
     vehicle: "",
     whatsapp: "",
+    email:"",
     selectedSlotId: null as number | null,
     selectedService: "",
     message: "",
@@ -271,6 +272,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           timeSlotId: formData.selectedSlotId,
           customerName: formData.name,
           customerPhone: formData.whatsapp,
+          email: formData.email,
           vehicle: formData.vehicle,
           service: formData.selectedService,
           message: formData.message,
@@ -292,6 +294,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           name: "",
           vehicle: "",
           whatsapp: "",
+          email:"", 
           selectedSlotId: null,
           selectedService: "",
           message: "",
@@ -368,6 +371,20 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           required
           value={formData.whatsapp}
         />
+      </div>
+      
+      <div>
+        <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+          Email (para recibir confirmación automática)
+        </label>
+        <input 
+          className="form-input mt-2"
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, email: e.target.value }))
+          }
+          placeholder="tucorreo@gmail.com"
+          value={formData.email}
+          />
       </div>
 
       {/* Selector de Servicio (Igual a tu original) */}

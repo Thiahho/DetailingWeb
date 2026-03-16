@@ -10,6 +10,7 @@ interface Booking {
   id: number;
   customerName: string;
   customerPhone: string;
+  email?: string;
   vehicle: string;
   service: string;
   message?: string;
@@ -181,6 +182,15 @@ export default function TurnosPage() {
   // Estado modal detalle
   const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
 
+  // Estado filtro por estado
+  type StatusFilter = "all" | "available" | "pending" | "confirmed" | "expired";
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const handleFilterChange = (filter: StatusFilter) => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  };
+
   // Estados de Toast
   const [toasts, setToasts] = useState<Toast[]>([]);
   let toastIdCounter = 0;
@@ -312,10 +322,18 @@ export default function TurnosPage() {
     }
   };
 
-  const confirmarTurno = async (bookingId: number): Promise<boolean> => {
+  const confirmarTurno = async (bookingId: number, booking?: Booking, slotStartDateTime?: string): Promise<boolean> => {
     try {
       const response = await fetch(`/api/bookings/${bookingId}/confirm`, {
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: booking?.email,
+          customerName: booking?.customerName,
+          vehicle: booking?.vehicle,
+          service: booking?.service,
+          startDateTime: slotStartDateTime,
+        }),
       });
       if (response.ok) {
         showToast("success", "Turno Confirmado", "La reserva fue marcada como confirmada", 4000);
@@ -360,7 +378,7 @@ export default function TurnosPage() {
     const alreadyConfirmed = slot.booking.status === "Confirmed";
 
     if (!alreadyConfirmed) {
-      const confirmed = await confirmarTurno(slot.booking.id);
+      const confirmed = await confirmarTurno(slot.booking.id, slot.booking, slot.startDateTime);
       if (!confirmed) return;
     }
 
@@ -404,10 +422,10 @@ export default function TurnosPage() {
   };
 
   const selectAll = () => {
-    if (selectedIds.length === slots.length) {
+    if (selectedIds.length === filteredSlots.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(slots.map((s) => s.id));
+      setSelectedIds(filteredSlots.map((s) => s.id));
     }
   };
 
@@ -423,10 +441,10 @@ export default function TurnosPage() {
 
   const bulkDelete = async () => {
     const availableSelected = slots.filter(
-      (s) => selectedIds.includes(s.id) && s.isAvailable
+      (s) => selectedIds.includes(s.id) && (s.isAvailable || isExpired(s.startDateTime))
     );
     if (availableSelected.length === 0) {
-      showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados");
+      showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados o expirados");
       return;
     }
     if (!confirm(`¿Eliminar ${availableSelected.length} turno(s)?`)) return;
@@ -492,10 +510,22 @@ export default function TurnosPage() {
     setFormData({ date: "", hour: "09", minute: "00" });
   };
 
+  // --- Filtrado por estado ---
+  const filteredSlots = slots.filter((slot) => {
+    if (statusFilter === "all") return true;
+    const expired = isExpired(slot.startDateTime);
+    if (statusFilter === "expired") return expired;
+    if (expired) return false;
+    if (statusFilter === "available") return slot.isAvailable;
+    if (statusFilter === "pending") return !slot.isAvailable && slot.booking?.status !== "Confirmed";
+    if (statusFilter === "confirmed") return !slot.isAvailable && slot.booking?.status === "Confirmed";
+    return true;
+  });
+
   // --- Lógica de Paginación ---
-  const totalPages = Math.ceil(slots.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredSlots.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentSlots = slots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const currentSlots = filteredSlots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
@@ -667,7 +697,7 @@ export default function TurnosPage() {
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
-                  checked={selectedIds.length === slots.length && slots.length > 0}
+                  checked={selectedIds.length === filteredSlots.length && filteredSlots.length > 0}
                   onChange={selectAll}
                   className="w-4 h-4 accent-green-500 cursor-pointer"
                   title="Seleccionar todos"
@@ -675,7 +705,7 @@ export default function TurnosPage() {
                 <h2 className="text-xl font-bold text-white">
                   Turnos Creados{" "}
                   <span className="text-white/60 text-lg font-normal">
-                    ({slots.length})
+                    ({statusFilter === "all" ? slots.length : `${filteredSlots.length}/${slots.length}`})
                   </span>
                 </h2>
               </div>
@@ -684,6 +714,31 @@ export default function TurnosPage() {
                   {selectedIds.length} seleccionado(s)
                 </span>
               )}
+            </div>
+
+            {/* Filtro por estado */}
+            <div className="flex gap-1.5 mb-3 px-1 flex-wrap">
+              {(
+                [
+                  { key: "all", label: "Todos" },
+                  { key: "available", label: "Habilitado" },
+                  { key: "pending", label: "Reservado" },
+                  { key: "confirmed", label: "Confirmado" },
+                  { key: "expired", label: "Expirado" },
+                ] as const
+              ).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => handleFilterChange(key)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                    statusFilter === key
+                      ? "bg-white text-black"
+                      : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* Acciones en lote */}
@@ -713,13 +768,17 @@ export default function TurnosPage() {
                   <p>No hay turnos disponibles</p>
                 </div>
               ) : (
-                currentSlots.map((slot) => (
+                currentSlots.map((slot) => {
+                  const expired = isExpired(slot.startDateTime);
+                  return (
                   <div
                     key={slot.id}
                     className={`
                       group relative p-4 rounded-lg border transition-all duration-200
                       ${
-                        slot.isAvailable
+                        expired
+                          ? "bg-white/[0.02] border-white/10 opacity-60"
+                          : slot.isAvailable
                           ? "bg-[#0f291e]/40 border-green-900/50 hover:border-green-700/50"
                           : slot.booking?.status === "Confirmed"
                           ? "bg-blue-900/10 border-blue-900/30 hover:border-blue-700/50"
@@ -738,7 +797,7 @@ export default function TurnosPage() {
                         />
                         <div>
                           {/* Fecha y Hora */}
-                          <p className="text-white font-medium text-[15px] tracking-wide">
+                          <p className={`font-medium text-[15px] tracking-wide ${expired ? "text-white/50 line-through" : "text-white"}`}>
                             {formatDateFriendly(slot.startDateTime)}
                           </p>
 
@@ -746,7 +805,9 @@ export default function TurnosPage() {
                           <div className="flex items-center gap-2 mt-2">
                             <span
                               className={`w-2.5 h-2.5 rounded-full ${
-                                slot.isAvailable
+                                expired
+                                  ? "bg-white/30"
+                                  : slot.isAvailable
                                   ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                                   : slot.booking?.status === "Confirmed"
                                   ? "bg-blue-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
@@ -755,22 +816,37 @@ export default function TurnosPage() {
                             ></span>
                             <span
                               className={`text-xs font-bold tracking-wider ${
-                                slot.isAvailable
+                                expired
+                                  ? "text-white/40"
+                                  : slot.isAvailable
                                   ? "text-green-500"
                                   : slot.booking?.status === "Confirmed"
                                   ? "text-blue-400"
                                   : "text-orange-500"
                               }`}
                             >
-                              {slot.isAvailable ? "HABILITADO" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
+                              {expired
+                                ? "EXPIRADO"
+                                : slot.isAvailable
+                                ? "HABILITADO"
+                                : slot.booking?.status === "Confirmed"
+                                ? "CONFIRMADO"
+                                : "RESERVADO"}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Botones de Acción (Editar/Eliminar) */}
+                      {/* Botones de Acción */}
                       <div className="flex flex-col items-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        {slot.isAvailable ? (
+                        {expired ? (
+                          <button
+                            onClick={() => deleteSlot(slot.id)}
+                            className="text-red-400 hover:text-red-300 text-xs font-medium uppercase tracking-wide transition"
+                          >
+                            Eliminar
+                          </button>
+                        ) : slot.isAvailable ? (
                           <>
                             <button
                               onClick={() => startEditing(slot)}
@@ -814,7 +890,8 @@ export default function TurnosPage() {
                       </div>
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -893,7 +970,9 @@ export default function TurnosPage() {
       </div>
 
       {/* MODAL DETALLE DE RESERVA */}
-      {detailSlot && detailSlot.booking && (
+      {detailSlot && detailSlot.booking && (() => {
+        const slotExpired = isExpired(detailSlot.startDateTime);
+        return (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => setDetailSlot(null)}
@@ -926,13 +1005,16 @@ export default function TurnosPage() {
               )}
               <Row label="Estado" value={
                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  detailSlot.booking.status === "Confirmed"
+                  slotExpired
+                    ? "bg-white/10 text-white/40"
+                    : detailSlot.booking.status === "Confirmed"
                     ? "bg-green-500/20 text-green-400"
                     : detailSlot.booking.status === "Cancelled"
                     ? "bg-red-500/20 text-red-400"
                     : "bg-orange-500/20 text-orange-400"
                 }`}>
-                  {detailSlot.booking.status === "Confirmed" ? "Confirmado"
+                  {slotExpired ? "Expirado"
+                    : detailSlot.booking.status === "Confirmed" ? "Confirmado"
                     : detailSlot.booking.status === "Cancelled" ? "Cancelado"
                     : "Pendiente"}
                 </span>
@@ -941,32 +1023,44 @@ export default function TurnosPage() {
 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-white/5 flex flex-col gap-2">
-              <div className="flex gap-3">
+              {slotExpired ? (
                 <button
-                  onClick={() => confirmarYEnviarWhatsApp(detailSlot)}
-                  className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+                  onClick={() => { setDetailSlot(null); deleteSlot(detailSlot.id); }}
+                  className="w-full bg-red-600/20 border border-red-600/50 hover:bg-red-600/30 text-red-400 py-2.5 rounded-lg text-sm font-semibold transition"
                 >
-                  Confirmar + WhatsApp
+                  Eliminar turno expirado
                 </button>
-                {detailSlot.booking.status !== "Confirmed" && (
+              ) : (
+                <>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => confirmarYEnviarWhatsApp(detailSlot)}
+                      className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+                    >
+                      Confirmar + WhatsApp
+                    </button>
+                    {detailSlot.booking.status !== "Confirmed" && (
+                      <button
+                        onClick={() => confirmarTurno(detailSlot.booking!.id, detailSlot.booking!, detailSlot.startDateTime)}
+                        className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition"
+                      >
+                        Confirmar
+                      </button>
+                    )}
+                  </div>
                   <button
-                    onClick={() => confirmarTurno(detailSlot.booking!.id)}
-                    className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition"
+                    onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id, detailSlot.booking!.status === "Confirmed"); }}
+                    className="w-full bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 border border-transparent hover:border-red-500/20 py-2 rounded-lg text-sm font-medium transition"
                   >
-                    Confirmar
+                    {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
                   </button>
-                )}
-              </div>
-              <button
-                onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id, detailSlot.booking.status === "Confirmed"); }}
-                className="w-full bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 border border-transparent hover:border-red-500/20 py-2 rounded-lg text-sm font-medium transition"
-              >
-                {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
-              </button>
+                </>
+              )}
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -994,4 +1088,14 @@ function formatDateFriendly(isoString: string) {
   const dayName = days[date.getDay()];
 
   return `${dayName} ${day}/${month}/${year} - ${hours}:${minutes}`;
+}
+
+// Retorna true si el turno ya pasó su horario de inicio
+function isExpired(isoString: string): boolean {
+  const cleanString = isoString.replace("Z", "");
+  const [datePart, timePart] = cleanString.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hours, minutes] = timePart.split(":").map(Number);
+  const slotDate = new Date(year, month - 1, day, hours, minutes);
+  return slotDate < new Date();
 }

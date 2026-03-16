@@ -49,7 +49,7 @@ export async function POST(
             httpOnly: true,
             secure: true,
             sameSite: "lax",
-            // Sin maxAge → cookie de sesión, se borra al cerrar el navegador
+            maxAge: 60 * 60 * 24, // 24 horas (igual que el JWT)
             path: "/",
           }
         );
