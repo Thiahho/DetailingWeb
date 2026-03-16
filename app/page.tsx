@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BookingForm from "../src/components/BookingForms";
-import { packs, gallery } from "../src/lib/data"; // Importamos solo lo necesario
+import { gallery } from "../src/lib/data";
 import WhatsAppFloat from "../src/components/WhatsAppFloat";
+
+interface Service {
+  id: number;
+  title: string;
+  slug: string;
+  price: string;
+  duration: string | null;
+  imageUrl: string;
+  description: string;
+  details: string[];
+}
 
 const WHATSAPP_NUMBER = "+54112692061";
 //const PHONE_NUMBER = "+54112692061";
@@ -12,11 +23,20 @@ const WHATSAPP_NUMBER = "+54112692061";
 const SITE_URL = "https://detailing-web-five.vercel.app";
 
 export default function Home() {
+  const [services, setServices] = useState<Service[]>([]);
   const [visiblePacks, setVisiblePacks] = useState(3);
   const [visibleGallery, setVisibleGallery] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
-  const packsToShow = packs.slice(0, visiblePacks);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const packsToShow = services.slice(0, visiblePacks);
   const galleryToShow = gallery.slice(0, visibleGallery);
+
+  useEffect(() => {
+    fetch("/api/services")
+      .then((res) => res.json())
+      .then((data) => setServices(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   const reels = [
     "/video/V1.mp4",
@@ -114,19 +134,18 @@ export default function Home() {
         <div className="grid gap-6 md:grid-cols-3">
           {packsToShow.map((pack) => (
             <article
-              key={pack.title}
+              key={pack.id}
               className="glass-card flex h-full flex-col gap-4 p-6"
             >
               <div className="overflow-hidden rounded-xl border border-white/10">
                 <img
                   alt={pack.title}
                   className="h-40 w-full object-cover transition-transform duration-500 hover:scale-105"
-                  src={pack.image}
+                  src={pack.imageUrl}
                 />
               </div>
               <h4 className="text-xl font-semibold">{pack.title}</h4>
 
-              {/* Opcional: Lista de detalles si quieres que se vean los beneficios */}
               <ul className="space-y-2 text-sm text-white/60 mb-4">
                 {pack.details?.map((detail, i) => (
                   <li key={i} className="flex items-center gap-2">
@@ -135,29 +154,37 @@ export default function Home() {
                 ))}
               </ul>
 
-              <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
-                <span className="text-lg font-semibold text-lux">
-                  {pack.price}
+              <div className="mt-auto pt-4 border-t border-white/5 space-y-2">
+                <span className="text-lg font-semibold text-lux block">
+                  ${pack.price}
                 </span>
-                <button
-                  onClick={() => handlePresupuestar(pack.slug)}
-                  className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase text-white/60 hover:text-white hover:border-lux/50 transition-all"
-                >
-                  Presupuestar
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedService(pack)}
+                    className="flex-1 text-center rounded-full border border-white/10 px-3 py-2 text-xs uppercase text-white/60 hover:text-white hover:border-white/30 transition-all"
+                  >
+                    Ver detalle
+                  </button>
+                  <button
+                    onClick={() => handlePresupuestar(pack.slug)}
+                    className="flex-1 rounded-full bg-lux/10 border border-lux/40 px-3 py-2 text-xs uppercase text-lux hover:bg-lux/20 transition-all"
+                  >
+                    Presupuestar
+                  </button>
+                </div>
               </div>
             </article>
           ))}
         </div>
 
         {/* BOTÓN VER MÁS */}
-        {visiblePacks < packs.length && (
+        {visiblePacks < services.length && (
           <div className="text-center pt-8">
             <button
               onClick={() => setVisiblePacks((prev) => prev + 3)}
               className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:border-white/20 hover:text-white"
             >
-              Ver más servicios ({packs.length - visiblePacks} restantes)
+              Ver más servicios ({services.length - visiblePacks} restantes)
             </button>
           </div>
         )}
@@ -286,6 +313,75 @@ export default function Home() {
         Detailing premium Zona Oeste · Moreno · Turnos rápidos por WhatsApp
       </footer>
       <WhatsAppFloat whatsappNumber={WHATSAPP_NUMBER.replace(/\D/g, "")}></WhatsAppFloat>
+
+      {/* MODAL DETALLE SERVICIO */}
+      {selectedService && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setSelectedService(null)}
+        >
+          <div
+            className="bg-[#0f1115] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {selectedService.imageUrl && (
+              <div className="h-52 overflow-hidden">
+                <img
+                  src={selectedService.imageUrl}
+                  alt={selectedService.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div className="p-6 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <h2 className="text-2xl font-semibold text-white">{selectedService.title}</h2>
+                <button
+                  onClick={() => setSelectedService(null)}
+                  className="text-white/40 hover:text-white transition text-xl shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {selectedService.description && (
+                <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">{selectedService.description}</p>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {selectedService.duration && (
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
+                    ⏱ {selectedService.duration}
+                  </span>
+                )}
+                <span className="rounded-full border border-lux/50 px-3 py-1 text-xs text-lux">
+                  ${selectedService.price} ARS
+                </span>
+              </div>
+
+              {selectedService.details?.length > 0 && (
+                <ul className="space-y-1 text-sm text-white/60">
+                  {selectedService.details.map((d, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-lux mt-0.5">✓</span> {d}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <button
+                onClick={() => {
+                  setSelectedService(null);
+                  handlePresupuestar(selectedService.slug);
+                }}
+                className="w-full rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black shadow-gold transition hover:scale-[1.02]"
+              >
+                Presupuestar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

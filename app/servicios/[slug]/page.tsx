@@ -1,114 +1,112 @@
 import type { Metadata } from "next";
-import { services } from "../../../src/lib/service";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 const siteUrl = "https://detailing-web-five.vercel.app";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug: string };
-}): Promise<Metadata> {
-  const service = services[params.slug] ?? services["daily-reset"];
-  const description =
-    service.description ??
-    `${service.title} en Moreno, Zona Oeste. ${service.summary}`;
-  const canonicalUrl = `${siteUrl}/servicios/${params.slug}`;
+interface Service {
+  id: number;
+  title: string;
+  slug: string;
+  price: string;
+  duration: string | null;
+  imageUrl: string;
+  description: string;
+  details: string[];
+}
+
+async function getService(slug: string): Promise<Service | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/services/${slug}`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const service = await getService(params.slug);
+  if (!service) return { title: "Servicio no encontrado" };
 
   return {
     title: service.title,
-    description,
-    alternates: {
-      canonical: canonicalUrl,
-    },
+    description: service.description || `${service.title} en Moreno, Zona Oeste.`,
+    alternates: { canonical: `${siteUrl}/servicios/${params.slug}` },
     openGraph: {
       title: service.title,
-      description,
-      url: canonicalUrl,
+      description: service.description || `${service.title} en Moreno, Zona Oeste.`,
+      url: `${siteUrl}/servicios/${params.slug}`,
       siteName: "Detailing Cars",
       locale: "es_AR",
-      images: [
-        {
-          url: "/img/og.jpg",
-          width: 1200,
-          height: 630,
-          alt: `Detalle del servicio ${service.title}`,
-        },
-      ],
+      images: [{ url: "/img/og.jpg", width: 1200, height: 630, alt: `Detalle del servicio ${service.title}` }],
     },
     twitter: {
       card: "summary_large_image",
       title: service.title,
-      description,
+      description: service.description || `${service.title} en Moreno, Zona Oeste.`,
       images: ["/img/og.jpg"],
     },
   };
 }
 
-export default function ServiceDetail({ params }: { params: { slug: string } }) {
-  const service = services[params.slug] ?? services["daily-reset"];
+export default async function ServiceDetail({ params }: { params: { slug: string } }) {
+  const service = await getService(params.slug);
+  if (!service) notFound();
 
   return (
     <main className="min-h-screen bg-midnight px-6 py-16 text-slate-100">
-      <div className="mx-auto max-w-5xl space-y-10">
-        <a className="text-xs uppercase tracking-[0.2em] text-white/60" href="/">
-          ← Volver al inicio
-        </a>
+      <div className="mx-auto max-w-3xl space-y-10">
+        <Link href="/servicios" className="text-xs uppercase tracking-[0.2em] text-white/60 hover:text-white transition">
+          ← Volver a servicios
+        </Link>
 
-        <div className="grid gap-10 md:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-10 md:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
             <span className="badge">Detalle del servicio</span>
             <h1 className="text-4xl font-semibold">{service.title}</h1>
-            <p className="text-white/70">{service.summary}</p>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <span className="rounded-full border border-white/10 px-4 py-2 text-white/70">
-                {service.time}
-              </span>
+
+            {service.description && (
+              <p className="text-white/70 leading-relaxed">{service.description}</p>
+            )}
+
+            <div className="flex flex-wrap gap-3 text-sm">
+              {service.duration && (
+                <span className="rounded-full border border-white/10 px-4 py-2 text-white/70">
+                  ⏱ {service.duration}
+                </span>
+              )}
               <span className="rounded-full border border-lux/50 px-4 py-2 text-lux">
                 {service.price}
               </span>
             </div>
 
-            <div className="glass-card space-y-3 p-6 text-sm text-white/70">
-              {service.highlights.map((item) => (
-                <p key={item}>✔ {item}</p>
-              ))}
-            </div>
+            {service.details?.length > 0 && (
+              <ul className="glass-card space-y-2 p-6 text-sm text-white/70">
+                {service.details.map((item, i) => (
+                  <li key={i}>✔ {item}</li>
+                ))}
+              </ul>
+            )}
+
+            <Link
+              href={`/#contacto`}
+              className="inline-block rounded-full bg-lux px-8 py-3 text-sm font-semibold text-black shadow-gold transition hover:scale-[1.02]"
+            >
+              Presupuestar
+            </Link>
           </div>
 
-          <div className="glass-card overflow-hidden border border-white/10">
-            <img alt={`Imagen ${service.title}`} className="h-full w-full object-cover" src={service.image} />
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="glass-card p-6">
-            <h2 className="text-xl font-semibold">¿Qué incluye?</h2>
-            <ul className="mt-4 space-y-2 text-sm text-white/70">
-              {service.includes.map((item) => (
-                <li key={item}>• {item}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="glass-card p-6">
-            <h2 className="text-xl font-semibold">Reservá tu turno</h2>
-            <p className="mt-3 text-sm text-white/70">
-              Coordiná por WhatsApp o dejá tu consulta para confirmar disponibilidad en Moreno.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a
-                className="rounded-full bg-lux px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-black shadow-gold"
-                href="https://wa.me/5491112345678"
-              >
-                WhatsApp
-              </a>
-              <a
-                className="rounded-full border border-white/15 px-6 py-3 text-xs uppercase tracking-[0.2em] text-white/70"
-                href="/#contacto"
-              >
-                Consulta online
-              </a>
+          {service.imageUrl && (
+            <div className="glass-card overflow-hidden rounded-2xl border border-white/10">
+              <img
+                alt={service.title}
+                className="h-full w-full object-cover"
+                src={service.imageUrl}
+              />
             </div>
-          </div>
+          )}
         </div>
       </div>
     </main>

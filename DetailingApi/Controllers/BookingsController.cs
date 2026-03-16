@@ -12,12 +12,12 @@ namespace DetailingApi.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
-    private readonly GoogleCalendarService _calendarService;
+    private readonly NotificationService _notificationService;
 
-    public BookingsController(ApplicationDbContext context, GoogleCalendarService calendarService)
+    public BookingsController(ApplicationDbContext context, NotificationService notificationService)
     {
         _context = context;
-        _calendarService = calendarService;
+        _notificationService = notificationService;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -25,58 +25,46 @@ public class BookingsController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var updatedRows = await _context.TimeSlots
+            .Where(t => t.Id == request.TimeSlotId && t.IsAvailable)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(t => t.IsAvailable, false));
+
+        if (updatedRows == 0)
+        {
+            var exists = await _context.TimeSlots.AnyAsync(t => t.Id == request.TimeSlotId);
+
+            if (!exists)
+            {
+                return NotFound(new { success = false, message = "Turno no encontrado" });
+            }
+
+            return Conflict(new { success = false, message = "turno ya reservado" });
+        }
+
         var timeSlot = await _context.TimeSlots
-            .Include(t => t.Bookings)
-            .FirstOrDefaultAsync(t => t.Id == request.TimeSlotId);
-
-        if (timeSlot == null)
-        {
-            return NotFound(new { success = false, message = "Turno no encontrado" });
-        }
-
-        if (!timeSlot.IsAvailable)
-        {
-            return BadRequest(new { success = false, message = "Este turno ya no está disponible" });
-        }
+            .AsNoTracking()
+            .FirstAsync(t => t.Id == request.TimeSlotId);
 
         var booking = new Booking
         {
             TimeSlotId = request.TimeSlotId,
             CustomerName = request.CustomerName,
             CustomerPhone = request.CustomerPhone,
+            Email = request.Email,
             Vehicle = request.Vehicle,
             Service = request.Service,
             Message = request.Message,
-            Status = "Reservado"
+            Status = BookingStatus.Pending
         };
 
         _context.Bookings.Add(booking);
 
-        // Marcar turno como RESERVADO
-        timeSlot.IsAvailable = false;
-
         await _context.SaveChangesAsync();
-
-        // Crear evento en Google Calendar (opcional, no falla la reserva)
-        try
-        {
-            var turnoRequest = new TurnoRequest
-            {
-                Name = request.CustomerName,
-                Vehicle = request.Vehicle,
-                WhatsApp = request.CustomerPhone,
-                DateTime = timeSlot.StartDateTime,
-                Message = $"Servicio: {request.Service}\n{request.Message ?? ""}"
-            };
-
-            var eventLink = await _calendarService.CrearTurnoAsync(turnoRequest);
-            booking.GoogleEventId = eventLink;
-            await _context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error creando evento en Google Calendar: {ex.Message}");
-        }
+        await transaction.CommitAsync();
+        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCreated);
 
         return Ok(new
         {
@@ -101,24 +89,132 @@ public class BookingsController : ControllerBase
     {
         var bookings = await _context.Bookings
             .Include(b => b.TimeSlot)
-            .OrderByDescending(b => b.CreatedAt)
-            .Select(b => new
+            .GroupJoin(
+                _context.NotificationLogs,
+                b => b.Id,
+                n => n.BookingId,
+                (b, logs) => new { Booking = b, Logs = logs })
+            .OrderByDescending(x => x.Booking.CreatedAt)
+            .Select(x => new
             {
-                id = b.Id,
-                customerName = b.CustomerName,
-                customerPhone = b.CustomerPhone,
-                vehicle = b.Vehicle,
-                service = b.Service,
-                message = b.Message,
-                timeSlotId = b.TimeSlotId,
-                startDateTime = b.TimeSlot.StartDateTime,
-                endDateTime = b.TimeSlot.EndDateTime,
-                isAvailable = b.TimeSlot.IsAvailable,
-                createdAt = b.CreatedAt
+                id = x.Booking.Id,
+                customerName = x.Booking.CustomerName,
+                customerPhone = x.Booking.CustomerPhone,
+                Email = x.Booking.Email,
+                vehicle = x.Booking.Vehicle,
+                service = x.Booking.Service,
+                message = x.Booking.Message,
+                status = x.Booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : x.Booking.Status,
+                timeSlotId = x.Booking.TimeSlotId,
+                startDateTime = x.Booking.TimeSlot.StartDateTime,
+                endDateTime = x.Booking.TimeSlot.EndDateTime,
+                isAvailable = x.Booking.TimeSlot.IsAvailable,
+                createdAt = x.Booking.CreatedAt,
+                cancelledAt = x.Booking.CancelledAt,
+                notificationStatus = x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Failed)
+                    ? NotificationDeliveryStatus.Failed
+                    : x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Pending)
+                        ? NotificationDeliveryStatus.Pending
+                        : x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Sent)
+                            ? NotificationDeliveryStatus.Sent
+                            : NotificationDeliveryStatus.Pending,
+                notificationLogs = x.Logs
+                    .OrderByDescending(l => l.CreatedAt)
+                    .Select(l => new
+                    {
+                        channel = l.Channel,
+                        eventType = l.EventType,
+                        status = l.Status,
+                        providerMessageId = l.ProviderMessageId,
+                        errorMessage = l.ErrorMessage,
+                        retryCount = l.RetryCount,
+                        lastAttemptAt = l.LastAttemptAt
+                    })
             })
             .ToListAsync();
 
         return Ok(bookings);
+    }
+
+    // GET: api/bookings/{id} (público - ver detalle para cancelar)
+    [HttpGet("{id}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetBooking(int id)
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.TimeSlot)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        return Ok(new
+        {
+            id = booking.Id,
+            customerName = booking.CustomerName,
+            service = booking.Service,
+            vehicle = booking.Vehicle,
+            startDateTime = booking.TimeSlot.StartDateTime,
+            status = booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : booking.Status,
+            cancelledAt = booking.CancelledAt
+        });
+    }
+
+    // POST: api/bookings/{id}/cancel (público - cancelar por link de email)
+    [HttpPost("{id}/cancel")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CancelBooking(int id)
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.TimeSlot)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        if (booking.Status == BookingStatus.Cancelled)
+            return BadRequest(new { success = false, message = "Este turno ya fue cancelado" });
+
+        if (booking.TimeSlot.EndDateTime < DateTime.UtcNow)
+            return BadRequest(new { success = false, message = "Este turno ya expiró y no puede cancelarse" });
+
+        booking.Status = BookingStatus.Cancelled;
+        booking.CancelledAt = DateTime.UtcNow;
+        booking.TimeSlot.IsAvailable = true;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Turno cancelado exitosamente" });
+    }
+
+    // DELETE: api/bookings/expired (admin)
+    [HttpDelete("expired")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteExpiredBookings()
+    {
+        var now = DateTime.UtcNow;
+
+        var deletedSlots = await _context.TimeSlots
+            .Where(t => t.EndDateTime < now)
+            .ExecuteDeleteAsync();
+
+        return Ok(new { success = true, deletedTimeSlots = deletedSlots });
+    }
+
+    // PATCH: api/bookings/{id}/confirm (admin)
+    [HttpPatch("{id}/confirm")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ConfirmBooking(int id)
+    {
+        var booking = await _context.Bookings.FindAsync(id);
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        booking.Status = BookingStatus.Confirmed;
+        await _context.SaveChangesAsync();
+        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingConfirmed);
+
+        return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
 }
 
@@ -128,6 +224,7 @@ public class CreateBookingRequest
     public int TimeSlotId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string Vehicle { get; set; } = string.Empty;
     public string Service { get; set; } = string.Empty;
     public string? Message { get; set; }

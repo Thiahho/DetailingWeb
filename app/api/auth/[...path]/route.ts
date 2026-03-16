@@ -9,6 +9,7 @@ export async function POST(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path.join("/");
+  const token = request.cookies.get("token")?.value;
 
   // Logout: borrar cookie y retornar
   if (path === "logout") {
@@ -25,6 +26,7 @@ export async function POST(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
       },
       body: JSON.stringify(body),
     });
@@ -47,7 +49,7 @@ export async function POST(
             httpOnly: true,
             secure: true,
             sameSite: "lax",
-            maxAge: 60 * 60, // 1 hora
+            maxAge: 60 * 60 * 24, // 24 horas (igual que el JWT)
             path: "/",
           }
         );

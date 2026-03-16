@@ -11,6 +11,8 @@ public class Booking
     public string Vehicle { get; set; } = string.Empty;
     public string? Message { get; set; }
     public string? GoogleEventId { get; set; }
-    public string Status { get; set; } = "Pending"; // Pending, Confirmed, Cancelled
+    public string? Email { get; set; }
+    public string Status { get; set; } = BookingStatus.Pending;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CancelledAt { get; set; }
 }

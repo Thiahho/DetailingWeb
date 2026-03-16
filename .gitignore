@@ -54,6 +54,11 @@ packages/
 DetailingApi/appsettings.Development.json
 DetailingApi/appsettings.Production.json
 
+# Google OAuth credentials y tokens — NUNCA subir al repositorio
+DetailingApi/credentials.json
+DetailingApi/token.json/
+DetailingApi/token.json
+
 # =========================
 # IDEs / Editores
 # =========================

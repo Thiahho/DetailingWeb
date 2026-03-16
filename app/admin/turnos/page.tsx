@@ -10,8 +10,11 @@ interface Booking {
   id: number;
   customerName: string;
   customerPhone: string;
+  email?: string;
   vehicle: string;
   service: string;
+  message?: string;
+  status: string;
 }
 
 interface TimeSlot {
@@ -25,6 +28,12 @@ interface TimeSlot {
 }
 
 // --- Toast Types ---
+
+const normalizeBookingStatus = (status: string) => {
+  if (status === "Reservado") return "Pending";
+  return status;
+};
+
 type ToastType = "success" | "error" | "warning" | "info";
 
 interface Toast {
@@ -170,6 +179,18 @@ export default function TurnosPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkAction, setBulkAction] = useState(false);
 
+  // Estado modal detalle
+  const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
+
+  // Estado filtro por estado
+  type StatusFilter = "all" | "available" | "pending" | "confirmed" | "expired";
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const handleFilterChange = (filter: StatusFilter) => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  };
+
   // Estados de Toast
   const [toasts, setToasts] = useState<Toast[]>([]);
   let toastIdCounter = 0;
@@ -196,8 +217,14 @@ export default function TurnosPage() {
     try {
       const response = await fetch("/api/timeslots");
       if (response.ok) {
-        const data = await response.json();
-        setSlots(data);
+        const data: TimeSlot[] = await response.json();
+        const normalizedSlots = data.map((slot) => ({
+          ...slot,
+          booking: slot.booking
+            ? { ...slot.booking, status: normalizeBookingStatus(slot.booking.status) }
+            : undefined,
+        }));
+        setSlots(normalizedSlots);
       }
     } catch (error) {
       logError("Error cargando turnos:", error);
@@ -295,18 +322,94 @@ export default function TurnosPage() {
     }
   };
 
-  const habilitarTurno = async (id: number) => {
-    if (!confirm("¿Habilitar este turno? La reserva será cancelada.")) return;
+  const confirmarTurno = async (bookingId: number, booking?: Booking, slotStartDateTime?: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/confirm`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: booking?.email,
+          customerName: booking?.customerName,
+          vehicle: booking?.vehicle,
+          service: booking?.service,
+          startDateTime: slotStartDateTime,
+        }),
+      });
+      if (response.ok) {
+        showToast("success", "Turno Confirmado", "La reserva fue marcada como confirmada", 4000);
+        setDetailSlot((prev) =>
+          prev && prev.booking
+            ? { ...prev, booking: { ...prev.booking, status: "Confirmed" } }
+            : prev
+        );
+        setSlots((prev) =>
+          prev.map((s) =>
+            s.booking?.id === bookingId
+              ? { ...s, booking: { ...s.booking!, status: "Confirmed" } }
+              : s
+          )
+        );
+        return true;
+      } else {
+        showToast("error", "Error", "No se pudo confirmar el turno");
+        return false;
+      }
+    } catch {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      return false;
+    }
+  };
+
+  const buildWhatsAppUrl = (slot: TimeSlot) => {
+    const booking = slot.booking;
+    if (!booking) return "";
+
+    const phone = booking.customerPhone.replace(/\D/g, "");
+    const message = encodeURIComponent(
+      `Hola ${booking.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${formatDateFriendly(slot.startDateTime)}\n🚗 *Vehículo:* ${booking.vehicle}\n🔧 *Servicio:* ${booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
+    );
+
+    return `https://wa.me/+54${phone}?text=${message}`;
+  };
+
+  const confirmarYEnviarWhatsApp = async (slot: TimeSlot) => {
+    if (!slot.booking) return;
+
+    const alreadyConfirmed = slot.booking.status === "Confirmed";
+
+    if (!alreadyConfirmed) {
+      const confirmed = await confirmarTurno(slot.booking.id, slot.booking, slot.startDateTime);
+      if (!confirmed) return;
+    }
+
+    const whatsappUrl = buildWhatsAppUrl(slot);
+    if (whatsappUrl) {
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const habilitarTurno = async (id: number, isConfirmed = false) => {
+    const msg = isConfirmed
+      ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
+      : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
+    if (!confirm(msg)) return;
     try {
       const response = await fetch(`/api/timeslots/${id}/release`, {
         method: "PUT",
       });
       if (response.ok) {
-        showToast("success", "Turno Habilitado", "El turno fue liberado y está disponible nuevamente", 5000);
+        showToast(
+          "success",
+          isConfirmed ? "Turno cancelado" : "Turno liberado",
+          isConfirmed
+            ? "La reserva fue cancelada y el turno está disponible nuevamente"
+            : "El turno está disponible nuevamente",
+          5000
+        );
         loadSlots();
       }
     } catch (error) {
-      showToast("error", "Error", "No se pudo habilitar el turno");
+      showToast("error", "Error", isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno");
       logError(error);
     }
   };
@@ -319,10 +422,10 @@ export default function TurnosPage() {
   };
 
   const selectAll = () => {
-    if (selectedIds.length === slots.length) {
+    if (selectedIds.length === filteredSlots.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(slots.map((s) => s.id));
+      setSelectedIds(filteredSlots.map((s) => s.id));
     }
   };
 
@@ -338,10 +441,10 @@ export default function TurnosPage() {
 
   const bulkDelete = async () => {
     const availableSelected = slots.filter(
-      (s) => selectedIds.includes(s.id) && s.isAvailable
+      (s) => selectedIds.includes(s.id) && (s.isAvailable || isExpired(s.startDateTime))
     );
     if (availableSelected.length === 0) {
-      showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados");
+      showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados o expirados");
       return;
     }
     if (!confirm(`¿Eliminar ${availableSelected.length} turno(s)?`)) return;
@@ -370,7 +473,7 @@ export default function TurnosPage() {
       showToast("warning", "Acción no permitida", "Solo se pueden habilitar turnos reservados");
       return;
     }
-    if (!confirm(`¿Habilitar ${reservedSelected.length} turno(s)? Las reservas serán canceladas.`)) return;
+    if (!confirm(`¿Cancelar ${reservedSelected.length} turno(s)? Las reservas quedarán canceladas y las fechas se liberarán.`)) return;
 
     setBulkAction(true);
     try {
@@ -407,10 +510,22 @@ export default function TurnosPage() {
     setFormData({ date: "", hour: "09", minute: "00" });
   };
 
+  // --- Filtrado por estado ---
+  const filteredSlots = slots.filter((slot) => {
+    if (statusFilter === "all") return true;
+    const expired = isExpired(slot.startDateTime);
+    if (statusFilter === "expired") return expired;
+    if (expired) return false;
+    if (statusFilter === "available") return slot.isAvailable;
+    if (statusFilter === "pending") return !slot.isAvailable && slot.booking?.status !== "Confirmed";
+    if (statusFilter === "confirmed") return !slot.isAvailable && slot.booking?.status === "Confirmed";
+    return true;
+  });
+
   // --- Lógica de Paginación ---
-  const totalPages = Math.ceil(slots.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredSlots.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentSlots = slots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const currentSlots = filteredSlots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
@@ -429,7 +544,7 @@ export default function TurnosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1115] p-6 font-sans">
+    <div className="p-4 md:p-6 font-sans">
       {/* Toast Container */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
@@ -452,11 +567,33 @@ export default function TurnosPage() {
 
       <div className="mx-auto max-w-6xl">
         {/* Encabezado Principal */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Gestión de Turnos</h1>
-          <p className="text-white/50 text-sm mt-1">
-            Administra los turnos disponibles para reservas
-          </p>
+        <div className="mb-6 md:mb-8 flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Gestión de Turnos</h1>
+            <p className="text-white/50 text-sm mt-1">
+              Administra los turnos disponibles para reservas
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <a
+              href="/admin/estadisticas"
+              className="bg-[#161b22] border border-white/10 hover:border-white/20 text-white/70 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Estadísticas
+            </a>
+            <a
+              href="/admin/servicios"
+              className="bg-[#161b22] border border-white/10 hover:border-white/20 text-white/70 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Servicios
+            </a>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -560,7 +697,7 @@ export default function TurnosPage() {
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
-                  checked={selectedIds.length === slots.length && slots.length > 0}
+                  checked={selectedIds.length === filteredSlots.length && filteredSlots.length > 0}
                   onChange={selectAll}
                   className="w-4 h-4 accent-green-500 cursor-pointer"
                   title="Seleccionar todos"
@@ -568,7 +705,7 @@ export default function TurnosPage() {
                 <h2 className="text-xl font-bold text-white">
                   Turnos Creados{" "}
                   <span className="text-white/60 text-lg font-normal">
-                    ({slots.length})
+                    ({statusFilter === "all" ? slots.length : `${filteredSlots.length}/${slots.length}`})
                   </span>
                 </h2>
               </div>
@@ -577,6 +714,31 @@ export default function TurnosPage() {
                   {selectedIds.length} seleccionado(s)
                 </span>
               )}
+            </div>
+
+            {/* Filtro por estado */}
+            <div className="flex gap-1.5 mb-3 px-1 flex-wrap">
+              {(
+                [
+                  { key: "all", label: "Todos" },
+                  { key: "available", label: "Habilitado" },
+                  { key: "pending", label: "Reservado" },
+                  { key: "confirmed", label: "Confirmado" },
+                  { key: "expired", label: "Expirado" },
+                ] as const
+              ).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => handleFilterChange(key)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                    statusFilter === key
+                      ? "bg-white text-black"
+                      : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* Acciones en lote */}
@@ -606,14 +768,20 @@ export default function TurnosPage() {
                   <p>No hay turnos disponibles</p>
                 </div>
               ) : (
-                currentSlots.map((slot) => (
+                currentSlots.map((slot) => {
+                  const expired = isExpired(slot.startDateTime);
+                  return (
                   <div
                     key={slot.id}
                     className={`
                       group relative p-4 rounded-lg border transition-all duration-200
                       ${
-                        slot.isAvailable
+                        expired
+                          ? "bg-white/[0.02] border-white/10 opacity-60"
+                          : slot.isAvailable
                           ? "bg-[#0f291e]/40 border-green-900/50 hover:border-green-700/50"
+                          : slot.booking?.status === "Confirmed"
+                          ? "bg-blue-900/10 border-blue-900/30 hover:border-blue-700/50"
                           : "bg-orange-900/10 border-orange-900/30 hover:border-orange-700/50"
                       }
                       ${selectedIds.includes(slot.id) ? "ring-2 ring-white/30" : ""}
@@ -629,7 +797,7 @@ export default function TurnosPage() {
                         />
                         <div>
                           {/* Fecha y Hora */}
-                          <p className="text-white font-medium text-[15px] tracking-wide">
+                          <p className={`font-medium text-[15px] tracking-wide ${expired ? "text-white/50 line-through" : "text-white"}`}>
                             {formatDateFriendly(slot.startDateTime)}
                           </p>
 
@@ -637,27 +805,48 @@ export default function TurnosPage() {
                           <div className="flex items-center gap-2 mt-2">
                             <span
                               className={`w-2.5 h-2.5 rounded-full ${
-                                slot.isAvailable
+                                expired
+                                  ? "bg-white/30"
+                                  : slot.isAvailable
                                   ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                                  : slot.booking?.status === "Confirmed"
+                                  ? "bg-blue-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                                   : "bg-orange-500"
                               }`}
                             ></span>
                             <span
                               className={`text-xs font-bold tracking-wider ${
-                                slot.isAvailable
+                                expired
+                                  ? "text-white/40"
+                                  : slot.isAvailable
                                   ? "text-green-500"
+                                  : slot.booking?.status === "Confirmed"
+                                  ? "text-blue-400"
                                   : "text-orange-500"
                               }`}
                             >
-                              {slot.isAvailable ? "HABILITADO" : "RESERVADO"}
+                              {expired
+                                ? "EXPIRADO"
+                                : slot.isAvailable
+                                ? "HABILITADO"
+                                : slot.booking?.status === "Confirmed"
+                                ? "CONFIRMADO"
+                                : "RESERVADO"}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Botones de Acción (Editar/Eliminar) */}
+                      {/* Botones de Acción */}
                       <div className="flex flex-col items-end gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                        {slot.isAvailable ? (
+                        {expired ? (
+                          <button
+                            onClick={() => deleteSlot(slot.id)}
+                            className="text-red-400 hover:text-red-300 text-xs font-medium uppercase tracking-wide transition"
+                          >
+                            Eliminar
+                          </button>
+                        ) : slot.isAvailable ? (
                           <>
                             <button
                               onClick={() => startEditing(slot)}
@@ -673,12 +862,20 @@ export default function TurnosPage() {
                             </button>
                           </>
                         ) : (
-                          <button
-                            onClick={() => habilitarTurno(slot.id)}
-                            className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
-                          >
-                            Liberar
-                          </button>
+                          <>
+                            <button
+                              onClick={() => setDetailSlot(slot)}
+                              className="text-blue-400 hover:text-blue-300 text-xs font-medium uppercase tracking-wide transition"
+                            >
+                              Ver detalle
+                            </button>
+                            <button
+                              onClick={() => habilitarTurno(slot.id)}
+                              className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
+                            >
+                              Liberar
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -686,14 +883,15 @@ export default function TurnosPage() {
                     {/* Información Extra si está reservado */}
                     {!slot.isAvailable && slot.booking && (
                       <div className="mt-3 pt-3 border-t border-white/5 text-xs text-white/60">
-                        Reservado por:{" "}
+                        {slot.booking?.status === "Confirmed" ? "Confirmado por:" : "Reservado por:"}{" "}
                         <span className="text-white">
                           {slot.booking.customerName}
                         </span>
                       </div>
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -770,6 +968,108 @@ export default function TurnosPage() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DETALLE DE RESERVA */}
+      {detailSlot && detailSlot.booking && (() => {
+        const slotExpired = isExpired(detailSlot.startDateTime);
+        return (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setDetailSlot(null)}
+        >
+          <div
+            className="bg-[#161b22] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+              <div>
+                <h2 className="text-white font-semibold text-lg">Detalle de reserva</h2>
+                <p className="text-white/40 text-xs mt-0.5">{formatDateFriendly(detailSlot.startDateTime)}</p>
+              </div>
+              <button onClick={() => setDetailSlot(null)} className="text-white/40 hover:text-white transition text-xl">✕</button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              <Row label="Cliente" value={detailSlot.booking.customerName} />
+              <Row label="Teléfono" value={
+                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-400 hover:underline">
+                  {detailSlot.booking.customerPhone}
+                </a>
+              } />
+              <Row label="Vehículo" value={detailSlot.booking.vehicle} />
+              <Row label="Servicio" value={detailSlot.booking.service || "—"} />
+              {detailSlot.booking.message && (
+                <Row label="Mensaje" value={detailSlot.booking.message} />
+              )}
+              <Row label="Estado" value={
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  slotExpired
+                    ? "bg-white/10 text-white/40"
+                    : detailSlot.booking.status === "Confirmed"
+                    ? "bg-green-500/20 text-green-400"
+                    : detailSlot.booking.status === "Cancelled"
+                    ? "bg-red-500/20 text-red-400"
+                    : "bg-orange-500/20 text-orange-400"
+                }`}>
+                  {slotExpired ? "Expirado"
+                    : detailSlot.booking.status === "Confirmed" ? "Confirmado"
+                    : detailSlot.booking.status === "Cancelled" ? "Cancelado"
+                    : "Pendiente"}
+                </span>
+              } />
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-white/5 flex flex-col gap-2">
+              {slotExpired ? (
+                <button
+                  onClick={() => { setDetailSlot(null); deleteSlot(detailSlot.id); }}
+                  className="w-full bg-red-600/20 border border-red-600/50 hover:bg-red-600/30 text-red-400 py-2.5 rounded-lg text-sm font-semibold transition"
+                >
+                  Eliminar turno expirado
+                </button>
+              ) : (
+                <>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => confirmarYEnviarWhatsApp(detailSlot)}
+                      className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+                    >
+                      Confirmar + WhatsApp
+                    </button>
+                    {detailSlot.booking.status !== "Confirmed" && (
+                      <button
+                        onClick={() => confirmarTurno(detailSlot.booking!.id, detailSlot.booking!, detailSlot.startDateTime)}
+                        className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition"
+                      >
+                        Confirmar
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id, detailSlot.booking!.status === "Confirmed"); }}
+                    className="w-full bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 border border-transparent hover:border-red-500/20 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-white/40 text-sm shrink-0">{label}</span>
+      <span className="text-white text-sm text-right">{value}</span>
     </div>
   );
 }
@@ -788,4 +1088,14 @@ function formatDateFriendly(isoString: string) {
   const dayName = days[date.getDay()];
 
   return `${dayName} ${day}/${month}/${year} - ${hours}:${minutes}`;
+}
+
+// Retorna true si el turno ya pasó su horario de inicio
+function isExpired(isoString: string): boolean {
+  const cleanString = isoString.replace("Z", "");
+  const [datePart, timePart] = cleanString.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hours, minutes] = timePart.split(":").map(Number);
+  const slotDate = new Date(year, month - 1, day, hours, minutes);
+  return slotDate < new Date();
 }

@@ -108,7 +108,18 @@ public class AuthController : ControllerBase
         if (email == null)
             return Unauthorized();
 
-        // TODO: Implementar cambio de contraseña
-        return Ok(new { message = "Contraseña actualizada" });
+        try
+        {
+            await _authService.ChangePasswordAsync(email, request);
+            return Ok(new { message = "Contraseña actualizada" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

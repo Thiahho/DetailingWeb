@@ -2,13 +2,20 @@
 
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { logError } from "../lib/logger";
-import { packs } from "../lib/data";
 
 interface TimeSlot {
   id: number;
   startDateTime: string;
   endDateTime: string;
   label: string;
+}
+
+interface ServicePack {
+  id: number;
+  title: string;
+  slug: string;
+  price: string;
+  duration: string;
 }
 
 interface BookingFormProps {
@@ -178,12 +185,14 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     name: "",
     vehicle: "",
     whatsapp: "",
+    email:"",
     selectedSlotId: null as number | null,
     selectedService: "",
     message: "",
   });
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [services, setServices] = useState<ServicePack[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -204,9 +213,10 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentSlots = timeSlots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Cargar turnos y resto de efectos (igual al original)
+  // Cargar turnos y servicios
   useEffect(() => {
     loadAvailableSlots();
+    loadServices();
   }, []);
   useEffect(() => {
     if (preselectedService) {
@@ -225,6 +235,17 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       logError(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadServices = async () => {
+    try {
+      const response = await fetch("/api/services");
+      if (response.ok) {
+        setServices(await response.json());
+      }
+    } catch (error) {
+      logError(error);
     }
   };
 
@@ -251,6 +272,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           timeSlotId: formData.selectedSlotId,
           customerName: formData.name,
           customerPhone: formData.whatsapp,
+          email: formData.email,
           vehicle: formData.vehicle,
           service: formData.selectedService,
           message: formData.message,
@@ -272,6 +294,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           name: "",
           vehicle: "",
           whatsapp: "",
+          email:"", 
           selectedSlotId: null,
           selectedService: "",
           message: "",
@@ -349,6 +372,20 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           value={formData.whatsapp}
         />
       </div>
+      
+      <div>
+        <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+          Email (para recibir confirmación automática)
+        </label>
+        <input 
+          className="form-input mt-2"
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, email: e.target.value }))
+          }
+          placeholder="tucorreo@gmail.com"
+          value={formData.email}
+          />
+      </div>
 
       {/* Selector de Servicio (Igual a tu original) */}
       <div>
@@ -356,7 +393,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           Seleccioná el servicio
         </label>
         <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
-          {packs.map((pack) => (
+          {services.map((pack) => (
             <button
               key={pack.slug}
               type="button"
@@ -371,7 +408,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
             >
               <span className="block text-sm font-medium">{pack.title}</span>
               <span className="block text-xs text-white/50 mt-1">
-                {pack.price} · {pack.time}
+                ${pack.price} · {pack.duration}
               </span>
             </button>
           ))}

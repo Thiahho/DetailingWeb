@@ -1,5 +1,6 @@
 using DetailingApi.Services;
 using DetailingApi.Data;
+using DetailingApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -68,9 +69,15 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
 // Servicios
-builder.Services.AddScoped<GoogleCalendarService>();
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<NotificationTemplateService>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddHttpClient<WhatsAppProvider>();
+builder.Services.AddScoped<INotificationProvider, GmailProvider>();
+builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
+builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 
 // ✅ PRODUCCIÓN: CORS configurado correctamente
 builder.Services.AddCors(options =>
