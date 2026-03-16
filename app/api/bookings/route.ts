@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
-const RESEND_API_URL = "https://api.resend.com/emails";
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 interface BookingPayload {
   timeSlotId?: number;
@@ -69,18 +69,36 @@ function formatDateTime(iso?: string): string {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !fromEmail) return;
-  await fetch(RESEND_API_URL, {
+  const apiKey = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.BREVO_FROM_EMAIL;
+  const fromName = process.env.BREVO_FROM_NAME || "AutoDetail Studio";
+  if (!apiKey || !fromEmail) {
+    console.error("[Brevo] Faltan variables de entorno BREVO_API_KEY o BREVO_FROM_EMAIL");
+    return;
+  }
+  const res = await fetch(BREVO_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ from: fromEmail, to: [to], subject, html }),
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": apiKey,
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
   });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`[Brevo] Error al enviar a ${to}: ${res.status} ${err}`);
+  } else {
+    console.log(`[Brevo] Email enviado a ${to}`);
+  }
 }
 
 async function notifyAdminNewBooking(booking: BookingPayload, bookingData: BookingResponse) {
-  const adminEmail = process.env.RESEND_ADMIN_EMAIL;
+  const adminEmail = process.env.BREVO_ADMIN_EMAIL;
   if (!adminEmail) return;
 
   const safe = {
@@ -107,7 +125,7 @@ async function notifyAdminNewBooking(booking: BookingPayload, bookingData: Booki
 
 async function notifyClientBookingReceived(booking: BookingPayload, bookingData: BookingResponse) {
   const customerEmail = booking.email;
-  if (!customerEmail) return;
+  if (!customerEmail || customerEmail === process.env.BREVO_FROM_EMAIL) return;
 
   const turno = formatDateTime(bookingData.booking?.startDateTime);
   const name = booking.customerName || "Cliente";
@@ -166,8 +184,8 @@ export async function POST(request: NextRequest) {
 
     if (response.ok) {
       const bookingData = data as BookingResponse;
-      notifyAdminNewBooking(body, bookingData).catch(() => {});
-      notifyClientBookingReceived(body, bookingData).catch(() => {});
+      notifyAdminNewBooking(body, bookingData).catch((e) => console.error("[Brevo] Admin notify error:", e));
+      notifyClientBookingReceived(body, bookingData).catch((e) => console.error("[Brevo] Client notify error:", e));
     }
 
     return NextResponse.json(data, { status: response.status });
