@@ -62,10 +62,8 @@ export async function verifySession(): Promise<boolean> {
       window.dispatchEvent(new Event("auth-change"));
       return false;
     }
-  } catch (error) {
-    // Error de red, limpiar localStorage por seguridad
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("email");
+  } catch {
+    // Error de red — no limpiar la sesión, puede ser un fallo temporal
     return false;
   }
 }

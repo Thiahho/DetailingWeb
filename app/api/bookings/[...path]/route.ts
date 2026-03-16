@@ -94,6 +94,36 @@ async function notifyClientBookingConfirmed(booking: BookingDetail) {
   console.log(`[confirm-email] Resend status: ${resendRes.status}`, JSON.stringify(resendBody));
 }
 
+// GET: ej. /api/bookings/5
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
+  const path = params.path?.join("/") || "";
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/${path}`);
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json({ message: "Error de conexión con el servidor" }, { status: 500 });
+  }
+}
+
+// POST: ej. /api/bookings/5/cancel
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
+  const path = params.path?.join("/") || "";
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/${path}`, { method: "POST" });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json({ message: "Error de conexión con el servidor" }, { status: 500 });
+  }
+}
+
 // PATCH: ej. /api/bookings/5/confirm
 export async function PATCH(
   request: NextRequest,

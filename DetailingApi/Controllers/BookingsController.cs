@@ -136,6 +136,71 @@ public class BookingsController : ControllerBase
         return Ok(bookings);
     }
 
+    // GET: api/bookings/{id} (público - ver detalle para cancelar)
+    [HttpGet("{id}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetBooking(int id)
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.TimeSlot)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        return Ok(new
+        {
+            id = booking.Id,
+            customerName = booking.CustomerName,
+            service = booking.Service,
+            vehicle = booking.Vehicle,
+            startDateTime = booking.TimeSlot.StartDateTime,
+            status = booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : booking.Status,
+            cancelledAt = booking.CancelledAt
+        });
+    }
+
+    // POST: api/bookings/{id}/cancel (público - cancelar por link de email)
+    [HttpPost("{id}/cancel")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CancelBooking(int id)
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.TimeSlot)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        if (booking.Status == BookingStatus.Cancelled)
+            return BadRequest(new { success = false, message = "Este turno ya fue cancelado" });
+
+        if (booking.TimeSlot.EndDateTime < DateTime.UtcNow)
+            return BadRequest(new { success = false, message = "Este turno ya expiró y no puede cancelarse" });
+
+        booking.Status = BookingStatus.Cancelled;
+        booking.CancelledAt = DateTime.UtcNow;
+        booking.TimeSlot.IsAvailable = true;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Turno cancelado exitosamente" });
+    }
+
+    // DELETE: api/bookings/expired (admin)
+    [HttpDelete("expired")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteExpiredBookings()
+    {
+        var now = DateTime.UtcNow;
+
+        var deletedSlots = await _context.TimeSlots
+            .Where(t => t.EndDateTime < now)
+            .ExecuteDeleteAsync();
+
+        return Ok(new { success = true, deletedTimeSlots = deletedSlots });
+    }
+
     // PATCH: api/bookings/{id}/confirm (admin)
     [HttpPatch("{id}/confirm")]
     [Authorize(Roles = "Admin")]

@@ -182,6 +182,15 @@ export default function TurnosPage() {
   // Estado modal detalle
   const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
 
+  // Estado filtro por estado
+  type StatusFilter = "all" | "available" | "pending" | "confirmed" | "expired";
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const handleFilterChange = (filter: StatusFilter) => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  };
+
   // Estados de Toast
   const [toasts, setToasts] = useState<Toast[]>([]);
   let toastIdCounter = 0;
@@ -413,10 +422,10 @@ export default function TurnosPage() {
   };
 
   const selectAll = () => {
-    if (selectedIds.length === slots.length) {
+    if (selectedIds.length === filteredSlots.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(slots.map((s) => s.id));
+      setSelectedIds(filteredSlots.map((s) => s.id));
     }
   };
 
@@ -432,10 +441,10 @@ export default function TurnosPage() {
 
   const bulkDelete = async () => {
     const availableSelected = slots.filter(
-      (s) => selectedIds.includes(s.id) && s.isAvailable
+      (s) => selectedIds.includes(s.id) && (s.isAvailable || isExpired(s.startDateTime))
     );
     if (availableSelected.length === 0) {
-      showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados");
+      showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados o expirados");
       return;
     }
     if (!confirm(`¿Eliminar ${availableSelected.length} turno(s)?`)) return;
@@ -501,10 +510,22 @@ export default function TurnosPage() {
     setFormData({ date: "", hour: "09", minute: "00" });
   };
 
+  // --- Filtrado por estado ---
+  const filteredSlots = slots.filter((slot) => {
+    if (statusFilter === "all") return true;
+    const expired = isExpired(slot.startDateTime);
+    if (statusFilter === "expired") return expired;
+    if (expired) return false;
+    if (statusFilter === "available") return slot.isAvailable;
+    if (statusFilter === "pending") return !slot.isAvailable && slot.booking?.status !== "Confirmed";
+    if (statusFilter === "confirmed") return !slot.isAvailable && slot.booking?.status === "Confirmed";
+    return true;
+  });
+
   // --- Lógica de Paginación ---
-  const totalPages = Math.ceil(slots.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredSlots.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentSlots = slots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const currentSlots = filteredSlots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
@@ -676,7 +697,7 @@ export default function TurnosPage() {
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
-                  checked={selectedIds.length === slots.length && slots.length > 0}
+                  checked={selectedIds.length === filteredSlots.length && filteredSlots.length > 0}
                   onChange={selectAll}
                   className="w-4 h-4 accent-green-500 cursor-pointer"
                   title="Seleccionar todos"
@@ -684,7 +705,7 @@ export default function TurnosPage() {
                 <h2 className="text-xl font-bold text-white">
                   Turnos Creados{" "}
                   <span className="text-white/60 text-lg font-normal">
-                    ({slots.length})
+                    ({statusFilter === "all" ? slots.length : `${filteredSlots.length}/${slots.length}`})
                   </span>
                 </h2>
               </div>
@@ -693,6 +714,31 @@ export default function TurnosPage() {
                   {selectedIds.length} seleccionado(s)
                 </span>
               )}
+            </div>
+
+            {/* Filtro por estado */}
+            <div className="flex gap-1.5 mb-3 px-1 flex-wrap">
+              {(
+                [
+                  { key: "all", label: "Todos" },
+                  { key: "available", label: "Habilitado" },
+                  { key: "pending", label: "Reservado" },
+                  { key: "confirmed", label: "Confirmado" },
+                  { key: "expired", label: "Expirado" },
+                ] as const
+              ).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => handleFilterChange(key)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
+                    statusFilter === key
+                      ? "bg-white text-black"
+                      : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* Acciones en lote */}

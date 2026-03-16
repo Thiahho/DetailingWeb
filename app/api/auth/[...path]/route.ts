@@ -49,7 +49,7 @@ export async function POST(
             httpOnly: true,
             secure: true,
             sameSite: "lax",
-            maxAge: 60 * 60, // 1 hora
+            maxAge: 60 * 60 * 24, // 24 horas (igual que el JWT)
             path: "/",
           }
         );
