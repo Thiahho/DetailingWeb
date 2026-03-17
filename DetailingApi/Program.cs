@@ -78,6 +78,7 @@ builder.Services.AddHttpClient<WhatsAppProvider>();
 builder.Services.AddScoped<INotificationProvider, GmailProvider>();
 builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
 builder.Services.AddHostedService<NotificationRetryBackgroundService>();
+builder.Services.AddHostedService<ReminderBackgroundService>();
 
 // ✅ PRODUCCIÓN: CORS configurado correctamente
 builder.Services.AddCors(options =>
