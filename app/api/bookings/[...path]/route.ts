@@ -45,7 +45,7 @@ interface BookingDetail {
   };
 }
 
-async function notifyClientBookingConfirmed(booking: BookingDetail) {
+async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: string) {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
   const customerEmail = booking.email;
@@ -55,6 +55,7 @@ async function notifyClientBookingConfirmed(booking: BookingDetail) {
 
   const turno = formatDateTime(booking.startDateTime ?? booking.timeSlot?.startDateTime);
   const name = booking.customerName || "Cliente";
+  const cancelUrl = `https://detailing-web-five.vercel.app/cancelar?bookingId=${bookingId}`;
 
   const transporter = createTransporter();
   const info = await transporter.sendMail({
@@ -85,6 +86,11 @@ async function notifyClientBookingConfirmed(booking: BookingDetail) {
           <p style="color:#8b949e;font-size:13px;margin:0;line-height:1.6;">
             Ante cualquier cambio o consulta, respondé este email o escribinos por WhatsApp.
           </p>
+          <div style="margin-top:24px;text-align:center;">
+            <a href="${cancelUrl}" style="display:inline-block;padding:10px 20px;background:#1a1a1a;color:#f87171;border:1px solid #f87171;border-radius:6px;font-size:13px;text-decoration:none;">
+              Cancelar turno
+            </a>
+          </div>
         </div>
         <div style="padding:20px 32px;border-top:1px solid #30363d;">
           <p style="margin:0;color:#484f58;font-size:12px;">© AutoDetail Studio — Este es un email automático.</p>
@@ -156,7 +162,7 @@ export async function PATCH(
           vehicle: body.vehicle,
           service: body.service,
           startDateTime: body.startDateTime,
-        });
+        }, params.path[0]);
       } catch (emailErr) {
         console.error("[confirm-email] Error al enviar email de confirmación:", emailErr);
       }
