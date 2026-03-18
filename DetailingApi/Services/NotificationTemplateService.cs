@@ -11,8 +11,7 @@ public class NotificationTemplateService
 
     public NotificationMessage Build(string eventType, NotificationTemplateData data)
     {
-        var timezone = TimeZoneInfo.FindSystemTimeZoneById(_configuration["Notifications:TimeZone"] ?? "America/Argentina/Buenos_Aires");
-        var localDateTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(data.StartDateTime, DateTimeKind.Utc), timezone);
+        var localDateTime = data.StartDateTime;
 
         var subjectTemplate = _configuration[$"Notifications:Templates:{eventType}:Subject"]
             ?? "Reserva {{servicio}} - {{fecha_hora}}";

@@ -35,6 +35,9 @@ public class ReminderBackgroundService : BackgroundService
                 var windowStart = now.AddMinutes(3);
                 var windowEnd = now.AddMinutes(5);
 
+                _logger.LogInformation("[Reminder] Buscando turnos entre {WindowStart:HH:mm} y {WindowEnd:HH:mm} (ahora: {Now:HH:mm})",
+                    windowStart, windowEnd, now);
+
                 var bookingsToRemind = await context.Bookings
                     .Include(b => b.TimeSlot)
                     .Where(b => b.Status == BookingStatus.Confirmed)
@@ -45,9 +48,12 @@ public class ReminderBackgroundService : BackgroundService
                         (l.Status == NotificationDeliveryStatus.Sent || l.Status == NotificationDeliveryStatus.Pending)))
                     .ToListAsync(stoppingToken);
 
+                _logger.LogInformation("[Reminder] {Count} turno(s) encontrado(s) para notificar", bookingsToRemind.Count);
+
                 foreach (var booking in bookingsToRemind)
                 {
-                    _logger.LogInformation("Enviando recordatorio 24h para turno {BookingId}", booking.Id);
+                    _logger.LogInformation("[Reminder] Enviando recordatorio para turno {BookingId} ({StartDateTime:HH:mm})",
+                        booking.Id, booking.TimeSlot.StartDateTime);
                     await notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingReminder24h, stoppingToken);
                 }
             }

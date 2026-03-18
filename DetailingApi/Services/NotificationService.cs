@@ -10,17 +10,20 @@ public class NotificationService
     private readonly NotificationTemplateService _templateService;
     private readonly IEnumerable<INotificationProvider> _providers;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
         ApplicationDbContext context,
         NotificationTemplateService templateService,
         IEnumerable<INotificationProvider> providers,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<NotificationService> logger)
     {
         _context = context;
         _templateService = templateService;
         _providers = providers;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task DispatchForBookingAsync(int bookingId, string eventType, CancellationToken cancellationToken = default)
@@ -115,6 +118,8 @@ public class NotificationService
             log.ErrorMessage = null;
             log.SentAt = DateTime.Now;
             log.NextRetryAt = null;
+            _logger.LogInformation("[Notification] {Channel} enviado OK para booking {BookingId} ({EventType})",
+                log.Channel, log.BookingId, log.EventType);
         }
         else
         {
@@ -123,6 +128,8 @@ public class NotificationService
             log.ErrorMessage = result.Error;
             log.IsRetryable = result.IsTransientFailure;
             log.NextRetryAt = result.IsTransientFailure ? DateTime.Now.AddMinutes(backoffMinutes) : null;
+            _logger.LogWarning("[Notification] {Channel} falló para booking {BookingId} ({EventType}): {Error}",
+                log.Channel, log.BookingId, log.EventType, result.Error);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
