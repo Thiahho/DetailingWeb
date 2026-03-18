@@ -155,17 +155,16 @@ export async function PATCH(
     const data = await response.json();
 
     if (response.ok && isConfirm) {
-      try {
-        await notifyClientBookingConfirmed({
-          email: body.email,
-          customerName: body.customerName,
-          vehicle: body.vehicle,
-          service: body.service,
-          startDateTime: body.startDateTime,
-        }, params.path[0]);
-      } catch (emailErr) {
-        console.error("[confirm-email] Error al enviar email de confirmación:", emailErr);
-      }
+      // Fire-and-forget: no bloquear la respuesta esperando el email
+      notifyClientBookingConfirmed({
+        email: body.email,
+        customerName: body.customerName,
+        vehicle: body.vehicle,
+        service: body.service,
+        startDateTime: body.startDateTime,
+      }, params.path[0]).catch((emailErr) =>
+        console.error("[confirm-email] Error al enviar email de confirmación:", emailErr)
+      );
     }
 
     return NextResponse.json(data, { status: response.status });
