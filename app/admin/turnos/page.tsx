@@ -244,9 +244,9 @@ export default function TurnosPage() {
       let endDate = formData.date;
       if (endHour >= 24) {
         endHour -= 24;
-        // Sumar un día
-        const nextDay = new Date(formData.date);
-        nextDay.setDate(nextDay.getDate() + 1);
+        // Parsear con hora local para evitar desfase de timezone
+        const [y, m, d] = formData.date.split("-").map(Number);
+        const nextDay = new Date(y, m - 1, d + 1);
         endDate = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, "0")}-${String(nextDay.getDate()).padStart(2, "0")}`;
       }
       const endDateTime = `${endDate}T${String(endHour).padStart(2, "0")}:${formData.minute}:00`;
