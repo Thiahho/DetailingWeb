@@ -25,8 +25,10 @@ public class ReminderBackgroundService : BackgroundService
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-                var windowStart = DateTime.UtcNow.AddHours(23);
-                var windowEnd = DateTime.UtcNow.AddHours(25);
+                // TEST: ventana de 2-4 minutos (cambiar a AddHours(23)/AddHours(25) para producción)
+                // Usar DateTime.Now para coincidir con la zona horaria local usada al guardar los slots
+                var windowStart = DateTime.Now.AddMinutes(2);
+                var windowEnd = DateTime.Now.AddMinutes(4);
 
                 var bookingsToRemind = await context.Bookings
                     .Include(b => b.TimeSlot)
@@ -49,7 +51,8 @@ public class ReminderBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error enviando recordatorios 24h");
             }
 
-            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            // TEST: chequear cada 1 minuto (cambiar a FromHours(1) para producción)
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
     }
 }
