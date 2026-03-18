@@ -48,7 +48,7 @@ public class GmailProvider : INotificationProvider
             cts.CancelAfter(TimeSpan.FromSeconds(30));
 
             using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.Auto, cts.Token);
+            await smtp.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.StartTls, cts.Token);
             await smtp.AuthenticateAsync(_settings.Username, _settings.Password, cts.Token);
             var messageId = await smtp.SendAsync(email, cts.Token);
             await smtp.DisconnectAsync(true, cts.Token);
