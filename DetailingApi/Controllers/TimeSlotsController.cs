@@ -11,11 +11,16 @@ namespace DetailingApi.Controllers;
 public class TimeSlotsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private static readonly TimeZoneInfo _argentinaZone =
+        TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
 
     public TimeSlotsController(ApplicationDbContext context)
     {
         _context = context;
     }
+
+    private static DateTime NowArgentina() =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _argentinaZone);
 
     // GET: api/timeslots/available (público - para clientes)
     [HttpGet("available")]
@@ -23,7 +28,7 @@ public class TimeSlotsController : ControllerBase
     public async Task<IActionResult> GetAvailableSlots()
     {
         var slots = await _context.TimeSlots
-            .Where(t => t.IsAvailable && t.StartDateTime > DateTime.Now)
+            .Where(t => t.IsAvailable && t.StartDateTime > NowArgentina())
             .OrderBy(t => t.StartDateTime)
             .Select(s => new
             {
@@ -78,7 +83,7 @@ public class TimeSlotsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateSlot([FromBody] CreateTimeSlotRequest request)
     {
-        if (request.StartDateTime <= DateTime.Now)
+        if (request.StartDateTime <= NowArgentina())
         {
             return BadRequest(new { message = "La fecha debe ser futura" });
         }
@@ -140,7 +145,7 @@ public class TimeSlotsController : ControllerBase
             return BadRequest(new { message = "No se puede editar un turno reservado. Habilitalo primero." });
         }
 
-        if (request.StartDateTime <= DateTime.Now)
+        if (request.StartDateTime <= NowArgentina())
         {
             return BadRequest(new { message = "La fecha debe ser futura" });
         }

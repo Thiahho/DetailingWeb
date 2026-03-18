@@ -8,12 +8,17 @@ public class ReminderBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ReminderBackgroundService> _logger;
+    private static readonly TimeZoneInfo _argentinaZone =
+        TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
 
     public ReminderBackgroundService(IServiceScopeFactory scopeFactory, ILogger<ReminderBackgroundService> logger)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
+
+    private static DateTime NowArgentina() =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _argentinaZone);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -26,9 +31,9 @@ public class ReminderBackgroundService : BackgroundService
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
                 // TEST: ventana de 2-4 minutos (cambiar a AddHours(23)/AddHours(25) para producción)
-                // Usar DateTime.Now para coincidir con la zona horaria local usada al guardar los slots
-                var windowStart = DateTime.Now.AddMinutes(2);
-                var windowEnd = DateTime.Now.AddMinutes(4);
+                var now = NowArgentina();
+                var windowStart = now.AddMinutes(2);
+                var windowEnd = now.AddMinutes(4);
 
                 var bookingsToRemind = await context.Bookings
                     .Include(b => b.TimeSlot)
