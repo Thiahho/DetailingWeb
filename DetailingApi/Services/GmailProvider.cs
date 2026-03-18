@@ -44,17 +44,24 @@ public class GmailProvider : INotificationProvider
             };
             email.Body = bodyBuilder.ToMessageBody();
 
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(30));
+
             using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.Auto, cancellationToken);
-            await smtp.AuthenticateAsync(_settings.Username, _settings.Password, cancellationToken);
-            var messageId = await smtp.SendAsync(email, cancellationToken);
-            await smtp.DisconnectAsync(true, cancellationToken);
+            await smtp.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.Auto, cts.Token);
+            await smtp.AuthenticateAsync(_settings.Username, _settings.Password, cts.Token);
+            var messageId = await smtp.SendAsync(email, cts.Token);
+            await smtp.DisconnectAsync(true, cts.Token);
 
             return new NotificationSendResult { Success = true, ProviderMessageId = messageId };
         }
         catch (AuthenticationException ex)
         {
             return new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = false };
+        }
+        catch (OperationCanceledException)
+        {
+            return new NotificationSendResult { Success = false, Error = "Timeout al conectar con Gmail SMTP (30s)", IsTransientFailure = true };
         }
         catch (Exception ex)
         {
