@@ -128,6 +128,7 @@ public class BookingsController : ControllerBase
                         providerMessageId = l.ProviderMessageId,
                         errorMessage = l.ErrorMessage,
                         retryCount = l.RetryCount,
+                        createdAt = l.CreatedAt,
                         lastAttemptAt = l.LastAttemptAt
                     })
             })

@@ -30,10 +30,10 @@ public class ReminderBackgroundService : BackgroundService
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-                // TEST: ventana de 2-4 minutos (cambiar a AddHours(23)/AddHours(25) para producción)
+                // TEST: aviso 4 minutos antes (cambiar a AddHours(23)/AddHours(25) para producción)
                 var now = NowArgentina();
-                var windowStart = now.AddMinutes(2);
-                var windowEnd = now.AddMinutes(4);
+                var windowStart = now.AddMinutes(3);
+                var windowEnd = now.AddMinutes(5);
 
                 var bookingsToRemind = await context.Bookings
                     .Include(b => b.TimeSlot)

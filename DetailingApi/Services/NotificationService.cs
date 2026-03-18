@@ -56,7 +56,7 @@ public class NotificationService
                 Channel = provider.Channel,
                 Provider = provider.ProviderName,
                 Status = NotificationDeliveryStatus.Pending,
-                NextRetryAt = DateTime.UtcNow
+                NextRetryAt = DateTime.Now
             };
 
             _context.NotificationLogs.Add(log);
@@ -71,7 +71,7 @@ public class NotificationService
 
         var logs = await _context.NotificationLogs
             .Where(l => l.Status == NotificationDeliveryStatus.Failed && l.IsRetryable && l.RetryCount < maxRetries)
-            .Where(l => l.NextRetryAt == null || l.NextRetryAt <= DateTime.UtcNow)
+            .Where(l => l.NextRetryAt == null || l.NextRetryAt <= DateTime.Now)
             .ToListAsync(cancellationToken);
 
         foreach (var log in logs)
@@ -103,7 +103,7 @@ public class NotificationService
         var log = await _context.NotificationLogs.FirstAsync(x => x.Id == logId, cancellationToken);
         var provider = _providers.First(p => p.Channel == log.Channel);
 
-        log.LastAttemptAt = DateTime.UtcNow;
+        log.LastAttemptAt = DateTime.Now;
         log.RetryCount += 1;
 
         var result = await provider.SendAsync(booking, message, cancellationToken);
@@ -113,7 +113,7 @@ public class NotificationService
             log.Status = NotificationDeliveryStatus.Sent;
             log.ProviderMessageId = result.ProviderMessageId;
             log.ErrorMessage = null;
-            log.SentAt = DateTime.UtcNow;
+            log.SentAt = DateTime.Now;
             log.NextRetryAt = null;
         }
         else
@@ -122,7 +122,7 @@ public class NotificationService
             log.Status = NotificationDeliveryStatus.Failed;
             log.ErrorMessage = result.Error;
             log.IsRetryable = result.IsTransientFailure;
-            log.NextRetryAt = result.IsTransientFailure ? DateTime.UtcNow.AddMinutes(backoffMinutes) : null;
+            log.NextRetryAt = result.IsTransientFailure ? DateTime.Now.AddMinutes(backoffMinutes) : null;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

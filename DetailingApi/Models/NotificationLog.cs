@@ -13,7 +13,7 @@ public class NotificationLog
     public string? ErrorMessage { get; set; }
     public int RetryCount { get; set; }
     public bool IsRetryable { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? LastAttemptAt { get; set; }
     public DateTime? SentAt { get; set; }
     public DateTime? NextRetryAt { get; set; }
