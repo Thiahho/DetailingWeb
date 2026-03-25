@@ -6,10 +6,12 @@ public class Booking
     public int TimeSlotId { get; set; }
     public TimeSlot TimeSlot { get; set; } = null!;
     public string? Service{get; set; } = string.Empty;
+    public string Vehicle { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
     public string? CustomFieldsJson { get; set; }
+    public string? CustomizationJson { get; set; }
     public string? Message { get; set; }
     public string? GoogleEventId { get; set; }
     public string? Email { get; set; }

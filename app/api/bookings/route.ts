@@ -44,6 +44,7 @@ interface BookingPayload {
   email?: string;
   vehicle?: string;
   service?: string;
+  customizationJson?: string;
   message?: string;
 }
 
@@ -99,12 +100,14 @@ async function notifyAdminNewBooking(booking: BookingPayload, bookingData: Booki
   const adminEmail = process.env.GMAIL_ADMIN_EMAIL;
   if (!adminEmail) return;
 
+  const customization = formatCustomization(booking.customizationJson);
   const safe = {
     customerName: booking.customerName || "No informado",
     customerPhone: booking.customerPhone || "No informado",
     vehicle: booking.vehicle || "No informado",
     service: booking.service || "No informado",
     turno: formatDateTime(bookingData.booking?.startDateTime),
+    customization,
     message: booking.message || "Sin mensaje adicional",
   };
 
@@ -116,6 +119,7 @@ async function notifyAdminNewBooking(booking: BookingPayload, bookingData: Booki
     <p><strong>WhatsApp:</strong> ${safe.customerPhone}</p>
     <p><strong>Vehículo:</strong> ${safe.vehicle}</p>
     <p><strong>Servicio:</strong> ${safe.service}</p>
+    <p><strong>Personalización:</strong> ${safe.customization}</p>
     <p><strong>Turno:</strong> ${safe.turno}</p>
     <p><strong>Mensaje:</strong> ${safe.message}</p>`
   );
@@ -128,6 +132,7 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
   const turno = formatDateTime(bookingData.booking?.startDateTime);
   const name = booking.customerName || "Cliente";
   const cancelUrl = `https://detailing-web-five.vercel.app/cancelar?bookingId=${bookingData.booking?.id}`;
+  const customization = formatCustomization(booking.customizationJson);
 
   await sendEmail(
     customerEmail,
@@ -151,6 +156,7 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Turno</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${turno}</td></tr>
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Vehículo</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.vehicle || "—"}</td></tr>
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Servicio</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.service || "—"}</td></tr>
+              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Personalización</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${customization}</td></tr>
             </table>
           </div>
           <p style="color:#8b949e;font-size:13px;margin:0;">
@@ -169,6 +175,19 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
     </body>
     </html>`
   );
+}
+
+function formatCustomization(customizationJson?: string): string {
+  if (!customizationJson) return "Sin personalización";
+
+  try {
+    const parsed = JSON.parse(customizationJson) as Record<string, unknown>;
+    const entries = Object.entries(parsed);
+    if (entries.length === 0) return "Sin personalización";
+    return entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ");
+  } catch {
+    return customizationJson;
+  }
 }
 
 // POST: Crear una reserva

@@ -1,6 +1,7 @@
 using DetailingApi.Data;
 using DetailingApi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace DetailingApi.Services;
 
@@ -45,7 +46,8 @@ public class NotificationService
             Service = booking.Service ?? "Servicio no informado",
             StartDateTime = booking.TimeSlot.StartDateTime,
             Location = location,
-            CancellationLink = $"{baseCancellationUrl}?bookingId={booking.Id}"
+            CancellationLink = $"{baseCancellationUrl}?bookingId={booking.Id}",
+            CustomizationSummary = BuildCustomizationSummary(booking.CustomizationJson)
         };
 
         var message = _templateService.Build(eventType, templateData);
@@ -94,7 +96,8 @@ public class NotificationService
                 Service = booking.Service ?? "Servicio no informado",
                 StartDateTime = booking.TimeSlot.StartDateTime,
                 Location = _configuration["Notifications:Location"] ?? "Sucursal principal",
-                CancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar"}?bookingId={booking.Id}"
+                CancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar"}?bookingId={booking.Id}",
+                CustomizationSummary = BuildCustomizationSummary(booking.CustomizationJson)
             });
 
             await TrySendAsync(log.Id, booking, message, cancellationToken);
@@ -133,5 +136,24 @@ public class NotificationService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string BuildCustomizationSummary(string? customizationJson)
+    {
+        if (string.IsNullOrWhiteSpace(customizationJson))
+            return "Sin personalización";
+
+        try
+        {
+            var values = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(customizationJson);
+            if (values == null || values.Count == 0)
+                return "Sin personalización";
+
+            return string.Join(", ", values.Select(x => $"{x.Key}: {x.Value.ToString()}"));
+        }
+        catch (JsonException)
+        {
+            return customizationJson;
+        }
     }
 }

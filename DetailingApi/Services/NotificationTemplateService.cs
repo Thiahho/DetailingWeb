@@ -32,6 +32,7 @@ public class NotificationTemplateService
             .Replace("{{servicio}}", data.Service)
             .Replace("{{fecha_hora}}", localDateTime.ToString("dd/MM/yyyy HH:mm"))
             .Replace("{{ubicacion}}", data.Location)
-            .Replace("{{link_cancelacion}}", data.CancellationLink);
+            .Replace("{{link_cancelacion}}", data.CancellationLink)
+            .Replace("{{personalizacion}}", string.IsNullOrWhiteSpace(data.CustomizationSummary) ? "Sin personalización" : data.CustomizationSummary);
     }
 }

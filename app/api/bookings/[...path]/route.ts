@@ -38,6 +38,7 @@ interface BookingDetail {
   customerPhone?: string;
   vehicle?: string;
   service?: string;
+  customizationJson?: string;
   startDateTime?: string;
   status?: string;
   timeSlot?: {
@@ -56,6 +57,7 @@ async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: s
   const turno = formatDateTime(booking.startDateTime ?? booking.timeSlot?.startDateTime);
   const name = booking.customerName || "Cliente";
   const cancelUrl = `https://detailing-web-five.vercel.app/cancelar?bookingId=${bookingId}`;
+  const customization = formatCustomization(booking.customizationJson);
 
   const transporter = createTransporter();
   const info = await transporter.sendMail({
@@ -81,6 +83,7 @@ async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: s
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Fecha y hora</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${turno}</td></tr>
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Vehículo</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.vehicle || "—"}</td></tr>
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Servicio</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.service || "—"}</td></tr>
+              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Personalización</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${customization}</td></tr>
             </table>
           </div>
           <p style="color:#8b949e;font-size:13px;margin:0;line-height:1.6;">
@@ -100,6 +103,18 @@ async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: s
     </html>`,
   });
   console.log(`[confirm-email] Gmail enviado a ${customerEmail} — messageId: ${info.messageId}`);
+}
+
+function formatCustomization(customizationJson?: string): string {
+  if (!customizationJson) return "Sin personalización";
+  try {
+    const parsed = JSON.parse(customizationJson) as Record<string, unknown>;
+    const entries = Object.entries(parsed);
+    if (entries.length === 0) return "Sin personalización";
+    return entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ");
+  } catch {
+    return customizationJson;
+  }
 }
 
 // GET: ej. /api/bookings/5
@@ -161,6 +176,7 @@ export async function PATCH(
         customerName: body.customerName,
         vehicle: body.vehicle,
         service: body.service,
+        customizationJson: body.customizationJson,
         startDateTime: body.startDateTime,
       }, params.path[0]).catch((emailErr) =>
         console.error("[confirm-email] Error al enviar email de confirmación:", emailErr)

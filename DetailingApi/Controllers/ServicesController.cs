@@ -3,6 +3,7 @@ using DetailingApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace DetailingApi.Controllers;
 
@@ -35,6 +36,7 @@ public class ServicesController : ControllerBase
                 s.ImageUrl,
                 s.Details,
                 s.Description,
+                s.CustomizationSchemaJson,
                 s.IsActive,
                 s.Order
             })
@@ -61,6 +63,7 @@ public class ServicesController : ControllerBase
                 s.ImageUrl,
                 s.Details,
                 s.Description,
+                s.CustomizationSchemaJson,
                 s.IsActive,
                 s.Order,
                 s.CreatedAt,
@@ -92,6 +95,7 @@ public class ServicesController : ControllerBase
             service.ImageUrl,
             service.Details,
             service.Description,
+            service.CustomizationSchemaJson,
             service.IsActive,
             service.Order
         });
@@ -118,9 +122,14 @@ public class ServicesController : ControllerBase
             ImageUrl = request.ImageUrl,
             Details = request.Details,
             Description = request.Description,
+            CustomizationSchemaJson = request.CustomizationSchemaJson,
             IsActive = request.IsActive,
             Order = request.Order
         };
+
+        var schemaValidationError = ValidateCustomizationSchema(service.CustomizationSchemaJson);
+        if (schemaValidationError != null)
+            return BadRequest(new { message = schemaValidationError });
 
         _context.Services.Add(service);
         await _context.SaveChangesAsync();
@@ -135,6 +144,7 @@ public class ServicesController : ControllerBase
             service.ImageUrl,
             service.Details,
             service.Description,
+            service.CustomizationSchemaJson,
             service.IsActive,
             service.Order
         });
@@ -160,9 +170,14 @@ public class ServicesController : ControllerBase
         service.ImageUrl = request.ImageUrl;
         service.Details = request.Details;
         service.Description = request.Description;
+        service.CustomizationSchemaJson = request.CustomizationSchemaJson;
         service.IsActive = request.IsActive;
         service.Order = request.Order;
         service.UpdatedAt = DateTime.UtcNow;
+
+        var schemaValidationError = ValidateCustomizationSchema(service.CustomizationSchemaJson);
+        if (schemaValidationError != null)
+            return BadRequest(new { message = schemaValidationError });
 
         await _context.SaveChangesAsync();
 
@@ -183,6 +198,46 @@ public class ServicesController : ControllerBase
 
         return Ok(new { message = "Servicio eliminado correctamente" });
     }
+
+    private static string? ValidateCustomizationSchema(string? schemaJson)
+    {
+        if (string.IsNullOrWhiteSpace(schemaJson))
+            return null;
+
+        try
+        {
+            var schema = JsonSerializer.Deserialize<ServiceCustomizationSchema>(schemaJson);
+            if (schema == null || schema.Fields.Count == 0)
+            {
+                return "El schema de personalización debe incluir al menos un campo en 'fields'";
+            }
+
+            var allowedTypes = new[] { "select", "checkbox", "text", "number" };
+            foreach (var field in schema.Fields)
+            {
+                if (string.IsNullOrWhiteSpace(field.Key) || string.IsNullOrWhiteSpace(field.Label))
+                {
+                    return "Cada campo del schema debe incluir 'key' y 'label'";
+                }
+
+                if (!allowedTypes.Contains(field.Type))
+                {
+                    return $"Tipo inválido para el campo '{field.Key}'. Tipos permitidos: select, checkbox, text, number";
+                }
+
+                if (field.Type == "select" && (field.Options == null || field.Options.Count == 0))
+                {
+                    return $"El campo select '{field.Key}' debe incluir opciones";
+                }
+            }
+
+            return null;
+        }
+        catch (JsonException)
+        {
+            return "CustomizationSchemaJson no es un JSON válido";
+        }
+    }
 }
 
 public class ServiceRequest
@@ -194,6 +249,24 @@ public class ServiceRequest
     public string ImageUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public List<string> Details { get; set; } = new();
+    public string? CustomizationSchemaJson { get; set; }
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
+}
+
+public class ServiceCustomizationSchema
+{
+    public List<ServiceCustomizationField> Fields { get; set; } = new();
+}
+
+public class ServiceCustomizationField
+{
+    public string Key { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public bool Required { get; set; }
+    public string? Placeholder { get; set; }
+    public decimal? Min { get; set; }
+    public decimal? Max { get; set; }
+    public List<string>? Options { get; set; }
 }

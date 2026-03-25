@@ -33,6 +33,9 @@ namespace DetailingApi.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("CustomizationJson")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp without time zone");
 
@@ -210,6 +213,9 @@ namespace DetailingApi.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomizationSchemaJson")
                         .HasColumnType("text");
 
                     b.Property<string>("Details")

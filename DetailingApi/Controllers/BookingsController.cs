@@ -4,6 +4,7 @@ using DetailingApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace DetailingApi.Controllers;
 
@@ -48,6 +49,23 @@ public class BookingsController : ControllerBase
             .AsNoTracking()
             .FirstAsync(t => t.Id == request.TimeSlotId);
 
+        var selectedService = await _context.Services
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Slug == request.Service && s.IsActive);
+
+        if (selectedService == null)
+        {
+            return BadRequest(new { success = false, message = "Servicio inválido o inactivo" });
+        }
+
+        var customizationValidationError = ValidateCustomization(
+            selectedService.CustomizationSchemaJson,
+            request.CustomizationJson);
+        if (customizationValidationError != null)
+        {
+            return BadRequest(new { success = false, message = customizationValidationError });
+        }
+
         var booking = new Booking
         {
             TimeSlotId = request.TimeSlotId,
@@ -56,6 +74,7 @@ public class BookingsController : ControllerBase
             Email = request.Email,
             Vehicle = request.Vehicle,
             Service = request.Service,
+            CustomizationJson = request.CustomizationJson,
             Message = request.Message,
             Status = BookingStatus.Pending
         };
@@ -76,6 +95,7 @@ public class BookingsController : ControllerBase
                 customerName = booking.CustomerName,
                 vehicle = booking.Vehicle,
                 service = booking.Service,
+                customizationJson = booking.CustomizationJson,
                 startDateTime = timeSlot.StartDateTime,
                 endDateTime = timeSlot.EndDateTime
             }
@@ -103,6 +123,7 @@ public class BookingsController : ControllerBase
                 Email = x.Booking.Email,
                 vehicle = x.Booking.Vehicle,
                 service = x.Booking.Service,
+                customizationJson = x.Booking.CustomizationJson,
                 message = x.Booking.Message,
                 status = x.Booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : x.Booking.Status,
                 timeSlotId = x.Booking.TimeSlotId,
@@ -155,6 +176,7 @@ public class BookingsController : ControllerBase
             customerName = booking.CustomerName,
             service = booking.Service,
             vehicle = booking.Vehicle,
+            customizationJson = booking.CustomizationJson,
             startDateTime = booking.TimeSlot.StartDateTime,
             status = booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : booking.Status,
             cancelledAt = booking.CancelledAt
@@ -217,6 +239,73 @@ public class BookingsController : ControllerBase
 
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
+
+    private static string? ValidateCustomization(string? schemaJson, string? customizationJson)
+    {
+        if (string.IsNullOrWhiteSpace(schemaJson))
+            return null;
+
+        ServiceCustomizationSchema? schema;
+        try
+        {
+            schema = JsonSerializer.Deserialize<ServiceCustomizationSchema>(schemaJson);
+        }
+        catch (JsonException)
+        {
+            return "El schema del servicio no es válido";
+        }
+
+        if (schema == null || schema.Fields.Count == 0)
+            return null;
+
+        Dictionary<string, JsonElement> values = new();
+        if (!string.IsNullOrWhiteSpace(customizationJson))
+        {
+            try
+            {
+                values = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(customizationJson) ?? new();
+            }
+            catch (JsonException)
+            {
+                return "La personalización seleccionada no es un JSON válido";
+            }
+        }
+
+        foreach (var field in schema.Fields)
+        {
+            var hasValue = values.TryGetValue(field.Key, out var valueElement);
+            if (field.Required && !hasValue)
+                return $"Falta completar el campo obligatorio '{field.Label}'";
+
+            if (!hasValue)
+                continue;
+
+            switch (field.Type)
+            {
+                case "checkbox":
+                    if (valueElement.ValueKind is not JsonValueKind.True and not JsonValueKind.False)
+                        return $"El campo '{field.Label}' debe ser booleano";
+                    break;
+                case "number":
+                    if (valueElement.ValueKind != JsonValueKind.Number)
+                        return $"El campo '{field.Label}' debe ser numérico";
+                    break;
+                case "text":
+                    if (valueElement.ValueKind != JsonValueKind.String)
+                        return $"El campo '{field.Label}' debe ser texto";
+                    break;
+                case "select":
+                    if (valueElement.ValueKind != JsonValueKind.String)
+                        return $"El campo '{field.Label}' debe ser una opción válida";
+                    var selected = valueElement.GetString();
+                    if (field.Options == null || !field.Options.Contains(selected))
+                        return $"La opción elegida para '{field.Label}' no es válida";
+                    break;
+            }
+        }
+
+        return null;
+    }
 }
 
 // DTO
@@ -228,5 +317,6 @@ public class CreateBookingRequest
     public string Email { get; set; } = string.Empty;
     public string Vehicle { get; set; } = string.Empty;
     public string Service { get; set; } = string.Empty;
+    public string? CustomizationJson { get; set; }
     public string? Message { get; set; }
 }

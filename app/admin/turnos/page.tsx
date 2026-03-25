@@ -13,6 +13,7 @@ interface Booking {
   email?: string;
   vehicle: string;
   service: string;
+  customizationJson?: string;
   message?: string;
   status: string;
 }
@@ -332,6 +333,7 @@ export default function TurnosPage() {
           customerName: booking?.customerName,
           vehicle: booking?.vehicle,
           service: booking?.service,
+          customizationJson: booking?.customizationJson,
           startDateTime: slotStartDateTime,
         }),
       });
@@ -370,6 +372,18 @@ export default function TurnosPage() {
     );
 
     return `https://wa.me/+54${phone}?text=${message}`;
+  };
+
+  const formatCustomization = (customizationJson?: string) => {
+    if (!customizationJson) return "Sin personalización";
+    try {
+      const values = JSON.parse(customizationJson) as Record<string, unknown>;
+      const entries = Object.entries(values);
+      if (!entries.length) return "Sin personalización";
+      return entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ");
+    } catch {
+      return customizationJson;
+    }
   };
 
   const confirmarYEnviarWhatsApp = async (slot: TimeSlot) => {
@@ -1000,6 +1014,7 @@ export default function TurnosPage() {
               } />
               <Row label="Vehículo" value={detailSlot.booking.vehicle} />
               <Row label="Servicio" value={detailSlot.booking.service || "—"} />
+              <Row label="Personalización" value={formatCustomization(detailSlot.booking.customizationJson)} />
               {detailSlot.booking.message && (
                 <Row label="Mensaje" value={detailSlot.booking.message} />
               )}

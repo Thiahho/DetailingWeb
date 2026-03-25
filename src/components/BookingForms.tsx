@@ -16,6 +16,23 @@ interface ServicePack {
   slug: string;
   price: string;
   duration: string;
+  customizationSchemaJson?: string | null;
+}
+
+type CustomFieldType = "select" | "checkbox" | "text" | "number";
+interface ServiceCustomizationField {
+  key: string;
+  label: string;
+  type: CustomFieldType;
+  required?: boolean;
+  placeholder?: string;
+  options?: string[];
+  min?: number;
+  max?: number;
+}
+
+interface ServiceCustomizationSchema {
+  fields: ServiceCustomizationField[];
 }
 
 interface BookingFormProps {
@@ -195,6 +212,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [services, setServices] = useState<ServicePack[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [customizationValues, setCustomizationValues] = useState<Record<string, string | number | boolean>>({});
 
   // --- Estado de Toast ---
   const [toast, setToast] = useState<Toast | null>(null);
@@ -204,6 +222,18 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   }, []);
 
   const closeToast = useCallback(() => setToast(null), []);
+  const selectedServiceData = services.find((service) => service.slug === formData.selectedService);
+  const parsedCustomizationSchema = useCallback((schemaRaw?: string | null): ServiceCustomizationSchema | null => {
+    if (!schemaRaw) return null;
+    try {
+      const parsed = JSON.parse(schemaRaw) as ServiceCustomizationSchema;
+      if (!parsed.fields || !Array.isArray(parsed.fields)) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, []);
+  const activeCustomizationSchema = parsedCustomizationSchema(selectedServiceData?.customizationSchemaJson);
 
   // --- LÓGICA DE PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -223,6 +253,9 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       setFormData((prev) => ({ ...prev, selectedService: preselectedService }));
     }
   }, [preselectedService]);
+  useEffect(() => {
+    setCustomizationValues({});
+  }, [formData.selectedService]);
 
   const loadAvailableSlots = async () => {
     try {
@@ -261,6 +294,17 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       showToast("warning", "Seleccioná un servicio", "Por favor elegí el servicio que necesitás");
       return;
     }
+    if (activeCustomizationSchema?.fields?.length) {
+      const missingField = activeCustomizationSchema.fields.find((field) => {
+        if (!field.required) return false;
+        const value = customizationValues[field.key];
+        return value === undefined || value === null || value === "";
+      });
+      if (missingField) {
+        showToast("warning", "Faltan datos", `Completá el campo obligatorio: ${missingField.label}`);
+        return;
+      }
+    }
 
     setSubmitting(true);
 
@@ -275,6 +319,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           email: formData.email,
           vehicle: formData.vehicle,
           service: formData.selectedService,
+          customizationJson: JSON.stringify(customizationValues),
           message: formData.message,
         }),
       });
@@ -299,6 +344,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           selectedService: "",
           message: "",
         });
+        setCustomizationValues({});
 
         // Resetear paginación y recargar turnos
         setCurrentPage(1);
@@ -414,6 +460,63 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           ))}
         </div>
       </div>
+
+      {activeCustomizationSchema?.fields?.length ? (
+        <div>
+          <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
+            Personalizá tu servicio
+          </label>
+          <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+            {activeCustomizationSchema.fields.map((field) => (
+              <div key={field.key}>
+                <label className="text-xs uppercase tracking-[0.15em] text-white/60 block mb-2">
+                  {field.label} {field.required ? "*" : ""}
+                </label>
+                {field.type === "select" ? (
+                  <select
+                    className="form-input"
+                    value={String(customizationValues[field.key] ?? "")}
+                    onChange={(e) => setCustomizationValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                    required={Boolean(field.required)}
+                  >
+                    <option value="">Seleccioná una opción</option>
+                    {(field.options ?? []).map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                ) : field.type === "checkbox" ? (
+                  <label className="inline-flex items-center gap-2 text-white/80 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(customizationValues[field.key])}
+                      onChange={(e) => setCustomizationValues((prev) => ({ ...prev, [field.key]: e.target.checked }))}
+                    />
+                    Sí
+                  </label>
+                ) : (
+                  <input
+                    type={field.type === "number" ? "number" : "text"}
+                    className="form-input"
+                    placeholder={field.placeholder ?? ""}
+                    required={Boolean(field.required)}
+                    min={field.min}
+                    max={field.max}
+                    value={String(customizationValues[field.key] ?? "")}
+                    onChange={(e) =>
+                      setCustomizationValues((prev) => ({
+                        ...prev,
+                        [field.key]: field.type === "number"
+                          ? (e.target.value === "" ? "" : Number(e.target.value))
+                          : e.target.value,
+                      }))
+                    }
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Selector de Turno con PAGINACIÓN */}
       <div>

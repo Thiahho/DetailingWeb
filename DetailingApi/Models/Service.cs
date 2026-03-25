@@ -10,6 +10,7 @@ public class Service
     public string ImageUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public List<string> Details { get; set; } = new();
+    public string? CustomizationSchemaJson { get; set; }
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
