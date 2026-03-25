@@ -43,7 +43,9 @@ builder.Services.AddAuthentication(options =>
             // Si no hay, buscar en cookie
             if (string.IsNullOrEmpty(token))
             {
-                token = context.Request.Cookies["token"];
+                token = context.Request.Cookies["admin_token"]
+                    ?? context.Request.Cookies["client_token"]
+                    ?? context.Request.Cookies["token"];
             }
             
             context.Token = token;

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using BCrypt.Net;
 
@@ -35,8 +36,8 @@ public class AuthService
             return null;
 
         // Generar token JWT
-        var token = GenerateJwtToken(user);
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
+        var token = GenerateJwtToken(user.Id, user.Email, user.Role, "admin_access", TimeSpan.FromMinutes(expiryMinutes));
 
         return new LoginResponse
         {
@@ -73,8 +74,8 @@ public class AuthService
         await _context.SaveChangesAsync();
 
         // Generar token
-        var token = GenerateJwtToken(user);
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
+        var token = GenerateJwtToken(user.Id, user.Email, user.Role, "admin_access", TimeSpan.FromMinutes(expiryMinutes));
 
         return new LoginResponse
         {
@@ -118,7 +119,136 @@ public class AuthService
             throw new ArgumentException("La nueva contraseña debe ser diferente a la actual");
     }
 
-    private string GenerateJwtToken(User user)
+    public async Task<LoginResponse> RequestClientAccessAsync(ClientAccessRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email requerido");
+
+        var mode = _configuration["ClientIdentity:Mode"] ?? "MagicLinkOtp";
+        var hasBooking = await _context.Bookings.AnyAsync(b => b.CustomerEmailNormalized == email || (b.Email ?? "").ToLower() == email);
+        if (!hasBooking)
+            throw new UnauthorizedAccessException("No encontramos reservas para ese email");
+
+        if (string.Equals(mode, "EmailPassword", StringComparison.OrdinalIgnoreCase))
+        {
+            var client = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.Role == "Client");
+            if (client == null || string.IsNullOrWhiteSpace(request.Password) || !BCrypt.Net.BCrypt.Verify(request.Password, client.PasswordHash))
+                throw new UnauthorizedAccessException("Credenciales inválidas");
+
+            var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
+            return new LoginResponse
+            {
+                Token = GenerateJwtToken(client.Id, client.Email, "Client", "client_access", TimeSpan.FromMinutes(expiryMinutes)),
+                Email = client.Email,
+                Role = "Client",
+                ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes)
+            };
+        }
+
+        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        _context.ClientAccessCodes.Add(new ClientAccessCode
+        {
+            Email = email,
+            CodeHash = BCrypt.Net.BCrypt.HashPassword(code),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+        });
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"[ClientAccessOTP] {email}: {code}");
+
+        return new LoginResponse
+        {
+            Token = string.Empty,
+            Email = email,
+            Role = "ClientPendingOtp",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+        };
+    }
+
+    public async Task<LoginResponse> VerifyClientOtpAsync(ClientOtpVerifyRequest request)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var otp = request.OtpCode.Trim();
+        var entry = await _context.ClientAccessCodes
+            .Where(c => c.Email == email && c.UsedAt == null && c.ExpiresAt > DateTime.UtcNow)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (entry == null || !BCrypt.Net.BCrypt.Verify(otp, entry.CodeHash))
+            throw new UnauthorizedAccessException("OTP inválido o expirado");
+
+        entry.UsedAt = DateTime.UtcNow;
+        var client = await EnsureClientUserAsync(email);
+        var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
+        await _context.SaveChangesAsync();
+
+        return new LoginResponse
+        {
+            Token = GenerateJwtToken(client.Id, email, "Client", "client_access", TimeSpan.FromMinutes(expiryMinutes)),
+            Email = email,
+            Role = "Client",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes)
+        };
+    }
+
+    public string CreateClientPortalAccessToken(string email)
+    {
+        return GenerateJwtToken(0, email.ToLowerInvariant(), "ClientPortal", "booking_access", TimeSpan.FromDays(7));
+    }
+
+    public LoginResponse ExchangeClientPortalToken(string accessToken)
+    {
+        var principal = ValidateToken(accessToken);
+        var tokenType = principal.FindFirst("token_type")?.Value;
+        var email = principal.FindFirst(ClaimTypes.Email)?.Value;
+
+        if (tokenType != "booking_access" || string.IsNullOrWhiteSpace(email))
+            throw new UnauthorizedAccessException("Token inválido");
+
+        var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
+        return new LoginResponse
+        {
+            Token = GenerateJwtToken(0, email, "Client", "client_access", TimeSpan.FromMinutes(expiryMinutes)),
+            Email = email,
+            Role = "Client",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes)
+        };
+    }
+
+    private async Task<User> EnsureClientUserAsync(string email)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.Role == "Client");
+        if (user != null) return user;
+
+        user = new User
+        {
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+            Role = "Client"
+        };
+        _context.Users.Add(user);
+        return user;
+    }
+
+    private ClaimsPrincipal ValidateToken(string token)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]!)),
+            ValidateIssuer = true,
+            ValidIssuer = _configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = _configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        return tokenHandler.ValidateToken(token, validationParameters, out _);
+    }
+
+    private string GenerateJwtToken(int userId, string email, string role, string tokenType, TimeSpan expiresIn)
     {
         var jwtKey = _configuration["Jwt:Key"];
         var key = Encoding.ASCII.GetBytes(jwtKey!);
@@ -127,11 +257,12 @@ public class AuthService
         {
             Subject = new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Email, email),
+                new Claim(ClaimTypes.Role, role),
+                new Claim("token_type", tokenType)
             }),
-            Expires = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["Jwt:ExpiryMinutes"]!)),
+            Expires = DateTime.UtcNow.Add(expiresIn),
             Issuer = _configuration["Jwt:Issuer"],
             Audience = _configuration["Jwt:Audience"],
             SigningCredentials = new SigningCredentials(

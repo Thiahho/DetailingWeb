@@ -104,12 +104,17 @@ async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: s
 
 // GET: ej. /api/bookings/5
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path?.join("/") || "";
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   try {
-    const response = await fetch(`${API_URL}/api/bookings/${path}`);
+    const response = await fetch(`${API_URL}/api/bookings/${path}`, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
   } catch {
@@ -119,12 +124,18 @@ export async function GET(
 
 // POST: ej. /api/bookings/5/cancel
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path?.join("/") || "";
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   try {
-    const response = await fetch(`${API_URL}/api/bookings/${path}`, { method: "POST" });
+    const response = await fetch(`${API_URL}/api/bookings/${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
   } catch {
@@ -138,7 +149,7 @@ export async function PATCH(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path?.join("/") || "";
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const isConfirm = params.path?.at(-1) === "confirm";
 
   // Leer el body para obtener el email enviado desde el frontend

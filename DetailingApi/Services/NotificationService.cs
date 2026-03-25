@@ -11,19 +11,22 @@ public class NotificationService
     private readonly IEnumerable<INotificationProvider> _providers;
     private readonly IConfiguration _configuration;
     private readonly ILogger<NotificationService> _logger;
+    private readonly AuthService _authService;
 
     public NotificationService(
         ApplicationDbContext context,
         NotificationTemplateService templateService,
         IEnumerable<INotificationProvider> providers,
         IConfiguration configuration,
-        ILogger<NotificationService> logger)
+        ILogger<NotificationService> logger,
+        AuthService authService)
     {
         _context = context;
         _templateService = templateService;
         _providers = providers;
         _configuration = configuration;
         _logger = logger;
+        _authService = authService;
     }
 
     public async Task DispatchForBookingAsync(int bookingId, string eventType, CancellationToken cancellationToken = default)
@@ -38,7 +41,9 @@ public class NotificationService
         }
 
         var baseCancellationUrl = _configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar";
+        var baseMyBookingsUrl = _configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos";
         var location = _configuration["Notifications:Location"] ?? "Sucursal principal";
+        var accessToken = _authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized);
         var templateData = new NotificationTemplateData
         {
             CustomerName = booking.CustomerName,
@@ -46,7 +51,8 @@ public class NotificationService
             Subject = booking.Subject,
             StartDateTime = booking.TimeSlot.StartDateTime,
             Location = location,
-            CancellationLink = $"{baseCancellationUrl}?bookingId={booking.Id}"
+            CancellationLink = $"{baseCancellationUrl}?bookingId={booking.Id}",
+            MyBookingsLink = $"{baseMyBookingsUrl}?accessToken={Uri.EscapeDataString(accessToken)}"
         };
 
         var message = _templateService.Build(eventType, templateData);
@@ -96,7 +102,8 @@ public class NotificationService
                 Subject = booking.Subject,
                 StartDateTime = booking.TimeSlot.StartDateTime,
                 Location = _configuration["Notifications:Location"] ?? "Sucursal principal",
-                CancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar"}?bookingId={booking.Id}"
+                CancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar"}?bookingId={booking.Id}",
+                MyBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized))}"
             });
 
             await TrySendAsync(log.Id, booking, message, cancellationToken);

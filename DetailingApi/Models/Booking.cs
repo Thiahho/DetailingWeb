@@ -8,6 +8,8 @@ public class Booking
     public string? Service{get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
+    public string Vehicle { get; set; } = string.Empty;
+    public string CustomerEmailNormalized { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
     public string? CustomFieldsJson { get; set; }
     public string? Message { get; set; }

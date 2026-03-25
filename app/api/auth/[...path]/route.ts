@@ -9,11 +9,13 @@ export async function POST(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path.join("/");
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
 
   // Logout: borrar cookie y retornar
   if (path === "logout") {
     const response = NextResponse.json({ message: "Sesión cerrada" });
+    response.cookies.delete("admin_token");
+    response.cookies.delete("client_token");
     response.cookies.delete("token");
     return response;
   }
@@ -34,7 +36,7 @@ export async function POST(
     const data = await response.json();
 
     // Si es login exitoso, crear cookie en Next.js
-    if (response.ok && path === "login" && data.email) {
+    if (response.ok && data.email) {
       const nextResponse = NextResponse.json(data);
 
       // Obtener el token de la cookie del backend
@@ -42,8 +44,9 @@ export async function POST(
 
       if (backendCookie) {
         // Re-setear la cookie en el dominio de Next.js
+        const cookieName = path === "login" ? "admin_token" : path.startsWith("client/") ? "client_token" : "token";
         nextResponse.cookies.set(
-          "token",
+          cookieName,
           extractTokenFromCookie(backendCookie),
           {
             httpOnly: true,
@@ -72,7 +75,7 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path.join("/");
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
 
   try {
     const response = await fetch(`${API_URL}/api/auth/${path}`, {
