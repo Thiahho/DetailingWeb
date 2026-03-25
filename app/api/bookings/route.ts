@@ -15,7 +15,7 @@ function createTransporter() {
 export async function GET(request: NextRequest) {
   const API_URL =
     process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("token")?.value;
 
   try {
     const response = await fetch(`${API_URL}/api/bookings`, {
@@ -49,6 +49,7 @@ interface BookingPayload {
 
 interface BookingResponse {
   success?: boolean;
+  myBookingsLink?: string;
   booking?: {
     id?: number;
     startDateTime?: string;
@@ -127,7 +128,7 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
 
   const turno = formatDateTime(bookingData.booking?.startDateTime);
   const name = booking.customerName || "Cliente";
-  const cancelUrl = `https://detailing-web-five.vercel.app/cancelar?bookingId=${bookingData.booking?.id}`;
+  const myBookingsUrl = bookingData.myBookingsLink || "https://detailing-web-five.vercel.app/mis-turnos";
 
   await sendEmail(
     customerEmail,
@@ -154,11 +155,11 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
             </table>
           </div>
           <p style="color:#8b949e;font-size:13px;margin:0;">
-            Si tenés alguna duda, respondé este email o contactanos por WhatsApp.
+            Si necesitás cancelar o reprogramar, gestioná tu turno desde este enlace seguro.
           </p>
           <div style="margin-top:24px;text-align:center;">
-            <a href="${cancelUrl}" style="display:inline-block;padding:10px 20px;background:#1a1a1a;color:#f87171;border:1px solid #f87171;border-radius:6px;font-size:13px;text-decoration:none;">
-              Cancelar turno
+            <a href="${myBookingsUrl}" style="display:inline-block;padding:10px 20px;background:#1a1a1a;color:#60a5fa;border:1px solid #60a5fa;border-radius:6px;font-size:13px;text-decoration:none;">
+              Ir a Mis turnos
             </a>
           </div>
         </div>

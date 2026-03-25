@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<Service> Services { get; set; }
     public DbSet<NotificationLog> NotificationLogs { get; set; }
+    public DbSet<ClientAccessCode> ClientAccessCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +41,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Booking>(entity =>
         {
             entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CustomerEmailNormalized);
             entity.HasIndex(e => e.TimeSlotId)
                 .HasFilter("\"Status\" <> 'Cancelled'")
                 .IsUnique();
@@ -48,6 +50,12 @@ public class ApplicationDbContext : DbContext
                 .WithMany(t => t.Bookings)
                 .HasForeignKey(b => b.TimeSlotId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ClientAccessCode>(entity =>
+        {
+            entity.HasIndex(e => e.Email);
+            entity.HasIndex(e => e.ExpiresAt);
         });
 
         modelBuilder.Entity<NotificationLog>(entity =>

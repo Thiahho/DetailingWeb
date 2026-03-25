@@ -16,7 +16,7 @@ public class NotificationTemplateService
         var subjectTemplate = _configuration[$"Notifications:Templates:{eventType}:Subject"]
             ?? "Reserva {{servicio}} - {{fecha_hora}}";
         var bodyTemplate = _configuration[$"Notifications:Templates:{eventType}:Body"]
-            ?? "Hola {{nombre}}, tu reserva para {{servicio}} quedó registrada para {{fecha_hora}} en {{ubicacion}}. Si necesitás cancelar, ingresá aquí: {{link_cancelacion}}";
+            ?? "Hola {{nombre}}, tu reserva para {{servicio}} quedó registrada para {{fecha_hora}} en {{ubicacion}}. Gestioná tu turno aquí: {{link_mis_turnos}}";
 
         return new NotificationMessage
         {
@@ -32,6 +32,7 @@ public class NotificationTemplateService
             .Replace("{{servicio}}", data.Service)
             .Replace("{{fecha_hora}}", localDateTime.ToString("dd/MM/yyyy HH:mm"))
             .Replace("{{ubicacion}}", data.Location)
-            .Replace("{{link_cancelacion}}", data.CancellationLink);
+            .Replace("{{link_cancelacion}}", data.CancellationLink)
+            .Replace("{{link_mis_turnos}}", data.MyBookingsLink);
     }
 }

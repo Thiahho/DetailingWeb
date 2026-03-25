@@ -9,6 +9,7 @@ public class NotificationTemplateData
     public required DateTime StartDateTime { get; init; }
     public required string Location { get; init; }
     public required string CancellationLink { get; init; }
+    public required string MyBookingsLink { get; init; }
 }
 
 public class NotificationMessage

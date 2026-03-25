@@ -4,6 +4,7 @@ using DetailingApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace DetailingApi.Controllers;
 
@@ -13,11 +14,13 @@ public class BookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly NotificationService _notificationService;
+    private readonly AuthService _authService;
 
-    public BookingsController(ApplicationDbContext context, NotificationService notificationService)
+    public BookingsController(ApplicationDbContext context, NotificationService notificationService, AuthService authService)
     {
         _context = context;
         _notificationService = notificationService;
+        _authService = authService;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -54,6 +57,7 @@ public class BookingsController : ControllerBase
             CustomerName = request.CustomerName,
             CustomerPhone = request.CustomerPhone,
             Email = request.Email,
+            CustomerEmailNormalized = request.Email.Trim().ToLowerInvariant(),
             Vehicle = request.Vehicle,
             Service = request.Service,
             Message = request.Message,
@@ -70,6 +74,7 @@ public class BookingsController : ControllerBase
         {
             success = true,
             message = "Turno agendado exitosamente",
+            myBookingsLink = $"https://detailing-web-five.vercel.app/mis-turnos?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized))}",
             booking = new
             {
                 id = booking.Id,
@@ -137,17 +142,57 @@ public class BookingsController : ControllerBase
         return Ok(bookings);
     }
 
-    // GET: api/bookings/{id} (público - ver detalle para cancelar)
+    [HttpGet("my")]
+    [Authorize(Roles = "Client,Admin")]
+    public async Task<IActionResult> GetMyBookings()
+    {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        var email = User.FindFirst(ClaimTypes.Email)?.Value?.ToLowerInvariant();
+
+        var query = _context.Bookings.Include(b => b.TimeSlot).AsQueryable();
+        if (role != "Admin")
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return Unauthorized(new { success = false, message = "Sesión inválida" });
+
+            query = query.Where(b => b.CustomerEmailNormalized == email);
+        }
+
+        var bookings = await query
+            .OrderByDescending(b => b.TimeSlot.StartDateTime)
+            .Select(b => new
+            {
+                id = b.Id,
+                status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status,
+                service = b.Service,
+                vehicle = b.Vehicle,
+                startDateTime = b.TimeSlot.StartDateTime,
+                endDateTime = b.TimeSlot.EndDateTime,
+                canCancel = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
+                canReschedule = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow
+            })
+            .ToListAsync();
+
+        return Ok(bookings);
+    }
+
+    // GET: api/bookings/{id}
     [HttpGet("{id}")]
-    [AllowAnonymous]
+    [Authorize(Roles = "Client,Admin")]
     public async Task<IActionResult> GetBooking(int id)
     {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        var email = User.FindFirst(ClaimTypes.Email)?.Value?.ToLowerInvariant();
+
         var booking = await _context.Bookings
             .Include(b => b.TimeSlot)
             .FirstOrDefaultAsync(b => b.Id == id);
 
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        if (role != "Admin" && booking.CustomerEmailNormalized != email)
+            return Forbid();
 
         return Ok(new
         {

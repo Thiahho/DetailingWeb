@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   // Next.js lee la cookie desde el servidor
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
   // 1. Si intenta entrar a /admin y no tiene token, mandarlo al login

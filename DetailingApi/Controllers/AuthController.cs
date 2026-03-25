@@ -11,10 +11,28 @@ namespace DetailingApi.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
+    private readonly IConfiguration _configuration;
 
-    public AuthController(AuthService authService)
+    public AuthController(AuthService authService, IConfiguration configuration)
     {
         _authService = authService;
+        _configuration = configuration;
+    }
+
+    [HttpGet("client/identity-strategy")]
+    [AllowAnonymous]
+    public IActionResult GetClientIdentityStrategy()
+    {
+        var mode = _configuration["ClientIdentity:Mode"] ?? "MagicLinkOtp";
+        return Ok(new
+        {
+            mode,
+            options = new[]
+            {
+                new { key = "EmailPassword", description = "Ingreso por email y contraseña" },
+                new { key = "MagicLinkOtp", description = "Acceso por link mágico/OTP" }
+            }
+        });
     }
 
     // POST: api/auth/login
@@ -37,7 +55,7 @@ public class AuthController : ControllerBase
                 Path="/"
             };
 
-            Response.Cookies.Append("token", response.Token, cookieOptions);
+            Response.Cookies.Append("admin_token", response.Token, cookieOptions);
             return Ok(new
             {
               email=response.Email,
@@ -95,8 +113,86 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public IActionResult Logout()
     {
-        Response.Cookies.Delete("token");
+        Response.Cookies.Delete("admin_token");
+        Response.Cookies.Delete("client_token");
         return Ok(new { message = "Sesión cerrada" });
+    }
+
+    [HttpPost("client/access/request")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RequestClientAccess([FromBody] ClientAccessRequest request)
+    {
+        try
+        {
+            var response = await _authService.RequestClientAccessAsync(request);
+            if (!string.IsNullOrWhiteSpace(response.Token))
+            {
+                Response.Cookies.Append("client_token", response.Token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Expires = response.ExpiresAt,
+                    SameSite = SameSiteMode.None,
+                    Secure = true,
+                    Path = "/"
+                });
+            }
+
+            return Ok(new { email = response.Email, role = response.Role, requiresOtp = response.Role == "ClientPendingOtp" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("client/access/verify")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyClientAccess([FromBody] ClientOtpVerifyRequest request)
+    {
+        try
+        {
+            var response = await _authService.VerifyClientOtpAsync(request);
+            Response.Cookies.Append("client_token", response.Token, new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = response.ExpiresAt,
+                SameSite = SameSiteMode.None,
+                Secure = true,
+                Path = "/"
+            });
+            return Ok(new { email = response.Email, role = response.Role });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("client/session/exchange")]
+    [AllowAnonymous]
+    public IActionResult ExchangeClientPortalToken([FromBody] ClientPortalTokenRequest request)
+    {
+        try
+        {
+            var response = _authService.ExchangeClientPortalToken(request.AccessToken);
+            Response.Cookies.Append("client_token", response.Token, new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = response.ExpiresAt,
+                SameSite = SameSiteMode.None,
+                Secure = true,
+                Path = "/"
+            });
+            return Ok(new { email = response.Email, role = response.Role });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
     }
     // POST: api/auth/change-password
     [Authorize]
