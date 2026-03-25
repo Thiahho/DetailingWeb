@@ -16,6 +16,13 @@ interface Service {
   details: string[];
 }
 
+
+interface ContentVideo {
+  id: number;
+  title: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+}
 const WHATSAPP_NUMBER = "+54112692061";
 //const PHONE_NUMBER = "+54112692061";
 // const WHATSAPP_MESSAGE =
@@ -28,6 +35,7 @@ export default function Home() {
   const [visibleGallery, setVisibleGallery] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [contentVideos, setContentVideos] = useState<ContentVideo[]>([]);
   const packsToShow = services.slice(0, visiblePacks);
   const galleryToShow = gallery.slice(0, visibleGallery);
 
@@ -36,12 +44,20 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => setServices(Array.isArray(data) ? data : []))
       .catch(() => {});
+
+    fetch("/api/content-videos")
+      .then((res) => res.json())
+      .then((data) => setContentVideos(Array.isArray(data) ? data : []))
+      .catch(() => setContentVideos([]));
   }, []);
 
-  const reels = [
-    "/video/V1.mp4",
-    "/video/V2.mp4",
-  ];
+  const reels =
+    contentVideos.length > 0
+      ? contentVideos
+      : [
+          { id: 1, title: "Video destacado 1", videoUrl: "/video/V1.mp4", thumbnailUrl: "" },
+          { id: 2, title: "Video destacado 2", videoUrl: "/video/V2.mp4", thumbnailUrl: "" },
+        ];
 
   const handlePresupuestar = (slug: string) => {
     setPreselectedService(slug);
@@ -247,22 +263,24 @@ export default function Home() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {reels.map((src) => (
-            <div key={src} className="glass-card overflow-hidden p-4">
+          {reels.map((video) => (
+            <div key={video.id} className="glass-card overflow-hidden p-4">
               <p className="mb-4 text-xs uppercase tracking-[0.2em] text-white/60">
                 Video destacado
               </p>
               <div className="flex justify-center bg-black/20 rounded-xl overflow-hidden aspect-[9/16] w-full">
                 <video
-                  src={src}
+                  src={video.videoUrl}
                   className="w-full h-full object-cover"
                   playsInline
                   preload="metadata"
                   loop
                   muted
                   autoPlay
+                  poster={video.thumbnailUrl || undefined}
                 />
               </div>
+              <p className="mt-3 text-sm text-white/80">{video.title}</p>
             </div>
           ))}
         </div>

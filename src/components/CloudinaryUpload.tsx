@@ -2,27 +2,53 @@
 
 import { useState, useRef } from "react";
 
+type ResourceType = "image" | "video";
+
 interface Props {
   value: string;
   onChange: (url: string) => void;
+  resourceType?: ResourceType;
+  folder?: string;
 }
 
-export default function CloudinaryUpload({ value, onChange }: Props) {
+export default function CloudinaryUpload({
+  value,
+  onChange,
+  resourceType = "image",
+  folder = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_FOLDER || "detailing/content",
+}: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isImage = resourceType === "image";
+  const validTypes = isImage
+    ? ["image/webp", "image/jpeg", "image/png", "image/jpg"]
+    : ["video/mp4", "video/quicktime", "video/webm", "video/x-msvideo"];
+
+  const maxSize = isImage ? 5 * 1024 * 1024 : 80 * 1024 * 1024;
+  const accept = isImage
+    ? "image/webp,image/jpeg,image/png"
+    : "video/mp4,video/quicktime,video/webm,video/x-msvideo";
+
   const handleFile = async (file: File) => {
     if (!file) return;
 
-    const validTypes = ["image/webp", "image/jpeg", "image/png", "image/jpg"];
     if (!validTypes.includes(file.type)) {
-      setError("Solo se permiten imágenes JPG, PNG o WEBP");
+      setError(
+        isImage
+          ? "Solo se permiten imágenes JPG, PNG o WEBP"
+          : "Solo se permiten videos MP4, MOV, WEBM o AVI"
+      );
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("La imagen no puede superar 5MB");
+    if (file.size > maxSize) {
+      setError(
+        isImage
+          ? "La imagen no puede superar 5MB"
+          : "El video no puede superar 80MB"
+      );
       return;
     }
 
@@ -31,19 +57,22 @@ export default function CloudinaryUpload({ value, onChange }: Props) {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!);
-    formData.append("folder", "detailing/services");
+    formData.append(
+      "upload_preset",
+      process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
+    );
+    formData.append("folder", folder);
 
     try {
       const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
         { method: "POST", body: formData }
       );
       const data = await res.json();
       if (data.secure_url) {
         onChange(data.secure_url);
       } else {
-        setError("Error al subir la imagen");
+        setError(isImage ? "Error al subir la imagen" : "Error al subir el video");
       }
     } catch {
       setError("Error de conexión con Cloudinary");
@@ -62,9 +91,22 @@ export default function CloudinaryUpload({ value, onChange }: Props) {
       >
         {value ? (
           <div className="relative h-36 overflow-hidden rounded-xl">
-            <img src={value} alt="Preview" className="w-full h-full object-cover" />
+            {isImage ? (
+              <img src={value} alt="Preview" className="w-full h-full object-cover" />
+            ) : (
+              <video
+                src={value}
+                className="w-full h-full object-cover"
+                muted
+                loop
+                playsInline
+                autoPlay
+              />
+            )}
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition">
-              <span className="text-white text-sm font-medium">Cambiar imagen</span>
+              <span className="text-white text-sm font-medium">
+                {isImage ? "Cambiar imagen" : "Cambiar video"}
+              </span>
             </div>
           </div>
         ) : (
@@ -74,7 +116,11 @@ export default function CloudinaryUpload({ value, onChange }: Props) {
             ) : (
               <>
                 <span className="text-3xl">↑</span>
-                <span className="text-sm">Subir imagen (JPG, PNG, WEBP · max 5MB)</span>
+                <span className="text-sm">
+                  {isImage
+                    ? "Subir imagen (JPG, PNG, WEBP · max 5MB)"
+                    : "Subir video (MP4, MOV, WEBM, AVI · max 80MB)"}
+                </span>
               </>
             )}
           </div>
@@ -101,7 +147,7 @@ export default function CloudinaryUpload({ value, onChange }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/webp,image/jpeg,image/png"
+        accept={accept}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
