@@ -54,7 +54,8 @@ public class BookingsController : ControllerBase
             CustomerName = request.CustomerName,
             CustomerPhone = request.CustomerPhone,
             Email = request.Email,
-            Vehicle = request.Vehicle,
+            Subject = request.Subject,
+            CustomFieldsJson = request.CustomFieldsJson,
             Service = request.Service,
             Message = request.Message,
             Status = BookingStatus.Pending
@@ -74,7 +75,8 @@ public class BookingsController : ControllerBase
             {
                 id = booking.Id,
                 customerName = booking.CustomerName,
-                vehicle = booking.Vehicle,
+                subject = booking.Subject,
+                customFieldsJson = booking.CustomFieldsJson,
                 service = booking.Service,
                 startDateTime = timeSlot.StartDateTime,
                 endDateTime = timeSlot.EndDateTime
@@ -101,7 +103,8 @@ public class BookingsController : ControllerBase
                 customerName = x.Booking.CustomerName,
                 customerPhone = x.Booking.CustomerPhone,
                 Email = x.Booking.Email,
-                vehicle = x.Booking.Vehicle,
+                subject = x.Booking.Subject,
+                customFieldsJson = x.Booking.CustomFieldsJson,
                 service = x.Booking.Service,
                 message = x.Booking.Message,
                 status = x.Booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : x.Booking.Status,
@@ -154,7 +157,8 @@ public class BookingsController : ControllerBase
             id = booking.Id,
             customerName = booking.CustomerName,
             service = booking.Service,
-            vehicle = booking.Vehicle,
+            subject = booking.Subject,
+            customFieldsJson = booking.CustomFieldsJson,
             startDateTime = booking.TimeSlot.StartDateTime,
             status = booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : booking.Status,
             cancelledAt = booking.CancelledAt
@@ -226,7 +230,8 @@ public class CreateBookingRequest
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string Vehicle { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string? CustomFieldsJson { get; set; }
     public string Service { get; set; } = string.Empty;
     public string? Message { get; set; }
 }

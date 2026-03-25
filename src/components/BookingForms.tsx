@@ -183,7 +183,7 @@ function ClientToast({ toast, onClose }: { toast: Toast; onClose: () => void }) 
 export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [formData, setFormData] = useState({
     name: "",
-    vehicle: "",
+    subject: "",
     whatsapp: "",
     email:"",
     selectedSlotId: null as number | null,
@@ -195,6 +195,9 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [services, setServices] = useState<ServicePack[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const subjectLabel = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_LABEL?.trim() || "Trabajo";
+  const subjectPlaceholder = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_PLACEHOLDER?.trim() || "Describe brevemente";
 
   // --- Estado de Toast ---
   const [toast, setToast] = useState<Toast | null>(null);
@@ -273,7 +276,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           customerName: formData.name,
           customerPhone: formData.whatsapp,
           email: formData.email,
-          vehicle: formData.vehicle,
+          subject: formData.subject,
           service: formData.selectedService,
           message: formData.message,
         }),
@@ -292,7 +295,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         // Limpiar formulario
         setFormData({
           name: "",
-          vehicle: "",
+          subject: "",
           whatsapp: "",
           email:"", 
           selectedSlotId: null,
@@ -327,7 +330,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       {toast && <ClientToast toast={toast} onClose={closeToast} />}
 
       <form className="glass-card space-y-4 p-6" onSubmit={handleCalendarSubmit}>
-      {/* Inputs de Nombre, Vehículo y WhatsApp (Igual a tu original) */}
+      {/* Inputs de Nombre, Asunto y WhatsApp */}
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50">
           Nombre
@@ -345,16 +348,16 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-white/50">
-          Vehículo
+          {subjectLabel}
         </label>
         <input
           className="form-input mt-2"
           onChange={(e) =>
-            setFormData((prev) => ({ ...prev, vehicle: e.target.value }))
+            setFormData((prev) => ({ ...prev, subject: e.target.value }))
           }
-          placeholder="Modelo y año"
+          placeholder={subjectPlaceholder}
           required
-          value={formData.vehicle}
+          value={formData.subject}
         />
       </div>
 

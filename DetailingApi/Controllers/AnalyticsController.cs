@@ -117,7 +117,7 @@ public class AnalyticsController : ControllerBase
             {
                 b.Id,
                 b.CustomerName,
-                b.Vehicle,
+                b.Subject,
                 b.Service,
                 StartDateTime = b.TimeSlot.StartDateTime
             })

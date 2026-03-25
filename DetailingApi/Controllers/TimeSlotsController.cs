@@ -67,7 +67,8 @@ public class TimeSlotsController : ControllerBase
                         customerName = b.CustomerName,
                         customerPhone = b.CustomerPhone,
                         email = b.Email,
-                        vehicle = b.Vehicle,
+                        subject = b.Subject,
+                        customFieldsJson = b.CustomFieldsJson,
                         service = b.Service,
                         message = b.Message,
                         status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status

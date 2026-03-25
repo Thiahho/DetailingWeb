@@ -43,6 +43,7 @@ public class NotificationService
         {
             CustomerName = booking.CustomerName,
             Service = booking.Service ?? "Servicio no informado",
+            Subject = booking.Subject,
             StartDateTime = booking.TimeSlot.StartDateTime,
             Location = location,
             CancellationLink = $"{baseCancellationUrl}?bookingId={booking.Id}"
@@ -92,6 +93,7 @@ public class NotificationService
             {
                 CustomerName = booking.CustomerName,
                 Service = booking.Service ?? "Servicio no informado",
+                Subject = booking.Subject,
                 StartDateTime = booking.TimeSlot.StartDateTime,
                 Location = _configuration["Notifications:Location"] ?? "Sucursal principal",
                 CancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar"}?bookingId={booking.Id}"

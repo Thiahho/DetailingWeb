@@ -88,7 +88,10 @@ namespace DetailingApi.Migrations
                     b.Property<int>("TimeSlotId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Vehicle")
+                    b.Property<string>("CustomFieldsJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Subject")
                         .IsRequired()
                         .HasColumnType("text");
 
