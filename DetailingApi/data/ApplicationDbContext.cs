@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<Service> Services { get; set; }
     public DbSet<NotificationLog> NotificationLogs { get; set; }
+    public DbSet<ContentVideo> ContentVideos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,6 +61,13 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+
+        modelBuilder.Entity<ContentVideo>(entity =>
+        {
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Order);
         });
 
         // Configuración BlockedDate
