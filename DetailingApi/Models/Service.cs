@@ -1,3 +1,4 @@
+
 namespace DetailingApi.Models;
 
 public class Service
