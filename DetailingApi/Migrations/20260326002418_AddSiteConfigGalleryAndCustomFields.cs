@@ -94,20 +94,20 @@ namespace DetailingApi.Migrations
                 column: "Order");
 
             // Seed de configuración inicial del negocio
-            migrationBuilder.Sql(@"
-                INSERT INTO ""SiteConfigs"" (
-                    ""BusinessName"", ""WhatsAppNumber"", ""InstagramUrl"", ""InstagramHandle"",
-                    ""Location"", ""LocationShort"", ""SiteUrl"", ""LogoUrl"",
-                    ""HeroTitle"", ""HeroSubtitle"", ""HeroBadge"", ""MetaDescription"", ""UpdatedAt""
-                ) SELECT
-                    'Gestor de Turnos', '5491126920618', 'https://www.instagram.com/thiago_brizuela', '@detailingcars',
-                    'Moreno, Zona Oeste, Buenos Aires', 'Moreno, Zona Oeste',
-                    'https://detailing-web-five.vercel.app', '/img/logow.png',
-                    'Dejamos tu auto impecable, con protección real y turnos rápidos.',
-                    'Limpieza profunda, corrección de pintura, cerámico y PPF con resultados visibles.',
-                    'Auto detailing premium',
-                    'Servicios profesionales de detailing automotriz en Moreno, Zona Oeste.',
-                    NOW()
+           migrationBuilder.Sql(@"
+            INSERT INTO ""SiteConfigs"" (
+                ""BusinessName"", ""WhatsAppNumber"", ""InstagramUrl"", ""InstagramHandle"",
+                ""Location"", ""LocationShort"", ""SiteUrl"", ""LogoUrl"",
+                ""HeroTitle"", ""HeroSubtitle"", ""HeroBadge"", ""MetaDescription"", ""UpdatedAt""
+            ) SELECT
+                'Studio Nails & Beauty', '5491126920618', 'https://www.instagram.com/studionails', '@studionails',
+                'Moreno, Zona Oeste, Buenos Aires', 'Moreno, Zona Oeste',
+                'https://tu-sitio-nails.vercel.app', '/img/logo.png',
+                'Turnos online para uñas y belleza',
+                'Manicuría, esmaltado semipermanente, nail art y más.',
+                'Belleza & Cuidado Personal',
+                'Reservá tu turno online en nuestro estudio de uñas en Moreno.',
+                NOW()
                 WHERE NOT EXISTS (SELECT 1 FROM ""SiteConfigs"");
             ");
 
@@ -116,11 +116,11 @@ namespace DetailingApi.Migrations
                 INSERT INTO ""GalleryItems"" (""Title"", ""Tag"", ""ImageUrl"", ""IsActive"", ""Order"", ""CreatedAt"")
                 SELECT v.title, v.tag, v.imageurl, v.isactive, v.ord, NOW()
                 FROM (VALUES
-                    ('Ford Raptor', 'Detalle Premium', '/img/raptor.png', true, 1),
-                    ('BMW 320i', 'Corrección de Pintura', '/img/bmw.png', true, 2),
-                    ('VW Amarok', 'Cerámico Pro', '/img/amarok.png', true, 3),
-                    ('Chevrolet Onix', 'Limpieza Profunda', '/img/onix.png', true, 4),
-                    ('Toyota Corolla', 'PPF Completo', '/img/corolla.png', true, 5)
+                    ('Esmaltado Semipermanente', 'Manicuría', '/img/uñas1.png', true, 1),
+                    ('Kapping Gel', 'Uñas', '/img/uñas2.png', true, 2),
+                    ('Nail Art Diseño', 'Diseño', '/img/uñas3.png', true, 3),
+                    ('Soft Gel Tips', 'Extensiones', '/img/uñas4.png', true, 4),
+                    ('Spa de Manos', 'Cuidado', '/img/uñas5.png', true, 5)
                 ) AS v(title, tag, imageurl, isactive, ord)
                 WHERE NOT EXISTS (SELECT 1 FROM ""GalleryItems"");
             ");
