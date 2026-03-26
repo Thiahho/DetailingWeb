@@ -1,0 +1,57 @@
+import { NextRequest, NextResponse } from "next/server";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const token =
+    request.cookies.get("token")?.value ||
+    request.cookies.get("admin_token")?.value;
+  const body = await request.json();
+  try {
+    const response = await fetch(`${API_URL}/api/gallery/${params.id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json(
+      { message: "Error de conexión con el servidor" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const token =
+    request.cookies.get("token")?.value ||
+    request.cookies.get("admin_token")?.value;
+  try {
+    const response = await fetch(`${API_URL}/api/gallery/${params.id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    });
+    if (response.status === 204)
+      return new NextResponse(null, { status: 204 });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json(
+      { message: "Error de conexión con el servidor" },
+      { status: 500 }
+    );
+  }
+}

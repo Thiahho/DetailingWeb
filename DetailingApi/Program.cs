@@ -82,15 +82,15 @@ builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
 builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 builder.Services.AddHostedService<ReminderBackgroundService>();
 
-// ✅ PRODUCCIÓN: CORS configurado correctamente
+// CORS: leer origenes de configuración
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:3000" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ProductionPolicy", policy =>
     {
-        policy.WithOrigins(
-                "https://detailing-web-five.vercel.app",
-                "http://localhost:3000"  // Solo para testing local
-            )
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

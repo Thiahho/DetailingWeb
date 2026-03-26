@@ -17,7 +17,18 @@ interface Service {
   isActive: boolean;
   description: string;
   order: number;
+  customFieldsSchema?: string;
 }
+
+interface CustomFieldDef {
+  name: string;
+  key: string;
+  type: "text" | "select" | "number" | "textarea";
+  options: string[];
+  required: boolean;
+}
+
+const emptyField = (): CustomFieldDef => ({ name: "", key: "", type: "text", options: [], required: false });
 
 const emptyForm = {
   title: "",
@@ -68,6 +79,7 @@ export default function ServiciosAdminPage() {
   const [formData, setFormData] = useState(emptyForm);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
 
   const showToast = useCallback((type: ToastType, title: string, message?: string) => {
     setToasts((prev) => [...prev, { id: Date.now(), type, title, message }]);
@@ -99,6 +111,7 @@ export default function ServiciosAdminPage() {
   const openCreate = () => {
     setEditingService(null);
     setFormData({ ...emptyForm, details: ["", "", ""] });
+    setCustomFields([]);
     setShowForm(true);
   };
 
@@ -115,6 +128,11 @@ export default function ServiciosAdminPage() {
       description: service.description ?? "",
       order: service.order,
     });
+    try {
+      setCustomFields(service.customFieldsSchema ? JSON.parse(service.customFieldsSchema) : []);
+    } catch {
+      setCustomFields([]);
+    }
     setShowForm(true);
   };
 
@@ -122,15 +140,26 @@ export default function ServiciosAdminPage() {
     setShowForm(false);
     setEditingService(null);
     setFormData({ ...emptyForm, details: ["", "", ""] });
+    setCustomFields([]);
+  };
+
+  const updateCustomField = (index: number, patch: Partial<CustomFieldDef>) => {
+    setCustomFields((prev) => prev.map((f, i) => i === index ? { ...f, ...patch } : f));
+  };
+
+  const removeCustomField = (index: number) => {
+    setCustomFields((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
+    const validFields = customFields.filter((f) => f.name.trim() && f.key.trim());
     const payload = {
       ...formData,
       details: formData.details.filter((d) => d.trim() !== ""),
+      customFieldsSchema: validFields.length > 0 ? JSON.stringify(validFields) : null,
     };
 
     try {
@@ -443,6 +472,81 @@ export default function ServiciosAdminPage() {
                     <option value="true">Activo</option>
                     <option value="false">Inactivo</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Campos dinámicos */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Campos adicionales del formulario</label>
+                  <button
+                    type="button"
+                    onClick={() => setCustomFields((prev) => [...prev, emptyField()])}
+                    className="text-green-400 hover:text-green-300 text-xs transition"
+                  >
+                    + Agregar campo
+                  </button>
+                </div>
+                {customFields.length === 0 && (
+                  <p className="text-white/30 text-xs italic">Sin campos extra. El cliente solo verá Nombre, Trabajo, WhatsApp y Email.</p>
+                )}
+                <div className="space-y-3 mt-2">
+                  {customFields.map((field, i) => (
+                    <div key={i} className="bg-[#0d1117] border border-white/10 rounded-lg p-3 space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          className="flex-1 bg-black/30 border border-white/10 rounded p-2 text-white text-sm focus:border-green-500 focus:outline-none"
+                          placeholder="Nombre del campo"
+                          value={field.name}
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            const key = field.key || name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+                            updateCustomField(i, { name, key: field.key ? field.key : key });
+                          }}
+                        />
+                        <input
+                          className="w-28 bg-black/30 border border-white/10 rounded p-2 text-white/70 text-sm font-mono focus:border-green-500 focus:outline-none"
+                          placeholder="key"
+                          value={field.key}
+                          onChange={(e) => updateCustomField(i, { key: e.target.value })}
+                        />
+                        <button type="button" onClick={() => removeCustomField(i)} className="text-red-400/70 hover:text-red-400 px-1">✕</button>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <select
+                          className="bg-black/30 border border-white/10 rounded p-2 text-white text-sm focus:border-green-500 focus:outline-none"
+                          value={field.type}
+                          onChange={(e) => updateCustomField(i, { type: e.target.value as CustomFieldDef["type"] })}
+                        >
+                          <option value="text">Texto</option>
+                          <option value="number">Número</option>
+                          <option value="select">Selección</option>
+                          <option value="textarea">Área de texto</option>
+                        </select>
+                        <label className="flex items-center gap-1.5 text-white/60 text-xs cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            onChange={(e) => updateCustomField(i, { required: e.target.checked })}
+                            className="accent-green-500"
+                          />
+                          Requerido
+                        </label>
+                      </div>
+                      {field.type === "select" && (
+                        <div>
+                          <p className="text-white/40 text-xs mb-1">Opciones (una por línea)</p>
+                          <textarea
+                            className="w-full bg-black/30 border border-white/10 rounded p-2 text-white text-sm focus:border-green-500 focus:outline-none resize-none"
+                            rows={3}
+                            value={field.options.join("\n")}
+                            onChange={(e) => updateCustomField(i, { options: e.target.value.split("\n").map((o) => o.trim()).filter(Boolean) })}
+                            placeholder={"Chico\nMediano\nGrande"}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
 

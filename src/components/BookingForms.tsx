@@ -16,6 +16,15 @@ interface ServicePack {
   slug: string;
   price: string;
   duration: string;
+  customFieldsSchema?: string;
+}
+
+interface CustomFieldDef {
+  name: string;
+  key: string;
+  type: "text" | "select" | "number" | "textarea";
+  options?: string[];
+  required?: boolean;
 }
 
 interface BookingFormProps {
@@ -195,9 +204,16 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [services, setServices] = useState<ServicePack[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
 
   const subjectLabel = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_LABEL?.trim() || "Trabajo";
   const subjectPlaceholder = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_PLACEHOLDER?.trim() || "Describe brevemente";
+
+  const selectedServiceObj = services.find((s) => s.slug === formData.selectedService) ?? null;
+  const customFieldDefs: CustomFieldDef[] = (() => {
+    if (!selectedServiceObj?.customFieldsSchema) return [];
+    try { return JSON.parse(selectedServiceObj.customFieldsSchema); } catch { return []; }
+  })();
 
   // --- Estado de Toast ---
   const [toast, setToast] = useState<Toast | null>(null);
@@ -226,6 +242,11 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       setFormData((prev) => ({ ...prev, selectedService: preselectedService }));
     }
   }, [preselectedService]);
+
+  // Reset custom field values when service changes
+  useEffect(() => {
+    setCustomFieldValues({});
+  }, [formData.selectedService]);
 
   const loadAvailableSlots = async () => {
     try {
@@ -265,6 +286,14 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       return;
     }
 
+    // Validate required custom fields
+    for (const field of customFieldDefs) {
+      if (field.required && !customFieldValues[field.key]?.trim()) {
+        showToast("warning", "Campo requerido", `Por favor completá el campo "${field.name}"`);
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -279,6 +308,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           subject: formData.subject,
           service: formData.selectedService,
           message: formData.message,
+          customFieldsJson: customFieldDefs.length > 0 ? JSON.stringify(customFieldValues) : null,
         }),
       });
 
@@ -297,11 +327,12 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           name: "",
           subject: "",
           whatsapp: "",
-          email:"", 
+          email:"",
           selectedSlotId: null,
           selectedService: "",
           message: "",
         });
+        setCustomFieldValues({});
 
         // Resetear paginación y recargar turnos
         setCurrentPage(1);
@@ -417,6 +448,49 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           ))}
         </div>
       </div>
+
+      {/* Campos dinámicos del servicio */}
+      {customFieldDefs.length > 0 && (
+        <div className="space-y-3">
+          {customFieldDefs.map((field) => (
+            <div key={field.key}>
+              <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                {field.name}{field.required && <span className="text-red-400 ml-1">*</span>}
+              </label>
+              {field.type === "select" ? (
+                <select
+                  className="form-input mt-2"
+                  required={field.required}
+                  value={customFieldValues[field.key] ?? ""}
+                  onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                >
+                  <option value="">Seleccioná una opción</option>
+                  {field.options?.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : field.type === "textarea" ? (
+                <textarea
+                  className="form-input mt-2 min-h-[80px]"
+                  required={field.required}
+                  value={customFieldValues[field.key] ?? ""}
+                  onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  placeholder={field.name}
+                />
+              ) : (
+                <input
+                  type={field.type === "number" ? "number" : "text"}
+                  className="form-input mt-2"
+                  required={field.required}
+                  value={customFieldValues[field.key] ?? ""}
+                  onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  placeholder={field.name}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Selector de Turno con PAGINACIÓN */}
       <div>

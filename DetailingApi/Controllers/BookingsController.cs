@@ -15,12 +15,14 @@ public class BookingsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly NotificationService _notificationService;
     private readonly AuthService _authService;
+    private readonly IConfiguration _configuration;
 
-    public BookingsController(ApplicationDbContext context, NotificationService notificationService, AuthService authService)
+    public BookingsController(ApplicationDbContext context, NotificationService notificationService, AuthService authService, IConfiguration configuration)
     {
         _context = context;
         _notificationService = notificationService;
         _authService = authService;
+        _configuration = configuration;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -58,8 +60,9 @@ public class BookingsController : ControllerBase
             CustomerPhone = request.CustomerPhone,
             Email = request.Email,
             CustomerEmailNormalized = request.Email.Trim().ToLowerInvariant(),
-            Vehicle = request.Vehicle,
+            Subject = request.Subject,
             Service = request.Service,
+            CustomFieldsJson = request.CustomFieldsJson,
             Message = request.Message,
             Status = BookingStatus.Pending
         };
@@ -74,12 +77,12 @@ public class BookingsController : ControllerBase
         {
             success = true,
             message = "Turno agendado exitosamente",
-            myBookingsLink = $"https://detailing-web-five.vercel.app/mis-turnos?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized))}",
+            myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized))}",
             booking = new
             {
                 id = booking.Id,
                 customerName = booking.CustomerName,
-                vehicle = booking.Vehicle,
+                subject = booking.Subject,
                 service = booking.Service,
                 startDateTime = timeSlot.StartDateTime,
                 endDateTime = timeSlot.EndDateTime
@@ -105,9 +108,10 @@ public class BookingsController : ControllerBase
                 id = x.Booking.Id,
                 customerName = x.Booking.CustomerName,
                 customerPhone = x.Booking.CustomerPhone,
-                Email = x.Booking.Email,
-                vehicle = x.Booking.Vehicle,
+                email = x.Booking.Email,
+                subject = x.Booking.Subject,
                 service = x.Booking.Service,
+                customFieldsJson = x.Booking.CustomFieldsJson,
                 message = x.Booking.Message,
                 status = x.Booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : x.Booking.Status,
                 timeSlotId = x.Booking.TimeSlotId,
@@ -164,8 +168,42 @@ public class BookingsController : ControllerBase
             {
                 id = b.Id,
                 status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status,
+                customerName = b.CustomerName,
                 service = b.Service,
-                vehicle = b.Vehicle,
+                subject = b.Subject,
+                customFieldsJson = b.CustomFieldsJson,
+                startDateTime = b.TimeSlot.StartDateTime,
+                endDateTime = b.TimeSlot.EndDateTime,
+                canCancel = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
+                canReschedule = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow
+            })
+            .ToListAsync();
+
+        return Ok(bookings);
+    }
+
+    // GET: api/bookings/by-email?email=xxx (público - solo datos del cliente)
+    [HttpGet("by-email")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetBookingsByEmail([FromQuery] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest(new { message = "Email requerido" });
+
+        var normalized = email.Trim().ToLowerInvariant();
+
+        var bookings = await _context.Bookings
+            .Include(b => b.TimeSlot)
+            .Where(b => b.CustomerEmailNormalized == normalized)
+            .OrderByDescending(b => b.TimeSlot.StartDateTime)
+            .Select(b => new
+            {
+                id = b.Id,
+                status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status,
+                customerName = b.CustomerName,
+                service = b.Service,
+                subject = b.Subject,
+                customFieldsJson = b.CustomFieldsJson,
                 startDateTime = b.TimeSlot.StartDateTime,
                 endDateTime = b.TimeSlot.EndDateTime,
                 canCancel = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
@@ -199,8 +237,10 @@ public class BookingsController : ControllerBase
             id = booking.Id,
             customerName = booking.CustomerName,
             service = booking.Service,
-            vehicle = booking.Vehicle,
+            subject = booking.Subject,
+            customFieldsJson = booking.CustomFieldsJson,
             startDateTime = booking.TimeSlot.StartDateTime,
+            endDateTime = booking.TimeSlot.EndDateTime,
             status = booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : booking.Status,
             cancelledAt = booking.CancelledAt
         });
@@ -230,7 +270,82 @@ public class BookingsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { success = true, message = "Turno cancelado exitosamente" });
+        return Ok(new
+        {
+            success = true,
+            message = "Turno cancelado exitosamente",
+            booking = new
+            {
+                id = booking.Id,
+                customerName = booking.CustomerName,
+                customerPhone = booking.CustomerPhone,
+                email = booking.Email,
+                service = booking.Service,
+                subject = booking.Subject,
+                startDateTime = booking.TimeSlot.StartDateTime,
+            }
+        });
+    }
+
+    // POST: api/bookings/{id}/reschedule (público - solo turnos Pending)
+    [HttpPost("{id}/reschedule")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RescheduleBooking(int id, [FromBody] RescheduleRequest request)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var booking = await _context.Bookings
+            .Include(b => b.TimeSlot)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        if (booking.Status == BookingStatus.Cancelled)
+            return BadRequest(new { success = false, message = "No se puede reprogramar un turno cancelado" });
+
+        if (booking.Status == BookingStatus.Confirmed)
+            return BadRequest(new { success = false, message = "Los turnos confirmados deben reprogramarse por WhatsApp" });
+
+        if (booking.TimeSlotId == request.NewTimeSlotId)
+            return BadRequest(new { success = false, message = "Ya estás en ese horario" });
+
+        // Reservar el nuevo slot (solo si está disponible)
+        var updated = await _context.TimeSlots
+            .Where(t => t.Id == request.NewTimeSlotId && t.IsAvailable)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsAvailable, false));
+
+        if (updated == 0)
+            return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
+
+        // Liberar el slot anterior
+        await _context.TimeSlots
+            .Where(t => t.Id == booking.TimeSlotId)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsAvailable, true));
+
+        booking.TimeSlotId = request.NewTimeSlotId;
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        // Recargar para devolver la fecha actualizada
+        await _context.Entry(booking).Reference(b => b.TimeSlot).LoadAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Turno reprogramado exitosamente",
+            newStartDateTime = booking.TimeSlot.StartDateTime,
+            booking = new
+            {
+                id = booking.Id,
+                customerName = booking.CustomerName,
+                customerPhone = booking.CustomerPhone,
+                email = booking.Email,
+                service = booking.Service,
+                subject = booking.Subject,
+                startDateTime = booking.TimeSlot.StartDateTime,
+            }
+        });
     }
 
     // DELETE: api/bookings/expired (admin)
@@ -264,14 +379,20 @@ public class BookingsController : ControllerBase
     }
 }
 
-// DTO
+// DTOs
+public class RescheduleRequest
+{
+    public int NewTimeSlotId { get; set; }
+}
+
 public class CreateBookingRequest
 {
     public int TimeSlotId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
-    public string Vehicle { get; set; } = string.Empty;
-    public string Service { get; set; } = string.Empty;
+    public string Subject { get; set; } = string.Empty;
+    public string? Service { get; set; }
+    public string? CustomFieldsJson { get; set; }
     public string? Message { get; set; }
 }

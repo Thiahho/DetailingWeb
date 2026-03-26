@@ -35,6 +35,7 @@ public class ServicesController : ControllerBase
                 s.ImageUrl,
                 s.Details,
                 s.Description,
+                s.CustomFieldsSchema,
                 s.IsActive,
                 s.Order
             })
@@ -61,6 +62,7 @@ public class ServicesController : ControllerBase
                 s.ImageUrl,
                 s.Details,
                 s.Description,
+                s.CustomFieldsSchema,
                 s.IsActive,
                 s.Order,
                 s.CreatedAt,
@@ -92,6 +94,7 @@ public class ServicesController : ControllerBase
             service.ImageUrl,
             service.Details,
             service.Description,
+            service.CustomFieldsSchema,
             service.IsActive,
             service.Order
         });
@@ -118,6 +121,7 @@ public class ServicesController : ControllerBase
             ImageUrl = request.ImageUrl,
             Details = request.Details,
             Description = request.Description,
+            CustomFieldsSchema = request.CustomFieldsSchema,
             IsActive = request.IsActive,
             Order = request.Order
         };
@@ -135,6 +139,7 @@ public class ServicesController : ControllerBase
             service.ImageUrl,
             service.Details,
             service.Description,
+            service.CustomFieldsSchema,
             service.IsActive,
             service.Order
         });
@@ -160,6 +165,7 @@ public class ServicesController : ControllerBase
         service.ImageUrl = request.ImageUrl;
         service.Details = request.Details;
         service.Description = request.Description;
+        service.CustomFieldsSchema = request.CustomFieldsSchema;
         service.IsActive = request.IsActive;
         service.Order = request.Order;
         service.UpdatedAt = DateTime.UtcNow;
@@ -194,6 +200,7 @@ public class ServiceRequest
     public string ImageUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public List<string> Details { get; set; } = new();
+    public string? CustomFieldsSchema { get; set; }
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
 }

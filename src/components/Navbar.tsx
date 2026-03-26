@@ -8,6 +8,9 @@ import { usePathname, useRouter } from "next/navigation";
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [businessName, setBusinessName] = useState(
+    process.env.NEXT_PUBLIC_BUSINESS_NAME || ""
+  );
   const pathname = usePathname();
   const router = useRouter();
 
@@ -23,6 +26,13 @@ export default function Navbar() {
       window.removeEventListener("auth-change", checkAuth);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    fetch("/api/siteconfig")
+      .then((r) => r.json())
+      .then((d) => { if (d.businessName) setBusinessName(d.businessName); })
+      .catch(() => {});
+  }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     if (pathname === "/") {
@@ -43,7 +53,9 @@ export default function Navbar() {
             <div className="relative h-10 w-10 md:h-12 md:w-12 rounded-full border border-white/10 bg-white/5">
               <img src="/img/logow.png" alt="Logo" className="h-full w-full object-cover rounded-full" />
             </div>
-            <h1 className="text-base md:text-lg font-semibold text-white">AutoDetail Studio</h1>
+            {businessName && (
+              <h1 className="text-base md:text-lg font-semibold text-white">{businessName}</h1>
+            )}
           </Link>
 
           {/* NAV DESKTOP */}
@@ -53,6 +65,12 @@ export default function Navbar() {
             </Link>
             <Link href="/#trabajos" onClick={(e) => handleNavClick(e, "trabajos")} className="transition hover:text-white">
               Trabajos
+            </Link>
+            <Link
+              href="/mis-turnos"
+              className="transition hover:text-white"
+            >
+              Mis turnos
             </Link>
             <Link
               href="/#contacto"
@@ -116,6 +134,13 @@ export default function Navbar() {
                 className="flex items-center px-4 py-3.5 rounded-xl bg-white/5 border border-white/8 text-white hover:bg-white/10 hover:border-lux/40 transition text-sm font-medium"
               >
                 Trabajos
+              </Link>
+              <Link
+                href="/mis-turnos"
+                onClick={close}
+                className="flex items-center px-4 py-3.5 rounded-xl bg-white/5 border border-white/8 text-white hover:bg-white/10 hover:border-lux/40 transition text-sm font-medium"
+              >
+                Mis turnos
               </Link>
               <Link
                 href="/#contacto"

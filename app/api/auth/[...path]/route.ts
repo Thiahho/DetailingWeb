@@ -1,8 +1,33 @@
 // app/api/auth/[...path]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+
+async function sendOtpEmail(email: string, code: string) {
+  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Mi Negocio";
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+  });
+  await transporter.sendMail({
+    from: `"${businessName}" <${process.env.GMAIL_USER}>`,
+    to: email,
+    subject: `Tu código de acceso - ${businessName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f1115;color:#f1f1f1;border-radius:12px">
+        <h2 style="margin:0 0 8px;font-size:22px">${businessName}</h2>
+        <p style="color:#999;margin:0 0 32px;font-size:14px">Código de acceso a Mis Turnos</p>
+        <div style="background:#1a1f26;border:1px solid #2a2f36;border-radius:10px;padding:24px;text-align:center;margin-bottom:24px">
+          <p style="color:#999;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px">Tu código</p>
+          <p style="font-size:42px;font-weight:bold;letter-spacing:10px;color:#f0b429;margin:0">${code}</p>
+        </div>
+        <p style="color:#666;font-size:12px;text-align:center">Este código expira en 15 minutos.<br>Si no solicitaste este código, podés ignorar este email.</p>
+      </div>
+    `,
+  });
+}
 
 export async function POST(
   request: NextRequest,
@@ -34,6 +59,18 @@ export async function POST(
     });
 
     const data = await response.json();
+
+    // Enviar OTP por email si el backend devolvió el código pendiente
+    if (path === "client/access/request" && response.ok && data.pendingOtpCode) {
+      try {
+        await sendOtpEmail(data.email, data.pendingOtpCode);
+      } catch {
+        // No bloquear el flujo si el email falla; el admin puede ver el código en los logs
+      }
+      // Omitir el OTP del response al cliente
+      const { pendingOtpCode: _, ...safeData } = data;
+      return NextResponse.json(safeData, { status: response.status });
+    }
 
     // Si es login exitoso, crear cookie en Next.js
     if (response.ok && data.email) {

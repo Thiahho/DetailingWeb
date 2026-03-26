@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
-const siteUrl = "https://detailing-web-five.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
 interface Service {
   id: number;

@@ -1,21 +1,20 @@
 // app/layout.tsx
-import "./globals.css"; // Ruta corregida para Vercel
+import "./globals.css";
 import Navbar from "../src/components/Navbar";
 import type { Metadata } from "next";
 
-const siteUrl = "https://detailing-web-five.vercel.app";
+const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Mi Negocio";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+const metaDescription = process.env.NEXT_PUBLIC_META_DESCRIPTION || "";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  ...(siteUrl && { metadataBase: new URL(siteUrl) }),
   title: {
-    default: "Detailing Cars",
-    template: "%s | Detailing Cars",
+    default: businessName,
+    template: `%s | ${businessName}`,
   },
-  description:
-    "Servicios profesionales de detailing automotriz en Moreno, Zona Oeste. Turnos rápidos, protección cerámica, PPF y limpieza premium.",
-  alternates: {
-    canonical: siteUrl,
-  },
+  description: metaDescription,
+  ...(siteUrl && { alternates: { canonical: siteUrl } }),
   robots: {
     index: true,
     follow: true,
@@ -27,30 +26,28 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  authors: [{ name: "Detailing Cars", url: siteUrl }],
-  publisher: "Detailing Cars",
+  authors: [{ name: businessName, ...(siteUrl && { url: siteUrl }) }],
+  publisher: businessName,
   openGraph: {
     type: "website",
-    url: siteUrl,
-    title: "Detailing Cars",
-    description:
-      "Servicios profesionales de detailing automotriz en Moreno, Zona Oeste. Turnos rápidos, protección cerámica, PPF y limpieza premium.",
-    siteName: "Detailing Cars",
+    ...(siteUrl && { url: siteUrl }),
+    title: businessName,
+    description: metaDescription,
+    siteName: businessName,
     locale: "es_AR",
     images: [
       {
         url: "/img/og.jpg",
         width: 1200,
         height: 630,
-        alt: "Detailing Cars - Detailing premium en Zona Oeste",
+        alt: businessName,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Detailing Cars",
-    description:
-      "Servicios profesionales de detailing automotriz en Moreno, Zona Oeste. Turnos rápidos, protección cerámica, PPF y limpieza premium.",
+    title: businessName,
+    description: metaDescription,
     images: ["/img/og.jpg"],
   },
   icons: {
@@ -69,7 +66,6 @@ export default function RootLayout({
     <html lang="es" className="scroll-smooth">
       <body className="bg-midnight antialiased text-slate-100">
         <Navbar />
-        {/* El pt-20 evita que el contenido quede oculto bajo el navbar fijo */}
         <div className="pt-20">{children}</div>
       </body>
     </html>

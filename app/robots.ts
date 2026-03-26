@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const siteUrl = "https://detailing-web-five.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
 export default function robots(): MetadataRoute.Robots {
   return {

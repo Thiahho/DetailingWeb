@@ -11,10 +11,11 @@ interface Booking {
   customerName: string;
   customerPhone: string;
   email?: string;
-  vehicle: string;
+  subject: string;
   service: string;
   message?: string;
   status: string;
+  customFieldsJson?: string;
 }
 
 interface TimeSlot {
@@ -330,7 +331,7 @@ export default function TurnosPage() {
         body: JSON.stringify({
           email: booking?.email,
           customerName: booking?.customerName,
-          vehicle: booking?.vehicle,
+          subject: booking?.subject,
           service: booking?.service,
           startDateTime: slotStartDateTime,
         }),
@@ -366,7 +367,7 @@ export default function TurnosPage() {
 
     const phone = booking.customerPhone.replace(/\D/g, "");
     const message = encodeURIComponent(
-      `Hola ${booking.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${formatDateFriendly(slot.startDateTime)}\n🚗 *Vehículo:* ${booking.vehicle}\n🔧 *Servicio:* ${booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
+      `Hola ${booking.customerName} 👋\n\nTe confirmamos tu reserva:\n\n📅 *Fecha:* ${formatDateFriendly(slot.startDateTime)}\n📝 *Trabajo:* ${booking.subject || "—"}\n🔧 *Servicio:* ${booking.service || "—"}\n\n¡Nos vemos! Cualquier consulta estamos a disposición.`
     );
 
     return `https://wa.me/+54${phone}?text=${message}`;
@@ -998,8 +999,27 @@ export default function TurnosPage() {
                   {detailSlot.booking.customerPhone}
                 </a>
               } />
-              <Row label="Vehículo" value={detailSlot.booking.vehicle} />
+              <Row label="Trabajo" value={detailSlot.booking.subject || "—"} />
               <Row label="Servicio" value={detailSlot.booking.service || "—"} />
+              {detailSlot.booking.customFieldsJson && (() => {
+                try {
+                  const fields = JSON.parse(detailSlot.booking.customFieldsJson!) as Record<string, string>;
+                  const entries = Object.entries(fields);
+                  if (entries.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Campos adicionales</p>
+                      <div className="flex flex-wrap gap-2">
+                        {entries.map(([k, v]) => (
+                          <span key={k} className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-white/70">
+                            {k}: {v}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                } catch { return null; }
+              })()}
               {detailSlot.booking.message && (
                 <Row label="Mensaje" value={detailSlot.booking.message} />
               )}

@@ -161,7 +161,8 @@ public class AuthService
             Token = string.Empty,
             Email = email,
             Role = "ClientPendingOtp",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15),
+            PendingOtpCode = code
         };
     }
 

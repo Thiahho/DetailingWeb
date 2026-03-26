@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import BookingForm from "../src/components/BookingForms";
-import { gallery } from "../src/lib/data";
 import WhatsAppFloat from "../src/components/WhatsAppFloat";
+import { type SiteConfig, getWhatsAppLink } from "../src/lib/siteConfig";
 
 interface Service {
   id: number;
@@ -14,8 +14,15 @@ interface Service {
   imageUrl: string;
   description: string;
   details: string[];
+  customFieldsSchema?: string;
 }
 
+interface GalleryItem {
+  id: number;
+  title: string;
+  tag: string;
+  imageUrl: string;
+}
 
 interface ContentVideo {
   id: number;
@@ -23,32 +30,40 @@ interface ContentVideo {
   videoUrl: string;
   thumbnailUrl: string;
 }
-const WHATSAPP_NUMBER = "+54112692061";
-//const PHONE_NUMBER = "+54112692061";
-// const WHATSAPP_MESSAGE =
-//   "Hola, necesito asesoramiento urgente. Mi motivo es : []. Breve descripción: ____";
-const SITE_URL = "https://detailing-web-five.vercel.app";
 
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [visiblePacks, setVisiblePacks] = useState(3);
   const [visibleGallery, setVisibleGallery] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [contentVideos, setContentVideos] = useState<ContentVideo[]>([]);
+
   const packsToShow = services.slice(0, visiblePacks);
   const galleryToShow = gallery.slice(0, visibleGallery);
 
   useEffect(() => {
     fetch("/api/services")
-      .then((res) => res.json())
-      .then((data) => setServices(Array.isArray(data) ? data : []))
+      .then((r) => r.json())
+      .then((d) => setServices(Array.isArray(d) ? d : []))
       .catch(() => {});
 
     fetch("/api/content-videos")
-      .then((res) => res.json())
-      .then((data) => setContentVideos(Array.isArray(data) ? data : []))
+      .then((r) => r.json())
+      .then((d) => setContentVideos(Array.isArray(d) ? d : []))
       .catch(() => setContentVideos([]));
+
+    fetch("/api/gallery")
+      .then((r) => r.json())
+      .then((d) => setGallery(Array.isArray(d) ? d : []))
+      .catch(() => {});
+
+    fetch("/api/siteconfig")
+      .then((r) => r.json())
+      .then((d) => setSiteConfig(d))
+      .catch(() => {});
   }, []);
 
   const reels =
@@ -62,53 +77,59 @@ export default function Home() {
   const handlePresupuestar = (slug: string) => {
     setPreselectedService(slug);
     setTimeout(() => {
-      const contactSection = document.getElementById("contacto");
-      if (contactSection) {
-        contactSection.scrollIntoView({ behavior: "smooth" });
-      }
+      document.getElementById("contacto")?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   };
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    name: "Detailing Cars",
-    url: SITE_URL,
-    description:
-      "Servicios profesionales de detailing automotriz en Moreno, Zona Oeste. Turnos rápidos, protección cerámica, PPF y limpieza premium.",
-    areaServed: "Moreno, Zona Oeste, Buenos Aires",
-    telephone: WHATSAPP_NUMBER,
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: "Moreno",
-      addressRegion: "Buenos Aires",
-      addressCountry: "AR",
-    },
-    sameAs: ["https://www.instagram.com/thiago_brizuela"],
-  };
+  const jsonLd = siteConfig
+    ? {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        name: siteConfig.businessName,
+        url: siteConfig.siteUrl,
+        description: siteConfig.metaDescription,
+        areaServed: siteConfig.location,
+        telephone: siteConfig.whatsAppNumber,
+        sameAs: siteConfig.instagramUrl ? [siteConfig.instagramUrl] : [],
+      }
+    : null;
+
+  const waLink = siteConfig?.whatsAppNumber
+    ? getWhatsAppLink(siteConfig.whatsAppNumber)
+    : "#";
 
   return (
     <main className="min-h-screen bg-midnight text-slate-100">
-       <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      {/* SECCIÓN HERO - Sin el Header redundante */}
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+
+      {/* HERO */}
       <div className="hero-grid">
         <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-10 md:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
-            <span className="badge">Auto detailing premium</span>
-            <h1 className="text-4xl font-semibold leading-tight md:text-5xl">
-              Dejamos tu auto impecable, con protección real y turnos rápidos.
-            </h1>
-            <p className="text-base text-white/70 md:text-lg">
-              Limpieza profunda, corrección de pintura, cerámico y PPF con
-              resultados visibles.
-            </p>
+            {siteConfig?.heroBadge && (
+              <span className="badge">{siteConfig.heroBadge}</span>
+            )}
+            {siteConfig?.heroTitle && (
+              <h1 className="text-4xl font-semibold leading-tight md:text-5xl">
+                {siteConfig.heroTitle}
+              </h1>
+            )}
+            {siteConfig?.heroSubtitle && (
+              <p className="text-base text-white/70 md:text-lg">
+                {siteConfig.heroSubtitle}
+              </p>
+            )}
             <div className="flex flex-wrap gap-3">
               <a
                 className="rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black shadow-gold transition hover:scale-[1.02]"
-                href="https://wa.me/5491112345678"
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 Reservar por WhatsApp
               </a>
@@ -123,36 +144,29 @@ export default function Home() {
 
           <div className="glass-card space-y-6 border border-white/10 p-6 shadow-glow">
             <h3 className="text-2xl font-semibold">
-              Brillo premium + confianza total
+              {siteConfig?.businessName || "Nuestros servicios"}
             </h3>
             <div className="space-y-3 text-sm text-white/70">
-              <p>✓ Limpieza total y detallado con acabados premium.</p>
-              <p>✓ Protección real con cerámico y PPF garantizado.</p>
+              {services.slice(0, 2).map((s) => (
+                <p key={s.id}>✓ {s.title}</p>
+              ))}
             </div>
           </div>
         </section>
       </div>
 
-      {/* SECCIÓN SERVICIOS */}
-      <section
-        id="servicios"
-        className="mx-auto max-w-6xl space-y-10 px-6 py-16"
-      >
+      {/* SERVICIOS */}
+      <section id="servicios" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="space-y-3">
-            <span className="badge">Packs claros</span>
-            <h3 className="text-3xl font-semibold">
-              Servicios y packs premium
-            </h3>
+            <span className="badge">Servicios</span>
+            <h3 className="text-3xl font-semibold">Servicios disponibles</h3>
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           {packsToShow.map((pack) => (
-            <article
-              key={pack.id}
-              className="glass-card flex h-full flex-col gap-4 p-6"
-            >
+            <article key={pack.id} className="glass-card flex h-full flex-col gap-4 p-6">
               <div className="overflow-hidden rounded-xl border border-white/10">
                 <img
                   alt={pack.title}
@@ -161,7 +175,6 @@ export default function Home() {
                 />
               </div>
               <h4 className="text-xl font-semibold">{pack.title}</h4>
-
               <ul className="space-y-2 text-sm text-white/60 mb-4">
                 {pack.details?.map((detail, i) => (
                   <li key={i} className="flex items-center gap-2">
@@ -169,11 +182,8 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-
               <div className="mt-auto pt-4 border-t border-white/5 space-y-2">
-                <span className="text-lg font-semibold text-lux block">
-                  ${pack.price}
-                </span>
+                <span className="text-lg font-semibold text-lux block">${pack.price}</span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedService(pack)}
@@ -193,11 +203,10 @@ export default function Home() {
           ))}
         </div>
 
-        {/* BOTÓN VER MÁS */}
         {visiblePacks < services.length && (
           <div className="text-center pt-8">
             <button
-              onClick={() => setVisiblePacks((prev) => prev + 3)}
+              onClick={() => setVisiblePacks((p) => p + 3)}
               className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:border-white/20 hover:text-white"
             >
               Ver más servicios ({services.length - visiblePacks} restantes)
@@ -205,63 +214,56 @@ export default function Home() {
           </div>
         )}
       </section>
-      {/* SECCIÓN TRABAJOS REALIZADOS */}
-      <section
-        id="trabajos"
-        className="mx-auto max-w-6xl space-y-10 px-6 py-16"
-      >
-        <div className="space-y-3">
-          <span className="badge">Galería</span>
-          <h3 className="text-3xl font-semibold">Nuestros Trabajos</h3>
-          <p className="text-white/60">
-            Resultados reales en vehículos de la zona.
-          </p>
-        </div>
 
-        {/* Contenedor de la grilla */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {galleryToShow.map((galleryItem) => (
-            <article
-              key={galleryItem.title}
-              className="glass-card group overflow-hidden border border-white/10 p-4"
-            >
-              <div className="relative aspect-video overflow-hidden rounded-xl">
-                <img
-                  src={galleryItem.image}
-                  alt={galleryItem.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              </div>
-              <div className="mt-4">
-                <h4 className="text-lg font-medium text-white/90 group-hover:text-lux transition-colors">
-                  {galleryItem.title}
-                </h4>
-                <p className="text-xs uppercase tracking-widest text-white/40 mt-1">
-                  Detalle Premium
-                </p>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {visibleGallery < gallery.length && (
-          <div className="text-center pt-8">
-            <button
-              onClick={() => setVisibleGallery((prev) => prev + 3)}
-              className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:border-white/20 hover:text-white"
-            >
-              Ver más trabajos ({gallery.length - visibleGallery} restantes)
-            </button>
+      {/* GALERÍA */}
+      {gallery.length > 0 && (
+        <section id="trabajos" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
+          <div className="space-y-3">
+            <span className="badge">Galería</span>
+            <h3 className="text-3xl font-semibold">Nuestros Trabajos</h3>
           </div>
-        )}
-      </section>
-      {/* SECCIÓN REELS */}
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {galleryToShow.map((item) => (
+              <article key={item.id} className="glass-card group overflow-hidden border border-white/10 p-4">
+                <div className="relative aspect-video overflow-hidden rounded-xl">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                </div>
+                <div className="mt-4">
+                  <h4 className="text-lg font-medium text-white/90 group-hover:text-lux transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs uppercase tracking-widest text-white/40 mt-1">
+                    {item.tag}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {visibleGallery < gallery.length && (
+            <div className="text-center pt-8">
+              <button
+                onClick={() => setVisibleGallery((p) => p + 3)}
+                className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:border-white/20 hover:text-white"
+              >
+                Ver más trabajos ({gallery.length - visibleGallery} restantes)
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* REELS */}
       <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
         <div>
-          <span className="badge">Reels destacados</span>
+          <span className="badge">Contenido</span>
           <h3 className="text-3xl font-semibold">Contenido destacado</h3>
         </div>
-
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {reels.map((video) => (
             <div key={video.id} className="glass-card overflow-hidden p-4">
@@ -286,51 +288,61 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SECCIÓN CONTACTO */}
+      {/* CONTACTO */}
       <section
         id="contacto"
         className="mx-auto max-w-6xl gap-10 px-6 py-16 md:grid md:grid-cols-[1.1fr_0.9fr]"
       >
         <div className="space-y-6">
           <span className="badge">Contacto directo</span>
-          <h3 className="text-3xl font-semibold">
-            Reservá tu turno en minutos
-          </h3>
+          <h3 className="text-3xl font-semibold">Reservá tu turno en minutos</h3>
           <p className="text-white/70">
-            Completa el formulario y nos pondremos en contacto para confirmar tu
-            turno. ¡Tu auto merece el mejor cuidado!
+            Completa el formulario y nos pondremos en contacto para confirmar tu turno.
           </p>
-          <p className="text-white/70">
-            <strong>
+          {siteConfig?.whatsAppNumber && (
+            <p className="text-white/70">
+              <strong>
+                <a
+                  href={getWhatsAppLink(siteConfig.whatsAppNumber)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-lux transition"
+                >
+                  También podés reservar por WhatsApp
+                </a>
+              </strong>
+            </p>
+          )}
+          {siteConfig?.location && (
+            <p className="text-white/70">
+              Ubicación: {siteConfig.location}
+            </p>
+          )}
+          {siteConfig?.instagramUrl && (
+            <p className="text-white/70">
+              Instagram:{" "}
               <a
-                href="https://wa.me/5491112345678"
+                href={siteConfig.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="underline hover:text-lux transition"
               >
-                También podés reservar por WhatsApp
+                {siteConfig.instagramHandle || siteConfig.instagramUrl}
               </a>
-            </strong>
-          </p>
-          <p className="text-white/70">
-            Estamos ubicados en Moreno, Zona Oeste. Atendemos con turno previo
-            para asegurar una entrega rápida y un servicio de calidad.
-          </p>
-          <p className="text-white/70">
-            Instagram:{" "}
-            <a
-              href="https://www.instagram.com/thiago_brizuela"
-              className="underline hover:text-lux transition"
-            >
-              @detailingcars
-            </a>
-          </p>
+            </p>
+          )}
         </div>
         <BookingForm preselectedService={preselectedService} />
       </section>
 
       <footer className="border-t border-white/5 px-6 py-10 text-center text-xs text-white/50">
-        Detailing premium Zona Oeste · Moreno · Turnos rápidos por WhatsApp
+        {siteConfig?.businessName || ""}
+        {siteConfig?.locationShort ? ` · ${siteConfig.locationShort}` : ""}
       </footer>
-      <WhatsAppFloat whatsappNumber={WHATSAPP_NUMBER.replace(/\D/g, "")}></WhatsAppFloat>
+
+      {siteConfig?.whatsAppNumber && (
+        <WhatsAppFloat whatsappNumber={siteConfig.whatsAppNumber.replace(/\D/g, "")} />
+      )}
 
       {/* MODAL DETALLE SERVICIO */}
       {selectedService && (
@@ -344,54 +356,32 @@ export default function Home() {
           >
             {selectedService.imageUrl && (
               <div className="h-52 overflow-hidden">
-                <img
-                  src={selectedService.imageUrl}
-                  alt={selectedService.title}
-                  className="w-full h-full object-cover"
-                />
+                <img src={selectedService.imageUrl} alt={selectedService.title} className="w-full h-full object-cover" />
               </div>
             )}
             <div className="p-6 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <h2 className="text-2xl font-semibold text-white">{selectedService.title}</h2>
-                <button
-                  onClick={() => setSelectedService(null)}
-                  className="text-white/40 hover:text-white transition text-xl shrink-0"
-                >
-                  ✕
-                </button>
+                <button onClick={() => setSelectedService(null)} className="text-white/40 hover:text-white transition text-xl shrink-0">✕</button>
               </div>
-
               {selectedService.description && (
                 <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">{selectedService.description}</p>
               )}
-
               <div className="flex flex-wrap gap-2">
                 {selectedService.duration && (
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">
-                    ⏱ {selectedService.duration}
-                  </span>
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">⏱ {selectedService.duration}</span>
                 )}
-                <span className="rounded-full border border-lux/50 px-3 py-1 text-xs text-lux">
-                  ${selectedService.price} ARS
-                </span>
+                <span className="rounded-full border border-lux/50 px-3 py-1 text-xs text-lux">${selectedService.price}</span>
               </div>
-
               {selectedService.details?.length > 0 && (
                 <ul className="space-y-1 text-sm text-white/60">
                   {selectedService.details.map((d, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-lux mt-0.5">✓</span> {d}
-                    </li>
+                    <li key={i} className="flex items-start gap-2"><span className="text-lux mt-0.5">✓</span> {d}</li>
                   ))}
                 </ul>
               )}
-
               <button
-                onClick={() => {
-                  setSelectedService(null);
-                  handlePresupuestar(selectedService.slug);
-                }}
+                onClick={() => { setSelectedService(null); handlePresupuestar(selectedService.slug); }}
                 className="w-full rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black shadow-gold transition hover:scale-[1.02]"
               >
                 Presupuestar
