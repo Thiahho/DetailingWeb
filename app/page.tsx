@@ -70,8 +70,8 @@ export default function Home() {
     contentVideos.length > 0
       ? contentVideos
       : [
-          { id: 1, title: "Video destacado 1", videoUrl: "/video/V1.mp4", thumbnailUrl: "" },
-          { id: 2, title: "Video destacado 2", videoUrl: "/video/V2.mp4", thumbnailUrl: "" },
+          // { id: 1, title: "Video destacado 1", videoUrl: "/video/V1.mp4", thumbnailUrl: "" },
+          // { id: 2, title: "Video destacado 2", videoUrl: "/video/V2.mp4", thumbnailUrl: "" },
         ];
 
   const handlePresupuestar = (slug: string) => {
