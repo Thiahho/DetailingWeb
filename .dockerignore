@@ -23,7 +23,24 @@ out/
 *.md
 LICENSE
 
+# Credenciales sensibles
+DetailingApi/credentials.json
+DetailingApi/token.json
+DetailingApi/appsettings.Development.json
+DetailingApi/appsettings.Production.json
+**/.env
+**/.env.*
+
+# Frontend (no se buildea en Docker)
+app/
+src/
+public/
+node_modules/
+.next/
+out/
+
 # Otros
 **/.DS_Store
 **/Thumbs.db
 **/*.log
+my-mercadopago-app/

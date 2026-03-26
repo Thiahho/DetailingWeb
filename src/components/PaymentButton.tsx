@@ -79,7 +79,7 @@ export default function PaymentButton({
             {/* <span>Pagar con Mercado Pago</span> */
             }
             <div style={{width:'300px'}}>
-              <Wallet initialization={{preferenceId:''}} />
+              {/* <Wallet initialization={{preferenceId:''}} /> */}
             </div>
           </>
         )

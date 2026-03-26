@@ -30,10 +30,9 @@ public class ReminderBackgroundService : BackgroundService
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-                // TEST: aviso 4 minutos antes (cambiar a AddHours(23)/AddHours(25) para producción)
                 var now = NowArgentina();
-                var windowStart = now.AddMinutes(3);
-                var windowEnd = now.AddMinutes(5);
+                var windowStart = now.AddHours(23);
+                var windowEnd = now.AddHours(25);
 
                 _logger.LogInformation("[Reminder] Buscando turnos entre {WindowStart:HH:mm} y {WindowEnd:HH:mm} (ahora: {Now:HH:mm})",
                     windowStart, windowEnd, now);
@@ -62,8 +61,7 @@ public class ReminderBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error enviando recordatorios 24h");
             }
 
-            // TEST: chequear cada 1 minuto (cambiar a FromHours(1) para producción)
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
         }
     }
 }

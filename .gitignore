@@ -105,6 +105,17 @@ coverage/
 TestResults/
 
 # =========================
+# TypeScript build info
+# =========================
+tsconfig.tsbuildinfo
+**/*.tsbuildinfo
+
+# =========================
+# Carpetas de prueba/sandbox
+# =========================
+my-mercadopago-app/
+
+# =========================
 # Otros
 # =========================
 *.bak

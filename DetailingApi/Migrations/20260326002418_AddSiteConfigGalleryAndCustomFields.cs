@@ -100,7 +100,7 @@ namespace DetailingApi.Migrations
                     ""Location"", ""LocationShort"", ""SiteUrl"", ""LogoUrl"",
                     ""HeroTitle"", ""HeroSubtitle"", ""HeroBadge"", ""MetaDescription"", ""UpdatedAt""
                 ) SELECT
-                    'Detailing Cars', '5491126920618', 'https://www.instagram.com/thiago_brizuela', '@detailingcars',
+                    'Gestor de Turnos', '5491126920618', 'https://www.instagram.com/thiago_brizuela', '@detailingcars',
                     'Moreno, Zona Oeste, Buenos Aires', 'Moreno, Zona Oeste',
                     'https://detailing-web-five.vercel.app', '/img/logow.png',
                     'Dejamos tu auto impecable, con protección real y turnos rápidos.',

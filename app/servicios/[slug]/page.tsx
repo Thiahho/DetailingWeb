@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       title: service.title,
       description: service.description || `${service.title} en Moreno, Zona Oeste.`,
       url: `${siteUrl}/servicios/${params.slug}`,
-      siteName: "Detailing Cars",
+      siteName: "Gestor de Turnos",
       locale: "es_AR",
       images: [{ url: "/img/og.jpg", width: 1200, height: 630, alt: `Detalle del servicio ${service.title}` }],
     },
