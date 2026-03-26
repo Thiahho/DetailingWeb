@@ -140,36 +140,80 @@ public class PaymentsController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> MercadoPagoWebhook()
     {
-        var accessToken = _configuration["MercadoPago:AccessToken"];
+        var accessToken = _configuration["MP_ACCESS_TOKEN:AccessToken"];
         if (string.IsNullOrEmpty(accessToken))
             return StatusCode(500);
 
         MercadoPagoConfig.AccessToken = accessToken;
 
+        // Read body first (needed for signature validation)
+        string body;
+        using (var reader = new StreamReader(Request.Body))
+            body = await reader.ReadToEndAsync();
+
+        // Validate webhook signature (HMAC-SHA256) if secret is configured
+        var webhookSecret = _configuration["MercadoPago:WebhookSecret"];
+        if (!string.IsNullOrEmpty(webhookSecret))
+        {
+            var xSignature = Request.Headers["x-signature"].ToString();
+            var xRequestId = Request.Headers["x-request-id"].ToString();
+            var sigDataId = Request.Query["data.id"].ToString();
+
+            if (string.IsNullOrEmpty(xSignature))
+                return Unauthorized(new { message = "Missing signature" });
+
+            // Extract ts and v1 from x-signature header: "ts=...,v1=..."
+            string? ts = null, v1 = null;
+            foreach (var part in xSignature.Split(','))
+            {
+                var kv = part.Trim().Split('=', 2);
+                if (kv.Length == 2)
+                {
+                    if (kv[0] == "ts") ts = kv[1];
+                    else if (kv[0] == "v1") v1 = kv[1];
+                }
+            }
+
+            if (ts == null || v1 == null)
+                return Unauthorized(new { message = "Invalid signature format" });
+
+            var manifest = $"id:{sigDataId};request-id:{xRequestId};ts:{ts};";
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(webhookSecret));
+            var computed = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(manifest))).ToLower();
+
+            if (!CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(computed),
+                Encoding.UTF8.GetBytes(v1.ToLower())))
+            {
+                Console.WriteLine("[MP Webhook] Firma inválida — posible solicitud falsa");
+                return Unauthorized(new { message = "Invalid signature" });
+            }
+        }
+
         // Read query params (MP sends type and data.id)
         var type = Request.Query["type"].ToString();
-        var dataId = Request.Query["data.id"].ToString();
+        var dataIdParam = Request.Query["data.id"].ToString();
 
         // Also try reading from body for newer webhook format
-        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(dataId))
+        if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(dataIdParam))
         {
             try
             {
-                using var reader = new StreamReader(Request.Body);
-                var body = await reader.ReadToEndAsync();
                 if (!string.IsNullOrEmpty(body))
                 {
                     var json = System.Text.Json.JsonDocument.Parse(body);
                     type = json.RootElement.TryGetProperty("type", out var t) ? t.GetString() ?? "" : type;
                     if (json.RootElement.TryGetProperty("data", out var data) && data.TryGetProperty("id", out var id))
-                        dataId = id.ToString();
+                        dataIdParam = id.ToString();
                 }
             }
             catch { /* ignore parse errors */ }
         }
 
-        if (type != "payment" || string.IsNullOrEmpty(dataId))
+        if (type != "payment" || string.IsNullOrEmpty(dataIdParam))
             return Ok(); // Acknowledge but ignore non-payment notifications
+
+        var dataId = dataIdParam;
 
         try
         {
@@ -295,6 +339,10 @@ public class PaymentsController : ControllerBase
 // DTOs
 public class CreatePaymentRequest
 {
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "BookingId inválido")]
     public int BookingId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Range(0, 9_999_999, ErrorMessage = "Monto inválido")]
     public decimal Amount { get; set; }
 }

@@ -1,16 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace DetailingApi.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDescriptionToServices : Migration
+    public partial class AddDescriptionToBookings : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql(@"ALTER TABLE ""Services"" ADD COLUMN IF NOT EXISTS ""Description"" text NOT NULL DEFAULT '';");
+            migrationBuilder.Sql(@"ALTER TABLE ""Bookings"" ADD COLUMN IF NOT EXISTS ""Description"" text NOT NULL DEFAULT '';");
         }
 
         /// <inheritdoc />
@@ -18,7 +18,7 @@ namespace DetailingApi.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "Description",
-                table: "Services");
+                table: "Bookings");
         }
     }
 }

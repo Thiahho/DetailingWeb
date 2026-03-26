@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace DetailingApi.Models;
 
+[Table("ClientAccessCodes")] 
 public class ClientAccessCode
 {
     public int Id { get; set; }

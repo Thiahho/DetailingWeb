@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { logError } from "../lib/logger";
+import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
 
 interface PaymentButtonProps {
   bookingId: number;
@@ -9,6 +10,8 @@ interface PaymentButtonProps {
   amount?: number;
   onPaymentCreated?: (checkoutUrl: string) => void;
 }
+
+initMercadoPago('');
 
 export default function PaymentButton({
   bookingId,
@@ -73,9 +76,14 @@ export default function PaymentButton({
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
               <line x1="1" y1="10" x2="23" y2="10" />
             </svg>
-            <span>Pagar con Mercado Pago</span>
+            {/* <span>Pagar con Mercado Pago</span> */
+            }
+            <div style={{width:'300px'}}>
+              <Wallet initialization={{preferenceId:''}} />
+            </div>
           </>
-        )}
+        )
+        }
       </button>
 
       {checkoutUrl && !loading && (

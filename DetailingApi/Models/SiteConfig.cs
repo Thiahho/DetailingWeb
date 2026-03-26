@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace DetailingApi.Models;
 
+[Table("SiteConfigs")] 
 public class SiteConfig
 {
     public int Id { get; set; }

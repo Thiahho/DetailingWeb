@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace DetailingApi.Models;
 
+[Table("BusinessSettings")]
 public class BusinessSettings
 {
     public int Id { get; set; }

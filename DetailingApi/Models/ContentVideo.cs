@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace DetailingApi.Models;
 
+[Table("ContentVideos")]
 public class ContentVideo
 {
     public int Id { get; set; }

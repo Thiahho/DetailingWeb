@@ -1,6 +1,10 @@
 
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace DetailingApi.Models;
 
+
+[Table("Services")] 
 public class Service
 {
     public int Id { get; set; }
@@ -9,7 +13,7 @@ public class Service
     public string Price { get; set; } = string.Empty;
     public string? Duration { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public List<string> Details { get; set; } = new();
     public string? CustomFieldsSchema { get; set; }
     public bool IsActive { get; set; } = true;

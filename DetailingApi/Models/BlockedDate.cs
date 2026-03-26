@@ -1,5 +1,5 @@
 namespace DetailingApi.Models;
-
+using System.ComponentModel.DataAnnotations.Schema;
 public class BlockedDate
 {
     public int Id { get; set; }

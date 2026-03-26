@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace DetailingApi.Models;
 
+[Table("Bookings")]
 public class Booking
 {
     public int Id { get; set; }
@@ -7,6 +10,7 @@ public class Booking
     public TimeSlot TimeSlot { get; set; } = null!;
     public string? Service{get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
     public string CustomerPhone { get; set; } = string.Empty;
     public string CustomerEmailNormalized { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
