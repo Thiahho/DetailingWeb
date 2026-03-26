@@ -21,7 +21,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const body = await request.json();
   try {
     const response = await fetch(`${API_URL}/api/content-videos`, {

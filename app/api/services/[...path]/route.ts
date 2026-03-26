@@ -8,7 +8,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const path = params.path.join("/");
   try {
     const response = await fetch(`${API_URL}/api/services/${path}`, {
@@ -33,7 +33,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const path = params.path.join("/");
   const body = await request.json();
   try {
@@ -60,7 +60,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const path = params.path.join("/");
   try {
     const response = await fetch(`${API_URL}/api/services/${path}`, {

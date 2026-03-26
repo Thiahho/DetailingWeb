@@ -8,8 +8,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   const token =
-    request.cookies.get("token")?.value ||
-    request.cookies.get("admin_token")?.value;
+    request.cookies.get("admin_token")?.value ||
+    request.cookies.get("client_token")?.value ||
+    request.cookies.get("token")?.value;
   const body = await request.json();
   try {
     const response = await fetch(`${API_URL}/api/gallery/${params.id}`, {
@@ -35,8 +36,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const token =
-    request.cookies.get("token")?.value ||
-    request.cookies.get("admin_token")?.value;
+    request.cookies.get("admin_token")?.value ||
+    request.cookies.get("client_token")?.value ||
+    request.cookies.get("token")?.value;
   try {
     const response = await fetch(`${API_URL}/api/gallery/${params.id}`, {
       method: "DELETE",

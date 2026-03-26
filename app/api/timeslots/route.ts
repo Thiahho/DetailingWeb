@@ -6,7 +6,7 @@ const API_URL =
   
 // GET: Obtener todos los timeslots (admin)
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
 
   try {
     const response = await fetch(`${API_URL}/api/timeslots`, {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
 // POST: Crear timeslot
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const body = await request.json();
 
   try {

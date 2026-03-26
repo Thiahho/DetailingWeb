@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path?.join("/") || "";
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
 
   try {
     const url = path
@@ -40,7 +40,7 @@ export async function POST(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path?.join("/") || "";
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const body = await request.json();
 
   try {
@@ -73,7 +73,7 @@ export async function PUT(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path?.join("/") || "";
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
 
   let body = null;
   try {
@@ -108,7 +108,7 @@ export async function DELETE(
   { params }: { params: { path: string[] } }
 ) {
   const path = params.path?.join("/") || "";
-  const token = request.cookies.get("token")?.value;
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
 
   try {
     const response = await fetch(`${API_URL}/api/timeslots/${path}`, {
