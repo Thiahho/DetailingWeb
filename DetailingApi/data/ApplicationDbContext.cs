@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ContentVideo> ContentVideos { get; set; }
     public DbSet<SiteConfig> SiteConfigs { get; set; }
     public DbSet<GalleryItem> GalleryItems { get; set; }
+    public DbSet<Payment> Payments { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -104,6 +105,20 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => e.IsActive);
             entity.HasIndex(e => e.Order);
+        });
+
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.HasIndex(e => e.BookingId).IsUnique();
+            entity.HasIndex(e => e.ExternalPaymentId);
+            entity.HasIndex(e => e.ExternalPreferenceId);
+            entity.HasIndex(e => e.Status);
+            entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(p => p.Booking)
+                .WithOne(b => b.Payment)
+                .HasForeignKey<Payment>(p => p.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

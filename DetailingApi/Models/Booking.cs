@@ -17,4 +17,5 @@ public class Booking
     public string Status { get; set; } = BookingStatus.Pending;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CancelledAt { get; set; }
+    public Payment? Payment { get; set; }
 }

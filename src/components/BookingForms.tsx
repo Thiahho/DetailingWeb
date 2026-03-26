@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { logError } from "../lib/logger";
+import PaymentButton from "./PaymentButton";
 
 interface TimeSlot {
   id: number;
@@ -205,6 +206,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [completedBooking, setCompletedBooking] = useState<{ id: number; service: string } | null>(null);
 
   const subjectLabel = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_LABEL?.trim() || "Trabajo";
   const subjectPlaceholder = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_PLACEHOLDER?.trim() || "Describe brevemente";
@@ -315,12 +317,20 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       const data = await response.json();
 
       if (data.success || response.ok) {
+        const bookingId = data.booking?.id;
+        const serviceName = formData.selectedService;
+
         showToast(
           "success",
           "¡Turno Reservado!",
-          "Tu turno fue agendado exitosamente. Nos pondremos en contacto para confirmar.",
+          "Tu turno fue agendado. Ahora podés realizar el pago para confirmar tu reserva.",
           6000
         );
+
+        // Show payment step
+        if (bookingId) {
+          setCompletedBooking({ id: bookingId, service: serviceName });
+        }
 
         // Limpiar formulario
         setFormData({
@@ -354,6 +364,41 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         <p className="text-white/70">Cargando...</p>
       </div>
     );
+
+  // If booking was completed, show payment step
+  if (completedBooking) {
+    return (
+      <>
+        {toast && <ClientToast toast={toast} onClose={closeToast} />}
+        <div className="glass-card space-y-6 p-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-2">
+              <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white">Turno reservado</h3>
+            <p className="text-white/60 text-sm">
+              Para confirmar tu reserva, realizá el pago de forma segura
+            </p>
+          </div>
+
+          <PaymentButton
+            bookingId={completedBooking.id}
+            serviceName={completedBooking.service}
+          />
+
+          <button
+            type="button"
+            onClick={() => setCompletedBooking(null)}
+            className="w-full text-center text-white/40 text-sm hover:text-white/60 transition"
+          >
+            Pagar más tarde
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

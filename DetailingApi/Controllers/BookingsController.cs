@@ -97,6 +97,7 @@ public class BookingsController : ControllerBase
     {
         var bookings = await _context.Bookings
             .Include(b => b.TimeSlot)
+            .Include(b => b.Payment)
             .GroupJoin(
                 _context.NotificationLogs,
                 b => b.Id,
@@ -120,6 +121,10 @@ public class BookingsController : ControllerBase
                 isAvailable = x.Booking.TimeSlot.IsAvailable,
                 createdAt = x.Booking.CreatedAt,
                 cancelledAt = x.Booking.CancelledAt,
+                paymentStatus = x.Booking.Payment != null ? x.Booking.Payment.Status : (string?)null,
+                paymentAmount = x.Booking.Payment != null ? x.Booking.Payment.Amount : (decimal?)null,
+                paymentPaidAt = x.Booking.Payment != null ? x.Booking.Payment.PaidAt : (DateTime?)null,
+                paymentProvider = x.Booking.Payment != null ? x.Booking.Payment.Provider : (string?)null,
                 notificationStatus = x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Failed)
                     ? NotificationDeliveryStatus.Failed
                     : x.Logs.Any(l => l.Status == NotificationDeliveryStatus.Pending)
@@ -153,7 +158,7 @@ public class BookingsController : ControllerBase
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
         var email = User.FindFirst(ClaimTypes.Email)?.Value?.ToLowerInvariant();
 
-        var query = _context.Bookings.Include(b => b.TimeSlot).AsQueryable();
+        var query = _context.Bookings.Include(b => b.TimeSlot).Include(b => b.Payment).AsQueryable();
         if (role != "Admin")
         {
             if (string.IsNullOrWhiteSpace(email))
@@ -175,7 +180,11 @@ public class BookingsController : ControllerBase
                 startDateTime = b.TimeSlot.StartDateTime,
                 endDateTime = b.TimeSlot.EndDateTime,
                 canCancel = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
-                canReschedule = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow
+                canReschedule = b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
+                paymentStatus = b.Payment != null ? b.Payment.Status : (string?)null,
+                paymentAmount = b.Payment != null ? b.Payment.Amount : (decimal?)null,
+                paymentPaidAt = b.Payment != null ? b.Payment.PaidAt : (DateTime?)null,
+                paymentCheckoutUrl = b.Payment != null ? b.Payment.CheckoutUrl : (string?)null
             })
             .ToListAsync();
 

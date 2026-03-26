@@ -16,6 +16,10 @@ interface Booking {
   message?: string;
   status: string;
   customFieldsJson?: string;
+  paymentStatus?: string | null;
+  paymentAmount?: number | null;
+  paymentPaidAt?: string | null;
+  paymentProvider?: string | null;
 }
 
 interface TimeSlot {
@@ -884,10 +888,30 @@ export default function TurnosPage() {
                     {/* Información Extra si está reservado */}
                     {!slot.isAvailable && slot.booking && (
                       <div className="mt-3 pt-3 border-t border-white/5 text-xs text-white/60">
-                        {slot.booking?.status === "Confirmed" ? "Confirmado por:" : "Reservado por:"}{" "}
-                        <span className="text-white">
-                          {slot.booking.customerName}
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span>
+                            {slot.booking?.status === "Confirmed" ? "Confirmado por:" : "Reservado por:"}{" "}
+                            <span className="text-white">
+                              {slot.booking.customerName}
+                            </span>
+                          </span>
+                          {slot.booking.paymentStatus === "Approved" && (
+                            <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                              Pagado
+                            </span>
+                          )}
+                          {slot.booking.paymentStatus === "Pending" && (
+                            <span className="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                              Pago pendiente
+                            </span>
+                          )}
+                          {!slot.booking.paymentStatus && (
+                            <span className="inline-flex items-center gap-1 bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5 text-[10px]">
+                              Sin pago
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1038,6 +1062,15 @@ export default function TurnosPage() {
                     : detailSlot.booking.status === "Cancelled" ? "Cancelado"
                     : "Pendiente"}
                 </span>
+              } />
+              <Row label="Pago" value={
+                detailSlot.booking.paymentStatus === "Approved"
+                  ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+                      Pagado{detailSlot.booking.paymentAmount ? ` — $${detailSlot.booking.paymentAmount.toLocaleString("es-AR")}` : ""}
+                    </span>
+                  : detailSlot.booking.paymentStatus === "Pending"
+                  ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400">Pago pendiente</span>
+                  : <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-white/40">Sin pago</span>
               } />
             </div>
 

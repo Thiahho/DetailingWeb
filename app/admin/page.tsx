@@ -12,6 +12,8 @@ interface Booking {
   service: string;
   message?: string;
   status: string;
+  paymentStatus?: string | null;
+  paymentAmount?: number | null;
 }
 
 interface Slot {

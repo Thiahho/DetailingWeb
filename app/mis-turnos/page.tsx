@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getWhatsAppLink } from "../../src/lib/siteConfig";
+import PaymentButton from "../../src/components/PaymentButton";
 
 interface MyBooking {
   id: number;
@@ -14,6 +15,10 @@ interface MyBooking {
   endDateTime: string;
   canCancel: boolean;
   canReschedule: boolean;
+  paymentStatus: string | null;
+  paymentAmount: number | null;
+  paymentPaidAt: string | null;
+  paymentCheckoutUrl: string | null;
 }
 
 interface TimeSlot {
@@ -234,6 +239,44 @@ export default function MisTurnosPage() {
                             </span>
                           ))}
                         </div>
+                      )}
+
+                      {/* Payment Status */}
+                      {b.paymentStatus === "Approved" && (
+                        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+                          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-green-400 text-sm font-medium">
+                            Pagado{b.paymentAmount ? ` — $${b.paymentAmount.toLocaleString("es-AR")}` : ""}
+                          </span>
+                        </div>
+                      )}
+
+                      {b.paymentStatus === "Pending" && b.status !== "Cancelled" && b.paymentCheckoutUrl && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                            <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-yellow-400 text-sm">Pago pendiente</span>
+                          </div>
+                          <a
+                            href={b.paymentCheckoutUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-center px-4 py-2.5 rounded-lg bg-sky-600/80 hover:bg-sky-600 text-white text-sm font-medium transition"
+                          >
+                            Completar pago
+                          </a>
+                        </div>
+                      )}
+
+                      {!b.paymentStatus && b.status !== "Cancelled" && (
+                        <PaymentButton
+                          bookingId={b.id}
+                          serviceName={b.service || "Servicio"}
+                        />
                       )}
 
                       <div className="flex gap-3 pt-1">
