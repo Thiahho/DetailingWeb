@@ -1,5 +1,7 @@
 namespace DetailingApi.Models;
 using System.ComponentModel.DataAnnotations.Schema;
+
+[Table("BlockedDates")]
 public class BlockedDate
 {
     public int Id { get; set; }
