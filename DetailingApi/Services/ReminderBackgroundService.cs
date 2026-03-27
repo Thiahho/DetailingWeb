@@ -30,12 +30,14 @@ public class ReminderBackgroundService : BackgroundService
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-                var now = NowArgentina();
-                var windowStart = now.AddHours(23);
-                var windowEnd = now.AddHours(25);
+                // PRODUCCIÓN: aviso 24hs antes (ventana UTC, el servidor corre en UTC)
+                var nowUtc = DateTime.UtcNow;
+                var windowStart = nowUtc.AddHours(23);
+                var windowEnd = nowUtc.AddHours(25);
+                var nowArg = NowArgentina();
 
-                _logger.LogInformation("[Reminder] Buscando turnos entre {WindowStart:HH:mm} y {WindowEnd:HH:mm} (ahora: {Now:HH:mm})",
-                    windowStart, windowEnd, now);
+                _logger.LogInformation("[Reminder] Buscando turnos UTC entre {WindowStart:HH:mm} y {WindowEnd:HH:mm} (ahora Argentina: {Now:HH:mm})",
+                    windowStart, windowEnd, nowArg);
 
                 var bookingsToRemind = await context.Bookings
                     .Include(b => b.TimeSlot)
@@ -61,6 +63,7 @@ public class ReminderBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error enviando recordatorios 24h");
             }
 
+            // PRODUCCIÓN: chequear cada hora
             await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
         }
     }

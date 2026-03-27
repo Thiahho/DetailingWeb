@@ -74,7 +74,7 @@ builder.Services.AddControllers();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<NotificationTemplateService>();
+builder.Services.AddHttpClient<NotificationTemplateService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHttpClient<WhatsAppProvider>();
 builder.Services.AddScoped<INotificationProvider, GmailProvider>();
