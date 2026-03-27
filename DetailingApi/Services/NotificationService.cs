@@ -55,7 +55,7 @@ public class NotificationService
             MyBookingsLink = $"{baseMyBookingsUrl}?accessToken={Uri.EscapeDataString(accessToken)}"
         };
 
-        var message = _templateService.Build(eventType, templateData);
+        var message = await _templateService.BuildAsync(eventType, templateData, cancellationToken);
 
         foreach (var provider in _providers)
         {
@@ -95,7 +95,7 @@ public class NotificationService
                 continue;
             }
 
-            var message = _templateService.Build(log.EventType, new NotificationTemplateData
+            var message = await _templateService.BuildAsync(log.EventType, new NotificationTemplateData
             {
                 CustomerName = booking.CustomerName,
                 Service = booking.Service ?? "Servicio no informado",
