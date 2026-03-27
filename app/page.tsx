@@ -45,24 +45,14 @@ export default function Home() {
   const galleryToShow = gallery.slice(0, visibleGallery);
 
   useEffect(() => {
-    fetch("/api/services")
+    fetch("/api/public-data")
       .then((r) => r.json())
-      .then((d) => setServices(Array.isArray(d) ? d : []))
-      .catch(() => {});
-
-    fetch("/api/content-videos")
-      .then((r) => r.json())
-      .then((d) => setContentVideos(Array.isArray(d) ? d : []))
-      .catch(() => setContentVideos([]));
-
-    fetch("/api/gallery")
-      .then((r) => r.json())
-      .then((d) => setGallery(Array.isArray(d) ? d : []))
-      .catch(() => {});
-
-    fetch("/api/siteconfig")
-      .then((r) => r.json())
-      .then((d) => setSiteConfig(d))
+      .then((d) => {
+        setServices(Array.isArray(d.services) ? d.services : []);
+        setGallery(Array.isArray(d.gallery) ? d.gallery : []);
+        setSiteConfig(d.siteconfig ?? null);
+        setContentVideos(Array.isArray(d.contentVideos) ? d.contentVideos : []);
+      })
       .catch(() => {});
   }, []);
 
