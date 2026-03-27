@@ -11,10 +11,13 @@ public class ReminderBackgroundService : BackgroundService
     private static readonly TimeZoneInfo _argentinaZone =
         TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
 
-    public ReminderBackgroundService(IServiceScopeFactory scopeFactory, ILogger<ReminderBackgroundService> logger)
+    private readonly IConfiguration _configuration;
+
+    public ReminderBackgroundService(IServiceScopeFactory scopeFactory, ILogger<ReminderBackgroundService> logger, IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _configuration = configuration;
     }
 
     private static DateTime NowArgentina() =>
@@ -30,14 +33,17 @@ public class ReminderBackgroundService : BackgroundService
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-                // PRODUCCIÓN: aviso 24hs antes (ventana UTC, el servidor corre en UTC)
+                var windowMinutesStart = _configuration.GetValue<int?>("Notifications:ReminderWindowMinutesStart") ?? (23 * 60);
+                var windowMinutesEnd = _configuration.GetValue<int?>("Notifications:ReminderWindowMinutesEnd") ?? (25 * 60);
+                var checkIntervalMinutes = _configuration.GetValue<int?>("Notifications:ReminderCheckIntervalMinutes") ?? 60;
+
                 var nowUtc = DateTime.UtcNow;
-                var windowStart = nowUtc.AddHours(23);
-                var windowEnd = nowUtc.AddHours(25);
+                var windowStart = nowUtc.AddMinutes(windowMinutesStart);
+                var windowEnd = nowUtc.AddMinutes(windowMinutesEnd);
                 var nowArg = NowArgentina();
 
-                _logger.LogInformation("[Reminder] Buscando turnos UTC entre {WindowStart:HH:mm} y {WindowEnd:HH:mm} (ahora Argentina: {Now:HH:mm})",
-                    windowStart, windowEnd, nowArg);
+                _logger.LogInformation("[Reminder] Ventana: +{Start}min a +{End}min UTC | Ahora Argentina: {Now:HH:mm}",
+                    windowMinutesStart, windowMinutesEnd, nowArg);
 
                 var bookingsToRemind = await context.Bookings
                     .Include(b => b.TimeSlot)
@@ -63,8 +69,7 @@ public class ReminderBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error enviando recordatorios 24h");
             }
 
-            // PRODUCCIÓN: chequear cada hora
-            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(checkIntervalMinutes), stoppingToken);
         }
     }
 }
