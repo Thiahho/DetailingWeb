@@ -56,22 +56,32 @@ public class NotificationTemplateService
         var model = _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
         var fechaHora = data.StartDateTime.ToString("dddd d 'de' MMMM 'a las' HH:mm", new System.Globalization.CultureInfo("es-AR"));
 
-        var prompt = $"""
-            Escribí un mensaje breve para recordar a un cliente su turno en un taller de car detailing.
-            Datos:
-            - Nombre del cliente: {data.CustomerName}
-            - Servicio: {data.Service}
-            - Fecha y hora: {fechaHora}
-            - Lugar: {data.Location}
-            - Link para gestionar el turno: {data.MyBookingsLink}
+       var prompt = $"""
+            Generá un mensaje de recordatorio de turno.
 
-            Instrucciones:
-            - Escribí en español rioplatense (Argentina), tono cordial y profesional
-            - Máximo 4 oraciones
-            - Empezá saludando al cliente por nombre
-            - Mencioná el servicio, día y hora
-            - Al final incluí el link para gestionar el turno
-            - No uses markdown, solo texto plano
+            DATOS:
+            Nombre: {data.CustomerName}
+            Servicio: {data.Service}
+            Fecha y hora: {fechaHora}
+            Lugar: {data.Location}
+            Link: {data.MyBookingsLink}
+
+            REGLAS OBLIGATORIAS:
+            - Responder SOLO con el mensaje final, sin explicaciones ni texto adicional
+            - Español rioplatense (Argentina)
+            - Tono cordial y profesional
+            - Máximo 3 oraciones
+            - Iniciar con el nombre del cliente
+            - Incluir servicio, fecha, hora y lugar
+            - Finalizar con el link para gestionar el turno
+            - No usar emojis
+            - No usar markdown
+            - No agregar información que no esté en los datos
+            - No hacer suposiciones
+            - No agregar disculpas ni frases innecesarias
+
+            FORMATO ESPERADO:
+            Un único párrafo de texto plano
             """;
 
         var requestBody = new
