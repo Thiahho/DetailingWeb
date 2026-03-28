@@ -27,23 +27,26 @@ public class ReminderBackgroundService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Leer config fuera del try para poder usar checkIntervalMinutes en el delay
+            var windowMinutesStart = _configuration.GetValue<int?>("Notifications:ReminderWindowMinutesStart") ?? (23 * 60);
+            var windowMinutesEnd = _configuration.GetValue<int?>("Notifications:ReminderWindowMinutesEnd") ?? (25 * 60);
+            var checkIntervalMinutes = _configuration.GetValue<int?>("Notifications:ReminderCheckIntervalMinutes") ?? 60;
+
             try
             {
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-                var windowMinutesStart = _configuration.GetValue<int?>("Notifications:ReminderWindowMinutesStart") ?? (23 * 60);
-                var windowMinutesEnd = _configuration.GetValue<int?>("Notifications:ReminderWindowMinutesEnd") ?? (25 * 60);
-                var checkIntervalMinutes = _configuration.GetValue<int?>("Notifications:ReminderCheckIntervalMinutes") ?? 60;
+                // DateTime.Now usa la timezone del servidor:
+                // - En Render (UTC): igual a UtcNow → coincide con slots guardados en UTC
+                // - En local (Argentina UTC-3): hora local → coincide con slots guardados en hora local
+                var now = DateTime.Now;
+                var windowStart = now.AddMinutes(windowMinutesStart);
+                var windowEnd = now.AddMinutes(windowMinutesEnd);
 
-                var nowUtc = DateTime.UtcNow;
-                var windowStart = nowUtc.AddMinutes(windowMinutesStart);
-                var windowEnd = nowUtc.AddMinutes(windowMinutesEnd);
-                var nowArg = NowArgentina();
-
-                _logger.LogInformation("[Reminder] Ventana: +{Start}min a +{End}min UTC | Ahora Argentina: {Now:HH:mm}",
-                    windowMinutesStart, windowMinutesEnd, nowArg);
+                _logger.LogInformation("[Reminder] Ventana: {WindowStart:HH:mm} - {WindowEnd:HH:mm} (ahora: {Now:HH:mm})",
+                    windowStart, windowEnd, now);
 
                 var bookingsToRemind = await context.Bookings
                     .Include(b => b.TimeSlot)
