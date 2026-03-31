@@ -89,7 +89,7 @@ public class NotificationTemplateService
             model,
             messages = new[] { new { role = "user", content = prompt } },
             max_tokens = 250,
-            temperature = 0.7
+            temperature = 0.3
         };
 
         try

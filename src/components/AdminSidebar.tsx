@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
-  List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image,
+  List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users,
 } from "lucide-react";
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/admin/turnos",      label: "Turnos",     icon: List },
   { href: "/admin/calendario",  label: "Calendario", icon: CalendarDays },
   { href: "/admin/historial",   label: "Historial",  icon: ClipboardList },
+  { href: "/admin/clientes",    label: "Clientes",   icon: Users },
   { href: "/admin/servicios",   label: "Servicios",  icon: Wrench },
   { href: "/admin/galeria",     label: "Galería",    icon: Image },
   { href: "/admin/contenido",   label: "Contenido",  icon: Clapperboard },

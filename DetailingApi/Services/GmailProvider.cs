@@ -69,6 +69,9 @@ public class GmailProvider : INotificationProvider
         }
     }
 
+    public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new NotificationSendResult { Success = false, Error = "GmailProvider no soporta envío directo por teléfono.", IsTransientFailure = false });
+
     private static string BuildHtmlBody(NotificationMessage message)
     {
         var bodyLines = message.Body

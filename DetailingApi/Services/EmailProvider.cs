@@ -63,6 +63,9 @@ public class EmailProvider : INotificationProvider
         };
     }
 
+    public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new NotificationSendResult { Success = false, Error = "EmailProvider no soporta envío directo por teléfono.", IsTransientFailure = false });
+
     private static string? TryExtractMessageId(string body)
     {
         try

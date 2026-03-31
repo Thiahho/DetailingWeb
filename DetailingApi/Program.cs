@@ -1,6 +1,9 @@
 using DetailingApi.Services;
 using DetailingApi.Data;
+using DetailingApi.Filters;
 using DetailingApi.Models;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -81,6 +84,13 @@ builder.Services.AddScoped<INotificationProvider, GmailProvider>();
 builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
 builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 builder.Services.AddHostedService<ReminderBackgroundService>();
+builder.Services.AddScoped<ReminderService>();
+builder.Services.AddScoped<HangfireReminderJob>();
+
+builder.Services.AddHangfire(config =>
+    config.UsePostgreSqlStorage(o =>
+        o.UseNpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection"))));
+builder.Services.AddHangfireServer();
 
 // CORS: leer origenes de configuración
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -113,5 +123,16 @@ app.UseCors("ProductionPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireAdminAuthFilter()]
+});
+
+RecurringJob.AddOrUpdate<HangfireReminderJob>(
+    "process-pending-reminders",
+    job => job.ProcessPendingRemindersAsync(),
+    "*/5 * * * *" // cada 5 minutos
+);
 
 app.Run();

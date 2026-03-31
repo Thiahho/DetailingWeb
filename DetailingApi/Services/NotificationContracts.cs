@@ -32,5 +32,11 @@ public interface INotificationProvider
     string Channel { get; }
     string ProviderName { get; }
     bool IsEnabled { get; }
-    Task<NotificationSendResult> SendAsync(Booking booking, NotificationMessage message, CancellationToken cancellationToken = default);
+    Task<NotificationSendResult>SendAsync(
+        Booking booking,
+        NotificationMessage message,
+        CancellationToken cancellationToken = default);
+
+
+    Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default);
 }

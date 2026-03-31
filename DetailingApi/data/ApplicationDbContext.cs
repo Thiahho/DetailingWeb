@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using DetailingApi.Models;
+using MercadoPago.Resource.Customer;
 
 namespace DetailingApi.Data;
 
@@ -24,6 +25,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<GalleryItem> GalleryItems { get; set; }
     public DbSet<Payment> Payments { get; set; }
 
+    //Clientes
+    public DbSet<CustomerProfile> CustomerProfiles { get; set; }
+    public DbSet<ScheduledReminder> ScheduledReminders { get; set; }
+    public DbSet<ReminderLog> ReminderLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -120,5 +125,34 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey<Payment>(p => p.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+         modelBuilder.Entity<CustomerProfile>(e =>
+    {
+        e.HasIndex(x => x.Phone).IsUnique();
+    });
+
+    modelBuilder.Entity<ScheduledReminder>(e =>
+    {
+        e.HasIndex(x => x.Status);
+        e.HasIndex(x => x.ScheduledFor);
+        e.HasOne(x => x.CustomerProfile)
+         .WithMany(x => x.ScheduledReminders)
+         .HasForeignKey(x => x.CustomerProfileId)
+         .OnDelete(DeleteBehavior.Cascade);
+        e.HasOne(x => x.Booking)
+         .WithMany()
+         .HasForeignKey(x => x.BookingId)
+         .OnDelete(DeleteBehavior.SetNull);
+    });
+
+    modelBuilder.Entity<ReminderLog>(e =>
+    {
+        e.HasIndex(x => x.ScheduledReminderId);
+        e.HasOne(x => x.ScheduledReminder)
+         .WithMany(x => x.Logs)
+         .HasForeignKey(x => x.ScheduledReminderId)
+         .OnDelete(DeleteBehavior.Cascade);
+    });
+    
     }
 }
