@@ -116,6 +116,17 @@ tsconfig.tsbuildinfo
 my-mercadopago-app/
 
 # =========================
+# Dumps de base de datos (pueden contener datos reales de clientes)
+# =========================
+*.sql
+!DetailingApi/Scripts/**/*.sql
+
+# =========================
+# graphify (grafo de conocimiento generado localmente)
+# =========================
+graphify-out/
+
+# =========================
 # Otros
 # =========================
 *.bak

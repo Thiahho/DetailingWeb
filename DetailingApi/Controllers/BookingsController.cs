@@ -3,7 +3,9 @@ using DetailingApi.Models;
 using DetailingApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace DetailingApi.Controllers;
@@ -28,6 +30,7 @@ public class BookingsController : ControllerBase
     // POST: api/bookings (público - para clientes)
     [HttpPost]
     [AllowAnonymous]
+    [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -194,6 +197,7 @@ public class BookingsController : ControllerBase
     // GET: api/bookings/by-email?email=xxx (público - solo datos del cliente)
     [HttpGet("by-email")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> GetBookingsByEmail([FromQuery] string email)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -258,6 +262,7 @@ public class BookingsController : ControllerBase
     // POST: api/bookings/{id}/cancel (público - cancelar por link de email)
     [HttpPost("{id}/cancel")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> CancelBooking(int id)
     {
         var booking = await _context.Bookings
@@ -299,6 +304,7 @@ public class BookingsController : ControllerBase
     // POST: api/bookings/{id}/reschedule (público - solo turnos Pending)
     [HttpPost("{id}/reschedule")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> RescheduleBooking(int id, [FromBody] RescheduleRequest request)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -391,17 +397,33 @@ public class BookingsController : ControllerBase
 // DTOs
 public class RescheduleRequest
 {
+    [Range(1, int.MaxValue)]
     public int NewTimeSlotId { get; set; }
 }
 
 public class CreateBookingRequest
 {
+    [Range(1, int.MaxValue)]
     public int TimeSlotId { get; set; }
+
+    [Required, StringLength(200, MinimumLength = 1)]
     public string CustomerName { get; set; } = string.Empty;
+
+    [Required, StringLength(30, MinimumLength = 6)]
     public string CustomerPhone { get; set; } = string.Empty;
+
+    [Required, EmailAddress, StringLength(256)]
     public string Email { get; set; } = string.Empty;
+
+    [Required, StringLength(200, MinimumLength = 1)]
     public string Subject { get; set; } = string.Empty;
+
+    [StringLength(200)]
     public string? Service { get; set; }
+
+    [StringLength(4000)]
     public string? CustomFieldsJson { get; set; }
+
+    [StringLength(2000)]
     public string? Message { get; set; }
 }

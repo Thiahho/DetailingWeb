@@ -38,10 +38,9 @@ public class ReminderBackgroundService : BackgroundService
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-                // DateTime.Now usa la timezone del servidor:
-                // - En Render (UTC): igual a UtcNow → coincide con slots guardados en UTC
-                // - En local (Argentina UTC-3): hora local → coincide con slots guardados en hora local
-                var now = DateTime.Now;
+                // Los slots se guardan en hora de Argentina (igual que TimeSlotsController),
+                // independiente de la timezone del servidor donde corra el proceso.
+                var now = NowArgentina();
                 var windowStart = now.AddMinutes(windowMinutesStart);
                 var windowEnd = now.AddMinutes(windowMinutesEnd);
 

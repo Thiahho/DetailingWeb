@@ -2,6 +2,7 @@ using DetailingApi.Models.DTOs;
 using DetailingApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace DetailingApi.Controllers;
@@ -37,6 +38,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/login
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         try
@@ -70,6 +72,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/register
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         try
@@ -120,6 +123,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("client/access/request")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> RequestClientAccess([FromBody] ClientAccessRequest request)
     {
         try
@@ -151,6 +155,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("client/access/verify")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> VerifyClientAccess([FromBody] ClientOtpVerifyRequest request)
     {
         try
@@ -174,6 +179,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("client/session/exchange")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     public IActionResult ExchangeClientPortalToken([FromBody] ClientPortalTokenRequest request)
     {
         try

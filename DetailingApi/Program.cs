@@ -7,8 +7,11 @@ using Hangfire.PostgreSql;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -107,7 +110,56 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Render (y la mayoría de los PaaS) terminan la conexión en un proxy propio,
+// así que sin esto Connection.RemoteIpAddress es siempre la IP interna del
+// proxy y el rate limiter por IP no distingue clientes reales.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Rate limiting: solo en los endpoints públicos/anónimos identificados en la
+// auditoría (login, OTP, alta de reservas) — no aplica un límite global para
+// no afectar al panel admin autenticado.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = (context, token) =>
+    {
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        return new ValueTask(context.HttpContext.Response.WriteAsync(
+            "Demasiadas solicitudes. Intenta de nuevo en unos minutos.", token));
+    };
+
+    // Login, registro y flujo de acceso/OTP del cliente: objetivo de fuerza bruta.
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Creación/cancelación/reprogramación de turnos y búsqueda por email: público, anónimo.
+    options.AddPolicy("public-booking", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // ✅ PRODUCCIÓN: Aplicar migraciones automáticamente
 using (var scope = app.Services.CreateScope())
@@ -122,6 +174,7 @@ using (var scope = app.Services.CreateScope())
 app.UseCors("ProductionPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapControllers();
 
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
