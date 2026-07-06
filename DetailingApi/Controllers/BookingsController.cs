@@ -33,6 +33,18 @@ public class BookingsController : ControllerBase
     [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
     {
+        if (!string.IsNullOrWhiteSpace(request.Email) && !new EmailAddressAttribute().IsValid(request.Email))
+            return BadRequest(new { success = false, message = "El email no es válido" });
+
+        if (request.ProfessionalId.HasValue)
+        {
+            var professionalIsActive = await _context.Professionals
+                .AnyAsync(p => p.Id == request.ProfessionalId.Value && p.IsActive);
+
+            if (!professionalIsActive)
+                return BadRequest(new { success = false, message = "El profesional seleccionado no está disponible" });
+        }
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         var updatedRows = await _context.TimeSlots
@@ -59,10 +71,11 @@ public class BookingsController : ControllerBase
         var booking = new Booking
         {
             TimeSlotId = request.TimeSlotId,
+            ProfessionalId = request.ProfessionalId,
             CustomerName = request.CustomerName,
             CustomerPhone = request.CustomerPhone,
             Email = request.Email,
-            CustomerEmailNormalized = request.Email.Trim().ToLowerInvariant(),
+            CustomerEmailNormalized = request.Email?.Trim().ToLowerInvariant() ?? string.Empty,
             Subject = request.Subject,
             Service = request.Service,
             CustomFieldsJson = request.CustomFieldsJson,
@@ -87,6 +100,7 @@ public class BookingsController : ControllerBase
                 customerName = booking.CustomerName,
                 subject = booking.Subject,
                 service = booking.Service,
+                professionalId = booking.ProfessionalId,
                 startDateTime = timeSlot.StartDateTime,
                 endDateTime = timeSlot.EndDateTime
             }
@@ -101,6 +115,7 @@ public class BookingsController : ControllerBase
         var bookings = await _context.Bookings
             .Include(b => b.TimeSlot)
             .Include(b => b.Payment)
+            .Include(b => b.Professional)
             .GroupJoin(
                 _context.NotificationLogs,
                 b => b.Id,
@@ -115,6 +130,10 @@ public class BookingsController : ControllerBase
                 email = x.Booking.Email,
                 subject = x.Booking.Subject,
                 service = x.Booking.Service,
+                professionalId = x.Booking.ProfessionalId,
+                professionalName = x.Booking.Professional != null
+                    ? x.Booking.Professional.FirstName + " " + x.Booking.Professional.LastName
+                    : null,
                 customFieldsJson = x.Booking.CustomFieldsJson,
                 message = x.Booking.Message,
                 status = x.Booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : x.Booking.Status,
@@ -412,14 +431,16 @@ public class CreateBookingRequest
     [Required, StringLength(30, MinimumLength = 6)]
     public string CustomerPhone { get; set; } = string.Empty;
 
-    [Required, EmailAddress, StringLength(256)]
-    public string Email { get; set; } = string.Empty;
+    [StringLength(256)]
+    public string? Email { get; set; }
 
     [Required, StringLength(200, MinimumLength = 1)]
     public string Subject { get; set; } = string.Empty;
 
     [StringLength(200)]
     public string? Service { get; set; }
+
+    public int? ProfessionalId { get; set; }
 
     [StringLength(4000)]
     public string? CustomFieldsJson { get; set; }

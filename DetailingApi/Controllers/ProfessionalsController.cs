@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace DetailingApi.Controllers;
 
@@ -73,6 +74,88 @@ public class ProfessionalsController : ControllerBase
             .ToListAsync();
 
         return Ok(professionals);
+    }
+
+    // GET: api/professionals/available?serviceId=X&timeSlotId=Y (público)
+    // Profesionales activos que ofrecen el servicio y, según su horario semanal (si lo tienen cargado),
+    // están trabajando en el día/franja horaria del turno elegido.
+    [HttpGet("available")]
+    public async Task<IActionResult> GetAvailable([FromQuery] int serviceId, [FromQuery] int timeSlotId)
+    {
+        if (serviceId <= 0 || timeSlotId <= 0)
+            return BadRequest(new { message = "serviceId y timeSlotId son requeridos" });
+
+        var timeSlot = await _context.TimeSlots
+            .Where(t => t.Id == timeSlotId)
+            .Select(t => new { t.StartDateTime, t.EndDateTime })
+            .FirstOrDefaultAsync();
+
+        if (timeSlot == null)
+            return NotFound(new { message = "Turno no encontrado" });
+
+        var candidates = await _context.Professionals
+            .Where(p => p.IsActive && p.Services.Any(s => s.Id == serviceId))
+            .OrderBy(p => p.Order)
+            .ThenBy(p => p.CreatedAt)
+            .Select(p => new
+            {
+                p.Id,
+                p.FirstName,
+                p.LastName,
+                p.PhotoUrl,
+                p.CalendarColor,
+                p.Specialty,
+                p.Schedule
+            })
+            .ToListAsync();
+
+        var dayOfWeek = (int)timeSlot.StartDateTime.DayOfWeek;
+        var slotStart = timeSlot.StartDateTime.TimeOfDay;
+        var slotEnd = timeSlot.EndDateTime.TimeOfDay;
+
+        var available = candidates
+            .Where(p => IsWorkingDuringSlot(p.Schedule, dayOfWeek, slotStart, slotEnd))
+            .Select(p => new
+            {
+                p.Id,
+                p.FirstName,
+                p.LastName,
+                p.PhotoUrl,
+                p.CalendarColor,
+                p.Specialty
+            });
+
+        return Ok(available);
+    }
+
+    private static readonly JsonSerializerOptions ScheduleJsonOptions = new(JsonSerializerDefaults.Web);
+
+    // Si el profesional no tiene horario cargado todavía, se lo considera disponible por defecto.
+    private static bool IsWorkingDuringSlot(string? scheduleJson, int dayOfWeek, TimeSpan slotStart, TimeSpan slotEnd)
+    {
+        if (string.IsNullOrWhiteSpace(scheduleJson))
+            return true;
+
+        List<WeeklyScheduleDay>? schedule;
+        try
+        {
+            schedule = JsonSerializer.Deserialize<List<WeeklyScheduleDay>>(scheduleJson, ScheduleJsonOptions);
+        }
+        catch (JsonException)
+        {
+            return true;
+        }
+
+        if (schedule == null || schedule.Count == 0)
+            return true;
+
+        return schedule.Any(day =>
+            day.Enabled &&
+            day.DayOfWeek == dayOfWeek &&
+            TimeSpan.TryParse(day.Start, out var start) &&
+            TimeSpan.TryParse(day.End, out var end) &&
+            slotStart >= start &&
+            slotEnd <= end);
     }
 
     // GET: api/professionals/{id} (público)

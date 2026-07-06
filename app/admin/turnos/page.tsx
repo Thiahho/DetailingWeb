@@ -13,6 +13,8 @@ interface Booking {
   email?: string;
   subject: string;
   service: string;
+  professionalId?: number | null;
+  professionalName?: string | null;
   message?: string;
   status: string;
   customFieldsJson?: string;
@@ -894,6 +896,9 @@ export default function TurnosPage() {
                             <span className="text-white">
                               {slot.booking.customerName}
                             </span>
+                            {slot.booking.professionalName && (
+                              <span className="text-white/40"> · 👤 {slot.booking.professionalName}</span>
+                            )}
                           </span>
                           {slot.booking.paymentStatus === "Approved" && (
                             <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
@@ -1025,6 +1030,9 @@ export default function TurnosPage() {
               } />
               <Row label="Trabajo" value={detailSlot.booking.subject || "—"} />
               <Row label="Servicio" value={detailSlot.booking.service || "—"} />
+              {detailSlot.booking.professionalName && (
+                <Row label="Especialista" value={detailSlot.booking.professionalName} />
+              )}
               {detailSlot.booking.customFieldsJson && (() => {
                 try {
                   const fields = JSON.parse(detailSlot.booking.customFieldsJson!) as Record<string, string>;

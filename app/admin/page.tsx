@@ -10,6 +10,8 @@ interface Booking {
   customerPhone: string;
   vehicle: string;
   service: string;
+  professionalId?: number | null;
+  professionalName?: string | null;
   message?: string;
   status: string;
   paymentStatus?: string | null;
@@ -211,6 +213,9 @@ export default function AdminDashboard() {
                           {slot.booking.vehicle}
                           {slot.booking.service && ` · ${slot.booking.service}`}
                         </p>
+                        {slot.booking.professionalName && (
+                          <p className="text-white/30 text-xs mt-0.5">👤 {slot.booking.professionalName}</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -229,6 +234,7 @@ export default function AdminDashboard() {
                     <th className="text-left px-5 py-3 font-medium">Cliente</th>
                     <th className="text-left px-5 py-3 font-medium">Vehículo</th>
                     <th className="text-left px-5 py-3 font-medium">Servicio</th>
+                    <th className="text-left px-5 py-3 font-medium">Especialista</th>
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
@@ -284,6 +290,9 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-5 py-4 text-white/60">
                           {slot.booking?.service ?? <span className="text-white/20">—</span>}
+                        </td>
+                        <td className="px-5 py-4 text-white/60">
+                          {slot.booking?.professionalName ?? <span className="text-white/20">—</span>}
                         </td>
                         <td className="px-5 py-4 text-right">
                           {!slot.isAvailable && (

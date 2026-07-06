@@ -8,6 +8,8 @@ public class Booking
     public int Id { get; set; }
     public int TimeSlotId { get; set; }
     public TimeSlot TimeSlot { get; set; } = null!;
+    public int? ProfessionalId { get; set; }
+    public Professional? Professional { get; set; }
     public string? Service{get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;

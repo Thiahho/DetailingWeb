@@ -49,6 +49,7 @@ public class TimeSlotsController : ControllerBase
     {
         var slots = await _context.TimeSlots
             .Include(t => t.Bookings)
+                .ThenInclude(b => b.Professional)
             .OrderBy(t => t.StartDateTime)
             .Select(s => new
             {
@@ -70,6 +71,10 @@ public class TimeSlotsController : ControllerBase
                         subject = b.Subject,
                         customFieldsJson = b.CustomFieldsJson,
                         service = b.Service,
+                        professionalId = b.ProfessionalId,
+                        professionalName = b.Professional != null
+                            ? b.Professional.FirstName + " " + b.Professional.LastName
+                            : null,
                         message = b.Message,
                         status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
                     }).FirstOrDefault()

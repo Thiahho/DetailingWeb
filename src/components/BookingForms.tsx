@@ -20,6 +20,15 @@ interface ServicePack {
   customFieldsSchema?: string;
 }
 
+interface Professional {
+  id: number;
+  firstName: string;
+  lastName: string;
+  photoUrl: string;
+  calendarColor: string;
+  specialty?: string;
+}
+
 interface CustomFieldDef {
   name: string;
   key: string;
@@ -198,6 +207,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     email:"",
     selectedSlotId: null as number | null,
     selectedService: "",
+    selectedProfessionalId: null as number | null,
     message: "",
   });
 
@@ -206,6 +216,8 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [loadingProfessionals, setLoadingProfessionals] = useState(false);
   const [completedBooking, setCompletedBooking] = useState<{ id: number; service: string } | null>(null);
 
   const subjectLabel = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_LABEL?.trim() || "Trabajo";
@@ -249,6 +261,36 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   useEffect(() => {
     setCustomFieldValues({});
   }, [formData.selectedService]);
+
+  // Cargar profesionales disponibles cuando ya se eligió servicio y horario
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, selectedProfessionalId: null }));
+
+    if (!selectedServiceObj || !formData.selectedSlotId) {
+      setProfessionals([]);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingProfessionals(true);
+
+    fetch(`/api/professionals/available?serviceId=${selectedServiceObj.id}&timeSlotId=${formData.selectedSlotId}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (!cancelled) setProfessionals(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        logError(error);
+        if (!cancelled) setProfessionals([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProfessionals(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedServiceObj, formData.selectedSlotId]);
 
   const loadAvailableSlots = async () => {
     try {
@@ -309,6 +351,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           email: formData.email,
           subject: formData.subject,
           service: formData.selectedService,
+          professionalId: formData.selectedProfessionalId,
           message: formData.message,
           customFieldsJson: customFieldDefs.length > 0 ? JSON.stringify(customFieldValues) : null,
         }),
@@ -340,6 +383,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           email:"",
           selectedSlotId: null,
           selectedService: "",
+          selectedProfessionalId: null,
           message: "",
         });
         setCustomFieldValues({});
@@ -629,6 +673,80 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           </div>
         )}
       </div>
+
+      {/* Selector de Profesional (opcional) */}
+      {formData.selectedSlotId && selectedServiceObj && (
+        <div>
+          <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
+            Especialista (opcional)
+          </label>
+          {loadingProfessionals ? (
+            <p className="text-sm text-white/50">Buscando especialistas disponibles...</p>
+          ) : professionals.length === 0 ? (
+            <p className="text-sm text-white/50">
+              No hay especialistas asignados para este turno, se te asignará uno automáticamente.
+            </p>
+          ) : (
+            <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, selectedProfessionalId: null }))
+                }
+                className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
+                  formData.selectedProfessionalId === null
+                    ? "border-lux bg-lux/20 text-lux"
+                    : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
+                }`}
+              >
+                <span className="block font-medium">Sin preferencia</span>
+                <span className="block text-xs text-white/50 mt-1">
+                  Se asigna el primer especialista disponible
+                </span>
+              </button>
+
+              {professionals.map((pro) => (
+                <button
+                  key={pro.id}
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, selectedProfessionalId: pro.id }))
+                  }
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition ${
+                    formData.selectedProfessionalId === pro.id
+                      ? "border-lux bg-lux/20 text-lux"
+                      : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
+                  }`}
+                >
+                  {pro.photoUrl ? (
+                    <img
+                      src={pro.photoUrl}
+                      alt={`${pro.firstName} ${pro.lastName}`}
+                      className="h-9 w-9 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <span
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                      style={{ backgroundColor: pro.calendarColor || "#6366f1" }}
+                    >
+                      {pro.firstName?.[0]}
+                      {pro.lastName?.[0]}
+                    </span>
+                  )}
+                  <span>
+                    <span className="block font-medium">
+                      {pro.firstName} {pro.lastName}
+                    </span>
+                    {pro.specialty && (
+                      <span className="block text-xs text-white/50 mt-1">{pro.specialty}</span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Consulta y Botón Final (Igual a tu original) */}
       <div>

@@ -11,6 +11,8 @@ interface BookingRecord {
   email?: string;
   subject?: string;
   service: string;
+  professionalId?: number | null;
+  professionalName?: string | null;
   message?: string;
   status: string;
   startDateTime: string;
@@ -249,6 +251,9 @@ export default function HistorialPage() {
                       <p className="text-white font-medium text-sm">{b.customerName}</p>
                       <p className="text-white/40 text-xs mt-0.5">{formatDateFriendly(b.startDateTime)}</p>
                       <p className="text-white/40 text-xs mt-0.5">{b.subject}{b.service ? ` · ${b.service}` : ""}</p>
+                      {b.professionalName && (
+                        <p className="text-white/30 text-xs mt-0.5">👤 {b.professionalName}</p>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
                       <StatusBadge status={b.status} />
@@ -267,6 +272,7 @@ export default function HistorialPage() {
                     <th className="text-left px-5 py-3 font-medium">Turno</th>
                     <th className="text-left px-5 py-3 font-medium">Cliente</th>
                     <th className="text-left px-5 py-3 font-medium">Servicio</th>
+                    <th className="text-left px-5 py-3 font-medium">Especialista</th>
                     <th className="text-left px-5 py-3 font-medium">Estado</th>
                     <th className="text-left px-5 py-3 font-medium">Pago</th>
                     <th className="text-left px-5 py-3 font-medium">Notif.</th>
@@ -291,6 +297,7 @@ export default function HistorialPage() {
                         <p>{b.service || "—"}</p>
                         {b.subject && <p className="text-white/30 text-xs">{b.subject}</p>}
                       </td>
+                      <td className="px-5 py-4 text-white/60">{b.professionalName || "—"}</td>
                       <td className="px-5 py-4"><StatusBadge status={b.status} /></td>
                       <td className="px-5 py-4">
                         <PaymentBadge status={b.paymentStatus} amount={b.paymentAmount} provider={b.paymentProvider} />
@@ -358,6 +365,7 @@ export default function HistorialPage() {
               {detail.email && <Row label="Email" value={detail.email} />}
               {detail.subject && <Row label="Trabajo" value={detail.subject} />}
               <Row label="Servicio" value={detail.service || "—"} />
+              {detail.professionalName && <Row label="Especialista" value={detail.professionalName} />}
               {detail.message && <Row label="Mensaje" value={detail.message} />}
               <Row label="Reserva" value={<StatusBadge status={detail.status} />} />
 

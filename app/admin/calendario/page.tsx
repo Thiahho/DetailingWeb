@@ -17,8 +17,16 @@ interface Booking {
   customerPhone: string;
   vehicle: string;
   service: string;
+  professionalId?: number | null;
+  professionalName?: string | null;
   message?: string;
   status: string;
+}
+
+interface Professional {
+  id: number;
+  firstName: string;
+  lastName: string;
 }
 
 interface TimeSlot {
@@ -53,7 +61,8 @@ export default function CalendarioPage() {
   const [detailBooking, setDetailBooking] = useState<{ slot: TimeSlot } | null>(null);
   const [reserveSlot, setReserveSlot] = useState<TimeSlot | null>(null);
   const [services, setServices] = useState<Service[]>([]);
-  const [reserveForm, setReserveForm] = useState({ customerName: "", customerPhone: "", vehicle: "", service: "", message: "" });
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [reserveForm, setReserveForm] = useState({ customerName: "", customerPhone: "", vehicle: "", service: "", professionalId: "", message: "" });
   const [reserving, setReserving] = useState(false);
   const [reserveError, setReserveError] = useState("");
 
@@ -65,6 +74,7 @@ export default function CalendarioPage() {
     Promise.all([
       loadSlots(),
       fetch("/api/services").then((r) => r.json()).then((d) => setServices(Array.isArray(d) ? d : [])),
+      fetch("/api/professionals").then((r) => r.json()).then((d) => setProfessionals(Array.isArray(d) ? d : [])),
     ]).finally(() => setLoading(false));
   }, [router]);
 
@@ -118,12 +128,16 @@ export default function CalendarioPage() {
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timeSlotId: reserveSlot.id, ...reserveForm }),
+        body: JSON.stringify({
+          timeSlotId: reserveSlot.id,
+          ...reserveForm,
+          professionalId: reserveForm.professionalId ? Number(reserveForm.professionalId) : null,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         setReserveSlot(null);
-        setReserveForm({ customerName: "", customerPhone: "", vehicle: "", service: "", message: "" });
+        setReserveForm({ customerName: "", customerPhone: "", vehicle: "", service: "", professionalId: "", message: "" });
         await loadSlots();
       } else {
         setReserveError(data.message || "No se pudo crear la reserva");
@@ -271,6 +285,7 @@ export default function CalendarioPage() {
                             {!slot.isAvailable && slot.booking && (
                               <p className="text-white/50 text-xs mt-1">
                                 {slot.booking.customerName} · {slot.booking.vehicle}
+                                {slot.booking.professionalName && ` · 👤 ${slot.booking.professionalName}`}
                               </p>
                             )}
                             <div className="mt-2 flex gap-2">
@@ -362,6 +377,19 @@ export default function CalendarioPage() {
                 </select>
               </div>
               <div>
+                <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Especialista (opcional)</label>
+                <select
+                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm"
+                  value={reserveForm.professionalId}
+                  onChange={(e) => setReserveForm((p) => ({ ...p, professionalId: e.target.value }))}
+                >
+                  <option value="">Sin preferencia</option>
+                  {professionals.map((pro) => (
+                    <option key={pro.id} value={pro.id}>{pro.firstName} {pro.lastName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Notas (opcional)</label>
                 <textarea
                   className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm resize-none"
@@ -418,6 +446,9 @@ export default function CalendarioPage() {
               } />
               <Row label="Vehículo" value={detailBooking.slot.booking!.vehicle} />
               <Row label="Servicio" value={detailBooking.slot.booking!.service || "—"} />
+              {detailBooking.slot.booking!.professionalName && (
+                <Row label="Especialista" value={detailBooking.slot.booking!.professionalName!} />
+              )}
               {detailBooking.slot.booking!.message && (
                 <Row label="Mensaje" value={detailBooking.slot.booking!.message!} />
               )}

@@ -11,7 +11,7 @@ export async function GET(
   const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
   const path = params.path.join("/");
   try {
-    const response = await fetch(`${API_URL}/api/professionals/${path}`, {
+    const response = await fetch(`${API_URL}/api/professionals/${path}${request.nextUrl.search}`, {
       method: "GET",
       headers: {
         Authorization: token ? `Bearer ${token}` : "",

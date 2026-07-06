@@ -61,6 +61,11 @@ public class ApplicationDbContext : DbContext
                 .WithMany(t => t.Bookings)
                 .HasForeignKey(b => b.TimeSlotId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(b => b.Professional)
+                .WithMany()
+                .HasForeignKey(b => b.ProfessionalId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<ClientAccessCode>(entity =>
