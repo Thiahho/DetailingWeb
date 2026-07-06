@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TimeSlot> TimeSlots { get; set; }
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<Service> Services { get; set; }
+    public DbSet<Professional> Professionals { get; set; }
     public DbSet<NotificationLog> NotificationLogs { get; set; }
     public DbSet<ClientAccessCode> ClientAccessCodes { get; set; }
     public DbSet<ContentVideo> ContentVideos { get; set; }
@@ -104,6 +105,20 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => e.IsActive);
             entity.HasIndex(e => e.Order);
+        });
+
+        // Configuración Professional — Schedule almacenado como JSON (jsonb),
+        // relación M2M implícita con Service (sin tocar Service.cs).
+        modelBuilder.Entity<Professional>(entity =>
+        {
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Order);
+            entity.Property(e => e.Commission).HasColumnType("decimal(5,2)");
+            entity.Property(e => e.Schedule).HasColumnType("jsonb");
+
+            entity.HasMany(p => p.Services)
+                  .WithMany()
+                  .UsingEntity(j => j.ToTable("ProfessionalServices"));
         });
 
         modelBuilder.Entity<ContentVideo>(entity =>
