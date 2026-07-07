@@ -141,7 +141,7 @@ export default function ConfiguracionPage() {
                 className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
                 value={formData.businessName}
                 onChange={(e) => setFormData((prev) => ({ ...prev, businessName: e.target.value }))}
-                placeholder="Studio Nails & Beauty"
+                placeholder="TTurnos - Codian"
                 required
               />
             </div>
