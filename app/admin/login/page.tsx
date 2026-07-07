@@ -81,7 +81,7 @@ export default function LoginPage() {
             <input
               type="text"
               className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
-              placeholder="admin@detailing.com"
+              placeholder="admin@tturnos.com"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
