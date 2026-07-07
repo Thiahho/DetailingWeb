@@ -53,7 +53,7 @@ export default function Navbar() {
           {/* LOGO */}
           <Link href="/" className="flex items-center gap-3 transition hover:opacity-80">
             <div className="relative h-10 w-10 md:h-12 md:w-12 rounded-full border border-mauve/15 bg-white">
-              <img src={logoUrl} alt="Logo" className="h-full w-full object-cover rounded-full" />
+              <img src={logoUrl} alt="Logo" className="h-full w-full object-contain rounded-full" />
             </div>
             {businessName && (
               <h1 className="text-base md:text-lg font-semibold text-charcoal">{businessName}</h1>
