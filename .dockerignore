@@ -24,17 +24,15 @@ out/
 LICENSE
 
 # Credenciales sensibles
-DetailingApi/credentials.json
-DetailingApi/token.json
-DetailingApi/appsettings.Development.json
-DetailingApi/appsettings.Production.json
+backend/TTurnos.Api/credentials.json
+backend/TTurnos.Api/token.json
+backend/TTurnos.Api/appsettings.Development.json
+backend/TTurnos.Api/appsettings.Production.json
 **/.env
 **/.env.*
 
 # Frontend (no se buildea en Docker)
-app/
-src/
-public/
+frontend/
 node_modules/
 .next/
 out/

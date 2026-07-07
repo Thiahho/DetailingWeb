@@ -1,0 +1,318 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
+
+interface Booking {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  vehicle: string;
+  service: string;
+  professionalId?: number | null;
+  professionalName?: string | null;
+  message?: string;
+  status: string;
+  paymentStatus?: string | null;
+  paymentAmount?: number | null;
+}
+
+interface Slot {
+  id: number;
+  startDateTime: string;
+  endDateTime: string;
+  isAvailable: boolean;
+  booking?: Booking;
+}
+
+function parseLocalDate(iso: string) {
+  const clean = iso.replace("Z", "");
+  const [date, time] = clean.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const [h, min] = time.split(":").map(Number);
+  return new Date(y, m - 1, d, h, min);
+}
+
+function formatDate(iso: string) {
+  const dt = parseLocalDate(iso);
+  const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  return {
+    day: days[dt.getDay()],
+    date: `${dt.getDate()} ${months[dt.getMonth()]}`,
+    time: `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`,
+    full: dt,
+  };
+}
+
+function isHoy(iso: string) {
+  const now = new Date();
+  const dt = parseLocalDate(iso);
+  return dt.getDate() === now.getDate() && dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
+}
+
+export default function AdminDashboard() {
+  const router = useRouter();
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"todos" | "reservados" | "confirmados" | "libres">("todos");
+
+  useEffect(() => {
+    if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
+    fetch("/api/timeslots")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return;
+        const now = new Date();
+        const upcoming = data
+          .filter((s: Slot) => parseLocalDate(s.startDateTime) >= now)
+          .sort((a: Slot, b: Slot) => parseLocalDate(a.startDateTime).getTime() - parseLocalDate(b.startDateTime).getTime())
+          .slice(0, 30);
+        setSlots(upcoming);
+      })
+      .finally(() => setLoading(false));
+  }, [router]);
+
+  const filtered = slots.filter((s) => {
+    if (filter === "reservados") return !s.isAvailable && s.booking?.status !== "Confirmed";
+    if (filter === "confirmados") return s.booking?.status === "Confirmed";
+    if (filter === "libres") return s.isAvailable;
+    return true;
+  });
+
+  const totalReservados = slots.filter((s) => !s.isAvailable && s.booking?.status !== "Confirmed").length;
+  const totalConfirmados = slots.filter((s) => s.booking?.status === "Confirmed").length;
+  const totalLibres = slots.filter((s) => s.isAvailable).length;
+
+  const handleLiberar = async (id: number, isConfirmed = false) => {
+    const msg = isConfirmed
+      ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
+      : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
+    if (!confirm(msg)) return;
+    const res = await fetch(`/api/timeslots/${id}/release`, { method: "PUT" });
+    if (res.ok) {
+      setSlots((prev) =>
+        prev.map((s) => s.id === id ? { ...s, isAvailable: true, booking: undefined } : s)
+      );
+    }
+  };
+
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center">
+      <p className="text-charcoal">Cargando...</p>
+    </div>
+  );
+
+  return (
+    <div className="p-4 md:p-6 font-sans">
+      <div className="mx-auto max-w-5xl">
+
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Panel principal</h1>
+          <p className="text-charcoal/50 text-sm mt-1">Próximos turnos ordenados por fecha</p>
+        </div>
+
+        {/* Stats rápidas */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-charcoal">{slots.length}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Próximos</p>
+          </div>
+          <div className="bg-ivory border border-orange-200 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-orange-700">{totalReservados}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Reservados</p>
+          </div>
+          <div className="bg-ivory border border-blue-200 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-blue-700">{totalConfirmados}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Confirmados</p>
+          </div>
+          <div className="bg-ivory border border-green-200 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-green-700">{totalLibres}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Disponibles</p>
+          </div>
+        </div>
+
+        {/* Filtros */}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {(["todos", "reservados", "confirmados", "libres"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition capitalize ${
+                filter === f
+                  ? "bg-white text-black"
+                  : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="bg-ivory border border-mauve/5 rounded-2xl py-16 text-center text-charcoal/30 text-sm">
+            Sin turnos para mostrar
+          </div>
+        ) : (
+          <>
+            {/* ── Mobile: cards ── */}
+            <div className="md:hidden space-y-2">
+              {filtered.map((slot) => {
+                const { day, date, time } = formatDate(slot.startDateTime);
+                const hoy = isHoy(slot.startDateTime);
+                return (
+                  <div
+                    key={slot.id}
+                    className={`bg-ivory border border-mauve/5 rounded-xl p-4 ${hoy ? "border-mauve/10" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      {/* Fecha + hora */}
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {hoy && (
+                            <span className="text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">HOY</span>
+                          )}
+                          <span className="text-charcoal/40 text-xs">{day}</span>
+                          <span className="text-charcoal font-medium text-sm">{date}</span>
+                          <span className="text-charcoal/30 text-xs">·</span>
+                          <span className="text-charcoal font-mono text-sm">{time}</span>
+                        </div>
+                        {/* Estado */}
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                          slot.isAvailable
+                            ? "bg-green-500/10 text-green-700"
+                            : slot.booking?.status === "Confirmed"
+                            ? "bg-blue-500/10 text-blue-700"
+                            : "bg-orange-500/10 text-orange-700"
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            slot.isAvailable ? "bg-green-400"
+                            : slot.booking?.status === "Confirmed" ? "bg-blue-400"
+                            : "bg-orange-400"
+                          }`} />
+                          {slot.isAvailable ? "Libre" : slot.booking?.status === "Confirmed" ? "Confirmado" : "Reservado"}
+                        </span>
+                      </div>
+                      {/* Acción */}
+                      {!slot.isAvailable && (
+                        <button
+                          onClick={() => handleLiberar(slot.id, slot.booking?.status === "Confirmed")}
+                          className="text-xs text-red-600/60 hover:text-red-600 transition font-medium shrink-0"
+                        >
+                          {slot.booking?.status === "Confirmed" ? "Cancelar" : "Liberar"}
+                        </button>
+                      )}
+                    </div>
+                    {/* Booking info */}
+                    {slot.booking && (
+                      <div className="mt-2.5 pt-2.5 border-t border-mauve/5">
+                        <p className="text-charcoal text-sm font-medium">{slot.booking.customerName}</p>
+                        <p className="text-charcoal/40 text-xs mt-0.5">
+                          {slot.booking.vehicle}
+                          {slot.booking.service && ` · ${slot.booking.service}`}
+                        </p>
+                        {slot.booking.professionalName && (
+                          <p className="text-charcoal/30 text-xs mt-0.5">👤 {slot.booking.professionalName}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ── Desktop: tabla ── */}
+            <div className="hidden md:block bg-ivory border border-mauve/5 rounded-2xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-mauve/5 text-charcoal/30 text-xs uppercase tracking-wider">
+                    <th className="text-left px-5 py-3 font-medium">Fecha</th>
+                    <th className="text-left px-5 py-3 font-medium">Hora</th>
+                    <th className="text-left px-5 py-3 font-medium">Estado</th>
+                    <th className="text-left px-5 py-3 font-medium">Cliente</th>
+                    <th className="text-left px-5 py-3 font-medium">Vehículo</th>
+                    <th className="text-left px-5 py-3 font-medium">Servicio</th>
+                    <th className="text-left px-5 py-3 font-medium">Especialista</th>
+                    <th className="px-5 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((slot) => {
+                    const { day, date, time } = formatDate(slot.startDateTime);
+                    const hoy = isHoy(slot.startDateTime);
+                    return (
+                      <tr
+                        key={slot.id}
+                        className={`border-b border-mauve/5 last:border-0 transition ${
+                          hoy ? "bg-porcelain/[0.03]" : "hover:bg-porcelain/[0.02]"
+                        }`}
+                      >
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2">
+                            {hoy && (
+                              <span className="text-[10px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">HOY</span>
+                            )}
+                            <span className="text-charcoal/40 text-xs">{day}</span>
+                            <span className="text-charcoal font-medium">{date}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-charcoal font-mono">{time}</td>
+                        <td className="px-5 py-4">
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                            slot.isAvailable
+                              ? "bg-green-500/10 text-green-700"
+                              : slot.booking?.status === "Confirmed"
+                              ? "bg-blue-500/10 text-blue-700"
+                              : "bg-orange-500/10 text-orange-700"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              slot.isAvailable ? "bg-green-400"
+                              : slot.booking?.status === "Confirmed" ? "bg-blue-400"
+                              : "bg-orange-400"
+                            }`} />
+                            {slot.isAvailable ? "Libre" : slot.booking?.status === "Confirmed" ? "Confirmado" : "Reservado"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          {slot.booking ? (
+                            <div>
+                              <p className="text-charcoal font-medium">{slot.booking.customerName}</p>
+                              <p className="text-charcoal/40 text-xs mt-0.5">{slot.booking.customerPhone}</p>
+                            </div>
+                          ) : (
+                            <span className="text-charcoal/20">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-charcoal/60">
+                          {slot.booking?.vehicle ?? <span className="text-charcoal/20">—</span>}
+                        </td>
+                        <td className="px-5 py-4 text-charcoal/60">
+                          {slot.booking?.service ?? <span className="text-charcoal/20">—</span>}
+                        </td>
+                        <td className="px-5 py-4 text-charcoal/60">
+                          {slot.booking?.professionalName ?? <span className="text-charcoal/20">—</span>}
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          {!slot.isAvailable && (
+                            <button
+                              onClick={() => handleLiberar(slot.id, slot.booking?.status === "Confirmed")}
+                              className="text-xs text-red-600/60 hover:text-red-600 transition font-medium"
+                            >
+                              {slot.booking?.status === "Confirmed" ? "Cancelar" : "Liberar"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

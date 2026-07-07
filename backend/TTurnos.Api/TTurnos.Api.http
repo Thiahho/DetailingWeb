@@ -1,0 +1,6 @@
+@TTurnos.Api_HostAddress = http://localhost:5048
+
+GET {{TTurnos.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
