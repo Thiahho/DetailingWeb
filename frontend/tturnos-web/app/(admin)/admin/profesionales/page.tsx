@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
+import PasswordInput from "@/src/components/ui/PasswordInput";
 
 interface ServiceOption {
   id: number;
@@ -624,8 +625,7 @@ export default function ProfesionalesAdminPage() {
                     <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
                       {editingProfessional.accountEmail ? "Nueva contraseña" : "Contraseña"}
                     </label>
-                    <input
-                      type="password"
+                    <PasswordInput
                       className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
                       value={accessForm.password}
                       onChange={(e) => setAccessForm((prev) => ({ ...prev, password: e.target.value }))}

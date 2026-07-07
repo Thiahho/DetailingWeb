@@ -133,7 +133,7 @@ function CustomerForm({
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Notas</label>
-        <textarea value={form.notes} onChange={set("notes")} className="input-field h-16 resize-none" placeholder="Auto, preferencias, etc." />
+        <textarea value={form.notes} onChange={set("notes")} className="input-field h-16 resize-none" placeholder="Alergias, preferencias, tratamientos anteriores, etc." />
       </div>
       <div className="flex gap-2 pt-1">
         <button type="submit" disabled={saving} className="flex-1 btn-primary">
@@ -148,7 +148,14 @@ function CustomerForm({
 // ── Types for ReminderForm ────────────────────────────────────────
 
 interface Service { id: number; title: string; slug: string; }
-interface TimeSlot { id: number; startDateTime: string; endDateTime: string; isAvailable: boolean; }
+interface TimeSlot { id: number; startDateTime: string; endDateTime: string; isAvailable: boolean; professionalId?: number | null; }
+interface Professional {
+  id: number;
+  firstName: string;
+  lastName: string;
+  calendarColor: string;
+  services?: { id: number; title: string }[];
+}
 
 function parseLocalDate(iso: string) {
   const clean = iso.replace("Z", "");
@@ -183,11 +190,14 @@ function ReminderForm({
   onClose: () => void;
 }) {
   const [services, setServices] = useState<Service[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [serviceLabel, setServiceLabel] = useState("");
-  const [vehicle, setVehicle] = useState("");
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<number | null>(null);
+  const [detail, setDetail] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [manualMode, setManualMode] = useState(false);
@@ -201,15 +211,45 @@ function ReminderForm({
   useEffect(() => {
     Promise.all([
       fetch("/api/services").then((r) => r.json()),
-      fetch("/api/timeslots").then((r) => r.json()),
-    ]).then(([svcData, slotData]) => {
+      fetch("/api/professionals").then((r) => r.json()),
+    ]).then(([svcData, proData]) => {
       if (Array.isArray(svcData)) setServices(svcData);
-      if (Array.isArray(slotData)) {
-        const now = new Date();
-        setSlots(slotData.filter((s: TimeSlot) => new Date(s.startDateTime.replace("Z", "")) > now));
-      }
+      if (Array.isArray(proData)) setProfessionals(proData);
     }).finally(() => setLoadingData(false));
   }, []);
+
+  const selectedServiceObj = services.find((s) => s.title === serviceLabel) ?? null;
+
+  // Sin servicio seleccionado todavía: mostrar todos. Con servicio elegido:
+  // solo los profesionales que lo ofrecen (mismo criterio que la reserva pública).
+  const availableProfessionals = selectedServiceObj
+    ? professionals.filter((p) => p.services?.some((s) => s.id === selectedServiceObj.id))
+    : professionals;
+
+  function handleServiceChange(title: string) {
+    setServiceLabel(title);
+    setSelectedProfessionalId(null);
+    setSelectedSlot(null);
+    setSelectedDate("");
+  }
+
+  // Recargar los turnos disponibles cada vez que cambia el profesional elegido
+  // ("sin preferencia" = null trae los de todos los profesionales que ofrecen
+  // el servicio, igual que en la reserva pública).
+  useEffect(() => {
+    if (manualMode) return;
+    setLoadingSlots(true);
+    const query = selectedProfessionalId ? `?professionalId=${selectedProfessionalId}` : "";
+    fetch(`/api/timeslots/available${query}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const now = new Date();
+          setSlots(data.filter((s: TimeSlot) => new Date(s.startDateTime.replace("Z", "")) > now));
+        }
+      })
+      .finally(() => setLoadingSlots(false));
+  }, [selectedProfessionalId, manualMode]);
 
   const slotsByDate = slots
     .filter((s) => s.isAvailable)
@@ -232,6 +272,7 @@ function ReminderForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!serviceLabel.trim()) { setError("Seleccioná un servicio."); return; }
+    if (manualMode && !selectedProfessionalId) { setError("Elegí a qué profesional pertenece el turno."); return; }
     if (!resolvedDateTime)    { setError("Seleccioná un turno o ingresá una fecha."); return; }
     setSaving(true);
     setError("");
@@ -265,6 +306,7 @@ function ReminderForm({
           body: JSON.stringify({
             startDateTime: `${resolvedDateTime}:00`,
             endDateTime,
+            professionalId: selectedProfessionalId,
           }),
         });
         if (!slotRes.ok) {
@@ -285,12 +327,13 @@ function ReminderForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          timeSlotId:    slotId,
-          customerName:  customer.name,
-          customerPhone: customer.phone,
-          email:         customer.email ?? "",
-          subject:       vehicle,
-          service:       serviceLabel,
+          timeSlotId:     slotId,
+          customerName:   customer.name,
+          customerPhone:  customer.phone,
+          email:          customer.email ?? "",
+          subject:        detail,
+          service:        serviceLabel,
+          professionalId: selectedProfessionalId,
         }),
       });
       if (!bookingRes.ok) {
@@ -336,21 +379,62 @@ function ReminderForm({
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Servicio *</label>
         {services.length > 0 ? (
-          <select value={serviceLabel} onChange={(e) => setServiceLabel(e.target.value)} className="input-field">
+          <select value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="input-field">
             <option value="">— Seleccioná un servicio —</option>
             {services.map((s) => (
               <option key={s.id} value={s.title}>{s.title}</option>
             ))}
           </select>
         ) : (
-          <input value={serviceLabel} onChange={(e) => setServiceLabel(e.target.value)} className="input-field" placeholder="Ej: Pulido completo" />
+          <input value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="input-field" placeholder="Ej: Corte y color" />
         )}
       </div>
 
-      {/* Vehículo */}
+      {/* Profesional */}
       <div>
-        <label className="block text-charcoal/50 text-xs mb-1">Vehículo</label>
-        <input value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input-field" placeholder="Ej: Toyota Corolla 2020" />
+        <label className="block text-charcoal/50 text-xs mb-1">Profesional</label>
+        {availableProfessionals.length === 0 ? (
+          <p className="text-charcoal/30 text-xs">
+            {selectedServiceObj ? "Ningún profesional ofrece este servicio todavía." : "Seleccioná un servicio para ver quién lo ofrece."}
+          </p>
+        ) : (
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => { setSelectedProfessionalId(null); setSelectedSlot(null); }}
+              className={`px-2.5 py-1 rounded-lg text-xs transition ${
+                selectedProfessionalId === null
+                  ? "bg-champagne/20 text-champagne border border-champagne/30"
+                  : "bg-porcelain/5 text-charcoal/50 hover:bg-porcelain/10 hover:text-charcoal"
+              }`}
+            >
+              Sin preferencia
+            </button>
+            {availableProfessionals.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => { setSelectedProfessionalId(p.id); setSelectedSlot(null); }}
+                className={`px-2.5 py-1 rounded-lg text-xs transition ${
+                  selectedProfessionalId === p.id
+                    ? "bg-champagne/20 text-champagne border border-champagne/30"
+                    : "bg-porcelain/5 text-charcoal/50 hover:bg-porcelain/10 hover:text-charcoal"
+                }`}
+              >
+                {p.firstName} {p.lastName}
+              </button>
+            ))}
+          </div>
+        )}
+        {manualMode && !selectedProfessionalId && (
+          <p className="text-amber-700/70 text-[10px] mt-1">Para crear un turno manual hay que elegir a qué profesional pertenece.</p>
+        )}
+      </div>
+
+      {/* Detalle del turno */}
+      <div>
+        <label className="block text-charcoal/50 text-xs mb-1">Detalle del turno</label>
+        <input value={detail} onChange={(e) => setDetail(e.target.value)} className="input-field" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." />
       </div>
 
       {/* Fecha/hora */}
@@ -373,6 +457,8 @@ function ReminderForm({
             <input type="datetime-local" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="input-field" />
             <p className="text-charcoal/25 text-[10px] mt-1">Se creará el turno automáticamente en esa fecha.</p>
           </div>
+        ) : loadingSlots ? (
+          <p className="text-charcoal/30 text-xs text-center py-4">Cargando turnos...</p>
         ) : sortedDates.length === 0 ? (
           <div className="rounded-lg border border-mauve/15 bg-cream px-3 py-4 text-center">
             <p className="text-charcoal/30 text-xs mb-2">No hay turnos disponibles.</p>

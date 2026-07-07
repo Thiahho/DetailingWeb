@@ -3,6 +3,7 @@
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { setLoggedIn, verifySession } from "@/src/lib/auth";
+import PasswordInput from "@/src/components/ui/PasswordInput";
 
 export default function ProfessionalLoginPage() {
   const router = useRouter();
@@ -97,8 +98,7 @@ export default function ProfessionalLoginPage() {
             <label className="text-sm font-medium text-charcoal/70">
               Contraseña
             </label>
-            <input
-              type="password"
+            <PasswordInput
               className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
               placeholder="••••••••"
               value={formData.password}
