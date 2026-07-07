@@ -4,7 +4,7 @@ import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { setLoggedIn, verifySession } from "../../../src/lib/auth";
 
-export default function LoginPage() {
+export default function ProfessionalLoginPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -16,7 +16,7 @@ export default function LoginPage() {
     const checkSession = async () => {
       const isValid = await verifySession();
       if (isValid) {
-        router.push("/admin/turnos");
+        router.push("/profesional/agenda");
       } else {
         setChecking(false);
       }
@@ -43,8 +43,12 @@ export default function LoginPage() {
         throw new Error(data.message || "Error al iniciar sesión");
       }
 
+      if (data.role !== "Professional") {
+        throw new Error("Esta cuenta no tiene acceso al panel de profesionales");
+      }
+
       setLoggedIn(data.email, data.role);
-      router.push("/admin/turnos");
+      router.push("/profesional/agenda");
     } catch (err: any) {
       setError(err.message || "Error de conexión");
     } finally {
@@ -52,7 +56,6 @@ export default function LoginPage() {
     }
   };
 
-  // Mostrar loader mientras verifica sesión
   if (checking) {
     return (
       <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-cream">
@@ -65,8 +68,8 @@ export default function LoginPage() {
     <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-cream px-6">
       <div className="glass-card w-full max-w-md p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-charcoal">Panel Admin</h1>
-          <p className="mt-2 text-charcoal/60">Ingresá tus credenciales</p>
+          <h1 className="text-3xl font-bold text-charcoal">Mi Agenda</h1>
+          <p className="mt-2 text-charcoal/60">Ingresá con tu email y contraseña</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -81,7 +84,7 @@ export default function LoginPage() {
             <input
               type="text"
               className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
-              placeholder="admin@detailing.com"
+              placeholder="vos@studionails.com o tu usuario"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })

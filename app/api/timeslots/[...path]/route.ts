@@ -13,8 +13,8 @@ export async function GET(
 
   try {
     const url = path
-      ? `${API_URL}/api/timeslots/${path}`
-      : `${API_URL}/api/timeslots`;
+      ? `${API_URL}/api/timeslots/${path}${request.nextUrl.search}`
+      : `${API_URL}/api/timeslots${request.nextUrl.search}`;
 
     const response = await fetch(url, {
       method: "GET",

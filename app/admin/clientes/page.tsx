@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../../src/lib/auth";
 import { Plus, ChevronLeft, Bell, BellOff, Pencil, Trash2, X, Check, Clock, RefreshCw, CalendarDays, PenLine } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -47,16 +47,16 @@ function toLocalInputValue(iso: string) {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    Pending:   "bg-amber-500/20 text-amber-300",
-    Sent:      "bg-emerald-500/20 text-emerald-400",
-    Failed:    "bg-red-500/20 text-red-400",
-    Cancelled: "bg-white/10 text-white/30",
+    Pending:   "bg-amber-500/20 text-amber-700",
+    Sent:      "bg-emerald-500/20 text-emerald-700",
+    Failed:    "bg-red-500/20 text-red-600",
+    Cancelled: "bg-porcelain/10 text-charcoal/30",
   };
   const labels: Record<string, string> = {
     Pending: "Pendiente", Sent: "Enviado", Failed: "Fallido", Cancelled: "Cancelado",
   };
   return (
-    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${map[status] ?? "bg-white/5 text-white/40"}`}>
+    <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${map[status] ?? "bg-porcelain/5 text-charcoal/40"}`}>
       {labels[status] ?? status}
     </span>
   );
@@ -67,10 +67,10 @@ function StatusBadge({ status }: { status: string }) {
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="bg-[#161a21] border border-white/10 rounded-xl w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-          <span className="text-white font-semibold text-sm">{title}</span>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition"><X size={18} /></button>
+      <div className="bg-porcelain border border-mauve/10 rounded-xl w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-mauve/15">
+          <span className="text-charcoal font-semibold text-sm">{title}</span>
+          <button onClick={onClose} className="text-charcoal/40 hover:text-charcoal transition"><X size={18} /></button>
         </div>
         <div className="px-5 py-4">{children}</div>
       </div>
@@ -118,21 +118,21 @@ function CustomerForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {error && <p className="text-red-600 text-xs">{error}</p>}
       <div>
-        <label className="block text-white/50 text-xs mb-1">Nombre *</label>
+        <label className="block text-charcoal/50 text-xs mb-1">Nombre *</label>
         <input value={form.name} onChange={set("name")} className="input-field" placeholder="Juan Pérez" />
       </div>
       <div>
-        <label className="block text-white/50 text-xs mb-1">Teléfono *</label>
+        <label className="block text-charcoal/50 text-xs mb-1">Teléfono *</label>
         <input value={form.phone} onChange={set("phone")} className="input-field" placeholder="5491112345678" />
       </div>
       <div>
-        <label className="block text-white/50 text-xs mb-1">Email</label>
+        <label className="block text-charcoal/50 text-xs mb-1">Email</label>
         <input value={form.email} onChange={set("email")} className="input-field" placeholder="juan@email.com" type="email" />
       </div>
       <div>
-        <label className="block text-white/50 text-xs mb-1">Notas</label>
+        <label className="block text-charcoal/50 text-xs mb-1">Notas</label>
         <textarea value={form.notes} onChange={set("notes")} className="input-field h-16 resize-none" placeholder="Auto, preferencias, etc." />
       </div>
       <div className="flex gap-2 pt-1">
@@ -319,22 +319,22 @@ function ReminderForm({
     }
   };
 
-  if (loadingData) return <p className="text-white/40 text-sm text-center py-6">Cargando...</p>;
+  if (loadingData) return <p className="text-charcoal/40 text-sm text-center py-6">Cargando...</p>;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="text-red-400 text-xs bg-red-500/10 px-3 py-2 rounded-lg">{error}</p>}
+      {error && <p className="text-red-600 text-xs bg-red-500/10 px-3 py-2 rounded-lg">{error}</p>}
 
       {/* Cliente (solo lectura) */}
-      <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2">
-        <span className="text-white/40 text-xs">Cliente:</span>
-        <span className="text-white text-xs font-medium">{customer.name}</span>
-        <span className="text-white/30 text-xs">{customer.phone}</span>
+      <div className="flex items-center gap-2 bg-porcelain/5 rounded-lg px-3 py-2">
+        <span className="text-charcoal/40 text-xs">Cliente:</span>
+        <span className="text-charcoal text-xs font-medium">{customer.name}</span>
+        <span className="text-charcoal/30 text-xs">{customer.phone}</span>
       </div>
 
       {/* Servicio */}
       <div>
-        <label className="block text-white/50 text-xs mb-1">Servicio *</label>
+        <label className="block text-charcoal/50 text-xs mb-1">Servicio *</label>
         {services.length > 0 ? (
           <select value={serviceLabel} onChange={(e) => setServiceLabel(e.target.value)} className="input-field">
             <option value="">— Seleccioná un servicio —</option>
@@ -349,18 +349,18 @@ function ReminderForm({
 
       {/* Vehículo */}
       <div>
-        <label className="block text-white/50 text-xs mb-1">Vehículo</label>
+        <label className="block text-charcoal/50 text-xs mb-1">Vehículo</label>
         <input value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input-field" placeholder="Ej: Toyota Corolla 2020" />
       </div>
 
       {/* Fecha/hora */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-white/50 text-xs">Fecha y hora *</label>
+          <label className="text-charcoal/50 text-xs">Fecha y hora *</label>
           <button
             type="button"
             onClick={() => { setManualMode((v) => !v); setSelectedSlot(null); setSelectedDate(""); setManualDate(""); }}
-            className="flex items-center gap-1 text-[11px] text-white/30 hover:text-white/60 transition"
+            className="flex items-center gap-1 text-[11px] text-charcoal/30 hover:text-charcoal/60 transition"
           >
             {manualMode
               ? <><CalendarDays size={12} /> Ver turnos disponibles</>
@@ -371,12 +371,12 @@ function ReminderForm({
         {manualMode ? (
           <div>
             <input type="datetime-local" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="input-field" />
-            <p className="text-white/25 text-[10px] mt-1">Se creará el turno automáticamente en esa fecha.</p>
+            <p className="text-charcoal/25 text-[10px] mt-1">Se creará el turno automáticamente en esa fecha.</p>
           </div>
         ) : sortedDates.length === 0 ? (
-          <div className="rounded-lg border border-white/5 bg-[#0d1117] px-3 py-4 text-center">
-            <p className="text-white/30 text-xs mb-2">No hay turnos disponibles.</p>
-            <button type="button" onClick={() => setManualMode(true)} className="text-[#d6b46a]/60 text-xs hover:text-[#d6b46a] transition">
+          <div className="rounded-lg border border-mauve/15 bg-cream px-3 py-4 text-center">
+            <p className="text-charcoal/30 text-xs mb-2">No hay turnos disponibles.</p>
+            <button type="button" onClick={() => setManualMode(true)} className="text-champagne/60 text-xs hover:text-champagne transition">
               Crear turno manualmente
             </button>
           </div>
@@ -389,12 +389,12 @@ function ReminderForm({
                   onClick={() => { setSelectedDate(dk); setSelectedSlot(null); }}
                   className={`px-2.5 py-1 rounded-lg text-xs transition ${
                     selectedDate === dk
-                      ? "bg-[#d6b46a]/20 text-[#d6b46a] border border-[#d6b46a]/30"
-                      : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                      ? "bg-champagne/20 text-champagne border border-champagne/30"
+                      : "bg-porcelain/5 text-charcoal/50 hover:bg-porcelain/10 hover:text-charcoal"
                   }`}
                 >
                   {slotDateLabel(dk)}
-                  <span className="ml-1 text-white/25">{slotsByDate[dk].length}</span>
+                  <span className="ml-1 text-charcoal/25">{slotsByDate[dk].length}</span>
                 </button>
               ))}
             </div>
@@ -405,8 +405,8 @@ function ReminderForm({
                     key={s.id} type="button" onClick={() => setSelectedSlot(s)}
                     className={`px-3 py-1.5 rounded-lg text-xs transition ${
                       selectedSlot?.id === s.id
-                        ? "bg-[#d6b46a]/25 text-[#d6b46a] border border-[#d6b46a]/40"
-                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                        ? "bg-champagne/25 text-champagne border border-champagne/40"
+                        : "bg-porcelain/5 text-charcoal/60 hover:bg-porcelain/10 hover:text-charcoal"
                     }`}
                   >
                     {slotTime(s.startDateTime)}
@@ -415,7 +415,7 @@ function ReminderForm({
               </div>
             )}
             {selectedSlot && (
-              <p className="text-emerald-400/70 text-[11px]">
+              <p className="text-emerald-700/70 text-[11px]">
                 ✓ {slotDateLabel(parseLocalDate(selectedSlot.startDateTime).key)} · {slotTime(selectedSlot.startDateTime)}
               </p>
             )}
@@ -425,13 +425,13 @@ function ReminderForm({
 
       {/* Repetición del aviso */}
       <div>
-        <label className="block text-white/50 text-xs mb-1">Repetir aviso cada (días)</label>
+        <label className="block text-charcoal/50 text-xs mb-1">Repetir aviso cada (días)</label>
         <input value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} type="number" min="1" className="input-field" placeholder="Ej: 30 — dejar vacío para no repetir" />
       </div>
 
       {/* Mensaje personalizado del aviso 24h */}
       <div>
-        <label className="block text-white/50 text-xs mb-1">Mensaje del aviso 24h <span className="text-white/25">(opcional)</span></label>
+        <label className="block text-charcoal/50 text-xs mb-1">Mensaje del aviso 24h <span className="text-charcoal/25">(opcional)</span></label>
         <textarea
           value={reminderMessage} onChange={(e) => setReminderMessage(e.target.value)}
           className="input-field h-16 resize-none"
@@ -439,7 +439,7 @@ function ReminderForm({
         />
       </div>
 
-      <p className="text-white/25 text-[10px]">Se enviará confirmación al cliente y al admin al reservar. El aviso WhatsApp se manda 24 hs antes (5 min en pruebas).</p>
+      <p className="text-charcoal/25 text-[10px]">Se enviará confirmación al cliente y al admin al reservar. El aviso WhatsApp se manda 24 hs antes (5 min en pruebas).</p>
 
       <div className="flex gap-2">
         <button type="submit" disabled={saving} className="flex-1 btn-primary">
@@ -471,7 +471,7 @@ export default function ClientesPage() {
 
   // ── auth ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isAuthenticated()) { router.push("/admin/login"); return; }
+    if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
     loadCustomers();
   }, []);
 
@@ -578,7 +578,7 @@ export default function ClientesPage() {
 
   // ── render ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0f1115] text-white">
+    <div className="min-h-screen bg-cream text-charcoal">
       {/* ── modals ── */}
       {(showCustomerForm || editingCustomer) && (
         <Modal
@@ -615,27 +615,27 @@ export default function ClientesPage() {
                 <div className="flex items-start gap-3">
                   <button
                     onClick={() => setSelected(null)}
-                    className="mt-0.5 text-white/40 hover:text-white transition"
+                    className="mt-0.5 text-charcoal/40 hover:text-charcoal transition"
                   >
                     <ChevronLeft size={20} />
                   </button>
                   <div>
-                    <h1 className="text-white font-semibold text-lg leading-tight">{selected.name}</h1>
-                    <p className="text-white/40 text-sm">{selected.phone}{selected.email ? ` · ${selected.email}` : ""}</p>
-                    {selected.notes && <p className="text-white/30 text-xs mt-1">{selected.notes}</p>}
+                    <h1 className="text-charcoal font-semibold text-lg leading-tight">{selected.name}</h1>
+                    <p className="text-charcoal/40 text-sm">{selected.phone}{selected.email ? ` · ${selected.email}` : ""}</p>
+                    {selected.notes && <p className="text-charcoal/30 text-xs mt-1">{selected.notes}</p>}
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setEditingCustomer(selected)}
-                    className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition"
+                    className="p-2 text-charcoal/40 hover:text-charcoal hover:bg-porcelain/5 rounded-lg transition"
                     title="Editar cliente"
                   >
                     <Pencil size={15} />
                   </button>
                   <button
                     onClick={() => deleteCustomer(selected)}
-                    className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                    className="p-2 text-charcoal/40 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition"
                     title="Eliminar cliente"
                   >
                     <Trash2 size={15} />
@@ -645,18 +645,18 @@ export default function ClientesPage() {
 
               {/* reminders section */}
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-white/70 text-sm font-medium">Avisos programados</h2>
+                <h2 className="text-charcoal/70 text-sm font-medium">Avisos programados</h2>
                 <div className="flex gap-2">
                   <button
                     onClick={() => loadReminders(selected.id)}
-                    className="p-1.5 text-white/30 hover:text-white transition"
+                    className="p-1.5 text-charcoal/30 hover:text-charcoal transition"
                     title="Actualizar"
                   >
                     <RefreshCw size={14} />
                   </button>
                   <button
                     onClick={() => setShowReminderForm(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d6b46a]/20 text-[#d6b46a] text-xs font-medium rounded-lg hover:bg-[#d6b46a]/30 transition"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-champagne/20 text-champagne text-xs font-medium rounded-lg hover:bg-champagne/30 transition"
                   >
                     <Plus size={13} />
                     Nuevo aviso
@@ -665,14 +665,14 @@ export default function ClientesPage() {
               </div>
 
               {loadingReminders ? (
-                <p className="text-white/30 text-sm py-8 text-center">Cargando...</p>
+                <p className="text-charcoal/30 text-sm py-8 text-center">Cargando...</p>
               ) : reminders.length === 0 ? (
-                <div className="text-center py-12 border border-white/5 rounded-xl">
-                  <Bell size={24} className="mx-auto text-white/10 mb-3" />
-                  <p className="text-white/30 text-sm">Sin avisos programados</p>
+                <div className="text-center py-12 border border-mauve/15 rounded-xl">
+                  <Bell size={24} className="mx-auto text-charcoal/10 mb-3" />
+                  <p className="text-charcoal/30 text-sm">Sin avisos programados</p>
                   <button
                     onClick={() => setShowReminderForm(true)}
-                    className="mt-3 text-[#d6b46a]/70 text-xs hover:text-[#d6b46a] transition"
+                    className="mt-3 text-champagne/70 text-xs hover:text-champagne transition"
                   >
                     Programar el primero
                   </button>
@@ -685,25 +685,25 @@ export default function ClientesPage() {
                     .map((r) => (
                       <div
                         key={r.id}
-                        className="flex items-center justify-between bg-[#161a21] border border-white/5 rounded-xl px-4 py-3"
+                        className="flex items-center justify-between bg-porcelain border border-mauve/15 rounded-xl px-4 py-3"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="shrink-0">
                             {r.status === "Sent" ? (
-                              <Check size={16} className="text-emerald-400" />
+                              <Check size={16} className="text-emerald-700" />
                             ) : r.status === "Cancelled" ? (
-                              <BellOff size={16} className="text-white/20" />
+                              <BellOff size={16} className="text-charcoal/20" />
                             ) : r.status === "Failed" ? (
-                              <X size={16} className="text-red-400" />
+                              <X size={16} className="text-red-600" />
                             ) : (
-                              <Clock size={16} className="text-amber-400" />
+                              <Clock size={16} className="text-amber-700" />
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-white text-sm font-medium truncate">{r.serviceLabel}</p>
-                            <p className="text-white/40 text-xs">{formatDate(r.scheduledFor)}</p>
+                            <p className="text-charcoal text-sm font-medium truncate">{r.serviceLabel}</p>
+                            <p className="text-charcoal/40 text-xs">{formatDate(r.scheduledFor)}</p>
                             {r.intervalDays && (
-                              <p className="text-white/25 text-[10px]">Repite cada {r.intervalDays} días</p>
+                              <p className="text-charcoal/25 text-[10px]">Repite cada {r.intervalDays} días</p>
                             )}
                           </div>
                         </div>
@@ -712,7 +712,7 @@ export default function ClientesPage() {
                           {r.status === "Pending" && (
                             <button
                               onClick={() => cancelReminder(r)}
-                              className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                              className="p-1.5 text-charcoal/20 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition"
                               title="Cancelar aviso"
                             >
                               <X size={13} />
@@ -728,10 +728,10 @@ export default function ClientesPage() {
             /* ── list view ── */
             <div>
               <div className="flex items-center justify-between mb-5">
-                <h1 className="text-white font-semibold text-lg">Clientes</h1>
+                <h1 className="text-charcoal font-semibold text-lg">Clientes</h1>
                 <button
                   onClick={() => { setEditingCustomer(null); setShowCustomerForm(true); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d6b46a]/20 text-[#d6b46a] text-xs font-medium rounded-lg hover:bg-[#d6b46a]/30 transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-champagne/20 text-champagne text-xs font-medium rounded-lg hover:bg-champagne/30 transition"
                 >
                   <Plus size={13} />
                   Nuevo cliente
@@ -746,10 +746,10 @@ export default function ClientesPage() {
               />
 
               {loading ? (
-                <p className="text-white/30 text-sm py-8 text-center">Cargando...</p>
+                <p className="text-charcoal/30 text-sm py-8 text-center">Cargando...</p>
               ) : filtered.length === 0 ? (
-                <div className="text-center py-12 border border-white/5 rounded-xl">
-                  <p className="text-white/30 text-sm">
+                <div className="text-center py-12 border border-mauve/15 rounded-xl">
+                  <p className="text-charcoal/30 text-sm">
                     {search ? "Sin resultados." : "No hay clientes aún."}
                   </p>
                 </div>
@@ -759,14 +759,14 @@ export default function ClientesPage() {
                     <button
                       key={c.id}
                       onClick={() => selectCustomer(c)}
-                      className="w-full text-left flex items-center justify-between bg-[#161a21] border border-white/5 hover:border-white/10 rounded-xl px-4 py-3 transition group"
+                      className="w-full text-left flex items-center justify-between bg-porcelain border border-mauve/15 hover:border-mauve/30 rounded-xl px-4 py-3 transition group"
                     >
                       <div className="min-w-0">
-                        <p className="text-white text-sm font-medium">{c.name}</p>
-                        <p className="text-white/40 text-xs">{c.phone}{c.email ? ` · ${c.email}` : ""}</p>
-                        {c.notes && <p className="text-white/25 text-xs truncate max-w-xs">{c.notes}</p>}
+                        <p className="text-charcoal text-sm font-medium">{c.name}</p>
+                        <p className="text-charcoal/40 text-xs">{c.phone}{c.email ? ` · ${c.email}` : ""}</p>
+                        {c.notes && <p className="text-charcoal/25 text-xs truncate max-w-xs">{c.notes}</p>}
                       </div>
-                      <ChevronLeft size={16} className="text-white/20 group-hover:text-white/50 rotate-180 transition" />
+                      <ChevronLeft size={16} className="text-charcoal/20 group-hover:text-charcoal/50 rotate-180 transition" />
                     </button>
                   ))}
                 </div>
@@ -780,37 +780,37 @@ export default function ClientesPage() {
       <style jsx global>{`
         .input-field {
           width: 100%;
-          background: #0d1117;
-          border: 1px solid rgba(255,255,255,0.08);
+          background: #ffffff;
+          border: 1px solid rgba(156,124,136,0.15);
           border-radius: 8px;
           padding: 8px 12px;
-          color: white;
+          color: #2E2328;
           font-size: 13px;
           outline: none;
           transition: border-color 0.15s;
         }
-        .input-field::placeholder { color: rgba(255,255,255,0.25); }
-        .input-field:focus { border-color: rgba(255,255,255,0.2); }
+        .input-field::placeholder { color: rgba(138,122,126,0.6); }
+        .input-field:focus { border-color: rgba(214,154,166,0.6); }
         .btn-primary {
           padding: 8px 16px;
-          background: rgba(214,180,106,0.2);
-          color: #d6b46a;
+          background: rgba(198,162,110,0.15);
+          color: #9c7a4a;
           border-radius: 8px;
           font-size: 13px;
           font-weight: 500;
           transition: background 0.15s;
         }
-        .btn-primary:hover:not(:disabled) { background: rgba(214,180,106,0.3); }
+        .btn-primary:hover:not(:disabled) { background: rgba(198,162,110,0.25); }
         .btn-primary:disabled { opacity: 0.5; }
         .btn-ghost {
           padding: 8px 16px;
-          background: rgba(255,255,255,0.05);
-          color: rgba(255,255,255,0.5);
+          background: rgba(46,35,40,0.04);
+          color: rgba(46,35,40,0.5);
           border-radius: 8px;
           font-size: 13px;
           transition: background 0.15s;
         }
-        .btn-ghost:hover { background: rgba(255,255,255,0.08); color: white; }
+        .btn-ghost:hover { background: rgba(46,35,40,0.08); color: #2E2328; }
       `}</style>
     </div>
   );

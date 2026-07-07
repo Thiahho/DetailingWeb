@@ -44,6 +44,7 @@ public class SiteConfigController : ControllerBase
         config.InstagramHandle = request.InstagramHandle;
         config.Location = request.Location;
         config.LocationShort = request.LocationShort;
+        config.MapEmbedUrl = request.MapEmbedUrl;
         config.SiteUrl = request.SiteUrl;
         config.LogoUrl = request.LogoUrl;
         config.HeroTitle = request.HeroTitle;
@@ -64,6 +65,7 @@ public record SiteConfigRequest(
     string InstagramHandle,
     string Location,
     string LocationShort,
+    string? MapEmbedUrl,
     string SiteUrl,
     string LogoUrl,
     string HeroTitle,

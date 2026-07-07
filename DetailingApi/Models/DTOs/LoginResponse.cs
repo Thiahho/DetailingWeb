@@ -7,4 +7,5 @@ public class LoginResponse
     public string Role { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
     public string? PendingOtpCode { get; set; }
+    public int? ProfessionalId { get; set; }
 }

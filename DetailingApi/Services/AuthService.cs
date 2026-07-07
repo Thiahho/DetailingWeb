@@ -24,9 +24,10 @@ public class AuthService
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
-        // Buscar usuario por email
+        // El campo "Email" del request puede ser un email o un username.
+        var identifier = request.Email.Trim();
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+            .FirstOrDefaultAsync(u => u.Email == identifier || u.Username == identifier);
 
         if (user == null)
             return null;
@@ -37,14 +38,64 @@ public class AuthService
 
         // Generar token JWT
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
-        var token = GenerateJwtToken(user.Id, user.Email, user.Role, "admin_access", TimeSpan.FromMinutes(expiryMinutes));
+        var token = GenerateJwtToken(user.Id, user.Email, user.Role, "admin_access", TimeSpan.FromMinutes(expiryMinutes), user.ProfessionalId);
 
         return new LoginResponse
         {
             Token = token,
             Email = user.Email,
             Role = user.Role,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
+            ProfessionalId = user.ProfessionalId
+        };
+    }
+
+    // Crea o actualiza la cuenta de acceso de un profesional (Role="Professional", ligada por ProfessionalId).
+    // La usa el admin desde la ficha del profesional para "activar acceso" / cambiar su contraseña.
+    public async Task<LoginResponse> CreateProfessionalAccountAsync(int professionalId, string email, string password, string? username = null)
+    {
+        var professional = await _context.Professionals.FindAsync(professionalId)
+            ?? throw new ArgumentException("Profesional no encontrado");
+
+        if (password.Length < 6)
+            throw new ArgumentException("La contraseña debe tener al menos 6 caracteres");
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var normalizedUsername = string.IsNullOrWhiteSpace(username) ? null : username.Trim();
+
+        var existingByEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+        if (existingByEmail != null && existingByEmail.ProfessionalId != professionalId)
+            throw new ArgumentException("Ese email ya está en uso por otra cuenta");
+
+        if (normalizedUsername != null)
+        {
+            var existingByUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == normalizedUsername);
+            if (existingByUsername != null && existingByUsername.ProfessionalId != professionalId)
+                throw new ArgumentException("Ese usuario ya está en uso por otra cuenta");
+        }
+
+        var account = existingByEmail ?? await _context.Users.FirstOrDefaultAsync(u => u.ProfessionalId == professionalId && u.Role == "Professional");
+
+        if (account == null)
+        {
+            account = new User { Role = "Professional", ProfessionalId = professionalId };
+            _context.Users.Add(account);
+        }
+
+        account.Email = normalizedEmail;
+        account.Username = normalizedUsername;
+        account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        account.ProfessionalId = professionalId;
+        await _context.SaveChangesAsync();
+
+        var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
+        return new LoginResponse
+        {
+            Token = GenerateJwtToken(account.Id, account.Email, "Professional", "admin_access", TimeSpan.FromMinutes(expiryMinutes), professionalId),
+            Email = account.Email,
+            Role = "Professional",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
+            ProfessionalId = professionalId
         };
     }
 
@@ -249,20 +300,24 @@ public class AuthService
         return tokenHandler.ValidateToken(token, validationParameters, out _);
     }
 
-    private string GenerateJwtToken(int userId, string email, string role, string tokenType, TimeSpan expiresIn)
+    private string GenerateJwtToken(int userId, string email, string role, string tokenType, TimeSpan expiresIn, int? professionalId = null)
     {
         var jwtKey = _configuration["Jwt:Key"];
         var key = Encoding.ASCII.GetBytes(jwtKey!);
 
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Email, email),
+            new Claim(ClaimTypes.Role, role),
+            new Claim("token_type", tokenType)
+        };
+        if (professionalId.HasValue)
+            claims.Add(new Claim("professional_id", professionalId.Value.ToString()));
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Role, role),
-                new Claim("token_type", tokenType)
-            }),
+            Subject = new ClaimsIdentity(claims),
             Expires = DateTime.UtcNow.Add(expiresIn),
             Issuer = _configuration["Jwt:Issuer"],
             Audience = _configuration["Jwt:Audience"],

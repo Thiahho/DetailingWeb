@@ -68,10 +68,15 @@ public class BookingsController : ControllerBase
             .AsNoTracking()
             .FirstAsync(t => t.Id == request.TimeSlotId);
 
+        // Si el turno ya pertenece a un profesional, manda esa asignación por sobre
+        // cualquier valor que haya mandado el cliente (turnos legacy sin dueño mantienen
+        // el comportamiento anterior: el profesional lo elige el cliente al reservar).
+        var professionalId = timeSlot.ProfessionalId ?? request.ProfessionalId;
+
         var booking = new Booking
         {
             TimeSlotId = request.TimeSlotId,
-            ProfessionalId = request.ProfessionalId,
+            ProfessionalId = professionalId,
             CustomerName = request.CustomerName,
             CustomerPhone = request.CustomerPhone,
             Email = request.Email,

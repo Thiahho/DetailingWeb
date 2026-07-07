@@ -3,6 +3,30 @@ import { NextRequest, NextResponse } from "next/server";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const token =
+    request.cookies.get("admin_token")?.value ||
+    request.cookies.get("client_token")?.value ||
+    request.cookies.get("token")?.value;
+  try {
+    const response = await fetch(`${API_URL}/api/gallery/${params.id}`, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json(
+      { message: "Error de conexión con el servidor" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }

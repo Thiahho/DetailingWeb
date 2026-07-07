@@ -3,6 +3,7 @@ using System;
 using DetailingApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DetailingApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260706214743_AddMapEmbedUrlToSiteConfig")]
+    partial class AddMapEmbedUrlToSiteConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,17 +42,12 @@ namespace DetailingApi.Migrations
                     b.Property<bool>("IsRecurring")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("ProfessionalId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Reason")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProfessionalId");
-
-                    b.HasIndex("Date", "ProfessionalId")
+                    b.HasIndex("Date")
                         .IsUnique();
 
                     b.ToTable("BlockedDates");
@@ -728,9 +726,6 @@ namespace DetailingApi.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("MaxBookings");
 
-                    b.Property<int?>("ProfessionalId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("StartDateTime")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("StartDateTime");
@@ -739,9 +734,7 @@ namespace DetailingApi.Migrations
 
                     b.HasIndex("IsAvailable");
 
-                    b.HasIndex("ProfessionalId");
-
-                    b.HasIndex("StartDateTime", "ProfessionalId")
+                    b.HasIndex("StartDateTime")
                         .IsUnique();
 
                     b.ToTable("TimeSlots");
@@ -766,24 +759,13 @@ namespace DetailingApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("ProfessionalId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Username")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("ProfessionalId");
-
-                    b.HasIndex("Username")
                         .IsUnique();
 
                     b.ToTable("Users");
@@ -802,16 +784,6 @@ namespace DetailingApi.Migrations
                     b.HasIndex("ServicesId");
 
                     b.ToTable("ProfessionalServices", (string)null);
-                });
-
-            modelBuilder.Entity("DetailingApi.Models.BlockedDate", b =>
-                {
-                    b.HasOne("DetailingApi.Models.Professional", "Professional")
-                        .WithMany()
-                        .HasForeignKey("ProfessionalId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Professional");
                 });
 
             modelBuilder.Entity("DetailingApi.Models.Booking", b =>
@@ -881,26 +853,6 @@ namespace DetailingApi.Migrations
                     b.Navigation("Booking");
 
                     b.Navigation("CustomerProfile");
-                });
-
-            modelBuilder.Entity("DetailingApi.Models.TimeSlot", b =>
-                {
-                    b.HasOne("DetailingApi.Models.Professional", "Professional")
-                        .WithMany()
-                        .HasForeignKey("ProfessionalId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Professional");
-                });
-
-            modelBuilder.Entity("DetailingApi.Models.User", b =>
-                {
-                    b.HasOne("DetailingApi.Models.Professional", "Professional")
-                        .WithMany()
-                        .HasForeignKey("ProfessionalId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Professional");
                 });
 
             modelBuilder.Entity("ProfessionalService", b =>

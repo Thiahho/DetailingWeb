@@ -3,37 +3,31 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  @apply bg-graphite text-slate-100 antialiased;
+  @apply bg-cream text-charcoal antialiased;
 }
 
 .section-divider {
-  background: linear-gradient(90deg, rgba(214, 180, 106, 0.15), rgba(91, 141, 255, 0.2), rgba(214, 180, 106, 0.15));
+  background: linear-gradient(90deg, rgba(214, 154, 166, 0.18), rgba(201, 191, 224, 0.2), rgba(198, 162, 110, 0.18));
 }
 
 .glass-card {
-  @apply rounded-2xl border border-white/5 bg-white/5;
-}
-
-@media (min-width: 768px) {
-  .glass-card {
-    @apply backdrop-blur;
-  }
+  @apply rounded-2xl border border-mauve/20 bg-ivory shadow-soft;
 }
 
 .hero-grid {
-  background-image: radial-gradient(circle at 20% 20%, rgba(91, 141, 255, 0.15), transparent 45%),
-    radial-gradient(circle at 80% 20%, rgba(214, 180, 106, 0.2), transparent 50%),
-    radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.08), transparent 45%);
+  background-image: radial-gradient(circle at 20% 20%, rgba(214, 154, 166, 0.16), transparent 45%),
+    radial-gradient(circle at 80% 20%, rgba(198, 162, 110, 0.14), transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(201, 191, 224, 0.16), transparent 45%);
 }
 
 .badge {
-  @apply inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/70;
+  @apply inline-flex items-center gap-2 rounded-full border border-mauve/15 bg-white px-3 py-1 text-xs uppercase tracking-[0.2em] text-mauve;
 }
 
 .form-input {
-  @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-lux focus:outline-none focus:ring-1 focus:ring-lux/40;
+  @apply w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40;
 }

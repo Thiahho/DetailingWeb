@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../../src/lib/auth";
 import CloudinaryUpload from "../../../src/components/CloudinaryUpload";
 
 interface ContentVideo {
@@ -57,8 +57,8 @@ export default function ContenidoAdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/admin/login");
+    if (!isAdminAuthenticated()) {
+      router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login");
       return;
     }
     loadVideos();
@@ -117,20 +117,20 @@ export default function ContenidoAdminPage() {
     }
   };
 
-  if (loading) return <div className="p-6 text-white">Cargando contenido...</div>;
+  if (loading) return <div className="p-6 text-charcoal">Cargando contenido...</div>;
 
   return (
-    <div className="min-h-screen bg-[#0f1115] p-4 md:p-6">
+    <div className="min-h-screen bg-cream p-4 md:p-6">
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`rounded-lg px-4 py-3 text-sm text-white ${
+            className={`rounded-lg px-4 py-3 text-sm text-charcoal ${
               t.type === "success" ? "bg-green-600" : "bg-red-600"
             }`}
           >
             <p className="font-semibold">{t.title}</p>
-            {t.message && <p className="text-white/80">{t.message}</p>}
+            {t.message && <p className="text-charcoal/80">{t.message}</p>}
           </div>
         ))}
       </div>
@@ -138,12 +138,12 @@ export default function ContenidoAdminPage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Gestión de Contenido</h1>
-            <p className="text-white/50 text-sm">Administrá los videos destacados del home.</p>
+            <h1 className="text-3xl font-bold text-charcoal">Gestión de Contenido</h1>
+            <p className="text-charcoal/50 text-sm">Administrá los videos destacados del home.</p>
           </div>
           <button
             onClick={openCreate}
-            className="rounded-lg bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-500"
+            className="rounded-lg bg-green-600 px-4 py-2 font-semibold text-charcoal hover:bg-green-500"
           >
             + Nuevo video
           </button>
@@ -151,14 +151,14 @@ export default function ContenidoAdminPage() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {videos.map((video) => (
-            <div key={video.id} className="rounded-xl border border-white/10 bg-[#161b22] p-4">
+            <div key={video.id} className="rounded-xl border border-mauve/10 bg-ivory p-4">
               <video src={video.videoUrl} className="h-56 w-full rounded-lg object-cover" muted loop autoPlay playsInline />
-              <p className="mt-3 text-sm font-semibold text-white">{video.title}</p>
-              <p className="text-xs text-white/60">Orden: {video.order}</p>
-              <p className="text-xs text-white/60">{video.isActive ? "Activo" : "Inactivo"}</p>
+              <p className="mt-3 text-sm font-semibold text-charcoal">{video.title}</p>
+              <p className="text-xs text-charcoal/60">Orden: {video.order}</p>
+              <p className="text-xs text-charcoal/60">{video.isActive ? "Activo" : "Inactivo"}</p>
               <div className="mt-3 flex gap-2">
-                <button onClick={() => openEdit(video)} className="flex-1 rounded-lg bg-white/10 py-2 text-sm text-white">Editar</button>
-                <button onClick={() => handleDelete(video.id)} className="rounded-lg bg-red-900/50 px-3 py-2 text-sm text-red-300">Eliminar</button>
+                <button onClick={() => openEdit(video)} className="flex-1 rounded-lg bg-porcelain/10 py-2 text-sm text-charcoal">Editar</button>
+                <button onClick={() => handleDelete(video.id)} className="rounded-lg bg-red-900/50 px-3 py-2 text-sm text-red-600">Eliminar</button>
               </div>
             </div>
           ))}
@@ -167,45 +167,47 @@ export default function ContenidoAdminPage() {
 
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4">
-          <form onSubmit={handleSubmit} className="w-full max-w-xl space-y-4 rounded-xl bg-[#161b22] p-6">
-            <h2 className="text-xl font-bold text-white">{editingVideo ? "Editar video" : "Nuevo video"}</h2>
+          <form onSubmit={handleSubmit} className="w-full max-w-xl space-y-4 rounded-xl bg-ivory p-6">
+            <h2 className="text-xl font-bold text-charcoal">{editingVideo ? "Editar video" : "Nuevo video"}</h2>
 
             <div>
-              <label className="text-xs text-white/60">Título</label>
-              <input className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1117] p-3 text-white" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} required />
+              <label className="text-xs text-charcoal/60">Título</label>
+              <input className="mt-1 w-full rounded-lg border border-mauve/10 bg-cream p-3 text-charcoal" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} required />
             </div>
 
             <div>
-              <label className="text-xs text-white/60">Video URL</label>
+              <label className="text-xs text-charcoal/60">Video URL</label>
               <CloudinaryUpload
                 value={formData.videoUrl}
                 onChange={(url) => setFormData((p) => ({ ...p, videoUrl: url }))}
                 resourceType="video"
+                hint="Recomendado: 1080×1920 px (vertical, 9:16 — formato reel/story). Se muestra siempre en ese recorte vertical."
               />
             </div>
 
             <div>
-              <label className="text-xs text-white/60">Thumbnail URL (opcional)</label>
+              <label className="text-xs text-charcoal/60">Thumbnail URL (opcional)</label>
               <CloudinaryUpload
                 value={formData.thumbnailUrl}
                 onChange={(url) => setFormData((p) => ({ ...p, thumbnailUrl: url }))}
+                hint="Misma proporción que el video: 1080×1920 px (vertical, 9:16)."
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-white/60">Orden</label>
-                <input type="number" className="mt-1 w-full rounded-lg border border-white/10 bg-[#0d1117] p-3 text-white" value={formData.order} onChange={(e) => setFormData((p) => ({ ...p, order: Number(e.target.value) }))} />
+                <label className="text-xs text-charcoal/60">Orden</label>
+                <input type="number" className="mt-1 w-full rounded-lg border border-mauve/10 bg-cream p-3 text-charcoal" value={formData.order} onChange={(e) => setFormData((p) => ({ ...p, order: Number(e.target.value) }))} />
               </div>
-              <label className="flex items-center gap-2 pt-6 text-sm text-white">
+              <label className="flex items-center gap-2 pt-6 text-sm text-charcoal">
                 <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData((p) => ({ ...p, isActive: e.target.checked }))} />
                 Activo
               </label>
             </div>
 
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg bg-white/10 px-4 py-2 text-white">Cancelar</button>
-              <button type="submit" className="rounded-lg bg-green-600 px-4 py-2 text-white">Guardar</button>
+              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg bg-porcelain/10 px-4 py-2 text-charcoal">Cancelar</button>
+              <button type="submit" className="rounded-lg bg-green-600 px-4 py-2 text-charcoal">Guardar</button>
             </div>
           </form>
         </div>

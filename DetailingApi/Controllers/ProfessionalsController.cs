@@ -69,7 +69,15 @@ public class ProfessionalsController : ControllerBase
                 p.Order,
                 p.CreatedAt,
                 p.UpdatedAt,
-                Services = p.Services.Select(s => new { s.Id, s.Title })
+                Services = p.Services.Select(s => new { s.Id, s.Title }),
+                AccountEmail = _context.Users
+                    .Where(u => u.ProfessionalId == p.Id && u.Role == "Professional")
+                    .Select(u => u.Email)
+                    .FirstOrDefault(),
+                AccountUsername = _context.Users
+                    .Where(u => u.ProfessionalId == p.Id && u.Role == "Professional")
+                    .Select(u => u.Username)
+                    .FirstOrDefault()
             })
             .ToListAsync();
 

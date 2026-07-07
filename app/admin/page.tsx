@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../src/lib/auth";
 
 interface Booking {
   id: number;
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState<"todos" | "reservados" | "confirmados" | "libres">("todos");
 
   useEffect(() => {
-    if (!isAuthenticated()) { router.push("/admin/login"); return; }
+    if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
     fetch("/api/timeslots")
       .then((r) => r.json())
       .then((data) => {
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center">
-      <p className="text-white">Cargando...</p>
+      <p className="text-charcoal">Cargando...</p>
     </div>
   );
 
@@ -110,27 +110,27 @@ export default function AdminDashboard() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Panel principal</h1>
-          <p className="text-white/50 text-sm mt-1">Próximos turnos ordenados por fecha</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Panel principal</h1>
+          <p className="text-charcoal/50 text-sm mt-1">Próximos turnos ordenados por fecha</p>
         </div>
 
         {/* Stats rápidas */}
         <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="bg-[#161b22] border border-white/5 rounded-xl p-3 md:p-4 text-center">
-            <p className="text-2xl md:text-3xl font-bold text-white">{slots.length}</p>
-            <p className="text-white/40 text-[11px] md:text-xs mt-1">Próximos</p>
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-charcoal">{slots.length}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Próximos</p>
           </div>
-          <div className="bg-[#161b22] border border-orange-900/30 rounded-xl p-3 md:p-4 text-center">
-            <p className="text-2xl md:text-3xl font-bold text-orange-400">{totalReservados}</p>
-            <p className="text-white/40 text-[11px] md:text-xs mt-1">Reservados</p>
+          <div className="bg-ivory border border-orange-200 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-orange-700">{totalReservados}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Reservados</p>
           </div>
-          <div className="bg-[#161b22] border border-blue-900/30 rounded-xl p-3 md:p-4 text-center">
-            <p className="text-2xl md:text-3xl font-bold text-blue-400">{totalConfirmados}</p>
-            <p className="text-white/40 text-[11px] md:text-xs mt-1">Confirmados</p>
+          <div className="bg-ivory border border-blue-200 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-blue-700">{totalConfirmados}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Confirmados</p>
           </div>
-          <div className="bg-[#161b22] border border-green-900/30 rounded-xl p-3 md:p-4 text-center">
-            <p className="text-2xl md:text-3xl font-bold text-green-400">{totalLibres}</p>
-            <p className="text-white/40 text-[11px] md:text-xs mt-1">Disponibles</p>
+          <div className="bg-ivory border border-green-200 rounded-xl p-3 md:p-4 text-center">
+            <p className="text-2xl md:text-3xl font-bold text-green-700">{totalLibres}</p>
+            <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Disponibles</p>
           </div>
         </div>
 
@@ -143,7 +143,7 @@ export default function AdminDashboard() {
               className={`px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition capitalize ${
                 filter === f
                   ? "bg-white text-black"
-                  : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
+                  : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
               }`}
             >
               {f}
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="bg-[#161b22] border border-white/5 rounded-2xl py-16 text-center text-white/30 text-sm">
+          <div className="bg-ivory border border-mauve/5 rounded-2xl py-16 text-center text-charcoal/30 text-sm">
             Sin turnos para mostrar
           </div>
         ) : (
@@ -165,27 +165,27 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={slot.id}
-                    className={`bg-[#161b22] border border-white/5 rounded-xl p-4 ${hoy ? "border-white/10" : ""}`}
+                    className={`bg-ivory border border-mauve/5 rounded-xl p-4 ${hoy ? "border-mauve/10" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       {/* Fecha + hora */}
                       <div>
                         <div className="flex items-center gap-1.5 mb-1">
                           {hoy && (
-                            <span className="text-[9px] font-bold bg-lux/20 text-lux px-1.5 py-0.5 rounded">HOY</span>
+                            <span className="text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">HOY</span>
                           )}
-                          <span className="text-white/40 text-xs">{day}</span>
-                          <span className="text-white font-medium text-sm">{date}</span>
-                          <span className="text-white/30 text-xs">·</span>
-                          <span className="text-white font-mono text-sm">{time}</span>
+                          <span className="text-charcoal/40 text-xs">{day}</span>
+                          <span className="text-charcoal font-medium text-sm">{date}</span>
+                          <span className="text-charcoal/30 text-xs">·</span>
+                          <span className="text-charcoal font-mono text-sm">{time}</span>
                         </div>
                         {/* Estado */}
                         <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                           slot.isAvailable
-                            ? "bg-green-500/10 text-green-400"
+                            ? "bg-green-500/10 text-green-700"
                             : slot.booking?.status === "Confirmed"
-                            ? "bg-blue-500/10 text-blue-400"
-                            : "bg-orange-500/10 text-orange-400"
+                            ? "bg-blue-500/10 text-blue-700"
+                            : "bg-orange-500/10 text-orange-700"
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
                             slot.isAvailable ? "bg-green-400"
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
                       {!slot.isAvailable && (
                         <button
                           onClick={() => handleLiberar(slot.id, slot.booking?.status === "Confirmed")}
-                          className="text-xs text-red-400/60 hover:text-red-400 transition font-medium shrink-0"
+                          className="text-xs text-red-600/60 hover:text-red-600 transition font-medium shrink-0"
                         >
                           {slot.booking?.status === "Confirmed" ? "Cancelar" : "Liberar"}
                         </button>
@@ -207,14 +207,14 @@ export default function AdminDashboard() {
                     </div>
                     {/* Booking info */}
                     {slot.booking && (
-                      <div className="mt-2.5 pt-2.5 border-t border-white/5">
-                        <p className="text-white text-sm font-medium">{slot.booking.customerName}</p>
-                        <p className="text-white/40 text-xs mt-0.5">
+                      <div className="mt-2.5 pt-2.5 border-t border-mauve/5">
+                        <p className="text-charcoal text-sm font-medium">{slot.booking.customerName}</p>
+                        <p className="text-charcoal/40 text-xs mt-0.5">
                           {slot.booking.vehicle}
                           {slot.booking.service && ` · ${slot.booking.service}`}
                         </p>
                         {slot.booking.professionalName && (
-                          <p className="text-white/30 text-xs mt-0.5">👤 {slot.booking.professionalName}</p>
+                          <p className="text-charcoal/30 text-xs mt-0.5">👤 {slot.booking.professionalName}</p>
                         )}
                       </div>
                     )}
@@ -224,10 +224,10 @@ export default function AdminDashboard() {
             </div>
 
             {/* ── Desktop: tabla ── */}
-            <div className="hidden md:block bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+            <div className="hidden md:block bg-ivory border border-mauve/5 rounded-2xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-white/30 text-xs uppercase tracking-wider">
+                  <tr className="border-b border-mauve/5 text-charcoal/30 text-xs uppercase tracking-wider">
                     <th className="text-left px-5 py-3 font-medium">Fecha</th>
                     <th className="text-left px-5 py-3 font-medium">Hora</th>
                     <th className="text-left px-5 py-3 font-medium">Estado</th>
@@ -245,27 +245,27 @@ export default function AdminDashboard() {
                     return (
                       <tr
                         key={slot.id}
-                        className={`border-b border-white/5 last:border-0 transition ${
-                          hoy ? "bg-white/[0.03]" : "hover:bg-white/[0.02]"
+                        className={`border-b border-mauve/5 last:border-0 transition ${
+                          hoy ? "bg-porcelain/[0.03]" : "hover:bg-porcelain/[0.02]"
                         }`}
                       >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
                             {hoy && (
-                              <span className="text-[10px] font-bold bg-lux/20 text-lux px-1.5 py-0.5 rounded">HOY</span>
+                              <span className="text-[10px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">HOY</span>
                             )}
-                            <span className="text-white/40 text-xs">{day}</span>
-                            <span className="text-white font-medium">{date}</span>
+                            <span className="text-charcoal/40 text-xs">{day}</span>
+                            <span className="text-charcoal font-medium">{date}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-white font-mono">{time}</td>
+                        <td className="px-5 py-4 text-charcoal font-mono">{time}</td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
                             slot.isAvailable
-                              ? "bg-green-500/10 text-green-400"
+                              ? "bg-green-500/10 text-green-700"
                               : slot.booking?.status === "Confirmed"
-                              ? "bg-blue-500/10 text-blue-400"
-                              : "bg-orange-500/10 text-orange-400"
+                              ? "bg-blue-500/10 text-blue-700"
+                              : "bg-orange-500/10 text-orange-700"
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${
                               slot.isAvailable ? "bg-green-400"
@@ -278,27 +278,27 @@ export default function AdminDashboard() {
                         <td className="px-5 py-4">
                           {slot.booking ? (
                             <div>
-                              <p className="text-white font-medium">{slot.booking.customerName}</p>
-                              <p className="text-white/40 text-xs mt-0.5">{slot.booking.customerPhone}</p>
+                              <p className="text-charcoal font-medium">{slot.booking.customerName}</p>
+                              <p className="text-charcoal/40 text-xs mt-0.5">{slot.booking.customerPhone}</p>
                             </div>
                           ) : (
-                            <span className="text-white/20">—</span>
+                            <span className="text-charcoal/20">—</span>
                           )}
                         </td>
-                        <td className="px-5 py-4 text-white/60">
-                          {slot.booking?.vehicle ?? <span className="text-white/20">—</span>}
+                        <td className="px-5 py-4 text-charcoal/60">
+                          {slot.booking?.vehicle ?? <span className="text-charcoal/20">—</span>}
                         </td>
-                        <td className="px-5 py-4 text-white/60">
-                          {slot.booking?.service ?? <span className="text-white/20">—</span>}
+                        <td className="px-5 py-4 text-charcoal/60">
+                          {slot.booking?.service ?? <span className="text-charcoal/20">—</span>}
                         </td>
-                        <td className="px-5 py-4 text-white/60">
-                          {slot.booking?.professionalName ?? <span className="text-white/20">—</span>}
+                        <td className="px-5 py-4 text-charcoal/60">
+                          {slot.booking?.professionalName ?? <span className="text-charcoal/20">—</span>}
                         </td>
                         <td className="px-5 py-4 text-right">
                           {!slot.isAvailable && (
                             <button
                               onClick={() => handleLiberar(slot.id, slot.booking?.status === "Confirmed")}
-                              className="text-xs text-red-400/60 hover:text-red-400 transition font-medium"
+                              className="text-xs text-red-600/60 hover:text-red-600 transition font-medium"
                             >
                               {slot.booking?.status === "Confirmed" ? "Cancelar" : "Liberar"}
                             </button>

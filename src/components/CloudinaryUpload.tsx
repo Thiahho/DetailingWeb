@@ -9,6 +9,7 @@ interface Props {
   onChange: (url: string) => void;
   resourceType?: ResourceType;
   folder?: string;
+  hint?: string;
 }
 
 export default function CloudinaryUpload({
@@ -16,6 +17,7 @@ export default function CloudinaryUpload({
   onChange,
   resourceType = "image",
   folder = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_FOLDER || "detailing/content",
+  hint,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -85,7 +87,7 @@ export default function CloudinaryUpload({
     <div className="space-y-2">
       <div
         className={`relative border-2 border-dashed rounded-xl transition cursor-pointer ${
-          uploading ? "border-white/20 opacity-60" : "border-white/10 hover:border-green-500/50"
+          uploading ? "border-mauve/30 opacity-60" : "border-mauve/20 hover:border-green-500/50"
         }`}
         onClick={() => !uploading && inputRef.current?.click()}
       >
@@ -110,7 +112,7 @@ export default function CloudinaryUpload({
             </div>
           </div>
         ) : (
-          <div className="h-36 flex flex-col items-center justify-center gap-2 text-white/40">
+          <div className="h-36 flex flex-col items-center justify-center gap-2 text-charcoal/40">
             {uploading ? (
               <span className="text-sm">Subiendo...</span>
             ) : (
@@ -133,11 +135,13 @@ export default function CloudinaryUpload({
         )}
       </div>
 
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {hint && <p className="text-charcoal/40 text-xs">{hint}</p>}
+
+      {error && <p className="text-red-600 text-xs">{error}</p>}
 
       {value && (
         <input
-          className="w-full bg-[#0d1117] border border-white/10 rounded-lg p-2 text-white/50 text-xs focus:outline-none"
+          className="w-full bg-white border border-mauve/15 rounded-lg p-2 text-charcoal/50 text-xs focus:outline-none"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="O pegá una URL directamente"

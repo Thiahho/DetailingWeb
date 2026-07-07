@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import BookingForm from "../src/components/BookingForms";
 import WhatsAppFloat from "../src/components/WhatsAppFloat";
-import { type SiteConfig, getWhatsAppLink } from "../src/lib/siteConfig";
+import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "../src/lib/siteConfig";
 
 interface Service {
   id: number;
@@ -89,7 +89,7 @@ export default function Home() {
     : "#";
 
   return (
-    <main className="min-h-screen bg-midnight text-slate-100">
+    <main className="min-h-screen bg-cream text-charcoal">
       {jsonLd && (
         <script
           type="application/ld+json"
@@ -105,18 +105,18 @@ export default function Home() {
               <span className="badge">{siteConfig.heroBadge}</span>
             )}
             {siteConfig?.heroTitle && (
-              <h1 className="text-4xl font-semibold leading-tight md:text-5xl">
+              <h1 className="text-4xl font-semibold leading-tight tracking-tight text-charcoal md:text-5xl">
                 {siteConfig.heroTitle}
               </h1>
             )}
             {siteConfig?.heroSubtitle && (
-              <p className="text-base text-white/70 md:text-lg">
+              <p className="text-base text-charcoal/70 md:text-lg">
                 {siteConfig.heroSubtitle}
               </p>
             )}
             <div className="flex flex-wrap gap-3">
               <a
-                className="rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black shadow-gold transition hover:scale-[1.02]"
+                className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -124,7 +124,7 @@ export default function Home() {
                 Reservar por WhatsApp
               </a>
               <a
-                className="rounded-full border border-white/15 px-6 py-3 text-sm text-white/80 transition hover:border-electric/60 hover:text-white"
+                className="rounded-full border border-mauve/20 px-6 py-3 text-sm text-charcoal/80 transition hover:border-blush hover:text-charcoal"
                 href="#contacto"
               >
                 Consulta online
@@ -132,11 +132,11 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="glass-card space-y-6 border border-white/10 p-6 shadow-glow">
-            <h3 className="text-2xl font-semibold">
+          <div className="glass-card space-y-6 p-6">
+            <h3 className="text-2xl font-semibold text-charcoal">
               {siteConfig?.businessName || "Nuestros servicios"}
             </h3>
-            <div className="space-y-3 text-sm text-white/70">
+            <div className="space-y-3 text-sm text-charcoal/70">
               {services.slice(0, 2).map((s) => (
                 <p key={s.id}>✓ {s.title}</p>
               ))}
@@ -150,40 +150,40 @@ export default function Home() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div className="space-y-3">
             <span className="badge">Servicios</span>
-            <h3 className="text-3xl font-semibold">Servicios disponibles</h3>
+            <h3 className="text-3xl font-semibold text-charcoal">Servicios disponibles</h3>
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           {packsToShow.map((pack) => (
             <article key={pack.id} className="glass-card flex h-full flex-col gap-4 p-6">
-              <div className="overflow-hidden rounded-xl border border-white/10">
+              <div className="overflow-hidden rounded-xl border border-mauve/10">
                 <img
                   alt={pack.title}
                   className="h-40 w-full object-cover transition-transform duration-500 hover:scale-105"
                   src={pack.imageUrl}
                 />
               </div>
-              <h4 className="text-xl font-semibold">{pack.title}</h4>
-              <ul className="space-y-2 text-sm text-white/60 mb-4">
+              <h4 className="text-xl font-semibold text-charcoal">{pack.title}</h4>
+              <ul className="space-y-2 text-sm text-charcoal/60 mb-4">
                 {pack.details?.map((detail, i) => (
                   <li key={i} className="flex items-center gap-2">
-                    <span className="text-lux text-xs">✓</span> {detail}
+                    <span className="text-champagne text-xs">✓</span> {detail}
                   </li>
                 ))}
               </ul>
-              <div className="mt-auto pt-4 border-t border-white/5 space-y-2">
-                <span className="text-lg font-semibold text-lux block">${pack.price}</span>
+              <div className="mt-auto pt-4 border-t border-mauve/10 space-y-2">
+                <span className="text-lg font-semibold text-blushdark block">${pack.price}</span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedService(pack)}
-                    className="flex-1 text-center rounded-full border border-white/10 px-3 py-2 text-xs uppercase text-white/60 hover:text-white hover:border-white/30 transition-all"
+                    className="flex-1 text-center rounded-full border border-mauve/15 px-3 py-2 text-xs uppercase text-charcoal/60 hover:text-charcoal hover:border-mauve/30 transition-all"
                   >
                     Ver detalle
                   </button>
                   <button
                     onClick={() => handlePresupuestar(pack.slug)}
-                    className="flex-1 rounded-full bg-lux/10 border border-lux/40 px-3 py-2 text-xs uppercase text-lux hover:bg-lux/20 transition-all"
+                    className="flex-1 rounded-full bg-blush/10 border border-blush/40 px-3 py-2 text-xs uppercase text-blushdark hover:bg-blush/20 transition-all"
                   >
                     Presupuestar
                   </button>
@@ -197,7 +197,7 @@ export default function Home() {
           <div className="text-center pt-8">
             <button
               onClick={() => setVisiblePacks((p) => p + 3)}
-              className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:border-white/20 hover:text-white"
+              className="rounded-full border border-mauve/15 bg-white px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-mauve/30 hover:text-charcoal"
             >
               Ver más servicios ({services.length - visiblePacks} restantes)
             </button>
@@ -210,12 +210,12 @@ export default function Home() {
         <section id="trabajos" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
           <div className="space-y-3">
             <span className="badge">Galería</span>
-            <h3 className="text-3xl font-semibold">Nuestros Trabajos</h3>
+            <h3 className="text-3xl font-semibold text-charcoal">Nuestros Trabajos</h3>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {galleryToShow.map((item) => (
-              <article key={item.id} className="glass-card group overflow-hidden border border-white/10 p-4">
+              <article key={item.id} className="glass-card group overflow-hidden p-4">
                 <div className="relative aspect-video overflow-hidden rounded-xl">
                   <img
                     src={item.imageUrl}
@@ -224,10 +224,10 @@ export default function Home() {
                   />
                 </div>
                 <div className="mt-4">
-                  <h4 className="text-lg font-medium text-white/90 group-hover:text-lux transition-colors">
+                  <h4 className="text-lg font-medium text-charcoal/90 group-hover:text-blushdark transition-colors">
                     {item.title}
                   </h4>
-                  <p className="text-xs uppercase tracking-widest text-white/40 mt-1">
+                  <p className="text-xs uppercase tracking-widest text-charcoal/40 mt-1">
                     {item.tag}
                   </p>
                 </div>
@@ -239,7 +239,7 @@ export default function Home() {
             <div className="text-center pt-8">
               <button
                 onClick={() => setVisibleGallery((p) => p + 3)}
-                className="rounded-full border border-white/10 bg-white/5 px-8 py-3 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:border-white/20 hover:text-white"
+                className="rounded-full border border-mauve/15 bg-white px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-mauve/30 hover:text-charcoal"
               >
                 Ver más trabajos ({gallery.length - visibleGallery} restantes)
               </button>
@@ -252,15 +252,15 @@ export default function Home() {
       <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
         <div>
           <span className="badge">Contenido</span>
-          <h3 className="text-3xl font-semibold">Contenido destacado</h3>
+          <h3 className="text-3xl font-semibold text-charcoal">Contenido destacado</h3>
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {reels.map((video) => (
             <div key={video.id} className="glass-card overflow-hidden p-4">
-              <p className="mb-4 text-xs uppercase tracking-[0.2em] text-white/60">
+              <p className="mb-4 text-xs uppercase tracking-[0.2em] text-charcoal/60">
                 Video destacado
               </p>
-              <div className="flex justify-center bg-black/20 rounded-xl overflow-hidden aspect-[9/16] w-full">
+              <div className="flex justify-center bg-porcelain rounded-xl overflow-hidden aspect-[9/16] w-full">
                 <video
                   src={video.videoUrl}
                   className="w-full h-full object-cover"
@@ -272,7 +272,7 @@ export default function Home() {
                   poster={video.thumbnailUrl || undefined}
                 />
               </div>
-              <p className="mt-3 text-sm text-white/80">{video.title}</p>
+              <p className="mt-3 text-sm text-charcoal/80">{video.title}</p>
             </div>
           ))}
         </div>
@@ -281,22 +281,22 @@ export default function Home() {
       {/* CONTACTO */}
       <section
         id="contacto"
-        className="mx-auto max-w-6xl gap-10 px-6 py-16 md:grid md:grid-cols-[1.1fr_0.9fr]"
+        className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-16 md:grid-cols-[1.1fr_0.9fr]"
       >
         <div className="space-y-6">
           <span className="badge">Contacto directo</span>
-          <h3 className="text-3xl font-semibold">Reservá tu turno en minutos</h3>
-          <p className="text-white/70">
+          <h3 className="text-3xl font-semibold text-charcoal">Reservá tu turno en minutos</h3>
+          <p className="text-charcoal/70">
             Completa el formulario y nos pondremos en contacto para confirmar tu turno.
           </p>
           {siteConfig?.whatsAppNumber && (
-            <p className="text-white/70">
+            <p className="text-charcoal/70">
               <strong>
                 <a
                   href={getWhatsAppLink(siteConfig.whatsAppNumber)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="underline hover:text-lux transition"
+                  className="underline hover:text-blushdark transition"
                 >
                   También podés reservar por WhatsApp
                 </a>
@@ -304,18 +304,38 @@ export default function Home() {
             </p>
           )}
           {siteConfig?.location && (
-            <p className="text-white/70">
-              Ubicación: {siteConfig.location}
-            </p>
+            <div className="space-y-3">
+              <p className="text-charcoal/70">
+                Ubicación: {siteConfig.location}
+              </p>
+              <div className="overflow-hidden rounded-2xl border border-mauve/15 shadow-soft">
+                <iframe
+                  src={extractMapEmbedSrc(siteConfig.mapEmbedUrl, siteConfig.location)}
+                  className="h-56 w-full"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Ubicación en el mapa"
+                />
+              </div>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-sm text-charcoal/70 underline hover:text-blushdark transition"
+              >
+                Cómo llegar →
+              </a>
+            </div>
           )}
           {siteConfig?.instagramUrl && (
-            <p className="text-white/70">
+            <p className="text-charcoal/70">
               Instagram:{" "}
               <a
                 href={siteConfig.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline hover:text-lux transition"
+                className="underline hover:text-blushdark transition"
               >
                 {siteConfig.instagramHandle || siteConfig.instagramUrl}
               </a>
@@ -325,7 +345,7 @@ export default function Home() {
         <BookingForm preselectedService={preselectedService} />
       </section>
 
-      <footer className="border-t border-white/5 px-6 py-10 text-center text-xs text-white/50">
+      <footer className="border-t border-mauve/10 px-6 py-10 text-center text-xs text-charcoal/50">
         {siteConfig?.businessName || ""}
         {siteConfig?.locationShort ? ` · ${siteConfig.locationShort}` : ""}
       </footer>
@@ -341,7 +361,7 @@ export default function Home() {
           onClick={() => setSelectedService(null)}
         >
           <div
-            className="bg-[#0f1115] border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-elevated"
             onClick={(e) => e.stopPropagation()}
           >
             {selectedService.imageUrl && (
@@ -351,28 +371,28 @@ export default function Home() {
             )}
             <div className="p-6 space-y-4">
               <div className="flex items-start justify-between gap-4">
-                <h2 className="text-2xl font-semibold text-white">{selectedService.title}</h2>
-                <button onClick={() => setSelectedService(null)} className="text-white/40 hover:text-white transition text-xl shrink-0">✕</button>
+                <h2 className="text-2xl font-semibold text-charcoal">{selectedService.title}</h2>
+                <button onClick={() => setSelectedService(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl shrink-0">✕</button>
               </div>
               {selectedService.description && (
-                <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">{selectedService.description}</p>
+                <p className="text-charcoal/70 text-sm leading-relaxed whitespace-pre-line">{selectedService.description}</p>
               )}
               <div className="flex flex-wrap gap-2">
                 {selectedService.duration && (
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/60">⏱ {selectedService.duration}</span>
+                  <span className="rounded-full border border-mauve/15 px-3 py-1 text-xs text-charcoal/60">⏱ {selectedService.duration}</span>
                 )}
-                <span className="rounded-full border border-lux/50 px-3 py-1 text-xs text-lux">${selectedService.price}</span>
+                <span className="rounded-full border border-blush/40 px-3 py-1 text-xs text-blushdark">${selectedService.price}</span>
               </div>
               {selectedService.details?.length > 0 && (
-                <ul className="space-y-1 text-sm text-white/60">
+                <ul className="space-y-1 text-sm text-charcoal/60">
                   {selectedService.details.map((d, i) => (
-                    <li key={i} className="flex items-start gap-2"><span className="text-lux mt-0.5">✓</span> {d}</li>
+                    <li key={i} className="flex items-start gap-2"><span className="text-champagne mt-0.5">✓</span> {d}</li>
                   ))}
                 </ul>
               )}
               <button
                 onClick={() => { setSelectedService(null); handlePresupuestar(selectedService.slug); }}
-                className="w-full rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black shadow-gold transition hover:scale-[1.02]"
+                className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
               >
                 Presupuestar
               </button>

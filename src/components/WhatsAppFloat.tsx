@@ -127,16 +127,16 @@ export default function WhatsAppFloat({
       >
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-lux/30 bg-steel p-4 shadow-lg shadow-gold"
+          className="rounded-2xl border border-mauve/15 bg-ivory p-4 shadow-elevated"
         >
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-lg font-semibold text-white">
+            <p className="text-lg font-semibold text-charcoal">
               Contactar por WhatsApp
             </p>
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-full p-1 text-white/70 transition-colors hover:bg-lux/20 hover:text-white"
+              className="rounded-full p-1 text-charcoal/70 transition-colors hover:bg-blush/15 hover:text-charcoal"
               aria-label="Cerrar formulario"
             >
               <svg
@@ -160,7 +160,7 @@ export default function WhatsAppFloat({
             <div>
               <label
                 htmlFor="nombre"
-                className="mb-1 block text-xs font-medium text-white/70"
+                className="mb-1 block text-xs font-medium text-charcoal/70"
               >
                 Nombre
               </label>
@@ -172,13 +172,13 @@ export default function WhatsAppFloat({
                 onChange={(e) =>
                   setFormData({ ...formData, nombre: e.target.value })
                 }
-                className="w-full rounded-lg border border-lux/30 bg-graphite px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-lux focus:outline-none focus:ring-1 focus:ring-lux/40"
+                className="w-full rounded-lg border border-mauve/20 bg-white px-3 py-2 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40"
                 placeholder="Tu nombre"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-white/70">
+              <label className="mb-1 block text-xs font-medium text-charcoal/70">
                 Tipo de consulta
               </label>
               <div className="flex gap-2">
@@ -187,8 +187,8 @@ export default function WhatsAppFloat({
                   onClick={() => setFormData({ ...formData, tipo: "Turnos" })}
                   className={`flex-1 rounded-lg border px-2 py-2 text-xs transition-colors ${
                     formData.tipo === "Turnos"
-                      ? "border-electric bg-electric/20 text-electric"
-                      : "border-lux/30 text-white/70 hover:border-lux/60"
+                      ? "border-lavender bg-lavender/25 text-mauve"
+                      : "border-mauve/20 text-charcoal/70 hover:border-mauve/40"
                   }`}
                 >
                   Turnos
@@ -198,8 +198,8 @@ export default function WhatsAppFloat({
                   onClick={() => setFormData({ ...formData, tipo: "Consulta" })}
                   className={`flex-1 rounded-lg border px-2 py-2 text-xs transition-colors ${
                     formData.tipo === "Consulta"
-                      ? "border-lux bg-lux/20 text-lux"
-                      : "border-lux/30 text-white/70 hover:border-lux/60"
+                      ? "border-blush bg-blush/15 text-blushdark"
+                      : "border-mauve/20 text-charcoal/70 hover:border-mauve/40"
                   }`}
                 >
                   Consulta
@@ -209,8 +209,8 @@ export default function WhatsAppFloat({
                   onClick={() => setFormData({ ...formData, tipo: "otro" })}
                   className={`flex-1 rounded-lg border px-2 py-2 text-xs transition-colors ${
                     formData.tipo === "otro"
-                      ? "border-lux bg-lux/20 text-lux"
-                      : "border-lux/30 text-white/70 hover:border-lux/60"
+                      ? "border-blush bg-blush/15 text-blushdark"
+                      : "border-mauve/20 text-charcoal/70 hover:border-mauve/40"
                   }`}
                 >
                   Otro
@@ -221,7 +221,7 @@ export default function WhatsAppFloat({
             <div>
               <label
                 htmlFor="motivo"
-                className="mb-1 block text-xs font-medium text-white/70"
+                className="mb-1 block text-xs font-medium text-charcoal/70"
               >
                 Descripción breve
               </label>
@@ -233,7 +233,7 @@ export default function WhatsAppFloat({
                 onChange={(e) =>
                   setFormData({ ...formData, motivo: e.target.value })
                 }
-                className="w-full resize-none rounded-lg border border-lux/30 bg-graphite px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-lux focus:outline-none focus:ring-1 focus:ring-lux/40"
+                className="w-full resize-none rounded-lg border border-mauve/20 bg-white px-3 py-2 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40"
                 placeholder="Describe brevemente tu situación..."
               />
             </div>

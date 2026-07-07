@@ -2,8 +2,15 @@
 import "./globals.css";
 import Navbar from "../src/components/Navbar";
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 
-const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Mi Negocio";
+const sans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "TTurnos";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 const metaDescription = process.env.NEXT_PUBLIC_META_DESCRIPTION || "";
 
@@ -51,8 +58,8 @@ export const metadata: Metadata = {
     images: ["/img/og.jpg"],
   },
   icons: {
-    icon: "/img/logocirclew.png",
-    shortcut: "/img/logocirclew.png",
+    icon: "/img/logo.png",
+    shortcut: "/img/logo.png",
     apple: "/img/logocirclew.png",
   },
 };
@@ -63,8 +70,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="scroll-smooth">
-      <body className="bg-midnight antialiased text-slate-100">
+    <html lang="es" className={`scroll-smooth ${sans.variable}`}>
+      <body className="bg-cream font-sans antialiased text-charcoal">
         <Navbar />
         <div className="pt-20">{children}</div>
       </body>

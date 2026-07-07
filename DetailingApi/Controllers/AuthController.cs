@@ -57,11 +57,15 @@ public class AuthController : ControllerBase
                 Path="/"
             };
 
-            Response.Cookies.Append("admin_token", response.Token, cookieOptions);
+            // Admin sigue usando "admin_token". Profesionales usan "token" — un slot genérico
+            // que los proxies de Next.js ya leen como fallback, sin tocar esos archivos.
+            var cookieName = response.Role == "Professional" ? "token" : "admin_token";
+            Response.Cookies.Append(cookieName, response.Token, cookieOptions);
             return Ok(new
             {
               email=response.Email,
-              role=response.Role,  
+              role=response.Role,
+              professionalId=response.ProfessionalId,
             });
         }
         catch (Exception ex)
@@ -118,7 +122,24 @@ public class AuthController : ControllerBase
     {
         Response.Cookies.Delete("admin_token");
         Response.Cookies.Delete("client_token");
+        Response.Cookies.Delete("token");
         return Ok(new { message = "Sesión cerrada" });
+    }
+
+    // POST: api/auth/professional-account (admin activa/renueva el acceso de un profesional)
+    [HttpPost("professional-account")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateProfessionalAccount([FromBody] CreateProfessionalAccountRequest request)
+    {
+        try
+        {
+            var response = await _authService.CreateProfessionalAccountAsync(request.ProfessionalId, request.Email, request.Password, request.Username);
+            return Ok(new { email = response.Email, role = response.Role });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("client/access/request")]
@@ -225,3 +246,5 @@ public class AuthController : ControllerBase
         }
     }
 }
+
+public record CreateProfessionalAccountRequest(int ProfessionalId, string Email, string Password, string? Username = null);

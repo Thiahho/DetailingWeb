@@ -6,7 +6,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 
 async function sendOtpEmail(email: string, code: string) {
-  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Mi Negocio";
+  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "TTurnos";
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
@@ -80,8 +80,13 @@ export async function POST(
       const backendCookie = response.headers.get("set-cookie");
 
       if (backendCookie) {
-        // Re-setear la cookie en el dominio de Next.js
-        const cookieName = path === "login" ? "admin_token" : path.startsWith("client/") ? "client_token" : "token";
+        // Re-setear la cookie en el dominio de Next.js.
+        // Profesionales (login con Role="Professional") usan el slot genérico "token";
+        // Admin sigue en "admin_token"; rutas de cliente en "client_token".
+        const cookieName =
+          path === "login"
+            ? data.role === "Professional" ? "token" : "admin_token"
+            : path.startsWith("client/") ? "client_token" : "token";
         nextResponse.cookies.set(
           cookieName,
           extractTokenFromCookie(backendCookie),

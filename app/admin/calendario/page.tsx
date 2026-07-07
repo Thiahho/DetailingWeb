@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../../src/lib/auth";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Service {
@@ -27,6 +27,7 @@ interface Professional {
   id: number;
   firstName: string;
   lastName: string;
+  calendarColor?: string;
 }
 
 interface TimeSlot {
@@ -35,6 +36,8 @@ interface TimeSlot {
   endDateTime: string;
   isAvailable: boolean;
   booking?: Booking;
+  professionalId?: number | null;
+  professionalName?: string | null;
 }
 
 const MONTH_NAMES = [
@@ -65,12 +68,13 @@ export default function CalendarioPage() {
   const [reserveForm, setReserveForm] = useState({ customerName: "", customerPhone: "", vehicle: "", service: "", professionalId: "", message: "" });
   const [reserving, setReserving] = useState(false);
   const [reserveError, setReserveError] = useState("");
+  const [professionalFilter, setProfessionalFilter] = useState<string>("all");
 
   const loadSlots = () =>
     fetch("/api/timeslots").then((r) => r.json()).then((data) => setSlots(Array.isArray(data) ? data : []));
 
   useEffect(() => {
-    if (!isAuthenticated()) { router.push("/admin/login"); return; }
+    if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
     Promise.all([
       loadSlots(),
       fetch("/api/services").then((r) => r.json()).then((d) => setServices(Array.isArray(d) ? d : [])),
@@ -91,8 +95,13 @@ export default function CalendarioPage() {
   // Slots del mes actual
   const monthSlots = slots.filter((s) => {
     const { y, m } = parseLocalDate(s.startDateTime);
-    return y === current.year && m === current.month;
+    if (y !== current.year || m !== current.month) return false;
+    if (professionalFilter !== "all" && String(s.professionalId ?? "") !== professionalFilter) return false;
+    return true;
   });
+
+  const professionalColor = (id?: number | null) =>
+    professionals.find((p) => p.id === id)?.calendarColor || "#7c3aed";
 
   // Agrupar por día
   const slotsByDay = monthSlots.reduce<Record<number, TimeSlot[]>>((acc, s) => {
@@ -164,7 +173,7 @@ export default function CalendarioPage() {
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center">
-      <p className="text-white">Cargando calendario...</p>
+      <p className="text-charcoal">Cargando calendario...</p>
     </div>
   );
 
@@ -172,22 +181,22 @@ export default function CalendarioPage() {
     <div className="p-4 md:p-6 font-sans">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Calendario</h1>
-          <p className="text-white/50 text-sm mt-1">Vista de turnos por mes</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Calendario</h1>
+          <p className="text-charcoal/50 text-sm mt-1">Vista de turnos por mes</p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           {/* CALENDARIO */}
-          <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
+          <div className="bg-ivory border border-mauve/5 rounded-2xl p-5">
             {/* Navegación mes */}
             <div className="flex items-center justify-between mb-5">
-              <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition">
+              <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-porcelain/5 text-charcoal/60 hover:text-charcoal transition">
                 <ChevronLeft size={20} />
               </button>
-              <h2 className="text-white font-semibold text-lg">
+              <h2 className="text-charcoal font-semibold text-lg">
                 {MONTH_NAMES[current.month - 1]} {current.year}
               </h2>
-              <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition">
+              <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-porcelain/5 text-charcoal/60 hover:text-charcoal transition">
                 <ChevronRight size={20} />
               </button>
             </div>
@@ -195,7 +204,7 @@ export default function CalendarioPage() {
             {/* Cabecera días */}
             <div className="grid grid-cols-7 mb-2">
               {DAY_NAMES.map((d) => (
-                <div key={d} className="text-center text-xs font-medium text-white/30 py-1">{d}</div>
+                <div key={d} className="text-center text-xs font-medium text-charcoal/30 py-1">{d}</div>
               ))}
             </div>
 
@@ -204,8 +213,10 @@ export default function CalendarioPage() {
               {cells.map((day, i) => {
                 if (!day) return <div key={`empty-${i}`} />;
                 const dayData = slotsByDay[day] ?? [];
-                const hasAvailable = dayData.some((s) => s.isAvailable);
                 const hasBooked = dayData.some((s) => !s.isAvailable);
+                const availableProfessionalIds = Array.from(
+                  new Set(dayData.filter((s) => s.isAvailable).map((s) => s.professionalId ?? 0))
+                ).slice(0, 3);
                 const isSelected = selectedDay === day;
                 const todayCell = isToday(day);
 
@@ -214,14 +225,20 @@ export default function CalendarioPage() {
                     key={day}
                     onClick={() => setSelectedDay(isSelected ? null : day)}
                     className={`relative aspect-square flex flex-col items-center justify-center rounded-xl transition-all text-sm font-medium
-                      ${isSelected ? "bg-white text-black" : todayCell ? "bg-white/10 text-white ring-1 ring-white/30" : "hover:bg-white/5 text-white/70"}
+                      ${isSelected ? "bg-white text-black" : todayCell ? "bg-porcelain/10 text-charcoal ring-1 ring-white/30" : "hover:bg-porcelain/5 text-charcoal/70"}
                     `}
                   >
                     {day}
                     {dayData.length > 0 && (
                       <div className="flex gap-0.5 mt-0.5">
                         {hasBooked && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-orange-500" : "bg-orange-400"}`} />}
-                        {hasAvailable && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-green-600" : "bg-green-500"}`} />}
+                        {availableProfessionalIds.map((pid) => (
+                          <span
+                            key={pid}
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: pid ? professionalColor(pid) : "#22c55e" }}
+                          />
+                        ))}
                       </div>
                     )}
                   </button>
@@ -229,29 +246,42 @@ export default function CalendarioPage() {
               })}
             </div>
 
-            {/* Leyenda */}
-            <div className="flex gap-4 mt-4 justify-end text-xs text-white/40">
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Disponible</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-400" />Confirmado</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400" />Reservado</span>
+            {/* Filtro por profesional + leyenda */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+              {professionals.length > 0 && (
+                <select
+                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-green-500"
+                  value={professionalFilter}
+                  onChange={(e) => setProfessionalFilter(e.target.value)}
+                >
+                  <option value="all">Todos los profesionales</option>
+                  {professionals.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</option>
+                  ))}
+                </select>
+              )}
+              <div className="flex gap-4 text-xs text-charcoal/40">
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Disponible (color = profesional)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400" />Reservado</span>
+              </div>
             </div>
           </div>
 
           {/* PANEL LATERAL */}
-          <div className="bg-[#161b22] border border-white/5 rounded-2xl p-5">
+          <div className="bg-ivory border border-mauve/5 rounded-2xl p-5">
             {!selectedDay ? (
-              <div className="h-full flex flex-col items-center justify-center text-white/20 text-sm text-center gap-2">
+              <div className="h-full flex flex-col items-center justify-center text-charcoal/20 text-sm text-center gap-2">
                 <span className="text-3xl">📅</span>
                 Seleccioná un día para ver los turnos
               </div>
             ) : (
               <>
-                <h3 className="text-white font-semibold mb-4">
+                <h3 className="text-charcoal font-semibold mb-4">
                   {selectedDay} de {MONTH_NAMES[current.month - 1]}
-                  <span className="text-white/30 text-sm font-normal ml-2">({daySlots.length} turno{daySlots.length !== 1 ? "s" : ""})</span>
+                  <span className="text-charcoal/30 text-sm font-normal ml-2">({daySlots.length} turno{daySlots.length !== 1 ? "s" : ""})</span>
                 </h3>
                 {daySlots.length === 0 ? (
-                  <p className="text-white/30 text-sm">Sin turnos este día</p>
+                  <p className="text-charcoal/30 text-sm">Sin turnos este día</p>
                 ) : (
                   <div className="space-y-2">
                     {daySlots
@@ -264,42 +294,45 @@ export default function CalendarioPage() {
                             key={slot.id}
                             className={`p-3 rounded-xl border transition ${
                               slot.isAvailable
-                                ? "border-green-900/40 bg-green-900/10"
+                                ? "border-green-200 bg-green-50"
                                 : slot.booking?.status === "Confirmed"
-                                ? "border-blue-900/40 bg-blue-900/10"
-                                : "border-orange-900/40 bg-orange-900/10"
+                                ? "border-blue-200 bg-blue-50"
+                                : "border-orange-200 bg-orange-50"
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-white font-medium text-sm">{time}</span>
+                              <span className="text-charcoal font-medium text-sm">{time}</span>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                 slot.isAvailable
-                                  ? "bg-green-500/20 text-green-400"
+                                  ? "bg-green-500/20 text-green-700"
                                   : slot.booking?.status === "Confirmed"
-                                  ? "bg-blue-500/20 text-blue-400"
-                                  : "bg-orange-500/20 text-orange-400"
+                                  ? "bg-blue-500/20 text-blue-700"
+                                  : "bg-orange-500/20 text-orange-700"
                               }`}>
                                 {slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
                               </span>
                             </div>
                             {!slot.isAvailable && slot.booking && (
-                              <p className="text-white/50 text-xs mt-1">
+                              <p className="text-charcoal/50 text-xs mt-1">
                                 {slot.booking.customerName} · {slot.booking.vehicle}
                                 {slot.booking.professionalName && ` · 👤 ${slot.booking.professionalName}`}
                               </p>
+                            )}
+                            {slot.isAvailable && slot.professionalName && (
+                              <p className="text-charcoal/40 text-xs mt-1">👤 {slot.professionalName}</p>
                             )}
                             <div className="mt-2 flex gap-2">
                               {slot.isAvailable ? (
                                 <button
                                   onClick={() => { setReserveSlot(slot); setReserveError(""); }}
-                                  className="text-xs text-green-400 hover:text-green-300 font-medium transition"
+                                  className="text-xs text-green-700 hover:text-green-700 font-medium transition"
                                 >
                                   + Reservar
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => slot.booking && setDetailBooking({ slot })}
-                                  className="text-xs text-blue-400 hover:text-blue-300 font-medium transition"
+                                  className="text-xs text-blue-700 hover:text-blue-700 font-medium transition"
                                 >
                                   Ver detalle
                                 </button>
@@ -319,23 +352,23 @@ export default function CalendarioPage() {
       {/* MODAL NUEVA RESERVA (ADMIN) */}
       {reserveSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setReserveSlot(null)}>
-          <div className="bg-[#161b22] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <div className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
-                <h2 className="text-white font-semibold text-lg">Nueva reserva</h2>
-                <p className="text-white/40 text-xs mt-0.5">
+                <h2 className="text-charcoal font-semibold text-lg">Nueva reserva</h2>
+                <p className="text-charcoal/40 text-xs mt-0.5">
                   {(() => { const { h, min } = parseLocalDate(reserveSlot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")}`; })()}
                   {" · "}{selectedDay} de {MONTH_NAMES[current.month - 1]}
                 </p>
               </div>
-              <button onClick={() => setReserveSlot(null)} className="text-white/40 hover:text-white transition text-xl">✕</button>
+              <button onClick={() => setReserveSlot(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
 
             <form onSubmit={handleReserve} className="px-6 py-5 space-y-4">
               <div>
-                <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Nombre del cliente</label>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Nombre del cliente</label>
                 <input
-                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm"
+                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
                   value={reserveForm.customerName}
                   onChange={(e) => setReserveForm((p) => ({ ...p, customerName: e.target.value }))}
                   placeholder="Juan García"
@@ -343,9 +376,9 @@ export default function CalendarioPage() {
                 />
               </div>
               <div>
-                <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Teléfono / WhatsApp</label>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Teléfono / WhatsApp</label>
                 <input
-                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm"
+                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
                   value={reserveForm.customerPhone}
                   onChange={(e) => setReserveForm((p) => ({ ...p, customerPhone: e.target.value }))}
                   placeholder="1123456789"
@@ -353,9 +386,9 @@ export default function CalendarioPage() {
                 />
               </div>
               <div>
-                <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Vehículo</label>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Vehículo</label>
                 <input
-                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm"
+                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
                   value={reserveForm.vehicle}
                   onChange={(e) => setReserveForm((p) => ({ ...p, vehicle: e.target.value }))}
                   placeholder="Toyota Corolla 2022"
@@ -363,9 +396,9 @@ export default function CalendarioPage() {
                 />
               </div>
               <div>
-                <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Servicio</label>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Servicio</label>
                 <select
-                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm"
+                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
                   value={reserveForm.service}
                   onChange={(e) => setReserveForm((p) => ({ ...p, service: e.target.value }))}
                   required
@@ -377,22 +410,28 @@ export default function CalendarioPage() {
                 </select>
               </div>
               <div>
-                <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Especialista (opcional)</label>
-                <select
-                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm"
-                  value={reserveForm.professionalId}
-                  onChange={(e) => setReserveForm((p) => ({ ...p, professionalId: e.target.value }))}
-                >
-                  <option value="">Sin preferencia</option>
-                  {professionals.map((pro) => (
-                    <option key={pro.id} value={pro.id}>{pro.firstName} {pro.lastName}</option>
-                  ))}
-                </select>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Especialista</label>
+                {reserveSlot.professionalName ? (
+                  <p className="w-full mt-1.5 bg-porcelain/10 border border-mauve/10 rounded-lg p-3 text-charcoal text-sm">
+                    👤 {reserveSlot.professionalName} <span className="text-charcoal/40">(el turno ya es de este profesional)</span>
+                  </p>
+                ) : (
+                  <select
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
+                    value={reserveForm.professionalId}
+                    onChange={(e) => setReserveForm((p) => ({ ...p, professionalId: e.target.value }))}
+                  >
+                    <option value="">Sin preferencia</option>
+                    {professionals.map((pro) => (
+                      <option key={pro.id} value={pro.id}>{pro.firstName} {pro.lastName}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
-                <label className="text-white/50 text-xs font-medium uppercase tracking-wider">Notas (opcional)</label>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Notas (opcional)</label>
                 <textarea
-                  className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition text-sm resize-none"
+                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm resize-none"
                   rows={2}
                   value={reserveForm.message}
                   onChange={(e) => setReserveForm((p) => ({ ...p, message: e.target.value }))}
@@ -400,20 +439,20 @@ export default function CalendarioPage() {
                 />
               </div>
 
-              {reserveError && <p className="text-red-400 text-sm">{reserveError}</p>}
+              {reserveError && <p className="text-red-600 text-sm">{reserveError}</p>}
 
               <div className="flex gap-3 pt-1">
                 <button
                   type="submit"
                   disabled={reserving}
-                  className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50 text-sm"
+                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50 text-sm"
                 >
                   {reserving ? "Reservando..." : "Confirmar reserva"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setReserveSlot(null)}
-                  className="px-5 bg-white/5 hover:bg-white/10 text-white py-3 rounded-lg font-semibold transition text-sm"
+                  className="px-5 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal py-3 rounded-lg font-semibold transition text-sm"
                 >
                   Cancelar
                 </button>
@@ -426,21 +465,21 @@ export default function CalendarioPage() {
       {/* MODAL DETALLE RESERVA */}
       {detailBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetailBooking(null)}>
-          <div className="bg-[#161b22] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <div className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
-                <h2 className="text-white font-semibold text-lg">Detalle de reserva</h2>
-                <p className="text-white/40 text-xs mt-0.5">
+                <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
+                <p className="text-charcoal/40 text-xs mt-0.5">
                   {(() => { const { h, min } = parseLocalDate(detailBooking.slot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")}`; })()}
                   {" · "}{selectedDay} de {MONTH_NAMES[current.month - 1]}
                 </p>
               </div>
-              <button onClick={() => setDetailBooking(null)} className="text-white/40 hover:text-white transition text-xl">✕</button>
+              <button onClick={() => setDetailBooking(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
             <div className="px-6 py-5 space-y-4">
               <Row label="Cliente" value={detailBooking.slot.booking!.customerName} />
               <Row label="Teléfono" value={
-                <a href={`tel:${detailBooking.slot.booking!.customerPhone}`} className="text-blue-400 hover:underline">
+                <a href={`tel:${detailBooking.slot.booking!.customerPhone}`} className="text-blue-700 hover:underline">
                   {detailBooking.slot.booking!.customerPhone}
                 </a>
               } />
@@ -453,20 +492,20 @@ export default function CalendarioPage() {
                 <Row label="Mensaje" value={detailBooking.slot.booking!.message!} />
               )}
             </div>
-            <div className="px-6 py-4 border-t border-white/5 flex gap-3">
+            <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
               <a
                 href={`https://wa.me/+54${detailBooking.slot.booking!.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
                   `Hola ${detailBooking.slot.booking!.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${selectedDay} de ${MONTH_NAMES[current.month - 1]} ${current.year}\n🚗 *Vehículo:* ${detailBooking.slot.booking!.vehicle}\n🔧 *Servicio:* ${detailBooking.slot.booking!.service || "—"}\n\n¡Nos vemos!`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-charcoal py-2.5 rounded-lg text-sm font-semibold transition"
               >
                 WhatsApp
               </a>
               <button
                 onClick={() => liberarTurno(detailBooking.slot.id, detailBooking.slot.booking?.status === "Confirmed")}
-                className="flex-1 bg-white/5 hover:bg-red-500/10 text-white/60 hover:text-red-400 border border-white/5 hover:border-red-500/30 py-2.5 rounded-lg text-sm font-semibold transition"
+                className="flex-1 bg-porcelain/5 hover:bg-red-500/10 text-charcoal/60 hover:text-red-600 border border-mauve/5 hover:border-red-500/30 py-2.5 rounded-lg text-sm font-semibold transition"
               >
                 {detailBooking.slot.booking?.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
               </button>
@@ -481,8 +520,8 @@ export default function CalendarioPage() {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-white/40 text-sm shrink-0">{label}</span>
-      <span className="text-white text-sm text-right">{value}</span>
+      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
+      <span className="text-charcoal text-sm text-right">{value}</span>
     </div>
   );
 }

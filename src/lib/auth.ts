@@ -4,10 +4,28 @@ export function isAuthenticated(): boolean {
   return localStorage.getItem("isLoggedIn") === "true";
 }
 
+// Rol de la sesión activa ("Admin" | "Professional" | null)
+export function getRole(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("role");
+}
+
+// Sesión activa Y con rol Admin — usar este guard en /admin/*, no isAuthenticated()
+// a secas, porque un profesional logueado también pasa isAuthenticated().
+export function isAdminAuthenticated(): boolean {
+  return isAuthenticated() && getRole() === "Admin";
+}
+
+// Sesión activa Y con rol Professional — guard equivalente para /profesional/*.
+export function isProfessionalAuthenticated(): boolean {
+  return isAuthenticated() && getRole() === "Professional";
+}
+
 // Marcar sesión como activa (solo para UI)
-export function setLoggedIn(email?: string): void {
+export function setLoggedIn(email?: string, role?: string): void {
   localStorage.setItem("isLoggedIn", "true");
   if (email) localStorage.setItem("email", email);
+  if (role) localStorage.setItem("role", role);
   // Disparar evento para que otros componentes se actualicen
   window.dispatchEvent(new Event("auth-change"));
 }

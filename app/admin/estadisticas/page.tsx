@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../../src/lib/auth";
 import { logError } from "../../../src/lib/logger";
 
 interface TopService {
@@ -60,10 +60,10 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`bg-[#161b22] border rounded-xl p-5 ${accent ? "border-green-900/50" : "border-white/5"}`}>
-      <p className="text-white/50 text-xs font-medium uppercase tracking-wider">{label}</p>
-      <p className={`text-3xl font-bold mt-2 ${accent ? "text-green-400" : "text-white"}`}>{value}</p>
-      {sub && <p className="text-white/40 text-xs mt-1">{sub}</p>}
+    <div className={`bg-ivory border rounded-xl p-5 ${accent ? "border-green-200" : "border-mauve/5"}`}>
+      <p className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">{label}</p>
+      <p className={`text-3xl font-bold mt-2 ${accent ? "text-green-700" : "text-charcoal"}`}>{value}</p>
+      {sub && <p className="text-charcoal/40 text-xs mt-1">{sub}</p>}
     </div>
   );
 }
@@ -74,8 +74,8 @@ export default function EstadisticasPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/admin/login");
+    if (!isAdminAuthenticated()) {
+      router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login");
       return;
     }
     fetch("/api/analytics/summary")
@@ -87,16 +87,16 @@ export default function EstadisticasPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1115]">
-        <p className="text-white">Cargando estadísticas...</p>
+      <div className="flex min-h-screen items-center justify-center bg-ivory">
+        <p className="text-charcoal">Cargando estadísticas...</p>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1115]">
-        <p className="text-red-400">Error al cargar estadísticas</p>
+      <div className="flex min-h-screen items-center justify-center bg-ivory">
+        <p className="text-red-600">Error al cargar estadísticas</p>
       </div>
     );
   }
@@ -117,8 +117,8 @@ export default function EstadisticasPage() {
     <div className="p-4 md:p-6 font-sans">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Estadísticas</h1>
-          <p className="text-white/50 text-sm mt-1">Resumen de actividad del negocio</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Estadísticas</h1>
+          <p className="text-charcoal/50 text-sm mt-1">Resumen de actividad del negocio</p>
         </div>
 
         {/* KPIs principales */}
@@ -173,8 +173,8 @@ export default function EstadisticasPage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Reservas por mes (gráfico de barras simple) */}
-          <div className="bg-[#161b22] border border-white/5 rounded-xl p-6">
-            <h2 className="text-white font-semibold mb-5">Reservas por mes</h2>
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-6">
+            <h2 className="text-charcoal font-semibold mb-5">Reservas por mes</h2>
               <div className="flex items-end gap-1.5 h-36">
                 {allMonths.map((m) => {
                   const height = Math.round((m.count / maxMonthCount) * 100);
@@ -182,7 +182,7 @@ export default function EstadisticasPage() {
                   return (
                     <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
                       {m.count > 0 && (
-                        <span className="text-white/50 text-[9px]">{m.count}</span>
+                        <span className="text-charcoal/50 text-[9px]">{m.count}</span>
                       )}
                       <div className="w-full flex-1 flex items-end">
                         <div
@@ -190,7 +190,7 @@ export default function EstadisticasPage() {
                           style={{ height: m.count > 0 ? `${Math.max(height, 6)}%` : "3px" }}
                         />
                       </div>
-                      <span className={`text-[9px] ${isCurrent ? "text-green-400 font-semibold" : "text-white/30"}`}>
+                      <span className={`text-[9px] ${isCurrent ? "text-green-700 font-semibold" : "text-charcoal/30"}`}>
                         {MONTH_NAMES[m.month - 1]}
                       </span>
                     </div>
@@ -200,10 +200,10 @@ export default function EstadisticasPage() {
           </div>
 
           {/* Servicios más solicitados */}
-          <div className="bg-[#161b22] border border-white/5 rounded-xl p-6">
-            <h2 className="text-white font-semibold mb-5">Servicios más solicitados</h2>
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-6">
+            <h2 className="text-charcoal font-semibold mb-5">Servicios más solicitados</h2>
             {data.topServices.length === 0 ? (
-              <p className="text-white/30 text-sm">Sin datos aún</p>
+              <p className="text-charcoal/30 text-sm">Sin datos aún</p>
             ) : (
               <div className="space-y-3">
                 {data.topServices.map((s, i) => {
@@ -212,14 +212,14 @@ export default function EstadisticasPage() {
                   return (
                     <div key={s.service}>
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-white/80 text-sm capitalize">
+                        <span className="text-charcoal/80 text-sm capitalize">
                           {s.service.replace(/-/g, " ")}
                         </span>
-                        <span className="text-white/50 text-xs font-mono">
+                        <span className="text-charcoal/50 text-xs font-mono">
                           {s.count} {s.count === 1 ? "reserva" : "reservas"}
                         </span>
                       </div>
-                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-porcelain/5 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${i === 0 ? "bg-green-500" : "bg-green-800"}`}
                           style={{ width: `${pct}%` }}
@@ -234,10 +234,10 @@ export default function EstadisticasPage() {
         </div>
 
         {/* Próximas reservas */}
-        <div className="mt-6 bg-[#161b22] border border-white/5 rounded-xl p-6">
-          <h2 className="text-white font-semibold mb-5">Próximas reservas (7 días)</h2>
+        <div className="mt-6 bg-ivory border border-mauve/5 rounded-xl p-6">
+          <h2 className="text-charcoal font-semibold mb-5">Próximas reservas (7 días)</h2>
           {data.upcomingBookings.length === 0 ? (
-            <p className="text-white/30 text-sm">No hay reservas en los próximos 7 días</p>
+            <p className="text-charcoal/30 text-sm">No hay reservas en los próximos 7 días</p>
           ) : (
             <div className="space-y-3">
               {data.upcomingBookings.map((b) => {
@@ -247,15 +247,15 @@ export default function EstadisticasPage() {
                 return (
                   <div
                     key={b.id}
-                    className="flex items-center justify-between gap-3 py-3 border-b border-white/5 last:border-0"
+                    className="flex items-center justify-between gap-3 py-3 border-b border-mauve/5 last:border-0"
                   >
                     <div className="min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{b.customerName}</p>
-                      <p className="text-white/40 text-xs mt-0.5 truncate">
+                      <p className="text-charcoal text-sm font-medium truncate">{b.customerName}</p>
+                      <p className="text-charcoal/40 text-xs mt-0.5 truncate">
                         {b.vehicle} · {b.service?.replace(/-/g, " ")}
                       </p>
                     </div>
-                    <span className="text-white/60 text-xs font-mono shrink-0">{label}</span>
+                    <span className="text-charcoal/60 text-xs font-mono shrink-0">{label}</span>
                   </div>
                 );
               })}

@@ -16,6 +16,10 @@ public class TimeSlot
     public int MaxBookings { get; set; } = 1;
     [Column("GeneratedAt")]
     public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
-    
+
+    // Nullable: turnos legacy generados antes de la agenda por profesional quedan sin asignar.
+    public int? ProfessionalId { get; set; }
+    public Professional? Professional { get; set; }
+
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

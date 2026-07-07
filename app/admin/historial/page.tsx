@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../../src/lib/auth";
 
 interface BookingRecord {
   id: number;
@@ -36,30 +36,30 @@ function formatDateFriendly(isoString: string) {
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "Confirmed")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Confirmado</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-700"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Confirmado</span>;
   if (status === "Cancelled")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />Cancelado</span>;
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-400"><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />Pendiente</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-600"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />Cancelado</span>;
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-700"><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />Pendiente</span>;
 }
 
 function PaymentBadge({ status, amount, provider }: { status?: string; amount?: number; provider?: string }) {
   if (status === "Approved")
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-700">
         ✓ Pagado{amount ? ` $${amount.toLocaleString("es-AR")}` : ""}{provider ? ` · ${provider}` : ""}
       </span>
     );
   if (status === "Pending")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400">⏳ Pago pendiente</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-700">⏳ Pago pendiente</span>;
   if (status === "Rejected" || status === "Failed")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">✕ Pago rechazado</span>;
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-white/30">Sin pago</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-600">✕ Pago rechazado</span>;
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-porcelain/10 text-charcoal/30">Sin pago</span>;
 }
 
 function NotificationBadge({ status }: { status?: string }) {
-  if (status === "Sent") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Enviado</span>;
-  if (status === "Failed") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">Fallido</span>;
-  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">Pendiente</span>;
+  if (status === "Sent") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700">Enviado</span>;
+  if (status === "Failed") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-600">Fallido</span>;
+  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700">Pendiente</span>;
 }
 
 type FilterType = "todos" | "Reservado" | "Confirmed" | "Cancelled" | "Pagado" | "SinPago";
@@ -76,7 +76,7 @@ export default function HistorialPage() {
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) { router.push("/admin/login"); return; }
+    if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
     fetch("/api/bookings")
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setBookings(data); })
@@ -153,49 +153,49 @@ export default function HistorialPage() {
   const totalPages = Math.max(1, Math.ceil(afterSearch.length / ITEMS_PER_PAGE));
   const paginated = afterSearch.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><p className="text-white">Cargando...</p></div>;
+  if (loading) return <div className="flex min-h-screen items-center justify-center"><p className="text-charcoal">Cargando...</p></div>;
 
   return (
     <div className="p-4 md:p-6 font-sans">
       <div className="mx-auto max-w-5xl">
 
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Historial de reservas</h1>
-          <p className="text-white/50 text-sm mt-1">Registro completo de todos los turnos</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Historial de reservas</h1>
+          <p className="text-charcoal/50 text-sm mt-1">Registro completo de todos los turnos</p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-[#161b22] border border-white/5 rounded-xl p-3 text-center">
-            <p className="text-xl md:text-2xl font-bold text-white">{counts.todos}</p>
-            <p className="text-white/40 text-[11px] mt-1">Total</p>
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-3 text-center">
+            <p className="text-xl md:text-2xl font-bold text-charcoal">{counts.todos}</p>
+            <p className="text-charcoal/40 text-[11px] mt-1">Total</p>
           </div>
-          <div className="bg-[#161b22] border border-orange-900/30 rounded-xl p-3 text-center">
-            <p className="text-xl md:text-2xl font-bold text-orange-400">{counts.Reservado}</p>
-            <p className="text-white/40 text-[11px] mt-1">Pendientes</p>
+          <div className="bg-ivory border border-orange-200 rounded-xl p-3 text-center">
+            <p className="text-xl md:text-2xl font-bold text-orange-700">{counts.Reservado}</p>
+            <p className="text-charcoal/40 text-[11px] mt-1">Pendientes</p>
           </div>
-          <div className="bg-[#161b22] border border-green-900/30 rounded-xl p-3 text-center">
-            <p className="text-xl md:text-2xl font-bold text-green-400">{counts.Confirmed}</p>
-            <p className="text-white/40 text-[11px] mt-1">Confirmados</p>
+          <div className="bg-ivory border border-green-200 rounded-xl p-3 text-center">
+            <p className="text-xl md:text-2xl font-bold text-green-700">{counts.Confirmed}</p>
+            <p className="text-charcoal/40 text-[11px] mt-1">Confirmados</p>
           </div>
-          <div className="bg-[#161b22] border border-emerald-900/30 rounded-xl p-3 text-center">
-            <p className="text-xl md:text-2xl font-bold text-emerald-400">{paid}</p>
-            <p className="text-white/40 text-[11px] mt-1">Pagados</p>
+          <div className="bg-ivory border border-emerald-900/30 rounded-xl p-3 text-center">
+            <p className="text-xl md:text-2xl font-bold text-emerald-700">{paid}</p>
+            <p className="text-charcoal/40 text-[11px] mt-1">Pagados</p>
           </div>
         </div>
 
         {/* Recaudación */}
         {totalRevenue > 0 && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-5 py-3 mb-5 flex items-center justify-between">
-            <span className="text-emerald-400 text-sm font-medium">Total recaudado</span>
-            <span className="text-emerald-300 text-xl font-bold">${totalRevenue.toLocaleString("es-AR")}</span>
+            <span className="text-emerald-700 text-sm font-medium">Total recaudado</span>
+            <span className="text-emerald-700 text-xl font-bold">${totalRevenue.toLocaleString("es-AR")}</span>
           </div>
         )}
 
         {/* Búsqueda + Filtros */}
         <div className="flex flex-col gap-3 mb-4">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
             </svg>
             <input
@@ -203,10 +203,10 @@ export default function HistorialPage() {
               placeholder="Buscar por cliente, teléfono o servicio..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#161b22] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition"
+              className="w-full bg-ivory border border-mauve/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-charcoal placeholder-white/30 focus:outline-none focus:border-mauve/20 transition"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition">✕</button>
+              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/30 hover:text-charcoal/60 transition">✕</button>
             )}
           </div>
 
@@ -216,7 +216,7 @@ export default function HistorialPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                  filter === f ? "bg-white text-black" : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
+                  filter === f ? "bg-white text-black" : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
                 }`}
               >
                 {filterLabels[f]}
@@ -227,14 +227,14 @@ export default function HistorialPage() {
         </div>
 
         {afterSearch.length === 0 ? (
-          <div className="bg-[#161b22] border border-white/5 rounded-2xl py-16 text-center text-white/30 text-sm">
+          <div className="bg-ivory border border-mauve/5 rounded-2xl py-16 text-center text-charcoal/30 text-sm">
             {search ? `Sin resultados para "${search}"` : "Sin reservas para mostrar"}
           </div>
         ) : (
           <>
-            <p className="text-white/30 text-xs mb-3">
+            <p className="text-charcoal/30 text-xs mb-3">
               {afterSearch.length} resultado{afterSearch.length !== 1 ? "s" : ""}
-              {search && <> para <span className="text-white/50">"{search}"</span></>}
+              {search && <> para <span className="text-charcoal/50">"{search}"</span></>}
               {" · "}página {page} de {totalPages}
             </p>
 
@@ -243,16 +243,16 @@ export default function HistorialPage() {
               {paginated.map((b) => (
                 <div
                   key={b.id}
-                  className="bg-[#161b22] border border-white/5 rounded-xl p-4 cursor-pointer hover:border-white/10 transition"
+                  className="bg-ivory border border-mauve/5 rounded-xl p-4 cursor-pointer hover:border-mauve/10 transition"
                   onClick={() => setDetail(b)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-white font-medium text-sm">{b.customerName}</p>
-                      <p className="text-white/40 text-xs mt-0.5">{formatDateFriendly(b.startDateTime)}</p>
-                      <p className="text-white/40 text-xs mt-0.5">{b.subject}{b.service ? ` · ${b.service}` : ""}</p>
+                      <p className="text-charcoal font-medium text-sm">{b.customerName}</p>
+                      <p className="text-charcoal/40 text-xs mt-0.5">{formatDateFriendly(b.startDateTime)}</p>
+                      <p className="text-charcoal/40 text-xs mt-0.5">{b.subject}{b.service ? ` · ${b.service}` : ""}</p>
                       {b.professionalName && (
-                        <p className="text-white/30 text-xs mt-0.5">👤 {b.professionalName}</p>
+                        <p className="text-charcoal/30 text-xs mt-0.5">👤 {b.professionalName}</p>
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
@@ -265,10 +265,10 @@ export default function HistorialPage() {
             </div>
 
             {/* Desktop: tabla */}
-            <div className="hidden md:block bg-[#161b22] border border-white/5 rounded-2xl overflow-hidden">
+            <div className="hidden md:block bg-ivory border border-mauve/5 rounded-2xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5 text-white/30 text-xs uppercase tracking-wider">
+                  <tr className="border-b border-mauve/5 text-charcoal/30 text-xs uppercase tracking-wider">
                     <th className="text-left px-5 py-3 font-medium">Turno</th>
                     <th className="text-left px-5 py-3 font-medium">Cliente</th>
                     <th className="text-left px-5 py-3 font-medium">Servicio</th>
@@ -283,21 +283,21 @@ export default function HistorialPage() {
                   {paginated.map((b) => (
                     <tr
                       key={b.id}
-                      className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition cursor-pointer"
+                      className="border-b border-mauve/5 last:border-0 hover:bg-porcelain/[0.02] transition cursor-pointer"
                       onClick={() => setDetail(b)}
                     >
-                      <td className="px-5 py-4 text-white/70 font-mono text-xs whitespace-nowrap">
+                      <td className="px-5 py-4 text-charcoal/70 font-mono text-xs whitespace-nowrap">
                         {formatDateFriendly(b.startDateTime)}
                       </td>
                       <td className="px-5 py-4">
-                        <p className="text-white font-medium">{b.customerName}</p>
-                        <p className="text-white/40 text-xs mt-0.5">{b.customerPhone}</p>
+                        <p className="text-charcoal font-medium">{b.customerName}</p>
+                        <p className="text-charcoal/40 text-xs mt-0.5">{b.customerPhone}</p>
                       </td>
-                      <td className="px-5 py-4 text-white/60">
+                      <td className="px-5 py-4 text-charcoal/60">
                         <p>{b.service || "—"}</p>
-                        {b.subject && <p className="text-white/30 text-xs">{b.subject}</p>}
+                        {b.subject && <p className="text-charcoal/30 text-xs">{b.subject}</p>}
                       </td>
-                      <td className="px-5 py-4 text-white/60">{b.professionalName || "—"}</td>
+                      <td className="px-5 py-4 text-charcoal/60">{b.professionalName || "—"}</td>
                       <td className="px-5 py-4"><StatusBadge status={b.status} /></td>
                       <td className="px-5 py-4">
                         <PaymentBadge status={b.paymentStatus} amount={b.paymentAmount} provider={b.paymentProvider} />
@@ -309,7 +309,7 @@ export default function HistorialPage() {
                         {b.status !== "Confirmed" && b.status !== "Cancelled" && (
                           <button
                             onClick={(e) => { e.stopPropagation(); confirmBooking(b.id, b); }}
-                            className="text-xs text-blue-400 hover:text-blue-300 font-medium transition"
+                            className="text-xs text-blue-700 hover:text-blue-700 font-medium transition"
                           >
                             Confirmar
                           </button>
@@ -324,21 +324,21 @@ export default function HistorialPage() {
             {/* Paginación */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-6">
-                <button onClick={() => setPage((p) => p - 1)} disabled={page === 1} className="p-2 text-white/50 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition">
+                <button onClick={() => setPage((p) => p - 1)} disabled={page === 1} className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20 disabled:cursor-not-allowed transition">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
                   const isActive = p === page;
                   const isNear = Math.abs(p - page) <= 1 || p === 1 || p === totalPages;
                   if (!isNear) {
-                    if (p === 2 || p === totalPages - 1) return <span key={p} className="text-white/20 text-sm">…</span>;
+                    if (p === 2 || p === totalPages - 1) return <span key={p} className="text-charcoal/20 text-sm">…</span>;
                     return null;
                   }
                   return (
-                    <button key={p} onClick={() => setPage(p)} className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${isActive ? "bg-white text-black scale-110" : "bg-white/10 text-white hover:bg-white/20"}`}>{p}</button>
+                    <button key={p} onClick={() => setPage(p)} className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${isActive ? "bg-white text-black scale-110" : "bg-porcelain/10 text-charcoal hover:bg-porcelain/20"}`}>{p}</button>
                   );
                 })}
-                <button onClick={() => setPage((p) => p + 1)} disabled={page === totalPages} className="p-2 text-white/50 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition">
+                <button onClick={() => setPage((p) => p + 1)} disabled={page === totalPages} className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20 disabled:cursor-not-allowed transition">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                 </button>
               </div>
@@ -350,18 +350,18 @@ export default function HistorialPage() {
       {/* Modal detalle */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetail(null)}>
-          <div className="bg-[#161b22] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <div className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
-                <h2 className="text-white font-semibold text-lg">Detalle de reserva</h2>
-                <p className="text-white/40 text-xs mt-0.5">{formatDateFriendly(detail.startDateTime)}</p>
+                <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
+                <p className="text-charcoal/40 text-xs mt-0.5">{formatDateFriendly(detail.startDateTime)}</p>
               </div>
-              <button onClick={() => setDetail(null)} className="text-white/40 hover:text-white transition text-xl">✕</button>
+              <button onClick={() => setDetail(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
 
             <div className="px-6 py-5 space-y-3">
               <Row label="Cliente" value={detail.customerName} />
-              <Row label="Teléfono" value={<a href={`tel:${detail.customerPhone}`} className="text-blue-400 hover:underline">{detail.customerPhone}</a>} />
+              <Row label="Teléfono" value={<a href={`tel:${detail.customerPhone}`} className="text-blue-700 hover:underline">{detail.customerPhone}</a>} />
               {detail.email && <Row label="Email" value={detail.email} />}
               {detail.subject && <Row label="Trabajo" value={detail.subject} />}
               <Row label="Servicio" value={detail.service || "—"} />
@@ -370,25 +370,25 @@ export default function HistorialPage() {
               <Row label="Reserva" value={<StatusBadge status={detail.status} />} />
 
               {/* Bloque de pago */}
-              <div className="pt-2 border-t border-white/5">
-                <p className="text-white/30 text-[11px] uppercase tracking-wider mb-2">Pago</p>
+              <div className="pt-2 border-t border-mauve/5">
+                <p className="text-charcoal/30 text-[11px] uppercase tracking-wider mb-2">Pago</p>
                 <div className="flex items-center justify-between">
                   <PaymentBadge status={detail.paymentStatus} amount={detail.paymentAmount} provider={detail.paymentProvider} />
                   {detail.paymentPaidAt && (
-                    <span className="text-white/30 text-xs">{formatDateFriendly(detail.paymentPaidAt)}</span>
+                    <span className="text-charcoal/30 text-xs">{formatDateFriendly(detail.paymentPaidAt)}</span>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-white/5 flex gap-3">
+            <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
               <a
                 href={`https://wa.me/${detail.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
                   `Hola ${detail.customerName} 👋\n\nTe confirmamos tu reserva:\n\n📅 *Fecha:* ${formatDateFriendly(detail.startDateTime)}\n🔧 *Servicio:* ${detail.service || "—"}\n\n¡Nos vemos!`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-charcoal py-2.5 rounded-lg text-sm font-semibold transition"
               >
                 WhatsApp
               </a>
@@ -396,7 +396,7 @@ export default function HistorialPage() {
                 <button
                   onClick={() => confirmBooking(detail.id, detail)}
                   disabled={confirming}
-                  className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition disabled:opacity-50"
+                  className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-700 py-2.5 rounded-lg text-sm font-semibold transition disabled:opacity-50"
                 >
                   {confirming ? "Confirmando..." : "Confirmar"}
                 </button>
@@ -412,8 +412,8 @@ export default function HistorialPage() {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-white/40 text-sm shrink-0">{label}</span>
-      <span className="text-white text-sm text-right">{value}</span>
+      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
+      <span className="text-charcoal text-sm text-right">{value}</span>
     </div>
   );
 }

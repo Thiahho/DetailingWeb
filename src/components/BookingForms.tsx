@@ -9,6 +9,8 @@ interface TimeSlot {
   startDateTime: string;
   endDateTime: string;
   label: string;
+  professionalId?: number | null;
+  professionalName?: string | null;
 }
 
 interface ServicePack {
@@ -27,6 +29,7 @@ interface Professional {
   photoUrl: string;
   calendarColor: string;
   specialty?: string;
+  services?: { id: number; title: string }[];
 }
 
 interface CustomFieldDef {
@@ -229,6 +232,11 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     try { return JSON.parse(selectedServiceObj.customFieldsSchema); } catch { return []; }
   })();
 
+  // Profesionales que ofrecen el servicio elegido (filtro en cliente, la lista completa ya viene con sus servicios)
+  const availableProfessionals = selectedServiceObj
+    ? professionals.filter((p) => p.services?.some((s) => s.id === selectedServiceObj.id))
+    : [];
+
   // --- Estado de Toast ---
   const [toast, setToast] = useState<Toast | null>(null);
 
@@ -246,10 +254,10 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentSlots = timeSlots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Cargar turnos y servicios
+  // Cargar servicios y profesionales (una sola vez)
   useEffect(() => {
-    loadAvailableSlots();
     loadServices();
+    loadProfessionals();
   }, []);
   useEffect(() => {
     if (preselectedService) {
@@ -262,39 +270,35 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     setCustomFieldValues({});
   }, [formData.selectedService]);
 
-  // Cargar profesionales disponibles cuando ya se eligió servicio y horario
+  // Cambiar de servicio invalida la elección de especialista (puede no ofrecer el nuevo servicio)
   useEffect(() => {
     setFormData((prev) => ({ ...prev, selectedProfessionalId: null }));
+  }, [formData.selectedService]);
 
-    if (!selectedServiceObj || !formData.selectedSlotId) {
-      setProfessionals([]);
-      return;
-    }
+  // Cargar turnos disponibles: de todos los profesionales, o solo del elegido ("sin preferencia" = null)
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, selectedSlotId: null }));
+    setCurrentPage(1);
+    loadAvailableSlots(formData.selectedProfessionalId);
+  }, [formData.selectedProfessionalId]);
 
-    let cancelled = false;
-    setLoadingProfessionals(true);
-
-    fetch(`/api/professionals/available?serviceId=${selectedServiceObj.id}&timeSlotId=${formData.selectedSlotId}`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => {
-        if (!cancelled) setProfessionals(Array.isArray(data) ? data : []);
-      })
-      .catch((error) => {
-        logError(error);
-        if (!cancelled) setProfessionals([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingProfessionals(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedServiceObj, formData.selectedSlotId]);
-
-  const loadAvailableSlots = async () => {
+  const loadProfessionals = async () => {
     try {
-      const response = await fetch(`/api/timeslots/available`);
+      const response = await fetch("/api/professionals");
+      if (response.ok) {
+        setProfessionals(await response.json());
+      }
+    } catch (error) {
+      logError(error);
+    } finally {
+      setLoadingProfessionals(false);
+    }
+  };
+
+  const loadAvailableSlots = async (professionalId?: number | null) => {
+    try {
+      const query = professionalId ? `?professionalId=${professionalId}` : "";
+      const response = await fetch(`/api/timeslots/available${query}`);
       if (response.ok) {
         const data = await response.json();
         setTimeSlots(data);
@@ -366,7 +370,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         showToast(
           "success",
           "¡Turno Reservado!",
-          "Tu turno fue agendado. Ahora podés realizar el pago para confirmar tu reserva.",
+          "Tu turno fue agendado. Te vamos a contactar para confirmarlo.",
           6000
         );
 
@@ -405,11 +409,11 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   if (loading)
     return (
       <div className="glass-card p-6 flex items-center justify-center min-h-[400px]">
-        <p className="text-white/70">Cargando...</p>
+        <p className="text-charcoal/70">Cargando...</p>
       </div>
     );
 
-  // If booking was completed, show payment step
+  // If booking was completed, show confirmation step
   if (completedBooking) {
     return (
       <>
@@ -421,23 +425,30 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-white">Turno reservado</h3>
-            <p className="text-white/60 text-sm">
-              Para confirmar tu reserva, realizá el pago de forma segura
+            <h3 className="text-xl font-bold text-charcoal">¡Turno reservado!</h3>
+            <p className="text-charcoal/60 text-sm">
+              Te vamos a contactar por WhatsApp para confirmar tu turno.
             </p>
           </div>
 
-          <PaymentButton
-            bookingId={completedBooking.id}
-            serviceName={completedBooking.service}
-          />
+          <details className="group">
+            <summary className="cursor-pointer text-center text-sm text-charcoal/50 hover:text-charcoal/70 transition list-none">
+              ¿Preferís adelantar el pago? <span className="underline">Pagar ahora (opcional)</span>
+            </summary>
+            <div className="mt-4">
+              <PaymentButton
+                bookingId={completedBooking.id}
+                serviceName={completedBooking.service}
+              />
+            </div>
+          </details>
 
           <button
             type="button"
             onClick={() => setCompletedBooking(null)}
-            className="w-full text-center text-white/40 text-sm hover:text-white/60 transition"
+            className="w-full rounded-full border border-mauve/20 px-6 py-3 text-sm font-medium text-charcoal/70 hover:border-mauve/40 hover:text-charcoal transition"
           >
-            Pagar más tarde
+            Listo
           </button>
         </div>
       </>
@@ -452,7 +463,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       <form className="glass-card space-y-4 p-6" onSubmit={handleCalendarSubmit}>
       {/* Inputs de Nombre, Asunto y WhatsApp */}
       <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
           Nombre
         </label>
         <input
@@ -467,7 +478,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       </div>
 
       <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
           {subjectLabel}
         </label>
         <input
@@ -482,7 +493,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       </div>
 
       <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
           WhatsApp
         </label>
         <input
@@ -497,7 +508,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       </div>
       
       <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
           Email (para recibir confirmación automática)
         </label>
         <input 
@@ -512,10 +523,10 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
       {/* Selector de Servicio (Igual a tu original) */}
       <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
+        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
           Seleccioná el servicio
         </label>
-        <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+        <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
           {services.map((pack) => (
             <button
               key={pack.slug}
@@ -525,12 +536,12 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
               }
               className={`rounded-lg border px-4 py-3 text-left transition ${
                 formData.selectedService === pack.slug
-                  ? "border-lux bg-lux/20 text-lux"
-                  : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
+                  ? "border-blush bg-blush/15 text-blushdark"
+                  : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-porcelain/60"
               }`}
             >
               <span className="block text-sm font-medium">{pack.title}</span>
-              <span className="block text-xs text-white/50 mt-1">
+              <span className="block text-xs text-charcoal/50 mt-1">
                 ${pack.price} · {pack.duration}
               </span>
             </button>
@@ -543,7 +554,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         <div className="space-y-3">
           {customFieldDefs.map((field) => (
             <div key={field.key}>
-              <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+              <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
                 {field.name}{field.required && <span className="text-red-400 ml-1">*</span>}
               </label>
               {field.type === "select" ? (
@@ -581,12 +592,87 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         </div>
       )}
 
+      {/* Selector de Profesional (opcional) — antes de elegir turno, filtra qué horarios se muestran */}
+      {selectedServiceObj && (
+        <div>
+          <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
+            Especialista (opcional)
+          </label>
+          {loadingProfessionals ? (
+            <p className="text-sm text-charcoal/50">Buscando especialistas disponibles...</p>
+          ) : availableProfessionals.length === 0 ? (
+            <p className="text-sm text-charcoal/50">
+              No hay especialistas asignados a este servicio todavía, se te asignará uno automáticamente.
+            </p>
+          ) : (
+            <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, selectedProfessionalId: null }))
+                }
+                className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
+                  formData.selectedProfessionalId === null
+                    ? "border-blush bg-blush/15 text-blushdark"
+                    : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-porcelain/60"
+                }`}
+              >
+                <span className="block font-medium">Sin preferencia</span>
+                <span className="block text-xs text-charcoal/50 mt-1">
+                  Vas a ver los horarios de todos los especialistas disponibles
+                </span>
+              </button>
+
+              {availableProfessionals.map((pro) => (
+                <button
+                  key={pro.id}
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, selectedProfessionalId: pro.id }))
+                  }
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition ${
+                    formData.selectedProfessionalId === pro.id
+                      ? "border-blush bg-blush/15 text-blushdark"
+                      : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-porcelain/60"
+                  }`}
+                >
+                  {pro.photoUrl ? (
+                    <img
+                      src={pro.photoUrl}
+                      alt={`${pro.firstName} ${pro.lastName}`}
+                      className="h-9 w-9 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <span
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                      style={{ backgroundColor: pro.calendarColor || "#6366f1" }}
+                    >
+                      {pro.firstName?.[0]}
+                      {pro.lastName?.[0]}
+                    </span>
+                  )}
+                  <span>
+                    <span className="block font-medium">
+                      {pro.firstName} {pro.lastName}
+                    </span>
+                    {pro.specialty && (
+                      <span className="block text-xs text-charcoal/50 mt-1">{pro.specialty}</span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Selector de Turno con PAGINACIÓN */}
+      {selectedServiceObj && (
       <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
+        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
           Seleccioná tu turno
         </label>
-        <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+        <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
           {currentSlots.map((slot) => (
             <button
               key={slot.id}
@@ -596,11 +682,14 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
               }
               className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
                 formData.selectedSlotId === slot.id
-                  ? "border-electric bg-electric/20 text-electric"
-                  : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
+                  ? "border-lavender bg-lavender/25 text-mauve"
+                  : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-porcelain/60"
               }`}
             >
-              {slot.label}
+              <span className="block">{slot.label}</span>
+              {!formData.selectedProfessionalId && slot.professionalName && (
+                <span className="block text-xs text-charcoal/40 mt-0.5">👤 {slot.professionalName}</span>
+              )}
             </button>
           ))}
         </div>
@@ -612,7 +701,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
               type="button"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((prev) => prev - 1)}
-              className="p-2 text-white/50 hover:text-white disabled:opacity-20"
+              className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -639,8 +728,8 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
                     onClick={() => setCurrentPage(page)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       currentPage === page
-                        ? "bg-white text-black"
-                        : "bg-white/5 text-white/50"
+                        ? "bg-blush text-white"
+                        : "bg-porcelain text-charcoal/40"
                     }`}
                   >
                     {page}
@@ -653,7 +742,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((prev) => prev + 1)}
-              className="p-2 text-white/50 hover:text-white disabled:opacity-20"
+              className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -673,84 +762,11 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           </div>
         )}
       </div>
-
-      {/* Selector de Profesional (opcional) */}
-      {formData.selectedSlotId && selectedServiceObj && (
-        <div>
-          <label className="text-xs uppercase tracking-[0.2em] text-white/50 mb-3 block">
-            Especialista (opcional)
-          </label>
-          {loadingProfessionals ? (
-            <p className="text-sm text-white/50">Buscando especialistas disponibles...</p>
-          ) : professionals.length === 0 ? (
-            <p className="text-sm text-white/50">
-              No hay especialistas asignados para este turno, se te asignará uno automáticamente.
-            </p>
-          ) : (
-            <div className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, selectedProfessionalId: null }))
-                }
-                className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
-                  formData.selectedProfessionalId === null
-                    ? "border-lux bg-lux/20 text-lux"
-                    : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
-                }`}
-              >
-                <span className="block font-medium">Sin preferencia</span>
-                <span className="block text-xs text-white/50 mt-1">
-                  Se asigna el primer especialista disponible
-                </span>
-              </button>
-
-              {professionals.map((pro) => (
-                <button
-                  key={pro.id}
-                  type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({ ...prev, selectedProfessionalId: pro.id }))
-                  }
-                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition ${
-                    formData.selectedProfessionalId === pro.id
-                      ? "border-lux bg-lux/20 text-lux"
-                      : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
-                  }`}
-                >
-                  {pro.photoUrl ? (
-                    <img
-                      src={pro.photoUrl}
-                      alt={`${pro.firstName} ${pro.lastName}`}
-                      className="h-9 w-9 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <span
-                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: pro.calendarColor || "#6366f1" }}
-                    >
-                      {pro.firstName?.[0]}
-                      {pro.lastName?.[0]}
-                    </span>
-                  )}
-                  <span>
-                    <span className="block font-medium">
-                      {pro.firstName} {pro.lastName}
-                    </span>
-                    {pro.specialty && (
-                      <span className="block text-xs text-white/50 mt-1">{pro.specialty}</span>
-                    )}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       )}
 
       {/* Consulta y Botón Final (Igual a tu original) */}
       <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
           Consulta adicional
         </label>
         <textarea
@@ -764,7 +780,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       </div>
 
       <button
-        className="w-full rounded-full bg-electric px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
+        className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
         type="submit"
         disabled={
           submitting || !formData.selectedSlotId || !formData.selectedService

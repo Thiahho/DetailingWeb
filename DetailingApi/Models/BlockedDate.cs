@@ -9,4 +9,8 @@ public class BlockedDate
     public string? Reason { get; set; }
     public bool IsRecurring { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Null = bloquea todo el negocio (comportamiento actual). Con valor, solo ese profesional.
+    public int? ProfessionalId { get; set; }
+    public Professional? Professional { get; set; }
 }

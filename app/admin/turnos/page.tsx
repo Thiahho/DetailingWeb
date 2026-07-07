@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../../src/lib/auth";
 import { logError } from "../../../src/lib/logger";
 
 // --- Interfaces ---
@@ -32,6 +32,14 @@ interface TimeSlot {
   bookingsCount: number;
   label: string;
   booking?: Booking;
+  professionalId?: number | null;
+  professionalName?: string | null;
+}
+
+interface Professional {
+  id: number;
+  firstName: string;
+  lastName: string;
 }
 
 // --- Toast Types ---
@@ -133,9 +141,9 @@ function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => vo
           {icons[toast.type]}
         </div>
         <div className="flex-1 pt-0.5">
-          <p className="font-bold text-white text-[15px]">{toast.title}</p>
+          <p className="font-bold text-charcoal text-[15px]">{toast.title}</p>
           {toast.message && (
-            <p className="text-white/80 text-sm mt-1">{toast.message}</p>
+            <p className="text-charcoal/80 text-sm mt-1">{toast.message}</p>
           )}
         </div>
       </div>
@@ -144,7 +152,7 @@ function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => vo
           setIsExiting(true);
           setTimeout(onClose, 300);
         }}
-        className="absolute top-3 right-3 text-white/60 hover:text-white transition p-1"
+        className="absolute top-3 right-3 text-charcoal/60 hover:text-charcoal transition p-1"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -174,9 +182,11 @@ export default function TurnosPage() {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
 
   // Estados de formulario
-  const [formData, setFormData] = useState({ date: "", hour: "09", minute: "00" });
+  const [formData, setFormData] = useState({ date: "", hour: "09", minute: "00", professionalId: "" });
   const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
   const [creating, setCreating] = useState(false);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [professionalFilter, setProfessionalFilter] = useState<string>("all");
 
   // Estados de Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -212,11 +222,12 @@ export default function TurnosPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/admin/login");
+    if (!isAdminAuthenticated()) {
+      router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login");
       return;
     }
     loadSlots();
+    fetch("/api/professionals").then((r) => r.json()).then((d) => setProfessionals(Array.isArray(d) ? d : [])).catch(() => {});
   }, [router]);
 
   // --- Lógica de Carga y CRUD (Igual que tu código original) ---
@@ -264,13 +275,14 @@ export default function TurnosPage() {
         body: JSON.stringify({
           startDateTime,
           endDateTime,
+          professionalId: formData.professionalId ? Number(formData.professionalId) : null,
         }),
       });
 
       const data = await response.json();
       if (response.ok) {
         showToast("success", "Turno Creado", `Turno para el ${formData.date} a las ${formData.hour}:${formData.minute} creado exitosamente`, 5000);
-        setFormData({ date: "", hour: "09", minute: "00" });
+        setFormData({ date: "", hour: "09", minute: "00", professionalId: formData.professionalId });
         loadSlots();
       } else {
         showToast("error", "Error al crear turno", data.message || "No se pudo crear el turno");
@@ -300,7 +312,7 @@ export default function TurnosPage() {
       });
       if (response.ok) {
         showToast("success", "Turno Actualizado", "Los cambios se guardaron correctamente", 4000);
-        setFormData({ date: "", hour: "09", minute: "00" });
+        setFormData({ date: "", hour: "09", minute: "00", professionalId: "" });
         setEditingSlot(null);
         loadSlots();
       } else {
@@ -509,16 +521,18 @@ export default function TurnosPage() {
       date: datePart,
       hour: hour.padStart(2, "0"),
       minute: minute.padStart(2, "0"),
+      professionalId: slot.professionalId ? String(slot.professionalId) : "",
     });
   };
 
   const cancelEditing = () => {
     setEditingSlot(null);
-    setFormData({ date: "", hour: "09", minute: "00" });
+    setFormData({ date: "", hour: "09", minute: "00", professionalId: "" });
   };
 
-  // --- Filtrado por estado ---
+  // --- Filtrado por estado + profesional ---
   const filteredSlots = slots.filter((slot) => {
+    if (professionalFilter !== "all" && String(slot.professionalId ?? "") !== professionalFilter) return false;
     if (statusFilter === "all") return true;
     const expired = isExpired(slot.startDateTime);
     if (statusFilter === "expired") return expired;
@@ -544,8 +558,8 @@ export default function TurnosPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1115]">
-        <p className="text-white">Cargando...</p>
+      <div className="flex min-h-screen items-center justify-center bg-ivory">
+        <p className="text-charcoal">Cargando...</p>
       </div>
     );
   }
@@ -576,15 +590,15 @@ export default function TurnosPage() {
         {/* Encabezado Principal */}
         <div className="mb-6 md:mb-8 flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">Gestión de Turnos</h1>
-            <p className="text-white/50 text-sm mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Gestión de Turnos</h1>
+            <p className="text-charcoal/50 text-sm mt-1">
               Administra los turnos disponibles para reservas
             </p>
           </div>
           <div className="flex gap-2">
             <a
               href="/admin/estadisticas"
-              className="bg-[#161b22] border border-white/10 hover:border-white/20 text-white/70 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              className="bg-ivory border border-mauve/10 hover:border-mauve/20 text-charcoal/70 hover:text-charcoal px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -593,7 +607,7 @@ export default function TurnosPage() {
             </a>
             <a
               href="/admin/servicios"
-              className="bg-[#161b22] border border-white/10 hover:border-white/20 text-white/70 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              className="bg-ivory border border-mauve/10 hover:border-mauve/20 text-charcoal/70 hover:text-charcoal px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -605,8 +619,8 @@ export default function TurnosPage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* COLUMNA IZQUIERDA: Formulario */}
-          <div className="bg-[#161b22] border border-white/5 rounded-xl p-6 h-fit md:sticky md:top-6 z-20 relative">
-            <h2 className="text-xl font-semibold text-white mb-6">
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-6 h-fit md:sticky md:top-6 z-20 relative">
+            <h2 className="text-xl font-semibold text-charcoal mb-6">
               {editingSlot ? "Editar Turno" : "Crear Turno Disponible"}
             </h2>
             <form
@@ -614,12 +628,12 @@ export default function TurnosPage() {
               className="space-y-5"
             >
               <div>
-                <label className="text-white/70 text-sm font-medium">
+                <label className="text-charcoal/70 text-sm font-medium">
                   Fecha
                 </label>
                 <input
                   type="date"
-                  className="w-full mt-2 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition-colors"
+                  className="w-full mt-2 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition-colors"
                   value={formData.date}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, date: e.target.value }))
@@ -629,7 +643,7 @@ export default function TurnosPage() {
               </div>
 
               <div>
-                <label className="text-white/70 text-sm font-medium">
+                <label className="text-charcoal/70 text-sm font-medium">
                   Hora inicio
                 </label>
                 <div className="flex gap-2 mt-2 items-center">
@@ -638,7 +652,7 @@ export default function TurnosPage() {
                     inputMode="numeric"
                     maxLength={2}
                     placeholder="HH"
-                    className="w-20 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white text-center focus:border-green-500 focus:outline-none transition-colors"
+                    className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.hour}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 2);
@@ -650,13 +664,13 @@ export default function TurnosPage() {
                     }}
                     required
                   />
-                  <span className="text-white/50 text-xl font-bold">:</span>
+                  <span className="text-charcoal/50 text-xl font-bold">:</span>
                   <input
                     type="text"
                     inputMode="numeric"
                     maxLength={2}
                     placeholder="MM"
-                    className="w-20 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white text-center focus:border-green-500 focus:outline-none transition-colors"
+                    className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.minute}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 2);
@@ -671,11 +685,30 @@ export default function TurnosPage() {
                 </div>
               </div>
 
+              {!editingSlot && (
+                <div>
+                  <label className="text-charcoal/70 text-sm font-medium">
+                    Profesional
+                  </label>
+                  <select
+                    className="w-full mt-2 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition-colors"
+                    value={formData.professionalId}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, professionalId: e.target.value }))}
+                    required
+                  >
+                    <option value="">Seleccioná un profesional</option>
+                    {professionals.map((p) => (
+                      <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50"
+                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
                 >
                   {creating
                     ? "Procesando..."
@@ -688,7 +721,7 @@ export default function TurnosPage() {
                   <button
                     type="button"
                     onClick={cancelEditing}
-                    className="px-6 bg-white/5 text-white py-3 rounded-lg font-semibold hover:bg-white/10 transition"
+                    className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition"
                   >
                     Cancelar
                   </button>
@@ -698,7 +731,7 @@ export default function TurnosPage() {
           </div>
 
           {/* COLUMNA DERECHA: Lista Estilo Imagen */}
-          <div className="bg-[#161b22] border border-white/5 rounded-xl p-6 flex flex-col h-[700px]">
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-6 flex flex-col h-[700px]">
             {/* Header de la lista */}
             <div className="flex justify-between items-center mb-4 px-1">
               <div className="flex items-center gap-3">
@@ -709,15 +742,15 @@ export default function TurnosPage() {
                   className="w-4 h-4 accent-green-500 cursor-pointer"
                   title="Seleccionar todos"
                 />
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-xl font-bold text-charcoal">
                   Turnos Creados{" "}
-                  <span className="text-white/60 text-lg font-normal">
+                  <span className="text-charcoal/60 text-lg font-normal">
                     ({statusFilter === "all" ? slots.length : `${filteredSlots.length}/${slots.length}`})
                   </span>
                 </h2>
               </div>
               {selectedIds.length > 0 && (
-                <span className="text-sm text-white/50">
+                <span className="text-sm text-charcoal/50">
                   {selectedIds.length} seleccionado(s)
                 </span>
               )}
@@ -740,7 +773,7 @@ export default function TurnosPage() {
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
                     statusFilter === key
                       ? "bg-white text-black"
-                      : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
+                      : "bg-porcelain/10 text-charcoal/50 hover:bg-porcelain/20 hover:text-charcoal"
                   }`}
                 >
                   {label}
@@ -748,20 +781,36 @@ export default function TurnosPage() {
               ))}
             </div>
 
+            {/* Filtro por profesional */}
+            {professionals.length > 0 && (
+              <div className="mb-3 px-1">
+                <select
+                  className="w-full bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-green-500"
+                  value={professionalFilter}
+                  onChange={(e) => { setProfessionalFilter(e.target.value); setCurrentPage(1); }}
+                >
+                  <option value="all">Todos los profesionales</option>
+                  {professionals.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Acciones en lote */}
             {selectedIds.length > 0 && (
               <div className="flex gap-2 mb-4 px-1">
                 <button
                   onClick={bulkRelease}
                   disabled={bulkAction}
-                  className="flex-1 bg-green-600/20 border border-green-600/50 text-green-400 hover:bg-green-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                  className="flex-1 bg-green-600/20 border border-green-600/50 text-green-700 hover:bg-green-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
                 >
                   {bulkAction ? "Procesando..." : "Habilitar seleccionados"}
                 </button>
                 <button
                   onClick={bulkDelete}
                   disabled={bulkAction}
-                  className="flex-1 bg-red-600/20 border border-red-600/50 text-red-400 hover:bg-red-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                  className="flex-1 bg-red-600/20 border border-red-600/50 text-red-600 hover:bg-red-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
                 >
                   {bulkAction ? "Procesando..." : "Eliminar seleccionados"}
                 </button>
@@ -771,7 +820,7 @@ export default function TurnosPage() {
             {/* Contenedor de Scroll y Lista */}
             <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
               {slots.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-white/30 border border-dashed border-white/10 rounded-lg">
+                <div className="h-full flex flex-col items-center justify-center text-charcoal/30 border border-dashed border-mauve/10 rounded-lg">
                   <p>No hay turnos disponibles</p>
                 </div>
               ) : (
@@ -784,12 +833,12 @@ export default function TurnosPage() {
                       group relative p-4 rounded-lg border transition-all duration-200
                       ${
                         expired
-                          ? "bg-white/[0.02] border-white/10 opacity-60"
+                          ? "bg-porcelain/[0.02] border-mauve/10 opacity-60"
                           : slot.isAvailable
-                          ? "bg-[#0f291e]/40 border-green-900/50 hover:border-green-700/50"
+                          ? "bg-green-50 border-green-200 hover:border-green-300"
                           : slot.booking?.status === "Confirmed"
-                          ? "bg-blue-900/10 border-blue-900/30 hover:border-blue-700/50"
-                          : "bg-orange-900/10 border-orange-900/30 hover:border-orange-700/50"
+                          ? "bg-blue-50 border-blue-200 hover:border-blue-300"
+                          : "bg-orange-50 border-orange-200 hover:border-orange-300"
                       }
                       ${selectedIds.includes(slot.id) ? "ring-2 ring-white/30" : ""}
                     `}
@@ -804,7 +853,7 @@ export default function TurnosPage() {
                         />
                         <div>
                           {/* Fecha y Hora */}
-                          <p className={`font-medium text-[15px] tracking-wide ${expired ? "text-white/50 line-through" : "text-white"}`}>
+                          <p className={`font-medium text-[15px] tracking-wide ${expired ? "text-charcoal/50 line-through" : "text-charcoal"}`}>
                             {formatDateFriendly(slot.startDateTime)}
                           </p>
 
@@ -813,7 +862,7 @@ export default function TurnosPage() {
                             <span
                               className={`w-2.5 h-2.5 rounded-full ${
                                 expired
-                                  ? "bg-white/30"
+                                  ? "bg-porcelain/30"
                                   : slot.isAvailable
                                   ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                                   : slot.booking?.status === "Confirmed"
@@ -824,11 +873,11 @@ export default function TurnosPage() {
                             <span
                               className={`text-xs font-bold tracking-wider ${
                                 expired
-                                  ? "text-white/40"
+                                  ? "text-charcoal/40"
                                   : slot.isAvailable
                                   ? "text-green-500"
                                   : slot.booking?.status === "Confirmed"
-                                  ? "text-blue-400"
+                                  ? "text-blue-700"
                                   : "text-orange-500"
                               }`}
                             >
@@ -849,7 +898,7 @@ export default function TurnosPage() {
                         {expired ? (
                           <button
                             onClick={() => deleteSlot(slot.id)}
-                            className="text-red-400 hover:text-red-300 text-xs font-medium uppercase tracking-wide transition"
+                            className="text-red-600 hover:text-red-600 text-xs font-medium uppercase tracking-wide transition"
                           >
                             Eliminar
                           </button>
@@ -857,13 +906,13 @@ export default function TurnosPage() {
                           <>
                             <button
                               onClick={() => startEditing(slot)}
-                              className="text-blue-400 hover:text-blue-300 text-xs font-medium uppercase tracking-wide transition"
+                              className="text-blue-700 hover:text-blue-700 text-xs font-medium uppercase tracking-wide transition"
                             >
                               Editar
                             </button>
                             <button
                               onClick={() => deleteSlot(slot.id)}
-                              className="text-red-400 hover:text-red-300 text-xs font-medium uppercase tracking-wide transition"
+                              className="text-red-600 hover:text-red-600 text-xs font-medium uppercase tracking-wide transition"
                             >
                               Eliminar
                             </button>
@@ -872,13 +921,13 @@ export default function TurnosPage() {
                           <>
                             <button
                               onClick={() => setDetailSlot(slot)}
-                              className="text-blue-400 hover:text-blue-300 text-xs font-medium uppercase tracking-wide transition"
+                              className="text-blue-700 hover:text-blue-700 text-xs font-medium uppercase tracking-wide transition"
                             >
                               Ver detalle
                             </button>
                             <button
                               onClick={() => habilitarTurno(slot.id)}
-                              className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
+                              className="text-green-700 hover:text-green-700 text-xs font-medium uppercase tracking-wide transition"
                             >
                               Liberar
                             </button>
@@ -887,32 +936,39 @@ export default function TurnosPage() {
                       </div>
                     </div>
 
+                    {/* Profesional dueño del turno, aunque todavía no esté reservado */}
+                    {slot.isAvailable && slot.professionalName && (
+                      <div className="mt-3 pt-3 border-t border-mauve/5 text-xs text-charcoal/50">
+                        👤 {slot.professionalName}
+                      </div>
+                    )}
+
                     {/* Información Extra si está reservado */}
                     {!slot.isAvailable && slot.booking && (
-                      <div className="mt-3 pt-3 border-t border-white/5 text-xs text-white/60">
+                      <div className="mt-3 pt-3 border-t border-mauve/5 text-xs text-charcoal/60">
                         <div className="flex items-center justify-between">
                           <span>
                             {slot.booking?.status === "Confirmed" ? "Confirmado por:" : "Reservado por:"}{" "}
-                            <span className="text-white">
+                            <span className="text-charcoal">
                               {slot.booking.customerName}
                             </span>
                             {slot.booking.professionalName && (
-                              <span className="text-white/40"> · 👤 {slot.booking.professionalName}</span>
+                              <span className="text-charcoal/40"> · 👤 {slot.booking.professionalName}</span>
                             )}
                           </span>
                           {slot.booking.paymentStatus === "Approved" && (
-                            <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                            <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-700 border border-green-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                               Pagado
                             </span>
                           )}
                           {slot.booking.paymentStatus === "Pending" && (
-                            <span className="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                            <span className="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-700 border border-yellow-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
                               Pago pendiente
                             </span>
                           )}
                           {!slot.booking.paymentStatus && (
-                            <span className="inline-flex items-center gap-1 bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5 text-[10px]">
+                            <span className="inline-flex items-center gap-1 bg-porcelain/5 text-charcoal/30 border border-mauve/10 rounded-full px-2 py-0.5 text-[10px]">
                               Sin pago
                             </span>
                           )}
@@ -927,12 +983,12 @@ export default function TurnosPage() {
 
             {/* --- Footer / Paginación --- */}
             {slots.length > 0 && (
-              <div className="pt-6 mt-2 flex justify-center items-center gap-4 border-t border-white/5">
+              <div className="pt-6 mt-2 flex justify-center items-center gap-4 border-t border-mauve/5">
                 {/* Flecha Izquierda */}
                 <button
                   onClick={goToPrevPage}
                   disabled={currentPage === 1}
-                  className="p-2 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  className="p-2 text-charcoal/70 hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed transition"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -962,7 +1018,7 @@ export default function TurnosPage() {
                         ${
                           currentPage === page
                             ? "bg-white text-black scale-110 shadow-lg"
-                            : "bg-white/10 text-white hover:bg-white/20"
+                            : "bg-porcelain/10 text-charcoal hover:bg-porcelain/20"
                         }
                       `}
                       >
@@ -976,7 +1032,7 @@ export default function TurnosPage() {
                 <button
                   onClick={goToNextPage}
                   disabled={currentPage === totalPages}
-                  className="p-2 text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+                  className="p-2 text-charcoal/70 hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed transition"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -1008,23 +1064,23 @@ export default function TurnosPage() {
           onClick={() => setDetailSlot(null)}
         >
           <div
-            className="bg-[#161b22] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl"
+            className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
-                <h2 className="text-white font-semibold text-lg">Detalle de reserva</h2>
-                <p className="text-white/40 text-xs mt-0.5">{formatDateFriendly(detailSlot.startDateTime)}</p>
+                <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
+                <p className="text-charcoal/40 text-xs mt-0.5">{formatDateFriendly(detailSlot.startDateTime)}</p>
               </div>
-              <button onClick={() => setDetailSlot(null)} className="text-white/40 hover:text-white transition text-xl">✕</button>
+              <button onClick={() => setDetailSlot(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
 
             {/* Body */}
             <div className="px-6 py-5 space-y-4">
               <Row label="Cliente" value={detailSlot.booking.customerName} />
               <Row label="Teléfono" value={
-                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-400 hover:underline">
+                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-700 hover:underline">
                   {detailSlot.booking.customerPhone}
                 </a>
               } />
@@ -1040,10 +1096,10 @@ export default function TurnosPage() {
                   if (entries.length === 0) return null;
                   return (
                     <div>
-                      <p className="text-white/40 text-xs uppercase tracking-wider mb-2">Campos adicionales</p>
+                      <p className="text-charcoal/40 text-xs uppercase tracking-wider mb-2">Campos adicionales</p>
                       <div className="flex flex-wrap gap-2">
                         {entries.map(([k, v]) => (
-                          <span key={k} className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-white/70">
+                          <span key={k} className="text-xs bg-porcelain/5 border border-mauve/10 rounded-full px-3 py-1 text-charcoal/70">
                             {k}: {v}
                           </span>
                         ))}
@@ -1058,12 +1114,12 @@ export default function TurnosPage() {
               <Row label="Estado" value={
                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                   slotExpired
-                    ? "bg-white/10 text-white/40"
+                    ? "bg-porcelain/10 text-charcoal/40"
                     : detailSlot.booking.status === "Confirmed"
-                    ? "bg-green-500/20 text-green-400"
+                    ? "bg-green-500/20 text-green-700"
                     : detailSlot.booking.status === "Cancelled"
-                    ? "bg-red-500/20 text-red-400"
-                    : "bg-orange-500/20 text-orange-400"
+                    ? "bg-red-500/20 text-red-600"
+                    : "bg-orange-500/20 text-orange-700"
                 }`}>
                   {slotExpired ? "Expirado"
                     : detailSlot.booking.status === "Confirmed" ? "Confirmado"
@@ -1073,21 +1129,21 @@ export default function TurnosPage() {
               } />
               <Row label="Pago" value={
                 detailSlot.booking.paymentStatus === "Approved"
-                  ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+                  ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-700">
                       Pagado{detailSlot.booking.paymentAmount ? ` — $${detailSlot.booking.paymentAmount.toLocaleString("es-AR")}` : ""}
                     </span>
                   : detailSlot.booking.paymentStatus === "Pending"
-                  ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400">Pago pendiente</span>
-                  : <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/10 text-white/40">Sin pago</span>
+                  ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-700">Pago pendiente</span>
+                  : <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-porcelain/10 text-charcoal/40">Sin pago</span>
               } />
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/5 flex flex-col gap-2">
+            <div className="px-6 py-4 border-t border-mauve/5 flex flex-col gap-2">
               {slotExpired ? (
                 <button
                   onClick={() => { setDetailSlot(null); deleteSlot(detailSlot.id); }}
-                  className="w-full bg-red-600/20 border border-red-600/50 hover:bg-red-600/30 text-red-400 py-2.5 rounded-lg text-sm font-semibold transition"
+                  className="w-full bg-red-600/20 border border-red-600/50 hover:bg-red-600/30 text-red-600 py-2.5 rounded-lg text-sm font-semibold transition"
                 >
                   Eliminar turno expirado
                 </button>
@@ -1096,14 +1152,14 @@ export default function TurnosPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => confirmarYEnviarWhatsApp(detailSlot)}
-                      className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+                      className="flex-1 text-center bg-green-600 hover:bg-green-500 text-charcoal py-2.5 rounded-lg text-sm font-semibold transition"
                     >
                       Confirmar + WhatsApp
                     </button>
                     {detailSlot.booking.status !== "Confirmed" && (
                       <button
                         onClick={() => confirmarTurno(detailSlot.booking!.id, detailSlot.booking!, detailSlot.startDateTime)}
-                        className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-400 py-2.5 rounded-lg text-sm font-semibold transition"
+                        className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-700 py-2.5 rounded-lg text-sm font-semibold transition"
                       >
                         Confirmar
                       </button>
@@ -1111,7 +1167,7 @@ export default function TurnosPage() {
                   </div>
                   <button
                     onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id, detailSlot.booking!.status === "Confirmed"); }}
-                    className="w-full bg-white/5 hover:bg-red-500/10 text-white/50 hover:text-red-400 border border-transparent hover:border-red-500/20 py-2 rounded-lg text-sm font-medium transition"
+                    className="w-full bg-porcelain/5 hover:bg-red-500/10 text-charcoal/50 hover:text-red-600 border border-transparent hover:border-red-500/20 py-2 rounded-lg text-sm font-medium transition"
                   >
                     {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
                   </button>
@@ -1129,8 +1185,8 @@ export default function TurnosPage() {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-white/40 text-sm shrink-0">{label}</span>
-      <span className="text-white text-sm text-right">{value}</span>
+      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
+      <span className="text-charcoal text-sm text-right">{value}</span>
     </div>
   );
 }

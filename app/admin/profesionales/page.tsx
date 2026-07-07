@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "../../../src/lib/auth";
+import { isAdminAuthenticated, getRole } from "../../../src/lib/auth";
 import { logError } from "../../../src/lib/logger";
 import CloudinaryUpload from "../../../src/components/CloudinaryUpload";
 
@@ -23,6 +23,8 @@ interface Professional {
   isActive: boolean;
   order: number;
   services: ServiceOption[];
+  accountEmail?: string | null;
+  accountUsername?: string | null;
 }
 
 interface WeeklyScheduleDay {
@@ -74,9 +76,9 @@ function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => vo
 
   return (
     <div className={`bg-gradient-to-r ${colors[toast.type]} border rounded-xl p-4 pr-12 min-w-[300px] shadow-lg transition-all duration-300 ${exiting ? "translate-x-[120%] opacity-0" : "translate-x-0 opacity-100"}`}>
-      <p className="font-bold text-white">{toast.title}</p>
-      {toast.message && <p className="text-white/80 text-sm mt-1">{toast.message}</p>}
-      <button onClick={() => { setExiting(true); setTimeout(onClose, 300); }} className="absolute top-3 right-3 text-white/60 hover:text-white">✕</button>
+      <p className="font-bold text-charcoal">{toast.title}</p>
+      {toast.message && <p className="text-charcoal/80 text-sm mt-1">{toast.message}</p>}
+      <button onClick={() => { setExiting(true); setTimeout(onClose, 300); }} className="absolute top-3 right-3 text-charcoal/60 hover:text-charcoal">✕</button>
     </div>
   );
 }
@@ -93,6 +95,8 @@ export default function ProfesionalesAdminPage() {
   const [schedule, setSchedule] = useState<WeeklyScheduleDay[]>(defaultSchedule());
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [accessForm, setAccessForm] = useState({ email: "", username: "", password: "" });
+  const [savingAccess, setSavingAccess] = useState(false);
 
   const showToast = useCallback((type: ToastType, title: string, message?: string) => {
     setToasts((prev) => [...prev, { id: Date.now(), type, title, message }]);
@@ -103,8 +107,8 @@ export default function ProfesionalesAdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("/admin/login");
+    if (!isAdminAuthenticated()) {
+      router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login");
       return;
     }
     loadProfessionals();
@@ -156,6 +160,7 @@ export default function ProfesionalesAdminPage() {
     } catch {
       setSchedule(defaultSchedule());
     }
+    setAccessForm({ email: professional.accountEmail ?? "", username: professional.accountUsername ?? "", password: "" });
     setShowForm(true);
   };
 
@@ -164,6 +169,37 @@ export default function ProfesionalesAdminPage() {
     setEditingProfessional(null);
     setFormData({ ...emptyForm });
     setSchedule(defaultSchedule());
+    setAccessForm({ email: "", username: "", password: "" });
+  };
+
+  const handleCreateAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProfessional) return;
+    setSavingAccess(true);
+    try {
+      const res = await fetch("/api/auth/professional-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          professionalId: editingProfessional.id,
+          email: accessForm.email,
+          username: accessForm.username || null,
+          password: accessForm.password,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("success", "Acceso configurado", `${editingProfessional.firstName} ya puede loguearse en /profesional/login`);
+        setAccessForm((prev) => ({ ...prev, password: "" }));
+        loadProfessionals();
+      } else {
+        showToast("error", "Error", data.message || "No se pudo configurar el acceso");
+      }
+    } catch {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+    } finally {
+      setSavingAccess(false);
+    }
   };
 
   const updateScheduleDay = (dayOfWeek: number, patch: Partial<WeeklyScheduleDay>) => {
@@ -229,14 +265,14 @@ export default function ProfesionalesAdminPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1115]">
-        <p className="text-white">Cargando profesionales...</p>
+      <div className="flex min-h-screen items-center justify-center bg-cream">
+        <p className="text-charcoal">Cargando profesionales...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1115] p-4 md:p-6 font-sans">
+    <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       {/* Toasts */}
       <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3">
         {toasts.map((t) => (
@@ -248,14 +284,14 @@ export default function ProfesionalesAdminPage() {
         {/* Header */}
         <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white">Gestión de Profesionales</h1>
-            <p className="text-white/50 text-sm mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Gestión de Profesionales</h1>
+            <p className="text-charcoal/50 text-sm mt-1">
               Administrá el equipo del salón y qué servicios ofrece cada uno
             </p>
           </div>
           <button
             onClick={openCreate}
-            className="shrink-0 bg-green-600 hover:bg-green-500 text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold transition flex items-center gap-2 text-sm md:text-base"
+            className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm md:text-base"
           >
             <span className="text-xl leading-none">+</span>
             <span className="hidden sm:inline">Nuevo Profesional</span>
@@ -265,9 +301,9 @@ export default function ProfesionalesAdminPage() {
 
         {/* Grid de profesionales */}
         {professionals.length === 0 ? (
-          <div className="text-center py-20 border border-dashed border-white/10 rounded-xl">
-            <p className="text-white/40 text-lg">No hay profesionales cargados</p>
-            <button onClick={openCreate} className="mt-4 text-green-400 hover:text-green-300 transition text-sm">
+          <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
+            <p className="text-charcoal/40 text-lg">No hay profesionales cargados</p>
+            <button onClick={openCreate} className="mt-4 text-green-700 hover:text-green-700 transition text-sm">
               + Crear el primero
             </button>
           </div>
@@ -276,8 +312,8 @@ export default function ProfesionalesAdminPage() {
             {professionals.map((professional) => (
               <div
                 key={professional.id}
-                className={`bg-[#161b22] border rounded-xl overflow-hidden transition ${
-                  professional.isActive ? "border-white/5" : "border-orange-900/30 opacity-60"
+                className={`bg-ivory border rounded-xl overflow-hidden transition ${
+                  professional.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"
                 }`}
               >
                 {/* Imagen */}
@@ -295,19 +331,19 @@ export default function ProfesionalesAdminPage() {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span
-                        className="shrink-0 h-3 w-3 rounded-full border border-white/20"
+                        className="shrink-0 h-3 w-3 rounded-full border border-mauve/20"
                         style={{ backgroundColor: professional.calendarColor }}
                         title={professional.calendarColor}
                       />
-                      <h3 className="text-white font-semibold text-[15px] leading-tight truncate">
+                      <h3 className="text-charcoal font-semibold text-[15px] leading-tight truncate">
                         {professional.firstName} {professional.lastName}
                       </h3>
                     </div>
                     <span
                       className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         professional.isActive
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-orange-500/20 text-orange-400"
+                          ? "bg-green-500/20 text-green-700"
+                          : "bg-orange-500/20 text-orange-700"
                       }`}
                     >
                       {professional.isActive ? "ACTIVO" : "INACTIVO"}
@@ -315,13 +351,13 @@ export default function ProfesionalesAdminPage() {
                   </div>
 
                   {professional.specialty && (
-                    <p className="text-white/60 text-sm">{professional.specialty}</p>
+                    <p className="text-charcoal/60 text-sm">{professional.specialty}</p>
                   )}
 
                   {professional.services.length > 0 && (
                     <ul className="mt-3 space-y-1">
                       {professional.services.map((s) => (
-                        <li key={s.id} className="text-white/40 text-xs flex items-start gap-1.5">
+                        <li key={s.id} className="text-charcoal/40 text-xs flex items-start gap-1.5">
                           <span className="text-green-500 mt-0.5">✓</span> {s.title}
                         </li>
                       ))}
@@ -331,7 +367,7 @@ export default function ProfesionalesAdminPage() {
                   <div className="mt-4 flex gap-2">
                     <button
                       onClick={() => openEdit(professional)}
-                      className="flex-1 bg-white/5 hover:bg-white/10 text-white text-sm py-2 rounded-lg transition"
+                      className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition"
                     >
                       Editar
                     </button>
@@ -339,13 +375,13 @@ export default function ProfesionalesAdminPage() {
                       <div className="flex gap-1">
                         <button
                           onClick={() => handleDelete(professional.id)}
-                          className="bg-red-600 hover:bg-red-500 text-white text-sm px-3 py-2 rounded-lg transition"
+                          className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition"
                         >
                           Confirmar
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(null)}
-                          className="bg-white/5 text-white text-sm px-3 py-2 rounded-lg transition"
+                          className="bg-porcelain/5 text-charcoal text-sm px-3 py-2 rounded-lg transition"
                         >
                           Cancelar
                         </button>
@@ -353,7 +389,7 @@ export default function ProfesionalesAdminPage() {
                     ) : (
                       <button
                         onClick={() => setDeleteConfirmId(professional.id)}
-                        className="bg-red-900/20 hover:bg-red-900/40 text-red-400 text-sm px-3 py-2 rounded-lg transition"
+                        className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition"
                       >
                         Eliminar
                       </button>
@@ -370,23 +406,23 @@ export default function ProfesionalesAdminPage() {
       {showForm && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={closeForm}>
           <div
-            className="bg-[#161b22] border border-white/10 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-ivory border border-mauve/10 rounded-2xl p-4 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-xl font-bold text-charcoal">
                 {editingProfessional ? "Editar Profesional" : "Nuevo Profesional"}
               </h2>
-              <button onClick={closeForm} className="text-white/40 hover:text-white transition text-xl">✕</button>
+              <button onClick={closeForm} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nombre y Apellido */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Nombre</label>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Nombre</label>
                   <input
-                    className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition"
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
                     value={formData.firstName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
                     placeholder="Juan"
@@ -394,9 +430,9 @@ export default function ProfesionalesAdminPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Apellido</label>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Apellido</label>
                   <input
-                    className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition"
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
                     value={formData.lastName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
                     placeholder="Pérez"
@@ -407,7 +443,7 @@ export default function ProfesionalesAdminPage() {
 
               {/* Foto */}
               <div>
-                <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Foto</label>
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Foto</label>
                 <div className="mt-1.5">
                   <CloudinaryUpload
                     value={formData.photoUrl}
@@ -419,18 +455,18 @@ export default function ProfesionalesAdminPage() {
               {/* Color de calendario y Especialidad */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Color en calendario</label>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Color en calendario</label>
                   <input
                     type="color"
-                    className="w-full mt-1.5 h-11 bg-[#0d1117] border border-white/10 rounded-lg p-1 cursor-pointer"
+                    className="w-full mt-1.5 h-11 bg-cream border border-mauve/10 rounded-lg p-1 cursor-pointer"
                     value={formData.calendarColor}
                     onChange={(e) => setFormData((prev) => ({ ...prev, calendarColor: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Especialidad</label>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Especialidad</label>
                   <input
-                    className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition"
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
                     value={formData.specialty}
                     onChange={(e) => setFormData((prev) => ({ ...prev, specialty: e.target.value }))}
                     placeholder="Colorista"
@@ -440,13 +476,13 @@ export default function ProfesionalesAdminPage() {
 
               {/* Servicios asociados */}
               <div>
-                <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Servicios que ofrece</label>
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Servicios que ofrece</label>
                 {allServices.length === 0 ? (
-                  <p className="text-white/30 text-xs italic mt-1.5">No hay servicios cargados todavía.</p>
+                  <p className="text-charcoal/30 text-xs italic mt-1.5">No hay servicios cargados todavía.</p>
                 ) : (
-                  <div className="mt-1.5 grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto bg-[#0d1117] border border-white/10 rounded-lg p-3">
+                  <div className="mt-1.5 grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto bg-cream border border-mauve/10 rounded-lg p-3">
                     {allServices.map((service) => (
-                      <label key={service.id} className="flex items-center gap-1.5 text-white/70 text-sm cursor-pointer">
+                      <label key={service.id} className="flex items-center gap-1.5 text-charcoal/70 text-sm cursor-pointer">
                         <input
                           type="checkbox"
                           checked={formData.serviceIds.includes(service.id)}
@@ -462,67 +498,69 @@ export default function ProfesionalesAdminPage() {
 
               {/* Horario semanal */}
               <div>
-                <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Horario semanal</label>
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Horario semanal</label>
                 <div className="mt-1.5 space-y-1.5">
                   {schedule.map((day) => (
-                    <div key={day.dayOfWeek} className="flex items-center gap-2 bg-[#0d1117] border border-white/10 rounded-lg p-2">
-                      <label className="flex items-center gap-1.5 w-28 shrink-0 text-white/70 text-xs cursor-pointer">
+                    <div key={day.dayOfWeek} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-cream border border-mauve/10 rounded-lg p-2">
+                      <label className="flex items-center gap-1.5 sm:w-28 sm:shrink-0 text-charcoal/70 text-xs cursor-pointer">
                         <input
                           type="checkbox"
                           checked={day.enabled}
                           onChange={(e) => updateScheduleDay(day.dayOfWeek, { enabled: e.target.checked })}
-                          className="accent-green-500"
+                          className="accent-blush"
                         />
                         {DAY_LABELS[day.dayOfWeek]}
                       </label>
-                      <input
-                        type="time"
-                        disabled={!day.enabled}
-                        className="flex-1 bg-black/30 border border-white/10 rounded p-1.5 text-white text-sm disabled:opacity-30"
-                        value={day.start}
-                        onChange={(e) => updateScheduleDay(day.dayOfWeek, { start: e.target.value })}
-                      />
-                      <span className="text-white/30 text-xs">a</span>
-                      <input
-                        type="time"
-                        disabled={!day.enabled}
-                        className="flex-1 bg-black/30 border border-white/10 rounded p-1.5 text-white text-sm disabled:opacity-30"
-                        value={day.end}
-                        onChange={(e) => updateScheduleDay(day.dayOfWeek, { end: e.target.value })}
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          disabled={!day.enabled}
+                          className="flex-1 min-w-0 bg-ivory border border-mauve/10 rounded p-1.5 text-charcoal text-sm disabled:opacity-30"
+                          value={day.start}
+                          onChange={(e) => updateScheduleDay(day.dayOfWeek, { start: e.target.value })}
+                        />
+                        <span className="text-charcoal/30 text-xs shrink-0">a</span>
+                        <input
+                          type="time"
+                          disabled={!day.enabled}
+                          className="flex-1 min-w-0 bg-ivory border border-mauve/10 rounded p-1.5 text-charcoal text-sm disabled:opacity-30"
+                          value={day.end}
+                          onChange={(e) => updateScheduleDay(day.dayOfWeek, { end: e.target.value })}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Comisión, Orden y Estado */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 <div>
-                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Comisión %</label>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Comisión %</label>
                   <input
                     type="number"
                     min={0}
                     max={100}
                     step={0.5}
-                    className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition"
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
                     value={formData.commission}
                     onChange={(e) => setFormData((prev) => ({ ...prev, commission: parseFloat(e.target.value) || 0 }))}
                   />
                 </div>
                 <div>
-                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Orden</label>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Orden</label>
                   <input
                     type="number"
                     min={0}
-                    className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition"
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
                     value={formData.order}
                     onChange={(e) => setFormData((prev) => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
                 <div>
-                  <label className="text-white/60 text-xs font-medium uppercase tracking-wider">Estado</label>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
                   <select
-                    className="w-full mt-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none transition"
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
                     value={formData.isActive ? "true" : "false"}
                     onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
                   >
@@ -537,19 +575,75 @@ export default function ProfesionalesAdminPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-semibold transition disabled:opacity-50"
+                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
                 >
                   {saving ? "Guardando..." : editingProfessional ? "Guardar cambios" : "Crear profesional"}
                 </button>
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="px-6 bg-white/5 text-white py-3 rounded-lg font-semibold hover:bg-white/10 transition"
+                  className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition"
                 >
                   Cancelar
                 </button>
               </div>
             </form>
+
+            {/* Acceso al sistema — solo tiene sentido una vez que el profesional ya existe */}
+            {editingProfessional && (
+              <div className="mt-6 pt-6 border-t border-mauve/10">
+                <h3 className="text-charcoal font-semibold text-sm mb-1">Acceso al sistema</h3>
+                <p className="text-charcoal/50 text-xs mb-3">
+                  {editingProfessional.accountEmail
+                    ? `Ya tiene acceso con ${editingProfessional.accountEmail}. Podés cambiarle la contraseña acá.`
+                    : "Activá el login para que este profesional pueda entrar a su propia agenda en /profesional/login."}
+                </p>
+                <form onSubmit={handleCreateAccess} className="space-y-3">
+                  <div>
+                    <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Email</label>
+                    <input
+                      type="email"
+                      className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                      value={accessForm.email}
+                      onChange={(e) => setAccessForm((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="marcos@studionails.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Usuario (opcional)</label>
+                    <input
+                      type="text"
+                      className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                      value={accessForm.username}
+                      onChange={(e) => setAccessForm((prev) => ({ ...prev, username: e.target.value }))}
+                      placeholder="Ej: marcos"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
+                      {editingProfessional.accountEmail ? "Nueva contraseña" : "Contraseña"}
+                    </label>
+                    <input
+                      type="password"
+                      className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                      value={accessForm.password}
+                      onChange={(e) => setAccessForm((prev) => ({ ...prev, password: e.target.value }))}
+                      placeholder="Mínimo 6 caracteres"
+                      minLength={6}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={savingAccess}
+                    className="w-full bg-porcelain/10 hover:bg-porcelain/20 text-charcoal py-2.5 rounded-lg font-semibold transition disabled:opacity-50 text-sm"
+                  >
+                    {savingAccess ? "Guardando..." : editingProfessional.accountEmail ? "Cambiar contraseña" : "Activar acceso"}
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -39,13 +39,27 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(e => e.Email).IsUnique();
+            // Postgres trata NULL como distinto de NULL, así que esto no molesta a las
+            // cuentas (Admin/Client) que nunca configuran username.
+            entity.HasIndex(e => e.Username).IsUnique();
+
+            entity.HasOne(u => u.Professional)
+                .WithMany()
+                .HasForeignKey(u => u.ProfessionalId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
-        // Configuración TimeSlot
+        // Configuración TimeSlot — índice único compuesto (antes era solo StartDateTime):
+        // permite que distintos profesionales tengan turno a la misma hora.
         modelBuilder.Entity<TimeSlot>(entity =>
         {
-            entity.HasIndex(e => e.StartDateTime).IsUnique();
+            entity.HasIndex(e => new { e.StartDateTime, e.ProfessionalId }).IsUnique();
             entity.HasIndex(e => e.IsAvailable);
+
+            entity.HasOne(t => t.Professional)
+                .WithMany()
+                .HasForeignKey(t => t.ProfessionalId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configuración Booking
@@ -86,10 +100,16 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configuración BlockedDate
+        // Configuración BlockedDate — único compuesto: permite un bloqueo de negocio (ProfessionalId
+        // null) y bloqueos individuales por profesional en la misma fecha sin chocar entre sí.
         modelBuilder.Entity<BlockedDate>(entity =>
         {
-            entity.HasIndex(e => e.Date).IsUnique();
+            entity.HasIndex(e => new { e.Date, e.ProfessionalId }).IsUnique();
+
+            entity.HasOne(b => b.Professional)
+                .WithMany()
+                .HasForeignKey(b => b.ProfessionalId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configuración Service — Details y CustomFieldsSchema almacenados como JSON
