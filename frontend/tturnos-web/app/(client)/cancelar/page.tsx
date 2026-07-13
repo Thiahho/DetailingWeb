@@ -137,6 +137,7 @@ function CancelarContent() {
                 <button
                   onClick={handleCancel}
                   disabled={cancelling}
+                  data-testid="cancel-confirm-button"
                   className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white py-3 rounded-xl font-semibold text-sm transition"
                 >
                   {cancelling ? "Cancelando..." : "Sí, cancelar mi turno"}
@@ -153,7 +154,7 @@ function CancelarContent() {
 
           {/* Cancelled (success) */}
           {state === "cancelled" && (
-            <div className="p-10 flex flex-col items-center gap-4 text-center">
+            <div className="p-10 flex flex-col items-center gap-4 text-center" data-testid="cancel-success">
               <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center">
                 <svg className="w-7 h-7 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />

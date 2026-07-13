@@ -158,6 +158,7 @@ export default function ProfessionalAgendaPage() {
                 <label className="text-charcoal/70 text-sm font-medium">Fecha</label>
                 <input
                   type="date"
+                  data-testid="agenda-form-date"
                   className="w-full mt-2 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition-colors"
                   value={formData.date}
                   onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
@@ -172,6 +173,7 @@ export default function ProfessionalAgendaPage() {
                     inputMode="numeric"
                     maxLength={2}
                     placeholder="HH"
+                    data-testid="agenda-form-hour"
                     className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.hour}
                     onChange={(e) => setFormData((prev) => ({ ...prev, hour: e.target.value.replace(/\D/g, "").slice(0, 2) }))}
@@ -184,6 +186,7 @@ export default function ProfessionalAgendaPage() {
                     inputMode="numeric"
                     maxLength={2}
                     placeholder="MM"
+                    data-testid="agenda-form-minute"
                     className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.minute}
                     onChange={(e) => setFormData((prev) => ({ ...prev, minute: e.target.value.replace(/\D/g, "").slice(0, 2) }))}
@@ -195,6 +198,7 @@ export default function ProfessionalAgendaPage() {
               <button
                 type="submit"
                 disabled={creating}
+                data-testid="agenda-form-submit"
                 className="w-full bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
               >
                 {creating ? "Creando..." : "Crear turno"}
@@ -214,6 +218,8 @@ export default function ProfessionalAgendaPage() {
                 {upcoming.map((slot) => (
                   <div
                     key={slot.id}
+                    data-testid="agenda-slot-item"
+                    data-slot-label={slot.label}
                     className={`p-4 rounded-xl border ${
                       slot.isAvailable
                         ? "border-green-200 bg-green-50"
@@ -245,6 +251,7 @@ export default function ProfessionalAgendaPage() {
                         {slot.isAvailable ? (
                           <button
                             onClick={() => deleteSlot(slot.id)}
+                            data-testid="agenda-slot-delete"
                             className="text-red-600 hover:text-red-700 text-xs font-medium uppercase tracking-wide transition"
                           >
                             Eliminar
@@ -252,6 +259,7 @@ export default function ProfessionalAgendaPage() {
                         ) : (
                           <button
                             onClick={() => releaseSlot(slot.id)}
+                            data-testid="agenda-slot-release"
                             className="text-green-700 hover:text-green-800 text-xs font-medium uppercase tracking-wide transition"
                           >
                             Liberar

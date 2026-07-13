@@ -72,7 +72,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4" data-testid="admin-login-error">
               <p className="text-sm text-red-600 text-center">{error}</p>
             </div>
           )}
@@ -81,6 +81,7 @@ export default function LoginPage() {
             <label className="text-sm font-medium text-charcoal/70">Email o usuario</label>
             <input
               type="text"
+              data-testid="admin-login-email"
               className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
               placeholder="admin@tturnos.com"
               value={formData.email}
@@ -97,6 +98,7 @@ export default function LoginPage() {
             </label>
             <PasswordInput
               className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
+              data-testid="admin-login-password"
               placeholder="••••••••"
               value={formData.password}
               onChange={(e) =>
@@ -109,6 +111,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
+            data-testid="admin-login-submit"
             className="w-full rounded-full bg-blush px-6 py-4 font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}

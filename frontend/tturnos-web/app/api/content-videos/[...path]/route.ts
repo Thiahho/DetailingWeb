@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 
 const API_URL =
@@ -47,6 +48,9 @@ export async function PUT(
       body: JSON.stringify(body),
     });
     const data = await response.json();
+    if (response.ok) {
+      revalidateTag("content-videos");
+    }
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json(
@@ -72,6 +76,9 @@ export async function DELETE(
       },
     });
     const data = await response.json();
+    if (response.ok) {
+      revalidateTag("content-videos");
+    }
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json(

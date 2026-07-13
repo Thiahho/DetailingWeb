@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 
 const API_URL =
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(`${API_URL}/api/siteconfig`, {
       headers: tenantHeader(request),
-      next: { revalidate: 300 },
+      next: { revalidate: 300, tags: ["siteconfig"] },
     });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
@@ -20,6 +21,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Invalida el cache de 5 min del GET (tag "siteconfig") apenas se guarda un
+// cambio real — si no, el admin puede recargar su propia página de
+// Configuración y ver el valor viejo hasta por 5 minutos aunque el guardado
+// haya funcionado.
 export async function PUT(request: NextRequest) {
   const token =
     request.cookies.get("admin_token")?.value ||
@@ -37,6 +42,9 @@ export async function PUT(request: NextRequest) {
       body: JSON.stringify(body),
     });
     const data = await response.json();
+    if (response.ok) {
+      revalidateTag("siteconfig");
+    }
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json(

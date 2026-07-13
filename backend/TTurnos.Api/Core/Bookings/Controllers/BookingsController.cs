@@ -248,9 +248,11 @@ public class BookingsController : ControllerBase
         return Ok(bookings);
     }
 
-    // GET: api/bookings/{id}
+    // GET: api/bookings/{id} (público - mismo criterio que cancel/reschedule: acceso
+    // directo por Id vía link de email, sin exigir sesión)
     [HttpGet("{id}")]
-    [Authorize(Roles = "Client,Admin")]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> GetBooking(int id)
     {
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
@@ -263,7 +265,9 @@ public class BookingsController : ControllerBase
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
 
-        if (role != "Admin" && booking.CustomerEmailNormalized != email)
+        // Solo se restringe si hay una sesión de Client autenticada y no coincide con
+        // el dueño del turno (portal "Mis turnos"). Anónimo o Admin: acceso directo.
+        if (role == "Client" && booking.CustomerEmailNormalized != email)
             return Forbid();
 
         return Ok(new

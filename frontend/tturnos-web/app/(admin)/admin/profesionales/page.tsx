@@ -292,6 +292,7 @@ export default function ProfesionalesAdminPage() {
           </div>
           <button
             onClick={openCreate}
+            data-testid="professional-create-button"
             className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm md:text-base"
           >
             <span className="text-xl leading-none">+</span>
@@ -313,6 +314,8 @@ export default function ProfesionalesAdminPage() {
             {professionals.map((professional) => (
               <div
                 key={professional.id}
+                data-testid="professional-card"
+                data-professional-name={`${professional.firstName} ${professional.lastName}`}
                 className={`bg-ivory border rounded-xl overflow-hidden transition ${
                   professional.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"
                 }`}
@@ -368,6 +371,7 @@ export default function ProfesionalesAdminPage() {
                   <div className="mt-4 flex gap-2">
                     <button
                       onClick={() => openEdit(professional)}
+                      data-testid="professional-edit-button"
                       className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition"
                     >
                       Editar
@@ -376,6 +380,7 @@ export default function ProfesionalesAdminPage() {
                       <div className="flex gap-1">
                         <button
                           onClick={() => handleDelete(professional.id)}
+                          data-testid="professional-delete-confirm-button"
                           className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition"
                         >
                           Confirmar
@@ -390,6 +395,7 @@ export default function ProfesionalesAdminPage() {
                     ) : (
                       <button
                         onClick={() => setDeleteConfirmId(professional.id)}
+                        data-testid="professional-delete-button"
                         className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition"
                       >
                         Eliminar
@@ -424,6 +430,7 @@ export default function ProfesionalesAdminPage() {
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Nombre</label>
                   <input
                     className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    data-testid="professional-form-firstname"
                     value={formData.firstName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
                     placeholder="Juan"
@@ -434,6 +441,7 @@ export default function ProfesionalesAdminPage() {
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Apellido</label>
                   <input
                     className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    data-testid="professional-form-lastname"
                     value={formData.lastName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
                     placeholder="Pérez"
@@ -576,6 +584,7 @@ export default function ProfesionalesAdminPage() {
                 <button
                   type="submit"
                   disabled={saving}
+                  data-testid="professional-form-submit"
                   className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
                 >
                   {saving ? "Guardando..." : editingProfessional ? "Guardar cambios" : "Crear profesional"}

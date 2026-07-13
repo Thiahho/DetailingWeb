@@ -248,6 +248,7 @@ export default function ServiciosAdminPage() {
           </div>
           <button
             onClick={openCreate}
+            data-testid="service-create-button"
             className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm md:text-base"
           >
             <span className="text-xl leading-none">+</span>
@@ -269,6 +270,8 @@ export default function ServiciosAdminPage() {
             {services.map((service) => (
               <div
                 key={service.id}
+                data-testid="service-card"
+                data-service-title={service.title}
                 className={`bg-ivory border rounded-xl overflow-hidden transition ${
                   service.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"
                 }`}
@@ -311,6 +314,7 @@ export default function ServiciosAdminPage() {
                   <div className="mt-4 flex gap-2">
                     <button
                       onClick={() => openEdit(service)}
+                      data-testid="service-edit-button"
                       className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition"
                     >
                       Editar
@@ -319,6 +323,7 @@ export default function ServiciosAdminPage() {
                       <div className="flex gap-1">
                         <button
                           onClick={() => handleDelete(service.id)}
+                          data-testid="service-delete-confirm-button"
                           className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition"
                         >
                           Confirmar
@@ -333,6 +338,7 @@ export default function ServiciosAdminPage() {
                     ) : (
                       <button
                         onClick={() => setDeleteConfirmId(service.id)}
+                        data-testid="service-delete-button"
                         className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition"
                       >
                         Eliminar
@@ -366,6 +372,7 @@ export default function ServiciosAdminPage() {
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Título</label>
                 <input
                   className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  data-testid="service-form-title"
                   value={formData.title}
                   onChange={(e) => handleTitleChange(e.target.value)}
                   placeholder="Pack Daily Reset"
@@ -378,6 +385,7 @@ export default function ServiciosAdminPage() {
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Slug</label>
                 <input
                   className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal/70 focus:border-green-500 focus:outline-none transition font-mono text-sm"
+                  data-testid="service-form-slug"
                   value={formData.slug}
                   onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
                   placeholder="daily-reset"
@@ -391,6 +399,7 @@ export default function ServiciosAdminPage() {
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Precio</label>
                   <input
                     className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    data-testid="service-form-price"
                     value={formData.price}
                     onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
                     placeholder="Desde $45.000"
@@ -556,6 +565,7 @@ export default function ServiciosAdminPage() {
                 <button
                   type="submit"
                   disabled={saving}
+                  data-testid="service-form-submit"
                   className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
                 >
                   {saving ? "Guardando..." : editingService ? "Guardar cambios" : "Crear servicio"}

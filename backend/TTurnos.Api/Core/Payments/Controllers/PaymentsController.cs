@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MercadoPago.Client.Preference;
 using MercadoPago.Config;
@@ -25,6 +26,7 @@ public class PaymentsController : ControllerBase
     // POST: api/payments/create-preference
     [HttpPost("create-preference")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> CreateMercadoPagoPreference([FromBody] CreatePaymentRequest request)
     {
         var booking = await _context.Bookings
@@ -136,6 +138,7 @@ public class PaymentsController : ControllerBase
     // POST: api/payments/webhook/mercadopago
     [HttpPost("webhook/mercadopago")]
     [AllowAnonymous]
+    [EnableRateLimiting("payments-webhook")]
     public async Task<IActionResult> MercadoPagoWebhook()
     {
         var accessToken = _configuration["MP_ACCESS_TOKEN:AccessToken"];
@@ -294,6 +297,7 @@ public class PaymentsController : ControllerBase
     // GET: api/payments/{bookingId}
     [HttpGet("{bookingId}")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> GetPaymentByBooking(int bookingId)
     {
         var payment = await _context.Payments

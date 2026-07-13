@@ -121,11 +121,11 @@ function CustomerForm({
       {error && <p className="text-red-600 text-xs">{error}</p>}
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Nombre *</label>
-        <input value={form.name} onChange={set("name")} className="input-field" placeholder="Juan Pérez" />
+        <input data-testid="customer-form-name" value={form.name} onChange={set("name")} className="input-field" placeholder="Juan Pérez" />
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Teléfono *</label>
-        <input value={form.phone} onChange={set("phone")} className="input-field" placeholder="5491112345678" />
+        <input data-testid="customer-form-phone" value={form.phone} onChange={set("phone")} className="input-field" placeholder="5491112345678" />
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Email</label>
@@ -133,10 +133,10 @@ function CustomerForm({
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Notas</label>
-        <textarea value={form.notes} onChange={set("notes")} className="input-field h-16 resize-none" placeholder="Alergias, preferencias, tratamientos anteriores, etc." />
+        <textarea data-testid="customer-form-notes" value={form.notes} onChange={set("notes")} className="input-field h-16 resize-none" placeholder="Alergias, preferencias, tratamientos anteriores, etc." />
       </div>
       <div className="flex gap-2 pt-1">
-        <button type="submit" disabled={saving} className="flex-1 btn-primary">
+        <button type="submit" disabled={saving} data-testid="customer-form-submit" className="flex-1 btn-primary">
           {saving ? "Guardando..." : "Guardar"}
         </button>
         <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
@@ -148,7 +148,7 @@ function CustomerForm({
 // ── Types for ReminderForm ────────────────────────────────────────
 
 interface Service { id: number; title: string; slug: string; }
-interface TimeSlot { id: number; startDateTime: string; endDateTime: string; isAvailable: boolean; professionalId?: number | null; }
+interface TimeSlot { id: number; startDateTime: string; endDateTime: string; professionalId?: number | null; }
 interface Professional {
   id: number;
   firstName: string;
@@ -251,8 +251,11 @@ function ReminderForm({
       .finally(() => setLoadingSlots(false));
   }, [selectedProfessionalId, manualMode]);
 
+  // GET /api/timeslots/available ya devuelve solo turnos disponibles por
+  // definición — no incluye un campo isAvailable, así que no hay nada que
+  // re-filtrar acá (antes filtraba por un campo inexistente y vaciaba la
+  // lista siempre).
   const slotsByDate = slots
-    .filter((s) => s.isAvailable)
     .reduce<Record<string, TimeSlot[]>>((acc, s) => {
       const { key } = parseLocalDate(s.startDateTime);
       if (!acc[key]) acc[key] = [];
@@ -379,7 +382,7 @@ function ReminderForm({
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Servicio *</label>
         {services.length > 0 ? (
-          <select value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="input-field">
+          <select data-testid="reminder-form-service" value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="input-field">
             <option value="">— Seleccioná un servicio —</option>
             {services.map((s) => (
               <option key={s.id} value={s.title}>{s.title}</option>
@@ -434,7 +437,7 @@ function ReminderForm({
       {/* Detalle del turno */}
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Detalle del turno</label>
-        <input value={detail} onChange={(e) => setDetail(e.target.value)} className="input-field" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." />
+        <input data-testid="reminder-form-detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="input-field" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." />
       </div>
 
       {/* Fecha/hora */}
@@ -472,6 +475,7 @@ function ReminderForm({
               {sortedDates.map((dk) => (
                 <button
                   key={dk} type="button"
+                  data-testid="reminder-form-date"
                   onClick={() => { setSelectedDate(dk); setSelectedSlot(null); }}
                   className={`px-2.5 py-1 rounded-lg text-xs transition ${
                     selectedDate === dk
@@ -488,7 +492,7 @@ function ReminderForm({
               <div className="flex gap-2 flex-wrap">
                 {slotsForSelectedDate.map((s) => (
                   <button
-                    key={s.id} type="button" onClick={() => setSelectedSlot(s)}
+                    key={s.id} type="button" data-testid="reminder-form-slot" onClick={() => setSelectedSlot(s)}
                     className={`px-3 py-1.5 rounded-lg text-xs transition ${
                       selectedSlot?.id === s.id
                         ? "bg-champagne/25 text-champagne border border-champagne/40"
@@ -528,7 +532,7 @@ function ReminderForm({
       <p className="text-charcoal/25 text-[10px]">Se enviará confirmación al cliente y al admin al reservar. El aviso WhatsApp se manda 24 hs antes (5 min en pruebas).</p>
 
       <div className="flex gap-2">
-        <button type="submit" disabled={saving} className="flex-1 btn-primary">
+        <button type="submit" disabled={saving} data-testid="reminder-form-submit" className="flex-1 btn-primary">
           {saving ? savingStep || "Procesando..." : "Reservar y programar aviso"}
         </button>
         <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
@@ -714,6 +718,7 @@ export default function ClientesPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setEditingCustomer(selected)}
+                    data-testid="customer-edit-button"
                     className="p-2 text-charcoal/40 hover:text-charcoal hover:bg-porcelain/5 rounded-lg transition"
                     title="Editar cliente"
                   >
@@ -721,6 +726,7 @@ export default function ClientesPage() {
                   </button>
                   <button
                     onClick={() => deleteCustomer(selected)}
+                    data-testid="customer-delete-button"
                     className="p-2 text-charcoal/40 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition"
                     title="Eliminar cliente"
                   >
@@ -742,6 +748,7 @@ export default function ClientesPage() {
                   </button>
                   <button
                     onClick={() => setShowReminderForm(true)}
+                    data-testid="reminder-create-button"
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-champagne/20 text-champagne text-xs font-medium rounded-lg hover:bg-champagne/30 transition"
                   >
                     <Plus size={13} />
@@ -771,6 +778,8 @@ export default function ClientesPage() {
                     .map((r) => (
                       <div
                         key={r.id}
+                        data-testid="reminder-list-item"
+                        data-reminder-service={r.serviceLabel}
                         className="flex items-center justify-between bg-porcelain border border-mauve/15 rounded-xl px-4 py-3"
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -798,6 +807,7 @@ export default function ClientesPage() {
                           {r.status === "Pending" && (
                             <button
                               onClick={() => cancelReminder(r)}
+                              data-testid="reminder-cancel-button"
                               className="p-1.5 text-charcoal/20 hover:text-red-600 hover:bg-red-500/10 rounded-lg transition"
                               title="Cancelar aviso"
                             >
@@ -817,6 +827,7 @@ export default function ClientesPage() {
                 <h1 className="text-charcoal font-semibold text-lg">Clientes</h1>
                 <button
                   onClick={() => { setEditingCustomer(null); setShowCustomerForm(true); }}
+                  data-testid="customer-create-button"
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-champagne/20 text-champagne text-xs font-medium rounded-lg hover:bg-champagne/30 transition"
                 >
                   <Plus size={13} />
@@ -828,6 +839,7 @@ export default function ClientesPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre, teléfono o email..."
+                data-testid="customer-search"
                 className="input-field mb-4"
               />
 
@@ -845,6 +857,8 @@ export default function ClientesPage() {
                     <button
                       key={c.id}
                       onClick={() => selectCustomer(c)}
+                      data-testid="customer-list-item"
+                      data-customer-name={c.name}
                       className="w-full text-left flex items-center justify-between bg-porcelain border border-mauve/15 hover:border-mauve/30 rounded-xl px-4 py-3 transition group"
                     >
                       <div className="min-w-0">

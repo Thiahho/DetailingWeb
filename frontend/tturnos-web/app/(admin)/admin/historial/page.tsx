@@ -10,7 +10,7 @@ interface BookingRecord {
   customerPhone: string;
   email?: string;
   subject?: string;
-  service: string;
+  service?: string;
   professionalId?: number | null;
   professionalName?: string | null;
   message?: string;
@@ -146,7 +146,7 @@ export default function HistorialPage() {
       b.customerName.toLowerCase().includes(q) ||
       b.customerPhone.includes(q) ||
       (b.subject ?? "").toLowerCase().includes(q) ||
-      b.service.toLowerCase().includes(q)
+      (b.service ?? "").toLowerCase().includes(q)
     );
   }, [afterFilter, search]);
 
@@ -203,6 +203,7 @@ export default function HistorialPage() {
               placeholder="Buscar por cliente, teléfono o servicio..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              data-testid="historial-search"
               className="w-full bg-ivory border border-mauve/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-charcoal placeholder-white/30 focus:outline-none focus:border-mauve/20 transition"
             />
             {search && (
@@ -283,6 +284,8 @@ export default function HistorialPage() {
                   {paginated.map((b) => (
                     <tr
                       key={b.id}
+                      data-testid="historial-row"
+                      data-customer-name={b.customerName}
                       className="border-b border-mauve/5 last:border-0 hover:bg-porcelain/[0.02] transition cursor-pointer"
                       onClick={() => setDetail(b)}
                     >
@@ -309,6 +312,7 @@ export default function HistorialPage() {
                         {b.status !== "Confirmed" && b.status !== "Cancelled" && (
                           <button
                             onClick={(e) => { e.stopPropagation(); confirmBooking(b.id, b); }}
+                            data-testid="historial-confirm-button"
                             className="text-xs text-blue-700 hover:text-blue-700 font-medium transition"
                           >
                             Confirmar
@@ -350,7 +354,7 @@ export default function HistorialPage() {
       {/* Modal detalle */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetail(null)}>
-          <div className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div data-testid="historial-detail-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
                 <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>

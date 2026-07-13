@@ -112,6 +112,21 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    // Webhook de MercadoPago: tráfico servidor-a-servidor desde la propia
+    // infraestructura de MercadoPago (no un usuario final), así que se separa
+    // de "public-booking" con un límite más generoso — el objetivo es cortar
+    // abuso si la URL se filtra, no interferir con ráfagas legítimas de
+    // notificaciones de pago.
+    options.AddPolicy("payments-webhook", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 
 var app = builder.Build();

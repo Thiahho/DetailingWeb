@@ -418,7 +418,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     return (
       <>
         {toast && <ClientToast toast={toast} onClose={closeToast} />}
-        <div className="glass-card space-y-6 p-6">
+        <div className="glass-card space-y-6 p-6" data-testid="booking-confirmed">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-2">
               <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -468,6 +468,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         </label>
         <input
           className="form-input mt-2"
+          data-testid="booking-name-input"
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, name: e.target.value }))
           }
@@ -483,6 +484,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         </label>
         <input
           className="form-input mt-2"
+          data-testid="booking-subject-input"
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, subject: e.target.value }))
           }
@@ -498,6 +500,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         </label>
         <input
           className="form-input mt-2"
+          data-testid="booking-whatsapp-input"
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, whatsapp: e.target.value }))
           }
@@ -511,8 +514,9 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
           Email (para recibir confirmación automática)
         </label>
-        <input 
+        <input
           className="form-input mt-2"
+          data-testid="booking-email-input"
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, email: e.target.value }))
           }
@@ -531,6 +535,8 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
             <button
               key={pack.slug}
               type="button"
+              data-testid="booking-service-option"
+              data-service-slug={pack.slug}
               onClick={() =>
                 setFormData((prev) => ({ ...prev, selectedService: pack.slug }))
               }
@@ -677,6 +683,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
             <button
               key={slot.id}
               type="button"
+              data-testid="booking-slot-option"
               onClick={() =>
                 setFormData((prev) => ({ ...prev, selectedSlotId: slot.id }))
               }
@@ -782,6 +789,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       <button
         className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
         type="submit"
+        data-testid="booking-submit"
         disabled={
           submitting || !formData.selectedSlotId || !formData.selectedService
         }

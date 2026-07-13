@@ -60,9 +60,13 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`bg-ivory border rounded-xl p-5 ${accent ? "border-green-200" : "border-mauve/5"}`}>
+    <div
+      data-testid="estadisticas-stat-card"
+      data-label={label}
+      className={`bg-ivory border rounded-xl p-5 ${accent ? "border-green-200" : "border-mauve/5"}`}
+    >
       <p className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">{label}</p>
-      <p className={`text-3xl font-bold mt-2 ${accent ? "text-green-700" : "text-charcoal"}`}>{value}</p>
+      <p data-testid="estadisticas-stat-value" className={`text-3xl font-bold mt-2 ${accent ? "text-green-700" : "text-charcoal"}`}>{value}</p>
       {sub && <p className="text-charcoal/40 text-xs mt-1">{sub}</p>}
     </div>
   );
@@ -114,7 +118,7 @@ export default function EstadisticasPage() {
   const maxMonthCount = Math.max(...allMonths.map((m) => m.count), 1);
 
   return (
-    <div className="p-4 md:p-6 font-sans">
+    <div data-testid="estadisticas-page" className="p-4 md:p-6 font-sans">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Estadísticas</h1>

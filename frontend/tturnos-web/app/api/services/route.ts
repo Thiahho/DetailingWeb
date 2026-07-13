@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 
 const API_URL =
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`${API_URL}/api/services`, {
       method: "GET",
       headers: { ...tenantHeader(request), "Content-Type": "application/json" },
-      next: { revalidate: 60 }, // cache 60s
+      next: { revalidate: 60, tags: ["services"] }, // cache 60s, invalidado al crear/editar/borrar
     });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
@@ -37,6 +38,9 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
     const data = await response.json();
+    if (response.ok) {
+      revalidateTag("services");
+    }
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json(

@@ -8,19 +8,19 @@ export async function GET(request: NextRequest) {
   try {
     const headers = tenantHeader(request);
     const [services, gallery, siteconfig, contentVideos] = await Promise.all([
-      fetch(`${API_URL}/api/services`, { headers, next: { revalidate: 60 } }).then((r) =>
+      fetch(`${API_URL}/api/services`, { headers, next: { revalidate: 60, tags: ["services"] } }).then((r) =>
         r.ok ? r.json() : []
       ),
-      fetch(`${API_URL}/api/gallery`, { headers, next: { revalidate: 60 } }).then((r) =>
+      fetch(`${API_URL}/api/gallery`, { headers, next: { revalidate: 60, tags: ["gallery"] } }).then((r) =>
         r.ok ? r.json() : []
       ),
       fetch(`${API_URL}/api/siteconfig`, {
         headers,
-        next: { revalidate: 300 },
+        next: { revalidate: 300, tags: ["siteconfig"] },
       }).then((r) => (r.ok ? r.json() : null)),
       fetch(`${API_URL}/api/content-videos`, {
         headers,
-        next: { revalidate: 60 },
+        next: { revalidate: 60, tags: ["content-videos"] },
       }).then((r) => (r.ok ? r.json() : [])),
     ]);
 

@@ -121,6 +121,7 @@ export default function ConfiguracionPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {message && (
             <div
+              data-testid="config-message"
               className={`rounded-lg border p-3 text-sm ${
                 messageType === "success"
                   ? "bg-green-500/10 border-green-500/20 text-green-700"
@@ -139,6 +140,7 @@ export default function ConfiguracionPage() {
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Nombre del negocio</label>
               <input
                 className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                data-testid="config-business-name"
                 value={formData.businessName}
                 onChange={(e) => setFormData((prev) => ({ ...prev, businessName: e.target.value }))}
                 placeholder="TTurnos - Codian"
@@ -309,6 +311,7 @@ export default function ConfiguracionPage() {
           <button
             type="submit"
             disabled={saving}
+            data-testid="config-submit"
             className="w-full bg-blush hover:bg-blushdark text-white py-3.5 rounded-full font-semibold shadow-glow transition disabled:opacity-50"
           >
             {saving ? "Guardando..." : "Guardar cambios"}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 
 const API_URL =
@@ -49,6 +50,9 @@ export async function PUT(
       body: JSON.stringify(body),
     });
     const data = await response.json();
+    if (response.ok) {
+      revalidateTag("gallery");
+    }
     return NextResponse.json(data, { status: response.status });
   } catch {
     return NextResponse.json(
@@ -74,6 +78,9 @@ export async function DELETE(
         Authorization: token ? `Bearer ${token}` : "",
       },
     });
+    if (response.ok) {
+      revalidateTag("gallery");
+    }
     if (response.status === 204)
       return new NextResponse(null, { status: 204 });
     const data = await response.json();

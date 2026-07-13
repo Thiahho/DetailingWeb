@@ -75,7 +75,7 @@ export default function ProfessionalLoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4" data-testid="professional-login-error">
               <p className="text-sm text-red-600 text-center">{error}</p>
             </div>
           )}
@@ -84,6 +84,7 @@ export default function ProfessionalLoginPage() {
             <label className="text-sm font-medium text-charcoal/70">Email o usuario</label>
             <input
               type="text"
+              data-testid="professional-login-email"
               className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
               placeholder="vos@studionails.com o tu usuario"
               value={formData.email}
@@ -100,6 +101,7 @@ export default function ProfessionalLoginPage() {
             </label>
             <PasswordInput
               className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
+              data-testid="professional-login-password"
               placeholder="••••••••"
               value={formData.password}
               onChange={(e) =>
@@ -112,6 +114,7 @@ export default function ProfessionalLoginPage() {
           <button
             type="submit"
             disabled={loading}
+            data-testid="professional-login-submit"
             className="w-full rounded-full bg-blush px-6 py-4 font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}

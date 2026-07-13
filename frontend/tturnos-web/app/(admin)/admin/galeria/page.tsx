@@ -182,6 +182,8 @@ export default function GaleriaAdminPage() {
             {items.map((item) => (
               <div
                 key={item.id}
+                data-testid="gallery-card"
+                data-item-title={item.title}
                 className={`bg-ivory border rounded-xl overflow-hidden transition ${item.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"}`}
               >
                 <div className="h-44 overflow-hidden">
@@ -196,12 +198,12 @@ export default function GaleriaAdminPage() {
                   </div>
                   <p className="text-charcoal/40 text-xs uppercase tracking-wider">{item.tag}</p>
                   <div className="mt-4 flex gap-2">
-                    <button onClick={() => openEdit(item)} className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition">
+                    <button onClick={() => openEdit(item)} data-testid="gallery-edit-button" className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition">
                       Editar
                     </button>
                     {deleteConfirmId === item.id ? (
                       <div className="flex gap-1">
-                        <button onClick={() => handleDelete(item.id)} className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition">
+                        <button onClick={() => handleDelete(item.id)} data-testid="gallery-delete-confirm-button" className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition">
                           Confirmar
                         </button>
                         <button onClick={() => setDeleteConfirmId(null)} className="bg-porcelain/5 text-charcoal text-sm px-3 py-2 rounded-lg transition">
@@ -209,7 +211,7 @@ export default function GaleriaAdminPage() {
                         </button>
                       </div>
                     ) : (
-                      <button onClick={() => setDeleteConfirmId(item.id)} className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition">
+                      <button onClick={() => setDeleteConfirmId(item.id)} data-testid="gallery-delete-button" className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition">
                         Eliminar
                       </button>
                     )}
@@ -238,6 +240,7 @@ export default function GaleriaAdminPage() {
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Título</label>
                 <input
                   className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  data-testid="gallery-form-title"
                   value={formData.title}
                   onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
                   placeholder="Pulido total - Honda Civic"
@@ -293,6 +296,7 @@ export default function GaleriaAdminPage() {
                 <button
                   type="submit"
                   disabled={saving}
+                  data-testid="gallery-form-submit"
                   className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
                 >
                   {saving ? "Guardando..." : editingItem ? "Guardar cambios" : "Agregar imagen"}

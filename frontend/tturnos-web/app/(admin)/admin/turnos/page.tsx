@@ -633,6 +633,7 @@ export default function TurnosPage() {
                 </label>
                 <input
                   type="date"
+                  data-testid="slot-form-date"
                   className="w-full mt-2 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition-colors"
                   value={formData.date}
                   onChange={(e) =>
@@ -652,6 +653,7 @@ export default function TurnosPage() {
                     inputMode="numeric"
                     maxLength={2}
                     placeholder="HH"
+                    data-testid="slot-form-hour"
                     className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.hour}
                     onChange={(e) => {
@@ -670,6 +672,7 @@ export default function TurnosPage() {
                     inputMode="numeric"
                     maxLength={2}
                     placeholder="MM"
+                    data-testid="slot-form-minute"
                     className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.minute}
                     onChange={(e) => {
@@ -691,6 +694,7 @@ export default function TurnosPage() {
                     Profesional
                   </label>
                   <select
+                    data-testid="slot-form-professional"
                     className="w-full mt-2 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition-colors"
                     value={formData.professionalId}
                     onChange={(e) => setFormData((prev) => ({ ...prev, professionalId: e.target.value }))}
@@ -708,6 +712,7 @@ export default function TurnosPage() {
                 <button
                   type="submit"
                   disabled={creating}
+                  data-testid="slot-form-submit"
                   className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
                 >
                   {creating
@@ -785,6 +790,7 @@ export default function TurnosPage() {
             {professionals.length > 0 && (
               <div className="mb-3 px-1">
                 <select
+                  data-testid="slot-list-professional-filter"
                   className="w-full bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-green-500"
                   value={professionalFilter}
                   onChange={(e) => { setProfessionalFilter(e.target.value); setCurrentPage(1); }}
@@ -829,6 +835,8 @@ export default function TurnosPage() {
                   return (
                   <div
                     key={slot.id}
+                    data-testid="slot-item"
+                    data-slot-professional={slot.professionalName ?? ""}
                     className={`
                       group relative p-4 rounded-lg border transition-all duration-200
                       ${
@@ -912,6 +920,7 @@ export default function TurnosPage() {
                             </button>
                             <button
                               onClick={() => deleteSlot(slot.id)}
+                              data-testid="slot-delete-button"
                               className="text-red-600 hover:text-red-600 text-xs font-medium uppercase tracking-wide transition"
                             >
                               Eliminar

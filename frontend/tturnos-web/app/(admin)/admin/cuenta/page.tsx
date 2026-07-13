@@ -83,6 +83,7 @@ export default function CuentaPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {message && (
               <div
+                data-testid="cuenta-message"
                 className={`rounded-lg border p-3 text-sm ${
                   messageType === "success"
                     ? "bg-green-500/10 border-green-500/20 text-green-700"
@@ -99,6 +100,7 @@ export default function CuentaPage() {
               <label className="text-sm text-charcoal/70">Contraseña actual</label>
               <PasswordInput
                 required
+                data-testid="cuenta-current-password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="w-full rounded-xl border border-mauve/10 bg-porcelain/5 px-4 py-3 text-charcoal focus:border-blush/50 outline-none transition"
@@ -110,6 +112,7 @@ export default function CuentaPage() {
               <PasswordInput
                 minLength={6}
                 required
+                data-testid="cuenta-new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full rounded-xl border border-mauve/10 bg-porcelain/5 px-4 py-3 text-charcoal focus:border-blush/50 outline-none transition"
@@ -121,6 +124,7 @@ export default function CuentaPage() {
               <PasswordInput
                 minLength={6}
                 required
+                data-testid="cuenta-confirm-password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 className="w-full rounded-xl border border-mauve/10 bg-porcelain/5 px-4 py-3 text-charcoal focus:border-blush/50 outline-none transition"
@@ -130,6 +134,7 @@ export default function CuentaPage() {
             <button
               type="submit"
               disabled={loading}
+              data-testid="cuenta-submit"
               className="w-full rounded-full bg-blush px-6 py-3.5 font-semibold text-charcoal shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
             >
               {loading ? "Guardando..." : "Cambiar contraseña"}

@@ -165,6 +165,7 @@ export default function MisTurnosPage() {
                 <input
                   type="email"
                   required
+                  data-testid="mis-turnos-email-input"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
@@ -175,6 +176,7 @@ export default function MisTurnosPage() {
               <button
                 type="submit"
                 disabled={loading}
+                data-testid="mis-turnos-submit"
                 className="w-full rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black disabled:opacity-50 transition hover:scale-[1.01]"
               >
                 {loading ? "Buscando..." : "Ver mis turnos"}
@@ -217,7 +219,12 @@ export default function MisTurnosPage() {
                     : "#";
 
                   return (
-                    <div key={b.id} className="bg-[#161b22] border border-white/10 rounded-xl p-5 space-y-3">
+                    <div
+                      key={b.id}
+                      data-testid="mis-turnos-booking-card"
+                      data-booking-subject={b.subject ?? ""}
+                      className="bg-[#161b22] border border-white/10 rounded-xl p-5 space-y-3"
+                    >
                       <div className="flex flex-wrap justify-between gap-2 items-start">
                         <div>
                           <p className="text-white font-semibold">{b.service || "Turno"}</p>
@@ -283,6 +290,7 @@ export default function MisTurnosPage() {
                         <button
                           onClick={() => cancelBooking(b.id)}
                           disabled={!b.canCancel}
+                          data-testid="mis-turnos-cancel-button"
                           className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:bg-white/10 disabled:text-white/30 text-white text-sm transition"
                         >
                           Cancelar
@@ -292,6 +300,7 @@ export default function MisTurnosPage() {
                         {b.canReschedule && b.status === "Pending" && (
                           <button
                             onClick={() => openReschedule(b)}
+                            data-testid="mis-turnos-reschedule-button"
                             className="px-4 py-2 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-sm transition"
                           >
                             Reprogramar
@@ -359,6 +368,7 @@ export default function MisTurnosPage() {
                     <button
                       key={slot.id}
                       type="button"
+                      data-testid="mis-turnos-reschedule-slot"
                       onClick={() => setSelectedSlotId(slot.id)}
                       className={`rounded-lg border px-3 py-2.5 text-sm text-left transition ${
                         selectedSlotId === slot.id
@@ -378,6 +388,7 @@ export default function MisTurnosPage() {
                 <button
                   onClick={submitReschedule}
                   disabled={!selectedSlotId || rescheduling}
+                  data-testid="mis-turnos-reschedule-confirm"
                   className="flex-1 rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black disabled:opacity-40 transition hover:scale-[1.01]"
                 >
                   {rescheduling ? "Guardando..." : "Confirmar cambio"}

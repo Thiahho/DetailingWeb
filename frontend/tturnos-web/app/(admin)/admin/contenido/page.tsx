@@ -151,14 +151,14 @@ export default function ContenidoAdminPage() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {videos.map((video) => (
-            <div key={video.id} className="rounded-xl border border-mauve/10 bg-ivory p-4">
+            <div key={video.id} data-testid="video-card" data-video-title={video.title} className="rounded-xl border border-mauve/10 bg-ivory p-4">
               <video src={video.videoUrl} className="h-56 w-full rounded-lg object-cover" muted loop autoPlay playsInline />
               <p className="mt-3 text-sm font-semibold text-charcoal">{video.title}</p>
               <p className="text-xs text-charcoal/60">Orden: {video.order}</p>
               <p className="text-xs text-charcoal/60">{video.isActive ? "Activo" : "Inactivo"}</p>
               <div className="mt-3 flex gap-2">
-                <button onClick={() => openEdit(video)} className="flex-1 rounded-lg bg-porcelain/10 py-2 text-sm text-charcoal">Editar</button>
-                <button onClick={() => handleDelete(video.id)} className="rounded-lg bg-red-900/50 px-3 py-2 text-sm text-red-600">Eliminar</button>
+                <button onClick={() => openEdit(video)} data-testid="video-edit-button" className="flex-1 rounded-lg bg-porcelain/10 py-2 text-sm text-charcoal">Editar</button>
+                <button onClick={() => handleDelete(video.id)} data-testid="video-delete-button" className="rounded-lg bg-red-900/50 px-3 py-2 text-sm text-red-600">Eliminar</button>
               </div>
             </div>
           ))}
@@ -172,7 +172,7 @@ export default function ContenidoAdminPage() {
 
             <div>
               <label className="text-xs text-charcoal/60">Título</label>
-              <input className="mt-1 w-full rounded-lg border border-mauve/10 bg-cream p-3 text-charcoal" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} required />
+              <input data-testid="video-form-title" className="mt-1 w-full rounded-lg border border-mauve/10 bg-cream p-3 text-charcoal" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} required />
             </div>
 
             <div>
@@ -207,7 +207,7 @@ export default function ContenidoAdminPage() {
 
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowForm(false)} className="rounded-lg bg-porcelain/10 px-4 py-2 text-charcoal">Cancelar</button>
-              <button type="submit" className="rounded-lg bg-green-600 px-4 py-2 text-charcoal">Guardar</button>
+              <button type="submit" data-testid="video-form-submit" className="rounded-lg bg-green-600 px-4 py-2 text-charcoal">Guardar</button>
             </div>
           </form>
         </div>
