@@ -18,7 +18,7 @@ Esta versión extiende `auditoria_completa_0507.md` con lo agregado durante el a
 | Páginas Next.js (público + admin) | 16 | 17 (+ `/admin/profesionales`) |
 | Rutas proxy API (Next.js) | 23 | 25 (+ `app/api/professionals/*`) |
 | Migraciones EF Core | 16 | 17 (+ `AddProfessionals`) |
-| Proyectos de test | **0** | **0** (sin cambios) |
+| Proyectos de test | **0** | **1** (`backend/TTurnos.Api.Tests`, 68 tests de integración — ver sección 8) |
 
 **Stack:** ASP.NET Core (.NET 9) + EF Core + PostgreSQL, Next.js + React + TypeScript + Tailwind, Hangfire (jobs), JWT + cookies HttpOnly, MercadoPago, Cloudinary, Gmail SMTP / WhatsApp (Meta API). *(Google Calendar API se quitó del stack — ver hallazgo b, resuelto.)*
 
@@ -60,8 +60,11 @@ Responde `429` con `Retry-After: 60` al exceder el límite. Se agregó `UseForwa
 
 **Pendiente:** `PaymentsController` (`create-preference` y el webhook) queda sin política de rate limiting — se abordará junto con el fix de validación de firma de MercadoPago (ver hallazgo a). El nuevo `ProfessionalsController` tampoco tiene rate limiting propio, pero sus únicos endpoints públicos son de solo lectura (`GET`), igual que `ServicesController`/`GalleryController` — no es un gap nuevo, sigue el mismo criterio ya aceptado para catálogos públicos.
 
-**d) Dump de base de datos con datos de clientes sin gitignorear**
-`TTurnos.Api/bd_turnos.sql` (untracked, 412 líneas) — dump real con sentencias `COPY` (datos de clientes: nombre, teléfono, email según schema de `Bookings`). Se agregó una regla `*.sql` (con excepción para `TTurnos.Api/Scripts/`) al `.gitignore`, pero el archivo en sí sigue en el working tree — conviene borrarlo si ya cumplió su propósito.
+**d) Dump de base de datos con datos de clientes sin gitignorear — ✅ Resuelto (13/07)**
+`TTurnos.Api/bd_turnos.sql` (untracked, 412 líneas) — dump real con sentencias `COPY` (datos de clientes: nombre, teléfono, email según schema de `Bookings`). Se agregó una regla `*.sql` (con excepción para `TTurnos.Api/Scripts/`) al `.gitignore` el 05/07; el archivo en sí ya no está en el working tree (purgado el 13/07).
+
+**g) Config de MercadoPago con clave equivocada — webhook siempre falla — ⏸️ Diferido (junto con hallazgo a)**
+Encontrado el 13/07 escribiendo tests de integración para `PaymentsController`, no estaba en la auditoría original. `MercadoPagoWebhook` (`PaymentsController.cs:141`) lee la clave de configuración `"MP_ACCESS_TOKEN:AccessToken"`, que no existe en ningún `appsettings` — la clave real, que sí usa `create-preference`, es `"MercadoPago:AccessToken"`. Resultado: el webhook devuelve `500` para **cualquier** notificación real de MercadoPago, sin importar si la firma es válida o no. Esto vuelve el hallazgo crítico (a) —firma HMAC opcional— inalcanzable en la práctica hoy: el webhook nunca llega a evaluarla. No corregido a propósito (misma decisión que hallazgo a: MercadoPago se configura al final). Documentado como test de regresión en `PaymentsEndpointsTests.cs`.
 
 ### 🟡 Medio
 
@@ -102,8 +105,8 @@ Responde `429` con `Retry-After: 60` al exceder el límite. Se agregó `UseForwa
 
 ## 5. Calidad de código y mantenibilidad
 
-- **Cero tests automatizados** en todo el repo (ni backend ni frontend). Cualquier presupuesto de mantenimiento/extensión debería contemplar esto como deuda técnica de base.
-- **Acoplamiento alto en el core del backend**: la comunidad "Backend Namespaces & Controllers" tiene cohesión ~0.057 (muy baja) y `ApplicationDbContext` sigue siendo el nodo con mayor betweenness centrality (0.118) del sistema — ahora toca también las migraciones y modelos de `Professionals`. No es un bug, pero implica que cambios al modelo de datos tienen blast radius amplio, y **este riesgo crece con cada módulo nuevo de TTURNOS** que se agregue de la misma forma (todos los controllers inyectan `ApplicationDbContext` directo, sin capa de repositorio).
+- **Cero tests automatizados en el backend — ✅ Resuelto parcialmente (13/07)**: `backend/TTurnos.Api.Tests` cubre los 13 controllers con 68 tests de integración (Testcontainers + Postgres real). Frontend sigue sin tests. Ver sección 8 para detalle y bugs encontrados en el proceso.
+- **Acoplamiento alto en el core del backend — 🟡 Piloto iniciado (13/07)**: la comunidad "Backend Namespaces & Controllers" tiene cohesión ~0.057 (muy baja) y `ApplicationDbContext` sigue siendo el nodo con mayor betweenness centrality (0.118) del sistema. Se extrajo una capa de repositorio (`IProfessionalsRepository`/`ProfessionalsRepository`) para `ProfessionalsController` como prueba de concepto — el resto de los 12 controllers sigue inyectando `ApplicationDbContext` directo. Replicar el patrón al resto queda pendiente de decisión (ver sección 8).
 - Código muerto detectado y corregido: `NowArgentina()` sin usar en `ReminderBackgroundService` (ya corregido), y el módulo `CalendarController`/`GoogleCalendarService` que era un flujo de reservas paralelo/legacy (ya eliminado).
 - El grafo de conocimiento detectó una relación semántica no obvia: el **"Módulo Automatizaciones"** planificado en el PRD de TTURNOS (motor tipo Zapier: trigger → condición → acción → espera → acción) es conceptualmente similar a los background services que **ya existen** (`ReminderBackgroundService`, `NotificationRetryBackgroundService`). Esto es una oportunidad de reutilización: ese módulo futuro no necesita partir de cero, puede evolucionar del mecanismo de reintentos/recordatorios ya construido.
 
@@ -134,14 +137,14 @@ Primer módulo del pivot a gestión de turnos para salones de belleza (`TTurnosR
 
 | Ítem | Severidad | Esfuerzo estimado* |
 |---|---|---|
-| Validar firma webhook MercadoPago (configurar secret + revisar proxy) | Crítico | ⏸️ Diferido — retomar antes de habilitar pagos reales |
+| Validar firma webhook MercadoPago (configurar secret + revisar proxy) + fix de clave `MP_ACCESS_TOKEN`→`MercadoPago` | Crítico | ⏸️ Diferido — retomar antes de habilitar pagos reales |
 | ~~Asegurar/eliminar `CalendarController` (sin auth)~~ — ✅ resuelto | Crítico | Bajo (horas) |
 | ~~Rate limiting en endpoints públicos~~ — ✅ resuelto (excepto Payments) | Alto | Medio (1-2 días) |
-| Gitignorear y purgar `bd_turnos.sql` del working tree | Alto | Bajo (minutos) |
+| ~~Gitignorear y purgar `bd_turnos.sql` del working tree~~ — ✅ resuelto (13/07) | Alto | Bajo (minutos) |
 | ~~Agregar Data Annotations a DTOs públicos~~ — ✅ resuelto | Medio | Medio (1-2 días) |
 | ~~Módulo Profesionales (CRUD)~~ — ✅ resuelto | — | Bajo-Medio (según PRD: ~24hs) |
-| Suite de tests automatizados (backend + frontend) | Medio-Alto | Alto (para cobertura razonable) |
-| Reducir acoplamiento de `ApplicationDbContext` / modularizar controllers | Bajo (no urgente, pero crece con cada módulo TTURNOS) | Alto (refactor, no crítico a corto plazo) |
+| ~~Suite de tests automatizados (backend)~~ — ✅ resuelto (13/07, 68 tests/13 controllers); **frontend sigue sin tests** | Medio-Alto | Alto (para cobertura razonable) |
+| Reducir acoplamiento de `ApplicationDbContext` / modularizar controllers — 🟡 piloto iniciado (13/07, solo Professionals) | Bajo (no urgente, pero crece con cada módulo TTURNOS) | Alto (refactor, no crítico a corto plazo) |
 | **Módulos TTURNOS pendientes del PRD** (ver detalle abajo) | — | — |
 
 **Módulos del PRD de TTURNOS Belleza aún no construidos** (estimación gruesa basada en el alcance del propio documento, sujeta a ajuste — el PRD es un esqueleto, no una spec detallada):
@@ -158,3 +161,25 @@ Primer módulo del pivot a gestión de turnos para salones de belleza (`TTurnosR
 | UX / Design system | sistema de diseño formal (botones, inputs, dark mode, etc.) | Medio-Alto (transversal a todo el frontend) |
 
 *Esfuerzo aproximado en horas/días de desarrollo — ajustar según la tarifa y el criterio de quien arme el presupuesto final.
+
+---
+
+## 8. Actualización — sesión 13/07
+
+Trabajo de seguimiento sobre esta auditoría: suite de tests de integración para el backend, un bug crítico encontrado y corregido, y arranque del piloto de reducción de acoplamiento de `ApplicationDbContext` (ítems marcados como deuda en las secciones 5 y 7).
+
+**Suite de tests de integración (`backend/TTurnos.Api.Tests`)**
+- xUnit + `Microsoft.AspNetCore.Mvc.Testing` + `Testcontainers.PostgreSql` — Postgres real en Docker por corrida, no EF InMemory, para validar migraciones reales, columnas `jsonb` y los query filters globales de multi-tenancy tal cual corren en producción.
+- **68 tests, ~15-20s, cubren los 13 controllers** del inventario de la sección 1: Auth, Bookings, Professionals, Payments, Services, TimeSlots, BlockedDates, BusinessSettings, SiteConfig, ContentVideos, Gallery, Analytics, Reminders — más una suite de aislamiento multi-tenant dedicada (`MultiTenancyIsolationTests`) cruzando Bookings y Professionals entre tenants.
+- Frontend sigue sin cobertura (fuera de alcance de esta sesión).
+
+**Bug crítico encontrado y corregido: loop infinito en `TimeSlotGeneratorService`**
+Escribiendo el test de éxito para `PUT /api/businesssettings` se detectó que `GenerateSlotsForDayAsync` (`TimeSlotGeneratorService.cs:58`) nunca terminaba: la condición del `while` tenía la variable del loop (`currentTime`) a ambos lados de la comparación, que se cancelaba algebraicamente dejando una condición constante (`slotDuration <= startTime + 8h`), casi siempre verdadera. Con cualquier configuración normal de horarios, el método generaba `TimeSlot` nuevos sin parar. Se dispara desde `PUT /api/businesssettings` (`RegenerateAllSlotsAsync`) — colgó la corrida de tests ~12 minutos y tumbó el contenedor de Postgres la primera vez. Se verificó que **el frontend actual no tiene UI conectada a este endpoint** (no está en el panel admin), así que no era una bomba activa en el uso normal, pero sí explotable directo por API con un JWT de Admin.
+**Fix aplicado:** calcular el fin de la jornada laboral (`StartTime + 8h`) una sola vez fuera del loop en vez de re-derivarlo de `currentTime` en cada vuelta. Verificado: genera slots correctamente y termina en <1s; suite completa en verde.
+
+**Bug encontrado, diferido a propósito: config de MercadoPago** — ver hallazgo (g) en sección 2.
+
+**Purga de `bd_turnos.sql`** — ver hallazgo (d) en sección 2, ya no está en el working tree.
+
+**Piloto de reducción de acoplamiento de `ApplicationDbContext`** (sección 5 y 7)
+Se extrajo `Core/Professionals/Repositories/{IProfessionalsRepository, ProfessionalsRepository}.cs`. `ProfessionalsController` ya no inyecta `ApplicationDbContext` para sus propias operaciones (listados, altas, bajas, conteo para límites de plan, resolución de servicios, cuentas de usuario vinculadas) — solo lo conserva para una consulta puntual de `TimeSlots` en `GetAvailable`, documentada como decisión deliberada (esa consulta es de Scheduling, no de Professionals; abstraerla ahí mezclaría dominios en vez de reducir acoplamiento). Registrado en DI (`Program.cs`). Alcance explícitamente acotado a un solo dominio piloto — **el resto de los 12 controllers sigue sin cambios**; replicar el patrón queda pendiente de decisión explícita antes de tocar más controllers (es el refactor "Alto" de la sección 7, no se hizo de una).

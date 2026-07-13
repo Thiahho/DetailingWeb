@@ -10,40 +10,38 @@ namespace TTurnos.Api.Core.Professionals;
 [Route("api/[controller]")]
 public class ProfessionalsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IProfessionalsRepository _repository;
     private readonly IPlanLimitsService _planLimits;
+    // Solo para GetAvailable: la búsqueda de TimeSlot es una consulta de
+    // Scheduling, no de Professionals — ver nota en IProfessionalsRepository.
+    private readonly ApplicationDbContext _context;
 
-    public ProfessionalsController(ApplicationDbContext context, IPlanLimitsService planLimits)
+    public ProfessionalsController(IProfessionalsRepository repository, IPlanLimitsService planLimits, ApplicationDbContext context)
     {
-        _context = context;
+        _repository = repository;
         _planLimits = planLimits;
+        _context = context;
     }
 
     // GET: api/professionals (público) — sin Commission, es dato interno
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var professionals = await _context.Professionals
-            .Where(p => p.IsActive)
-            .Include(p => p.Services)
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.CreatedAt)
-            .Select(p => new
-            {
-                p.Id,
-                p.FirstName,
-                p.LastName,
-                p.PhotoUrl,
-                p.CalendarColor,
-                p.Specialty,
-                p.Schedule,
-                p.IsActive,
-                p.Order,
-                Services = p.Services.Select(s => new { s.Id, s.Title })
-            })
-            .ToListAsync();
+        var professionals = await _repository.GetActiveWithServicesAsync();
 
-        return Ok(professionals);
+        return Ok(professionals.Select(p => new
+        {
+            p.Id,
+            p.FirstName,
+            p.LastName,
+            p.PhotoUrl,
+            p.CalendarColor,
+            p.Specialty,
+            p.Schedule,
+            p.IsActive,
+            p.Order,
+            Services = p.Services.Select(s => new { s.Id, s.Title })
+        }));
     }
 
     // GET: api/professionals/all (admin, incluye inactivos + Commission)
@@ -51,11 +49,13 @@ public class ProfessionalsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllAdmin()
     {
-        var professionals = await _context.Professionals
-            .Include(p => p.Services)
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.CreatedAt)
-            .Select(p => new
+        var professionals = await _repository.GetAllWithServicesAsync();
+        var accounts = await _repository.GetProfessionalAccountsAsync();
+
+        return Ok(professionals.Select(p =>
+        {
+            accounts.TryGetValue(p.Id, out var account);
+            return new
             {
                 p.Id,
                 p.FirstName,
@@ -70,18 +70,10 @@ public class ProfessionalsController : ControllerBase
                 p.CreatedAt,
                 p.UpdatedAt,
                 Services = p.Services.Select(s => new { s.Id, s.Title }),
-                AccountEmail = _context.Users
-                    .Where(u => u.ProfessionalId == p.Id && u.Role == "Professional")
-                    .Select(u => u.Email)
-                    .FirstOrDefault(),
-                AccountUsername = _context.Users
-                    .Where(u => u.ProfessionalId == p.Id && u.Role == "Professional")
-                    .Select(u => u.Username)
-                    .FirstOrDefault()
-            })
-            .ToListAsync();
-
-        return Ok(professionals);
+                AccountEmail = account.Email,
+                AccountUsername = account.Username
+            };
+        }));
     }
 
     // GET: api/professionals/available?serviceId=X&timeSlotId=Y (público)
@@ -101,21 +93,7 @@ public class ProfessionalsController : ControllerBase
         if (timeSlot == null)
             return NotFound(new { message = "Turno no encontrado" });
 
-        var candidates = await _context.Professionals
-            .Where(p => p.IsActive && p.Services.Any(s => s.Id == serviceId))
-            .OrderBy(p => p.Order)
-            .ThenBy(p => p.CreatedAt)
-            .Select(p => new
-            {
-                p.Id,
-                p.FirstName,
-                p.LastName,
-                p.PhotoUrl,
-                p.CalendarColor,
-                p.Specialty,
-                p.Schedule
-            })
-            .ToListAsync();
+        var candidates = await _repository.GetActiveByServiceAsync(serviceId);
 
         var dayOfWeek = (int)timeSlot.StartDateTime.DayOfWeek;
         var slotStart = timeSlot.StartDateTime.TimeOfDay;
@@ -170,28 +148,24 @@ public class ProfessionalsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var professional = await _context.Professionals
-            .Where(p => p.Id == id && p.IsActive)
-            .Include(p => p.Services)
-            .Select(p => new
-            {
-                p.Id,
-                p.FirstName,
-                p.LastName,
-                p.PhotoUrl,
-                p.CalendarColor,
-                p.Specialty,
-                p.Schedule,
-                p.IsActive,
-                p.Order,
-                Services = p.Services.Select(s => new { s.Id, s.Title })
-            })
-            .FirstOrDefaultAsync();
+        var professional = await _repository.GetActiveByIdWithServicesAsync(id);
 
         if (professional == null)
             return NotFound(new { message = "Profesional no encontrado" });
 
-        return Ok(professional);
+        return Ok(new
+        {
+            professional.Id,
+            professional.FirstName,
+            professional.LastName,
+            professional.PhotoUrl,
+            professional.CalendarColor,
+            professional.Specialty,
+            professional.Schedule,
+            professional.IsActive,
+            professional.Order,
+            Services = professional.Services.Select(s => new { s.Id, s.Title })
+        });
     }
 
     // POST: api/professionals (admin)
@@ -199,7 +173,7 @@ public class ProfessionalsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] ProfessionalRequest request)
     {
-        var activeCount = await _context.Professionals.CountAsync(p => p.IsActive);
+        var activeCount = await _repository.CountActiveAsync();
         if (!await _planLimits.IsWithinLimitAsync("MaxProfessionals", activeCount))
         {
             return StatusCode(StatusCodes.Status402PaymentRequired, new
@@ -208,9 +182,7 @@ public class ProfessionalsController : ControllerBase
             });
         }
 
-        var services = request.ServiceIds.Count > 0
-            ? await _context.Services.Where(s => request.ServiceIds.Contains(s.Id)).ToListAsync()
-            : new List<Service>();
+        var services = await _repository.GetServicesByIdsAsync(request.ServiceIds);
 
         var professional = new Professional
         {
@@ -226,8 +198,8 @@ public class ProfessionalsController : ControllerBase
             Services = services
         };
 
-        _context.Professionals.Add(professional);
-        await _context.SaveChangesAsync();
+        _repository.Add(professional);
+        await _repository.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = professional.Id }, new
         {
@@ -251,9 +223,7 @@ public class ProfessionalsController : ControllerBase
     public async Task<IActionResult> Update(int id, [FromBody] ProfessionalRequest request)
     {
         // Include(Services) para que el M2M quede trackeado y se pueda reconciliar
-        var professional = await _context.Professionals
-            .Include(p => p.Services)
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var professional = await _repository.GetByIdWithServicesAsync(id);
 
         if (professional == null)
             return NotFound(new { message = "Profesional no encontrado" });
@@ -269,15 +239,13 @@ public class ProfessionalsController : ControllerBase
         professional.Order = request.Order;
         professional.UpdatedAt = DateTime.UtcNow;
 
-        var newServices = request.ServiceIds.Count > 0
-            ? await _context.Services.Where(s => request.ServiceIds.Contains(s.Id)).ToListAsync()
-            : new List<Service>();
+        var newServices = await _repository.GetServicesByIdsAsync(request.ServiceIds);
 
         professional.Services.Clear();
         foreach (var service in newServices)
             professional.Services.Add(service);
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Profesional actualizado correctamente" });
     }
@@ -287,12 +255,12 @@ public class ProfessionalsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var professional = await _context.Professionals.FindAsync(id);
+        var professional = await _repository.GetByIdAsync(id);
         if (professional == null)
             return NotFound(new { message = "Profesional no encontrado" });
 
-        _context.Professionals.Remove(professional);
-        await _context.SaveChangesAsync();
+        _repository.Remove(professional);
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Profesional eliminado correctamente" });
     }

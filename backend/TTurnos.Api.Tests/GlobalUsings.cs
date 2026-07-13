@@ -1,0 +1,17 @@
+global using TTurnos.Api.Core.Auth;
+global using TTurnos.Api.Core.Users;
+global using TTurnos.Api.Core.Clients;
+global using TTurnos.Api.Core.Bookings;
+global using TTurnos.Api.Core.Scheduling;
+global using TTurnos.Api.Core.Professionals;
+global using TTurnos.Api.Core.Services;
+global using TTurnos.Api.Core.Payments;
+global using TTurnos.Api.Core.Notifications;
+global using TTurnos.Api.Core.Content;
+global using TTurnos.Api.Core.Settings;
+global using TTurnos.Api.Core.Reports;
+global using TTurnos.Api.Modules.Beauty.BeforeAfter;
+global using TTurnos.Api.Infrastructure.Persistence;
+global using TTurnos.Api.Infrastructure.MultiTenancy;
+global using TTurnos.Api.Shared.Interfaces;
+global using TTurnos.Api.SaaS.Tenants;

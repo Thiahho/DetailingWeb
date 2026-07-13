@@ -20,6 +20,7 @@
     "react-social-media-embed": "^2.5.18"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "25.0.8",
     "@types/react": "19.2.8",
     "autoprefixer": "10.4.19",

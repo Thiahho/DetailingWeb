@@ -53,9 +53,9 @@ public class TimeSlotGeneratorService
     {
         var slotsCreated = 0;
         var currentTime = date.Date.Add(settings.StartTime);
-        // var endTime = date.Date.Add(settings.EndTime);
+        var dayEnd = currentTime.Add(TimeSpan.FromHours(8));
 
-        while (currentTime.Add(TimeSpan.FromMinutes(settings.SlotDuration)) <= currentTime.Add(settings.StartTime).Add(TimeSpan.FromHours(8)))
+        while (currentTime.Add(TimeSpan.FromMinutes(settings.SlotDuration)) <= dayEnd)
         {
             var slotStart = currentTime;
             var slotEnd = currentTime.Add(TimeSpan.FromMinutes(settings.SlotDuration));

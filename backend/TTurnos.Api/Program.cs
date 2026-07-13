@@ -13,6 +13,8 @@ builder.Services.AddScoped<CurrentTenantService>();
 builder.Services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<CurrentTenantService>());
 // Core depende solo de IPlanLimitsService (Shared) — nunca de SaaS directamente.
 builder.Services.AddScoped<IPlanLimitsService, PlanLimitsService>();
+// Piloto de capa de repositorio (auditoría, "reducir acoplamiento de ApplicationDbContext") — solo Professionals por ahora.
+builder.Services.AddScoped<IProfessionalsRepository, ProfessionalsRepository>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -31,9 +33,18 @@ builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddHttpClient<NotificationTemplateService>();
 builder.Services.AddScoped<NotificationService>();
-builder.Services.AddHttpClient<WhatsAppProvider>();
-builder.Services.AddScoped<INotificationProvider, GmailProvider>();
-builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
+// Testing (e2e de Playwright) no debe mandar WhatsApp/emails reales — appsettings.json
+// tiene credenciales reales cargadas. Ver NoopNotificationProvider.
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddScoped<INotificationProvider, NoopNotificationProvider>();
+}
+else
+{
+    builder.Services.AddHttpClient<WhatsAppProvider>();
+    builder.Services.AddScoped<INotificationProvider, GmailProvider>();
+    builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
+}
 builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 builder.Services.AddHostedService<ReminderBackgroundService>();
 builder.Services.AddScoped<ReminderService>();
@@ -129,3 +140,7 @@ app.MapControllers();
 app.UseBackgroundJobs();
 
 app.Run();
+
+// Necesario para que WebApplicationFactory<Program> (tests de integración) pueda
+// referenciar este entry point de top-level statements desde otro assembly.
+public partial class Program { }
