@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace TTurnos.Api.Modules.Beauty.BeforeAfter;
 
@@ -8,34 +7,26 @@ namespace TTurnos.Api.Modules.Beauty.BeforeAfter;
 [Route("api/gallery")]
 public class GalleryController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IGalleryRepository _repository;
 
-    public GalleryController(ApplicationDbContext context)
+    public GalleryController(IGalleryRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetActive()
     {
-        var items = await _context.GalleryItems
-            .Where(g => g.IsActive)
-            .OrderBy(g => g.Order)
-            .ThenBy(g => g.CreatedAt)
-            .Select(g => new { g.Id, g.Title, g.Tag, g.ImageUrl, g.Order })
-            .ToListAsync();
-        return Ok(items);
+        var items = await _repository.GetActiveAsync();
+        return Ok(items.Select(g => new { g.Id, g.Title, g.Tag, g.ImageUrl, g.Order }));
     }
 
     [HttpGet("all")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll()
     {
-        var items = await _context.GalleryItems
-            .OrderBy(g => g.Order)
-            .ThenBy(g => g.CreatedAt)
-            .ToListAsync();
+        var items = await _repository.GetAllAsync();
         return Ok(items);
     }
 
@@ -52,8 +43,8 @@ public class GalleryController : ControllerBase
             Order = request.Order,
             CreatedAt = DateTime.UtcNow
         };
-        _context.GalleryItems.Add(item);
-        await _context.SaveChangesAsync();
+        _repository.Add(item);
+        await _repository.SaveChangesAsync();
         return Ok(item);
     }
 
@@ -61,7 +52,7 @@ public class GalleryController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] GalleryItemRequest request)
     {
-        var item = await _context.GalleryItems.FindAsync(id);
+        var item = await _repository.FindAsync(id);
         if (item == null) return NotFound();
 
         item.Title = request.Title;
@@ -70,7 +61,7 @@ public class GalleryController : ControllerBase
         item.IsActive = request.IsActive;
         item.Order = request.Order;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
         return Ok(item);
     }
 
@@ -78,10 +69,10 @@ public class GalleryController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var item = await _context.GalleryItems.FindAsync(id);
+        var item = await _repository.FindAsync(id);
         if (item == null) return NotFound();
-        _context.GalleryItems.Remove(item);
-        await _context.SaveChangesAsync();
+        _repository.Remove(item);
+        await _repository.SaveChangesAsync();
         return NoContent();
     }
 }

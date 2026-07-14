@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace TTurnos.Api.Core.Scheduling;
@@ -9,13 +8,13 @@ namespace TTurnos.Api.Core.Scheduling;
 [Route("api/[controller]")]
 public class TimeSlotsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ITimeSlotsRepository _repository;
     private static readonly TimeZoneInfo _argentinaZone =
         TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
 
-    public TimeSlotsController(ApplicationDbContext context)
+    public TimeSlotsController(ITimeSlotsRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     private static DateTime NowArgentina() =>
@@ -34,25 +33,19 @@ public class TimeSlotsController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GetAvailableSlots([FromQuery] int? professionalId)
     {
-        var slots = await _context.TimeSlots
-            .Where(t => t.IsAvailable && t.StartDateTime > NowArgentina())
-            .Where(t => professionalId == null || t.ProfessionalId == professionalId)
-            .Include(t => t.Professional)
-            .OrderBy(t => t.StartDateTime)
-            .Select(s => new
-            {
-                id = s.Id,
-                startDateTime = s.StartDateTime,
-                endDateTime = s.EndDateTime,
-                label = s.StartDateTime.ToString("ddd dd/MMM · HH:mm", new System.Globalization.CultureInfo("es-AR")),
-                professionalId = s.ProfessionalId,
-                professionalName = s.Professional != null
-                    ? s.Professional.FirstName + " " + s.Professional.LastName
-                    : null
-            })
-            .ToListAsync();
+        var slots = await _repository.GetAvailableAsync(professionalId, NowArgentina());
 
-        return Ok(slots);
+        return Ok(slots.Select(s => new
+        {
+            id = s.Id,
+            startDateTime = s.StartDateTime,
+            endDateTime = s.EndDateTime,
+            label = s.StartDateTime.ToString("ddd dd/MMM · HH:mm", new System.Globalization.CultureInfo("es-AR")),
+            professionalId = s.ProfessionalId,
+            professionalName = s.Professional != null
+                ? s.Professional.FirstName + " " + s.Professional.LastName
+                : null
+        }));
     }
 
     // GET: api/timeslots/mine (profesional - solo su propia agenda)
@@ -64,31 +57,26 @@ public class TimeSlotsController : ControllerBase
         if (professionalId == null)
             return Unauthorized(new { message = "Sesión inválida" });
 
-        var slots = await _context.TimeSlots
-            .Where(t => t.ProfessionalId == professionalId)
-            .Include(t => t.Bookings)
-            .OrderBy(t => t.StartDateTime)
-            .Select(s => new
-            {
-                id = s.Id,
-                startDateTime = s.StartDateTime,
-                endDateTime = s.EndDateTime,
-                isAvailable = s.IsAvailable,
-                label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
-                booking = s.Bookings
-                    .Where(b => b.Status != BookingStatus.Cancelled)
-                    .Select(b => new
-                    {
-                        id = b.Id,
-                        customerName = b.CustomerName,
-                        customerPhone = b.CustomerPhone,
-                        service = b.Service,
-                        status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
-                    }).FirstOrDefault()
-            })
-            .ToListAsync();
+        var slots = await _repository.GetMineAsync(professionalId.Value);
 
-        return Ok(slots);
+        return Ok(slots.Select(s => new
+        {
+            id = s.Id,
+            startDateTime = s.StartDateTime,
+            endDateTime = s.EndDateTime,
+            isAvailable = s.IsAvailable,
+            label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
+            booking = s.Bookings
+                .Where(b => b.Status != BookingStatus.Cancelled)
+                .Select(b => new
+                {
+                    id = b.Id,
+                    customerName = b.CustomerName,
+                    customerPhone = b.CustomerPhone,
+                    service = b.Service,
+                    status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
+                }).FirstOrDefault()
+        }));
     }
 
     // GET: api/timeslots (admin - todos los turnos con info de reserva)
@@ -96,46 +84,40 @@ public class TimeSlotsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllSlots()
     {
-        var slots = await _context.TimeSlots
-            .Include(t => t.Professional)
-            .Include(t => t.Bookings)
-                .ThenInclude(b => b.Professional)
-            .OrderBy(t => t.StartDateTime)
-            .Select(s => new
-            {
-                id = s.Id,
-                startDateTime = s.StartDateTime,
-                endDateTime = s.EndDateTime,
-                isAvailable = s.IsAvailable,
-                bookingsCount = s.Bookings.Count,
-                label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
-                professionalId = s.ProfessionalId,
-                professionalName = s.Professional != null
-                    ? s.Professional.FirstName + " " + s.Professional.LastName
-                    : null,
-                // Info de la reserva si existe
-                booking = s.Bookings
-                    .Where(b => b.Status != BookingStatus.Cancelled)
-                    .Select(b => new
-                    {
-                        id = b.Id,
-                        customerName = b.CustomerName,
-                        customerPhone = b.CustomerPhone,
-                        email = b.Email,
-                        subject = b.Subject,
-                        customFieldsJson = b.CustomFieldsJson,
-                        service = b.Service,
-                        professionalId = b.ProfessionalId,
-                        professionalName = b.Professional != null
-                            ? b.Professional.FirstName + " " + b.Professional.LastName
-                            : null,
-                        message = b.Message,
-                        status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
-                    }).FirstOrDefault()
-            })
-            .ToListAsync();
+        var slots = await _repository.GetAllWithBookingsAsync();
 
-        return Ok(slots);
+        return Ok(slots.Select(s => new
+        {
+            id = s.Id,
+            startDateTime = s.StartDateTime,
+            endDateTime = s.EndDateTime,
+            isAvailable = s.IsAvailable,
+            bookingsCount = s.Bookings.Count,
+            label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
+            professionalId = s.ProfessionalId,
+            professionalName = s.Professional != null
+                ? s.Professional.FirstName + " " + s.Professional.LastName
+                : null,
+            // Info de la reserva si existe
+            booking = s.Bookings
+                .Where(b => b.Status != BookingStatus.Cancelled)
+                .Select(b => new
+                {
+                    id = b.Id,
+                    customerName = b.CustomerName,
+                    customerPhone = b.CustomerPhone,
+                    email = b.Email,
+                    subject = b.Subject,
+                    customFieldsJson = b.CustomFieldsJson,
+                    service = b.Service,
+                    professionalId = b.ProfessionalId,
+                    professionalName = b.Professional != null
+                        ? b.Professional.FirstName + " " + b.Professional.LastName
+                        : null,
+                    message = b.Message,
+                    status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
+                }).FirstOrDefault()
+        }));
     }
 
     // POST: api/timeslots (admin crea para cualquiera; profesional solo para sí mismo)
@@ -161,15 +143,13 @@ public class TimeSlotsController : ControllerBase
             return BadRequest(new { message = "Elegí a qué profesional pertenece el turno" });
         }
 
-        var professionalIsActive = await _context.Professionals
-            .AnyAsync(p => p.Id == professionalId && p.IsActive);
+        var professionalIsActive = await _repository.ProfessionalIsActiveAsync(professionalId.Value);
         if (!professionalIsActive)
         {
             return BadRequest(new { message = "El profesional seleccionado no está disponible" });
         }
 
-        var exists = await _context.TimeSlots
-            .AnyAsync(t => t.StartDateTime == request.StartDateTime && t.ProfessionalId == professionalId);
+        var exists = await _repository.SlotExistsAsync(request.StartDateTime, professionalId);
 
         if (exists)
         {
@@ -185,8 +165,8 @@ public class TimeSlotsController : ControllerBase
             ProfessionalId = professionalId
         };
 
-        _context.TimeSlots.Add(slot);
-        await _context.SaveChangesAsync();
+        _repository.Add(slot);
+        await _repository.SaveChangesAsync();
 
         return Ok(new
         {
@@ -207,9 +187,7 @@ public class TimeSlotsController : ControllerBase
     [Authorize(Roles = "Admin,Professional")]
     public async Task<IActionResult> UpdateSlot(int id, [FromBody] UpdateTimeSlotRequest request)
     {
-        var slot = await _context.TimeSlots
-            .Include(t => t.Bookings)
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var slot = await _repository.GetByIdWithBookingsAsync(id);
 
         if (slot == null)
         {
@@ -233,8 +211,7 @@ public class TimeSlotsController : ControllerBase
             return BadRequest(new { message = "La fecha debe ser futura" });
         }
 
-        var exists = await _context.TimeSlots
-            .AnyAsync(t => t.StartDateTime == request.StartDateTime && t.ProfessionalId == slot.ProfessionalId && t.Id != id);
+        var exists = await _repository.SlotExistsAsync(request.StartDateTime, slot.ProfessionalId, id);
 
         if (exists)
         {
@@ -244,7 +221,7 @@ public class TimeSlotsController : ControllerBase
         slot.StartDateTime = request.StartDateTime;
         slot.EndDateTime = request.StartDateTime.AddHours(2);
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return Ok(new
         {
@@ -264,9 +241,7 @@ public class TimeSlotsController : ControllerBase
     [Authorize(Roles = "Admin,Professional")]
     public async Task<IActionResult> ReleaseSlot(int id)
     {
-        var slot = await _context.TimeSlots
-            .Include(t => t.Bookings)
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var slot = await _repository.GetByIdWithBookingsAsync(id);
 
         if (slot == null)
         {
@@ -283,7 +258,7 @@ public class TimeSlotsController : ControllerBase
         var toDelete = slot.Bookings.Where(b => b.Status != BookingStatus.Confirmed).ToList();
         var toCancel = slot.Bookings.Where(b => b.Status == BookingStatus.Confirmed).ToList();
 
-        _context.Bookings.RemoveRange(toDelete);
+        _repository.RemoveBookings(toDelete);
         foreach (var booking in toCancel)
         {
             booking.Status = BookingStatus.Cancelled;
@@ -293,7 +268,7 @@ public class TimeSlotsController : ControllerBase
         // Marcar turno como HABILITADO
         slot.IsAvailable = true;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return Ok(new
         {
@@ -307,9 +282,7 @@ public class TimeSlotsController : ControllerBase
     [Authorize(Roles = "Admin,Professional")]
     public async Task<IActionResult> DeleteSlot(int id)
     {
-        var slot = await _context.TimeSlots
-            .Include(t => t.Bookings)
-            .FirstOrDefaultAsync(t => t.Id == id);
+        var slot = await _repository.GetByIdWithBookingsAsync(id);
 
         if (slot == null)
         {
@@ -328,8 +301,8 @@ public class TimeSlotsController : ControllerBase
             return BadRequest(new { message = "No se puede eliminar un turno reservado. Habilitalo primero." });
         }
 
-        _context.TimeSlots.Remove(slot);
-        await _context.SaveChangesAsync();
+        _repository.Remove(slot);
+        await _repository.SaveChangesAsync();
 
         return Ok(new { success = true, message = "Turno eliminado" });
     }

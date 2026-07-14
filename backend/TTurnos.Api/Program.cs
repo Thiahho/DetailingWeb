@@ -13,8 +13,19 @@ builder.Services.AddScoped<CurrentTenantService>();
 builder.Services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<CurrentTenantService>());
 // Core depende solo de IPlanLimitsService (Shared) — nunca de SaaS directamente.
 builder.Services.AddScoped<IPlanLimitsService, PlanLimitsService>();
-// Piloto de capa de repositorio (auditoría, "reducir acoplamiento de ApplicationDbContext") — solo Professionals por ahora.
+// Capa de repositorio (auditoría, "reducir acoplamiento de ApplicationDbContext") — piloteada en Professionals,
+// extendida al resto de los controllers que antes inyectaban ApplicationDbContext directo.
 builder.Services.AddScoped<IProfessionalsRepository, ProfessionalsRepository>();
+builder.Services.AddScoped<ISiteConfigRepository, SiteConfigRepository>();
+builder.Services.AddScoped<IBusinessSettingsRepository, BusinessSettingsRepository>();
+builder.Services.AddScoped<IBlockedDatesRepository, BlockedDatesRepository>();
+builder.Services.AddScoped<IContentVideosRepository, ContentVideosRepository>();
+builder.Services.AddScoped<IGalleryRepository, GalleryRepository>();
+builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
+builder.Services.AddScoped<IServicesRepository, ServicesRepository>();
+builder.Services.AddScoped<ITimeSlotsRepository, TimeSlotsRepository>();
+builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
+builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {

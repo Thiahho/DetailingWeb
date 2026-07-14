@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace TTurnos.Api.Core.Services;
 
@@ -8,38 +7,33 @@ namespace TTurnos.Api.Core.Services;
 [Route("api/[controller]")]
 public class ServicesController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IServicesRepository _repository;
 
-    public ServicesController(ApplicationDbContext context)
+    public ServicesController(IServicesRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     // GET: api/services  (público)
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var services = await _context.Services
-            .Where(s => s.IsActive)
-            .OrderBy(s => s.Order)
-            .ThenBy(s => s.CreatedAt)
-            .Select(s => new
-            {
-                s.Id,
-                s.Title,
-                s.Slug,
-                s.Price,
-                s.Duration,
-                s.ImageUrl,
-                s.Details,
-                s.Description,
-                s.CustomFieldsSchema,
-                s.IsActive,
-                s.Order
-            })
-            .ToListAsync();
+        var services = await _repository.GetActiveAsync();
 
-        return Ok(services);
+        return Ok(services.Select(s => new
+        {
+            s.Id,
+            s.Title,
+            s.Slug,
+            s.Price,
+            s.Duration,
+            s.ImageUrl,
+            s.Details,
+            s.Description,
+            s.CustomFieldsSchema,
+            s.IsActive,
+            s.Order
+        }));
     }
 
     // GET: api/services/all  (admin, incluye inactivos)
@@ -47,37 +41,31 @@ public class ServicesController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllAdmin()
     {
-        var services = await _context.Services
-            .OrderBy(s => s.Order)
-            .ThenBy(s => s.CreatedAt)
-            .Select(s => new
-            {
-                s.Id,
-                s.Title,
-                s.Slug,
-                s.Price,
-                s.Duration,
-                s.ImageUrl,
-                s.Details,
-                s.Description,
-                s.CustomFieldsSchema,
-                s.IsActive,
-                s.Order,
-                s.CreatedAt,
-                s.UpdatedAt
-            })
-            .ToListAsync();
+        var services = await _repository.GetAllAsync();
 
-        return Ok(services);
+        return Ok(services.Select(s => new
+        {
+            s.Id,
+            s.Title,
+            s.Slug,
+            s.Price,
+            s.Duration,
+            s.ImageUrl,
+            s.Details,
+            s.Description,
+            s.CustomFieldsSchema,
+            s.IsActive,
+            s.Order,
+            s.CreatedAt,
+            s.UpdatedAt
+        }));
     }
 
     // GET: api/services/{slug}  (público)
     [HttpGet("{slug}")]
     public async Task<IActionResult> GetBySlug(string slug)
     {
-        var service = await _context.Services
-            .Where(s => s.Slug == slug && s.IsActive)
-            .FirstOrDefaultAsync();
+        var service = await _repository.GetBySlugAsync(slug, activeOnly: true);
 
         if (service == null)
             return NotFound(new { message = "Servicio no encontrado" });
@@ -106,7 +94,7 @@ public class ServicesController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Slug))
             return BadRequest(new { message = "Título y slug son requeridos" });
 
-        var slugExists = await _context.Services.AnyAsync(s => s.Slug == request.Slug);
+        var slugExists = await _repository.SlugExistsAsync(request.Slug);
         if (slugExists)
             return BadRequest(new { message = "Ya existe un servicio con ese slug" });
 
@@ -124,8 +112,8 @@ public class ServicesController : ControllerBase
             Order = request.Order
         };
 
-        _context.Services.Add(service);
-        await _context.SaveChangesAsync();
+        _repository.Add(service);
+        await _repository.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetBySlug), new { slug = service.Slug }, new
         {
@@ -148,11 +136,11 @@ public class ServicesController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] ServiceRequest request)
     {
-        var service = await _context.Services.FindAsync(id);
+        var service = await _repository.FindAsync(id);
         if (service == null)
             return NotFound(new { message = "Servicio no encontrado" });
 
-        var slugExists = await _context.Services.AnyAsync(s => s.Slug == request.Slug && s.Id != id);
+        var slugExists = await _repository.SlugExistsAsync(request.Slug, id);
         if (slugExists)
             return BadRequest(new { message = "Ya existe otro servicio con ese slug" });
 
@@ -168,7 +156,7 @@ public class ServicesController : ControllerBase
         service.Order = request.Order;
         service.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Servicio actualizado correctamente" });
     }
@@ -178,12 +166,12 @@ public class ServicesController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var service = await _context.Services.FindAsync(id);
+        var service = await _repository.FindAsync(id);
         if (service == null)
             return NotFound(new { message = "Servicio no encontrado" });
 
-        _context.Services.Remove(service);
-        await _context.SaveChangesAsync();
+        _repository.Remove(service);
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Servicio eliminado correctamente" });
     }

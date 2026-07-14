@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 using MercadoPago.Client.Preference;
 using MercadoPago.Config;
 using MercadoPago.Client.Payment;
@@ -14,12 +13,12 @@ namespace TTurnos.Api.Core.Payments;
 [Route("api/[controller]")]
 public class PaymentsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IPaymentsRepository _repository;
     private readonly IConfiguration _configuration;
 
-    public PaymentsController(ApplicationDbContext context, IConfiguration configuration)
+    public PaymentsController(IPaymentsRepository repository, IConfiguration configuration)
     {
-        _context = context;
+        _repository = repository;
         _configuration = configuration;
     }
 
@@ -29,10 +28,7 @@ public class PaymentsController : ControllerBase
     [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> CreateMercadoPagoPreference([FromBody] CreatePaymentRequest request)
     {
-        var booking = await _context.Bookings
-            .Include(b => b.TimeSlot)
-            .Include(b => b.Payment)
-            .FirstOrDefaultAsync(b => b.Id == request.BookingId);
+        var booking = await _repository.GetBookingWithPaymentAsync(request.BookingId);
 
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
@@ -51,7 +47,7 @@ public class PaymentsController : ControllerBase
         MercadoPagoConfig.AccessToken = accessToken;
 
         // Parse service price
-        var service = await _context.Services.FirstOrDefaultAsync(s => s.Slug == booking.Service);
+        var service = await _repository.GetServiceBySlugAsync(booking.Service);
         decimal amount;
         if (request.Amount > 0)
         {
@@ -116,9 +112,9 @@ public class PaymentsController : ControllerBase
             payment.PayerEmail = booking.Email ?? booking.CustomerEmailNormalized;
 
             if (booking.Payment == null)
-                _context.Payments.Add(payment);
+                _repository.AddPayment(payment);
 
-            await _context.SaveChangesAsync();
+            await _repository.SaveChangesAsync();
 
             return Ok(new
             {
@@ -232,16 +228,11 @@ public class PaymentsController : ControllerBase
             // IgnoreQueryFilters: MercadoPago llama a este webhook directo, sin pasar
             // por el proxy del frontend — no hay tenant ambiental resuelto acá. El
             // bookingId (via ExternalReference) ya identifica un tenant sin ambigüedad.
-            var payment = await _context.Payments
-                .IgnoreQueryFilters()
-                .Include(p => p.Booking)
-                .FirstOrDefaultAsync(p => p.BookingId == bookingId);
+            var payment = await _repository.GetPaymentByBookingIgnoringTenantAsync(bookingId);
 
             if (payment == null)
             {
-                var booking = await _context.Bookings
-                    .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(b => b.Id == bookingId);
+                var booking = await _repository.GetBookingByIdIgnoringTenantAsync(bookingId);
                 if (booking == null)
                     return Ok();
 
@@ -253,7 +244,7 @@ public class PaymentsController : ControllerBase
                     Provider = "MercadoPago",
                     Amount = mpPayment.TransactionAmount ?? 0
                 };
-                _context.Payments.Add(payment);
+                _repository.AddPayment(payment);
             }
 
             payment.ExternalPaymentId = mpPayment.Id?.ToString();
@@ -285,7 +276,7 @@ public class PaymentsController : ControllerBase
                     break;
             }
 
-            await _context.SaveChangesAsync();
+            await _repository.SaveChangesAsync();
             return Ok();
         }
         catch (Exception ex)
@@ -301,8 +292,7 @@ public class PaymentsController : ControllerBase
     [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> GetPaymentByBooking(int bookingId)
     {
-        var payment = await _context.Payments
-            .FirstOrDefaultAsync(p => p.BookingId == bookingId);
+        var payment = await _repository.GetPaymentByBookingAsync(bookingId);
 
         if (payment == null)
             return NotFound(new { success = false, message = "No hay pago registrado para esta reserva" });
@@ -327,25 +317,7 @@ public class PaymentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllPayments()
     {
-        var payments = await _context.Payments
-            .Include(p => p.Booking)
-            .OrderByDescending(p => p.CreatedAt)
-            .Select(p => new
-            {
-                id = p.Id,
-                bookingId = p.BookingId,
-                customerName = p.Booking.CustomerName,
-                service = p.Booking.Service,
-                amount = p.Amount,
-                currency = p.Currency,
-                status = p.Status,
-                provider = p.Provider,
-                paymentMethod = p.PaymentMethod,
-                paidAt = p.PaidAt,
-                createdAt = p.CreatedAt
-            })
-            .ToListAsync();
-
+        var payments = await _repository.GetAllWithBookingAsync();
         return Ok(payments);
     }
 }

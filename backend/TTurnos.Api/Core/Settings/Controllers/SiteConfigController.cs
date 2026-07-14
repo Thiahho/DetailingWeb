@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace TTurnos.Api.Core.Settings;
 
@@ -8,18 +7,18 @@ namespace TTurnos.Api.Core.Settings;
 [Route("api/siteconfig")]
 public class SiteConfigController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ISiteConfigRepository _repository;
 
-    public SiteConfigController(ApplicationDbContext context)
+    public SiteConfigController(ISiteConfigRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> Get()
     {
-        var config = await _context.SiteConfigs.FirstOrDefaultAsync();
+        var config = await _repository.GetAsync();
         if (config == null)
             return Ok(new SiteConfig());
         return Ok(config);
@@ -29,11 +28,11 @@ public class SiteConfigController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update([FromBody] SiteConfigRequest request)
     {
-        var config = await _context.SiteConfigs.FirstOrDefaultAsync();
+        var config = await _repository.GetAsync();
         if (config == null)
         {
             config = new SiteConfig();
-            _context.SiteConfigs.Add(config);
+            _repository.Add(config);
         }
 
         config.BusinessName = request.BusinessName;
@@ -51,7 +50,7 @@ public class SiteConfigController : ControllerBase
         config.MetaDescription = request.MetaDescription;
         config.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
         return Ok(config);
     }
 }

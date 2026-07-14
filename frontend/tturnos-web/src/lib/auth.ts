@@ -26,7 +26,11 @@ function forceLogoutStaleWindow(): void {
   }
 }
 
-// Verificar si hay sesión activa (indicador UI)
+// Verificar si hay sesión activa — SOLO indicador de UI (localStorage), no una
+// verificación real. La protección de datos vive en el backend ([Authorize] +
+// JWT en cookie HttpOnly); esta función no puede gatear acceso a datos, solo
+// decidir qué mostrar/ocultar en la interfaz. Para confirmar sesión contra el
+// servidor, usar verifySession().
 export function isAuthenticated(): boolean {
   if (typeof window === "undefined") return false;
   if (isFreshWindow()) forceLogoutStaleWindow();

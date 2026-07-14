@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace TTurnos.Api.Core.Content;
 
@@ -8,55 +7,46 @@ namespace TTurnos.Api.Core.Content;
 [Route("api/content-videos")]
 public class ContentVideosController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IContentVideosRepository _repository;
 
-    public ContentVideosController(ApplicationDbContext context)
+    public ContentVideosController(IContentVideosRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetActive()
     {
-        var videos = await _context.ContentVideos
-            .Where(v => v.IsActive)
-            .OrderBy(v => v.Order)
-            .ThenBy(v => v.CreatedAt)
-            .Select(v => new
-            {
-                v.Id,
-                v.Title,
-                v.VideoUrl,
-                v.ThumbnailUrl,
-                v.IsActive,
-                v.Order,
-                v.CreatedAt
-            })
-            .ToListAsync();
+        var videos = await _repository.GetActiveAsync();
 
-        return Ok(videos);
+        return Ok(videos.Select(v => new
+        {
+            v.Id,
+            v.Title,
+            v.VideoUrl,
+            v.ThumbnailUrl,
+            v.IsActive,
+            v.Order,
+            v.CreatedAt
+        }));
     }
 
     [HttpGet("all")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll()
     {
-        var videos = await _context.ContentVideos
-            .OrderBy(v => v.Order)
-            .ThenBy(v => v.CreatedAt)
-            .Select(v => new
-            {
-                v.Id,
-                v.Title,
-                v.VideoUrl,
-                v.ThumbnailUrl,
-                v.IsActive,
-                v.Order,
-                v.CreatedAt
-            })
-            .ToListAsync();
+        var videos = await _repository.GetAllAsync();
 
-        return Ok(videos);
+        return Ok(videos.Select(v => new
+        {
+            v.Id,
+            v.Title,
+            v.VideoUrl,
+            v.ThumbnailUrl,
+            v.IsActive,
+            v.Order,
+            v.CreatedAt
+        }));
     }
 
     [HttpPost]
@@ -75,8 +65,8 @@ public class ContentVideosController : ControllerBase
             Order = request.Order,
         };
 
-        _context.ContentVideos.Add(video);
-        await _context.SaveChangesAsync();
+        _repository.Add(video);
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Video creado correctamente", id = video.Id });
     }
@@ -85,7 +75,7 @@ public class ContentVideosController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] ContentVideoRequest request)
     {
-        var video = await _context.ContentVideos.FindAsync(id);
+        var video = await _repository.FindAsync(id);
         if (video == null)
             return NotFound(new { message = "Video no encontrado" });
 
@@ -98,7 +88,7 @@ public class ContentVideosController : ControllerBase
         video.IsActive = request.IsActive;
         video.Order = request.Order;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Video actualizado correctamente" });
     }
@@ -107,12 +97,12 @@ public class ContentVideosController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var video = await _context.ContentVideos.FindAsync(id);
+        var video = await _repository.FindAsync(id);
         if (video == null)
             return NotFound(new { message = "Video no encontrado" });
 
-        _context.ContentVideos.Remove(video);
-        await _context.SaveChangesAsync();
+        _repository.Remove(video);
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Video eliminado correctamente" });
     }

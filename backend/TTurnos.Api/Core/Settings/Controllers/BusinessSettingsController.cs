@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace TTurnos.Api.Core.Settings;
 
@@ -9,12 +8,12 @@ namespace TTurnos.Api.Core.Settings;
 [Authorize(Roles = "Admin")]
 public class BusinessSettingsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IBusinessSettingsRepository _repository;
     private readonly TimeSlotGeneratorService _generator;
 
-    public BusinessSettingsController(ApplicationDbContext context, TimeSlotGeneratorService generator)
+    public BusinessSettingsController(IBusinessSettingsRepository repository, TimeSlotGeneratorService generator)
     {
-        _context = context;
+        _repository = repository;
         _generator = generator;
     }
 
@@ -22,7 +21,7 @@ public class BusinessSettingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetSettings()
     {
-        var settings = await _context.BusinessSettings.FirstOrDefaultAsync();
+        var settings = await _repository.GetAsync();
         
         if (settings == null)
         {
@@ -45,7 +44,7 @@ public class BusinessSettingsController : ControllerBase
     [HttpPut]
     public async Task<IActionResult> UpdateSettings([FromBody] BusinessSettingsRequest request)
     {
-        var settings = await _context.BusinessSettings.FirstOrDefaultAsync();
+        var settings = await _repository.GetAsync();
 
         if (settings == null)
         {
@@ -59,7 +58,7 @@ public class BusinessSettingsController : ControllerBase
                 BreakBetweenSlots = request.BreakBetweenSlots,
                 MaxDaysInAdvance = request.MaxDaysInAdvance
             };
-            _context.BusinessSettings.Add(settings);
+            _repository.Add(settings);
         }
         else
         {
@@ -73,7 +72,7 @@ public class BusinessSettingsController : ControllerBase
             settings.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         // Regenerar todos los turnos
         await _generator.RegenerateAllSlotsAsync();

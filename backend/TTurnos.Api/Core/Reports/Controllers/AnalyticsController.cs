@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace TTurnos.Api.Core.Reports;
 
@@ -9,11 +8,11 @@ namespace TTurnos.Api.Core.Reports;
 [Authorize(Roles = "Admin")]
 public class AnalyticsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IAnalyticsRepository _repository;
 
-    public AnalyticsController(ApplicationDbContext context)
+    public AnalyticsController(IAnalyticsRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     // GET: api/analytics/summary
@@ -25,26 +24,17 @@ public class AnalyticsController : ControllerBase
         var startOfLastMonth = startOfMonth.AddMonths(-1);
 
         // Total reservas del mes actual
-        var bookingsThisMonth = await _context.Bookings
-            .Where(b => b.CreatedAt >= startOfMonth)
-            .CountAsync();
+        var bookingsThisMonth = await _repository.CountBookingsFromAsync(startOfMonth);
 
         // Reservas confirmadas/canceladas del mes actual
-        var confirmedThisMonth = await _context.Bookings
-            .Where(b => b.CreatedAt >= startOfMonth && b.Status == BookingStatus.Confirmed)
-            .CountAsync();
-
-        var cancelledThisMonth = await _context.Bookings
-            .Where(b => b.CreatedAt >= startOfMonth && b.Status == BookingStatus.Cancelled)
-            .CountAsync();
+        var confirmedThisMonth = await _repository.CountBookingsFromAsync(startOfMonth, BookingStatus.Confirmed);
+        var cancelledThisMonth = await _repository.CountBookingsFromAsync(startOfMonth, BookingStatus.Cancelled);
 
         // Total reservas del mes anterior
-        var bookingsLastMonth = await _context.Bookings
-            .Where(b => b.CreatedAt >= startOfLastMonth && b.CreatedAt < startOfMonth)
-            .CountAsync();
+        var bookingsLastMonth = await _repository.CountBookingsBetweenAsync(startOfLastMonth, startOfMonth);
 
         // Total reservas históricas
-        var totalBookings = await _context.Bookings.CountAsync();
+        var totalBookings = await _repository.CountBookingsTotalAsync();
 
         // Tasa de confirmación y cancelación del mes actual
         var confirmationRate = bookingsThisMonth > 0
@@ -56,13 +46,12 @@ public class AnalyticsController : ControllerBase
             : 0;
 
         // Reservas activas (pendientes o confirmadas)
-        var activeBookings = await _context.Bookings
-            .Where(b => b.Status == BookingStatus.Pending || b.Status == BookingStatus.LegacyReserved || b.Status == BookingStatus.Confirmed)
-            .CountAsync();
+        var activeBookings = await _repository.CountBookingsByStatusAsync(
+            BookingStatus.Pending, BookingStatus.LegacyReserved, BookingStatus.Confirmed);
 
         // Turnos disponibles vs ocupados
-        var totalSlots = await _context.TimeSlots.CountAsync();
-        var availableSlots = await _context.TimeSlots.CountAsync(s => s.IsAvailable);
+        var totalSlots = await _repository.CountTimeSlotsTotalAsync();
+        var availableSlots = await _repository.CountTimeSlotsAvailableAsync();
         var occupiedSlots = totalSlots - availableSlots;
 
         // Tasa de ocupación
@@ -71,56 +60,25 @@ public class AnalyticsController : ControllerBase
             : 0;
 
         // Servicios más solicitados (top 5)
-        var topServices = await _context.Bookings
-            .Where(b => b.Service != null)
-            .GroupBy(b => b.Service!)
-            .Select(g => new { Service = g.Key, Count = g.Count() })
-            .OrderByDescending(g => g.Count)
-            .Take(5)
-            .ToListAsync();
+        var topServices = (await _repository.GetTopServicesAsync(5))
+            .Select(s => new { s.Service, s.Count });
 
         // Anticipación promedio de reserva (en horas) del mes actual
-        var leadTimes = await _context.Bookings
-            .Include(b => b.TimeSlot)
-            .Where(b => b.CreatedAt >= startOfMonth)
-            .Select(b => new { b.CreatedAt, b.TimeSlot.StartDateTime })
-            .ToListAsync();
+        var leadTimes = await _repository.GetLeadTimesFromAsync(startOfMonth);
         var avgLeadTimeHours = leadTimes.Any()
-            ? leadTimes.Average(b => (b.StartDateTime - b.CreatedAt).TotalHours)
+            ? leadTimes.Average(b => (b.SlotStart - b.CreatedAt).TotalHours)
             : 0;
 
         // Reservas de los últimos 6 meses (por mes)
         var sixMonthsAgo = startOfMonth.AddMonths(-5);
-        var bookingsByMonth = await _context.Bookings
-            .Where(b => b.CreatedAt >= sixMonthsAgo)
-            .GroupBy(b => new { b.CreatedAt.Year, b.CreatedAt.Month })
-            .Select(g => new
-            {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                Count = g.Count()
-            })
-            .OrderBy(g => g.Year).ThenBy(g => g.Month)
-            .ToListAsync();
+        var bookingsByMonth = (await _repository.GetBookingsByMonthAsync(sixMonthsAgo))
+            .Select(m => new { m.Year, m.Month, m.Count });
 
         // Próximos turnos reservados (próximos 7 días)
         var nextWeek = now.AddDays(7);
-        var upcomingBookings = await _context.Bookings
-            .Include(b => b.TimeSlot)
-            .Where(b => b.TimeSlot.StartDateTime >= now
-                     && b.TimeSlot.StartDateTime <= nextWeek
-                     && (b.Status == BookingStatus.Pending || b.Status == BookingStatus.LegacyReserved || b.Status == BookingStatus.Confirmed))
-            .OrderBy(b => b.TimeSlot.StartDateTime)
-            .Select(b => new
-            {
-                b.Id,
-                b.CustomerName,
-                b.Subject,
-                b.Service,
-                StartDateTime = b.TimeSlot.StartDateTime
-            })
-            .Take(5)
-            .ToListAsync();
+        var upcomingBookings = await _repository.GetUpcomingBookingsAsync(
+            now, nextWeek, 5,
+            BookingStatus.Pending, BookingStatus.LegacyReserved, BookingStatus.Confirmed);
 
         return Ok(new
         {

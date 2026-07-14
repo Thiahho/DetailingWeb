@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace TTurnos.Api.Core.Scheduling;
 
@@ -9,43 +8,35 @@ namespace TTurnos.Api.Core.Scheduling;
 [Authorize(Roles = "Admin")]
 public class BlockedDatesController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IBlockedDatesRepository _repository;
 
-    public BlockedDatesController(ApplicationDbContext context)
+    public BlockedDatesController(IBlockedDatesRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     // GET: api/blockeddates
     [HttpGet]
     public async Task<IActionResult> GetBlockedDates()
     {
-        var blockedDates = await _context.BlockedDates
-            .Include(d => d.Professional)
-            .Where(d => d.Date >= DateTime.Today)
-            .OrderBy(d => d.Date)
-            .Select(d => new
-            {
-                id = d.Id,
-                date = d.Date,
-                reason = d.Reason,
-                isRecurring = d.IsRecurring,
-                professionalId = d.ProfessionalId,
-                professionalName = d.Professional != null
-                    ? d.Professional.FirstName + " " + d.Professional.LastName
-                    : null
-            })
-            .ToListAsync();
+        var blockedDates = await _repository.GetUpcomingAsync();
 
-        return Ok(blockedDates);
+        return Ok(blockedDates.Select(d => new
+        {
+            id = d.Id,
+            date = d.Date,
+            reason = d.Reason,
+            isRecurring = d.IsRecurring,
+            professionalId = d.ProfessionalId,
+            professionalName = d.ProfessionalName
+        }));
     }
 
     // POST: api/blockeddates (sin ProfessionalId bloquea todo el negocio; con valor, solo ese profesional)
     [HttpPost]
     public async Task<IActionResult> BlockDate([FromBody] BlockDateRequest request)
     {
-        var exists = await _context.BlockedDates
-            .AnyAsync(d => d.Date == request.Date && d.ProfessionalId == request.ProfessionalId);
+        var exists = await _repository.ExistsAsync(request.Date, request.ProfessionalId);
         if (exists)
         {
             return BadRequest(new { message = "Esta fecha ya está bloqueada" });
@@ -58,17 +49,14 @@ public class BlockedDatesController : ControllerBase
             ProfessionalId = request.ProfessionalId
         };
 
-        _context.BlockedDates.Add(blockedDate);
+        _repository.Add(blockedDate);
 
         // Eliminar turnos disponibles de ese día (solo del profesional indicado, o todos si no se especificó).
-        var slotsToRemove = await _context.TimeSlots
-            .Where(t => t.StartDateTime.Date == request.Date.Date && t.IsAvailable)
-            .Where(t => request.ProfessionalId == null || t.ProfessionalId == request.ProfessionalId)
-            .ToListAsync();
+        var slotsToRemove = await _repository.GetAvailableSlotsOnDateAsync(request.Date, request.ProfessionalId);
 
-        _context.TimeSlots.RemoveRange(slotsToRemove);
+        _repository.RemoveSlots(slotsToRemove);
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return Ok(new
         {
@@ -87,15 +75,15 @@ public class BlockedDatesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> UnblockDate(int id)
     {
-        var blockedDate = await _context.BlockedDates.FindAsync(id);
+        var blockedDate = await _repository.FindAsync(id);
 
         if (blockedDate == null)
         {
             return NotFound(new { message = "Fecha bloqueada no encontrada" });
         }
 
-        _context.BlockedDates.Remove(blockedDate);
-        await _context.SaveChangesAsync();
+        _repository.Remove(blockedDate);
+        await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Fecha desbloqueada. Regenerá los turnos para crear nuevos slots." });
     }
