@@ -68,7 +68,8 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            Console.WriteLine($"[Auth] Error inesperado en login: {ex.Message}");
+            return StatusCode(500, new { message = "Error al iniciar sesión" });
         }
     }
 

@@ -131,7 +131,8 @@ public class PaymentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { success = false, message = "Error al crear preferencia de pago", detail = ex.Message });
+            Console.WriteLine($"[MercadoPago] Error al crear preferencia: {ex.Message}");
+            return StatusCode(500, new { success = false, message = "Error al crear preferencia de pago" });
         }
     }
 

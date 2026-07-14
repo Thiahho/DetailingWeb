@@ -423,7 +423,7 @@ export default function CalendarioPage() {
                 </select>
               </div>
               <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno</label>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno *</label>
                 <input
                   data-testid="calendario-reserve-subject"
                   className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"

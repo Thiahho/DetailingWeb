@@ -436,8 +436,8 @@ function ReminderForm({
 
       {/* Detalle del turno */}
       <div>
-        <label className="block text-charcoal/50 text-xs mb-1">Detalle del turno</label>
-        <input data-testid="reminder-form-detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="input-field" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." />
+        <label className="block text-charcoal/50 text-xs mb-1">Detalle del turno *</label>
+        <input data-testid="reminder-form-detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="input-field" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." required />
       </div>
 
       {/* Fecha/hora */}

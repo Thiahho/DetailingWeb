@@ -1,19 +1,21 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TTurnos.Api.Core.Notifications;
 
 
 // CustomerProfile
 public record CreateCustomerProfileRequest(
-    string Phone,
-    string Name,
-    string? Email,
-    string? Notes
+    [Required, StringLength(30, MinimumLength = 6)] string Phone,
+    [Required, StringLength(200, MinimumLength = 1)] string Name,
+    [EmailAddress, StringLength(256)] string? Email,
+    [StringLength(2000)] string? Notes
 );
 
 public record UpdateCustomerProfileRequest(
-    string Phone,
-    string Name,
-    string? Email,
-    string? Notes
+    [Required, StringLength(30, MinimumLength = 6)] string Phone,
+    [Required, StringLength(200, MinimumLength = 1)] string Name,
+    [EmailAddress, StringLength(256)] string? Email,
+    [StringLength(2000)] string? Notes
 );
 
 public record CustomerProfileResponse(
@@ -27,20 +29,20 @@ public record CustomerProfileResponse(
 
 // ScheduledReminder
 public record CreateReminderRequest(
-    int CustomerProfileId,
-    int? BookingId,
-    string ServiceLabel,
+    [Range(1, int.MaxValue)] int CustomerProfileId,
+    [Range(1, int.MaxValue)] int? BookingId,
+    [Required, StringLength(200, MinimumLength = 1)] string ServiceLabel,
     DateTime ScheduledFor,
-    int? IntervalDays,
-    string? MessageTemplate
+    [Range(1, 3650)] int? IntervalDays,
+    [StringLength(2000)] string? MessageTemplate
 );
 
 public record UpdateReminderRequest(
-    string ServiceLabel,
+    [Required, StringLength(200, MinimumLength = 1)] string ServiceLabel,
     DateTime ScheduledFor,
-    int? IntervalDays,
-    string? MessageTemplate,
-    string Status
+    [Range(1, 3650)] int? IntervalDays,
+    [StringLength(2000)] string? MessageTemplate,
+    [Required, RegularExpression("^(Pending|Sent|Failed|Cancelled)$")] string Status
 );
 
 public record ReminderResponse(
