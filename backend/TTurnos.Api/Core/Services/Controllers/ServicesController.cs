@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,6 +32,9 @@ public class ServicesController : ControllerBase
             s.Details,
             s.Description,
             s.CustomFieldsSchema,
+            s.Category,
+            s.BufferMinutes,
+            s.Color,
             s.IsActive,
             s.Order
         }));
@@ -54,6 +58,9 @@ public class ServicesController : ControllerBase
             s.Details,
             s.Description,
             s.CustomFieldsSchema,
+            s.Category,
+            s.BufferMinutes,
+            s.Color,
             s.IsActive,
             s.Order,
             s.CreatedAt,
@@ -81,6 +88,9 @@ public class ServicesController : ControllerBase
             service.Details,
             service.Description,
             service.CustomFieldsSchema,
+            service.Category,
+            service.BufferMinutes,
+            service.Color,
             service.IsActive,
             service.Order
         });
@@ -108,6 +118,9 @@ public class ServicesController : ControllerBase
             Details = request.Details,
             Description = request.Description,
             CustomFieldsSchema = request.CustomFieldsSchema,
+            Category = request.Category,
+            BufferMinutes = request.BufferMinutes,
+            Color = request.Color,
             IsActive = request.IsActive,
             Order = request.Order
         };
@@ -126,6 +139,9 @@ public class ServicesController : ControllerBase
             service.Details,
             service.Description,
             service.CustomFieldsSchema,
+            service.Category,
+            service.BufferMinutes,
+            service.Color,
             service.IsActive,
             service.Order
         });
@@ -152,6 +168,9 @@ public class ServicesController : ControllerBase
         service.Details = request.Details;
         service.Description = request.Description;
         service.CustomFieldsSchema = request.CustomFieldsSchema;
+        service.Category = request.Category;
+        service.BufferMinutes = request.BufferMinutes;
+        service.Color = request.Color;
         service.IsActive = request.IsActive;
         service.Order = request.Order;
         service.UpdatedAt = DateTime.UtcNow;
@@ -187,6 +206,17 @@ public class ServiceRequest
     public string Description { get; set; } = string.Empty;
     public List<string> Details { get; set; } = new();
     public string? CustomFieldsSchema { get; set; }
+
+    [StringLength(100)]
+    public string? Category { get; set; }
+
+    [Range(0, 480)]
+    public int BufferMinutes { get; set; } = 0;
+
+    [Required, RegularExpression("^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+        ErrorMessage = "Color debe ser un color hexadecimal (#RRGGBB)")]
+    public string Color { get; set; } = "#7c3aed";
+
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
 }

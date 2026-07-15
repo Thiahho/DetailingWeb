@@ -18,6 +18,9 @@ public class Service : ITenantScoped
     public string? Description { get; set; }
     public List<string> Details { get; set; } = new();
     public string? CustomFieldsSchema { get; set; }
+    public string? Category { get; set; }
+    public int BufferMinutes { get; set; } = 0;
+    public string Color { get; set; } = "#7c3aed";
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import AgendaCalendar from "@/src/components/calendar/AgendaCalendar";
 
 interface Service {
   id: number;
@@ -69,6 +70,8 @@ export default function CalendarioPage() {
   const [reserving, setReserving] = useState(false);
   const [reserveError, setReserveError] = useState("");
   const [professionalFilter, setProfessionalFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
+  const [agendaDate, setAgendaDate] = useState(new Date());
 
   const loadSlots = () =>
     fetch("/api/timeslots").then((r) => r.json()).then((data) => setSlots(Array.isArray(data) ? data : []));
@@ -158,6 +161,24 @@ export default function CalendarioPage() {
     }
   };
 
+  const handleReschedule = async (bookingId: number, newTimeSlotId: number) => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/admin-reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newTimeSlotId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await loadSlots();
+      } else {
+        alert(data.message || "No se pudo reprogramar el turno");
+      }
+    } catch {
+      alert("Error de conexión con el servidor");
+    }
+  };
+
   const liberarTurno = async (slotId: number, isConfirmed = false) => {
     const msg = isConfirmed
       ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
@@ -179,12 +200,69 @@ export default function CalendarioPage() {
 
   return (
     <div className="p-4 md:p-6 font-sans">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Calendario</h1>
-          <p className="text-charcoal/50 text-sm mt-1">Vista de turnos por mes</p>
+      <div className={`mx-auto ${viewMode === "month" ? "max-w-5xl" : "max-w-7xl"}`}>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Calendario</h1>
+            <p className="text-charcoal/50 text-sm mt-1">
+              {viewMode === "month" ? "Vista de turnos por mes" : "Agenda por profesional — arrastrá un turno reservado para reprogramarlo"}
+            </p>
+          </div>
+          <div className="flex gap-1 bg-porcelain/10 rounded-lg p-1" data-testid="calendario-view-tabs">
+            {(["month", "week", "day"] as const).map((v) => (
+              <button
+                key={v}
+                data-testid={`calendario-view-${v}`}
+                onClick={() => setViewMode(v)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                  viewMode === v ? "bg-blush text-white shadow-glow" : "text-charcoal/60 hover:text-charcoal"
+                }`}
+              >
+                {v === "month" ? "Mes" : v === "week" ? "Semana" : "Día"}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {viewMode !== "month" && (
+          <div className="mb-6">
+            <div className="mb-3">
+              {professionals.length > 0 && (
+                <select
+                  data-testid="calendario-agenda-professional-filter"
+                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-green-500"
+                  value={professionalFilter}
+                  onChange={(e) => setProfessionalFilter(e.target.value)}
+                >
+                  <option value="all">Todos los profesionales</option>
+                  {professionals.map((p) => (
+                    <option key={p.id} value={String(p.id)}>{p.firstName} {p.lastName}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <AgendaCalendar
+              slots={slots}
+              professionals={professionals}
+              view={viewMode}
+              date={agendaDate}
+              onNavigate={setAgendaDate}
+              onViewChange={(v) => setViewMode(v)}
+              onSelectAvailable={(slotId) => {
+                const slot = slots.find((s) => s.id === slotId);
+                if (slot) { setReserveSlot(slot); setReserveError(""); }
+              }}
+              onSelectBooking={(slotId) => {
+                const slot = slots.find((s) => s.id === slotId);
+                if (slot?.booking) setDetailBooking({ slot });
+              }}
+              onReschedule={handleReschedule}
+              professionalFilter={professionalFilter === "all" ? "all" : Number(professionalFilter)}
+            />
+          </div>
+        )}
+
+        {viewMode === "month" && (
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           {/* CALENDARIO */}
           <div className="bg-ivory border border-mauve/5 rounded-2xl p-5">
@@ -356,6 +434,7 @@ export default function CalendarioPage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* MODAL NUEVA RESERVA (ADMIN) */}
@@ -366,8 +445,7 @@ export default function CalendarioPage() {
               <div>
                 <h2 className="text-charcoal font-semibold text-lg">Nueva reserva</h2>
                 <p className="text-charcoal/40 text-xs mt-0.5">
-                  {(() => { const { h, min } = parseLocalDate(reserveSlot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")}`; })()}
-                  {" · "}{selectedDay} de {MONTH_NAMES[current.month - 1]}
+                  {(() => { const { d, m, h, min } = parseLocalDate(reserveSlot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")} · ${d} de ${MONTH_NAMES[m - 1]}`; })()}
                 </p>
               </div>
               <button onClick={() => setReserveSlot(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
@@ -495,8 +573,7 @@ export default function CalendarioPage() {
               <div>
                 <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
                 <p className="text-charcoal/40 text-xs mt-0.5">
-                  {(() => { const { h, min } = parseLocalDate(detailBooking.slot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")}`; })()}
-                  {" · "}{selectedDay} de {MONTH_NAMES[current.month - 1]}
+                  {(() => { const { d, m, h, min } = parseLocalDate(detailBooking.slot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")} · ${d} de ${MONTH_NAMES[m - 1]}`; })()}
                 </p>
               </div>
               <button onClick={() => setDetailBooking(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
@@ -520,7 +597,10 @@ export default function CalendarioPage() {
             <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
               <a
                 href={`https://wa.me/+54${detailBooking.slot.booking!.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                  `Hola ${detailBooking.slot.booking!.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${selectedDay} de ${MONTH_NAMES[current.month - 1]} ${current.year}\n🚗 *Vehículo:* ${detailBooking.slot.booking!.vehicle}\n🔧 *Servicio:* ${detailBooking.slot.booking!.service || "—"}\n\n¡Nos vemos!`
+                  (() => {
+                    const { y, m, d } = parseLocalDate(detailBooking.slot.startDateTime);
+                    return `Hola ${detailBooking.slot.booking!.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${d} de ${MONTH_NAMES[m - 1]} ${y}\n🚗 *Vehículo:* ${detailBooking.slot.booking!.vehicle}\n🔧 *Servicio:* ${detailBooking.slot.booking!.service || "—"}\n\n¡Nos vemos!`;
+                  })()
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

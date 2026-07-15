@@ -239,6 +239,7 @@ export default async function globalSetup() {
         professionalEmail,
         professionalPassword,
         professionalFullName,
+        professionalId: professional.id,
         galleryTitle,
         videoTitle,
         historialCustomerName,

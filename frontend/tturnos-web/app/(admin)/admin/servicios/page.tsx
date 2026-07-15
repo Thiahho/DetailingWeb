@@ -18,6 +18,9 @@ interface Service {
   description: string;
   order: number;
   customFieldsSchema?: string;
+  category?: string;
+  bufferMinutes: number;
+  color: string;
 }
 
 interface CustomFieldDef {
@@ -40,6 +43,9 @@ const emptyForm = {
   details: ["", "", ""],
   isActive: true,
   order: 0,
+  category: "",
+  bufferMinutes: 0,
+  color: "#7c3aed",
 };
 
 // --- Toast ---
@@ -127,6 +133,9 @@ export default function ServiciosAdminPage() {
       isActive: service.isActive,
       description: service.description ?? "",
       order: service.order,
+      category: service.category ?? "",
+      bufferMinutes: service.bufferMinutes,
+      color: service.color,
     });
     try {
       setCustomFields(service.customFieldsSchema ? JSON.parse(service.customFieldsSchema) : []);
@@ -289,7 +298,14 @@ export default function ServiciosAdminPage() {
 
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-charcoal font-semibold text-[15px] leading-tight">{service.title}</h3>
+                    <h3 className="text-charcoal font-semibold text-[15px] leading-tight flex items-center gap-2">
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: service.color }}
+                        title={service.color}
+                      />
+                      {service.title}
+                    </h3>
                     <span
                       className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         service.isActive
@@ -301,6 +317,9 @@ export default function ServiciosAdminPage() {
                     </span>
                   </div>
 
+                  {service.category && (
+                    <p className="text-charcoal/40 text-xs mb-1">{service.category}</p>
+                  )}
                   <p className="text-charcoal/60 text-sm">{service.price} · {service.duration}</p>
 
                   <ul className="mt-3 space-y-1">
@@ -460,8 +479,44 @@ export default function ServiciosAdminPage() {
                 </div>
               </div>
 
-              {/* Orden y Estado */}
+              {/* Categoría y Buffer */}
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Categoría</label>
+                  <input
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    data-testid="service-form-category"
+                    value={formData.category}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
+                    placeholder="Peluquería"
+                  />
+                </div>
+                <div>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Buffer entre turnos (min)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={480}
+                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    data-testid="service-form-buffer"
+                    value={formData.bufferMinutes}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, bufferMinutes: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+              </div>
+
+              {/* Color y Orden */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Color</label>
+                  <input
+                    type="color"
+                    className="w-full mt-1.5 h-11 bg-cream border border-mauve/10 rounded-lg p-1 cursor-pointer"
+                    data-testid="service-form-color"
+                    value={formData.color}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
+                  />
+                </div>
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Orden</label>
                   <input
@@ -472,17 +527,19 @@ export default function ServiciosAdminPage() {
                     onChange={(e) => setFormData((prev) => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
                   />
                 </div>
-                <div>
-                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
-                  <select
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
-                    value={formData.isActive ? "true" : "false"}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
-                  >
-                    <option value="true">Activo</option>
-                    <option value="false">Inactivo</option>
-                  </select>
-                </div>
+              </div>
+
+              {/* Estado */}
+              <div>
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
+                <select
+                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  value={formData.isActive ? "true" : "false"}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
+                >
+                  <option value="true">Activo</option>
+                  <option value="false">Inactivo</option>
+                </select>
               </div>
 
               {/* Campos dinámicos */}

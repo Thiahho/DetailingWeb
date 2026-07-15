@@ -276,6 +276,46 @@ public class BookingsController : ControllerBase
         });
     }
 
+    // POST: api/bookings/{id}/admin-reschedule (admin - drag&drop de la agenda, sin las
+    // restricciones del reschedule público: un admin sí puede mover turnos Confirmed)
+    [HttpPost("{id}/admin-reschedule")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminRescheduleBooking(int id, [FromBody] RescheduleRequest request)
+    {
+        await using var transaction = await _repository.BeginTransactionAsync();
+
+        var booking = await _repository.GetByIdWithTimeSlotAsync(id);
+
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        if (booking.Status == BookingStatus.Cancelled)
+            return BadRequest(new { success = false, message = "No se puede reprogramar un turno cancelado" });
+
+        if (booking.TimeSlotId == request.NewTimeSlotId)
+            return BadRequest(new { success = false, message = "Ya estás en ese horario" });
+
+        var updated = await _repository.TryClaimSlotAsync(request.NewTimeSlotId);
+
+        if (updated == 0)
+            return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
+
+        await _repository.ReleaseSlotAsync(booking.TimeSlotId);
+
+        booking.TimeSlotId = request.NewTimeSlotId;
+        await _repository.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        await _repository.LoadTimeSlotAsync(booking);
+
+        return Ok(new
+        {
+            success = true,
+            message = "Turno reprogramado exitosamente",
+            newStartDateTime = booking.TimeSlot.StartDateTime,
+        });
+    }
+
     // DELETE: api/bookings/expired (admin)
     [HttpDelete("expired")]
     [Authorize(Roles = "Admin")]
