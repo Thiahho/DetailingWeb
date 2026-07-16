@@ -51,6 +51,17 @@ export default async function globalSetup() {
   await waitForUrl(`${API_URL}/api/services`);
   await waitForUrl(FRONTEND_URL);
 
+  // Precompilar /admin/login antes de que Playwright navegue con un timeout
+  // corto (30s por defecto). En modo dev, Next.js compila cada ruta on-demand
+  // la primera vez que se pide — con el backend y el frontend arrancando en
+  // frío al mismo tiempo, esa primera compilación puede superar el timeout de
+  // navegación y tirar abajo todo el globalSetup (visto en la sesión 15/07:
+  // waitForURL/page.goto fallando en runs consecutivos). No se puede
+  // precompilar /admin/turnos de la misma forma: el middleware redirige
+  // cualquier request sin cookie de sesión a /admin/login antes de renderizar
+  // la página real, así que esa ruta solo se compila después del login.
+  await waitForUrl(`${FRONTEND_URL}/admin/login`, 60_000);
+
   const runId = Date.now().toString(36);
   const adminEmail = `e2e-admin-${runId}@example.com`;
   const adminPassword = "E2ePassword123";
@@ -86,11 +97,13 @@ export default async function globalSetup() {
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const loginPage = await context.newPage();
-  await loginPage.goto(`${FRONTEND_URL}/admin/login`);
+  // Timeouts largos a propósito: /admin/login ya se precompiló arriba, pero
+  // /admin/turnos (destino post-login) recién se compila acá, en frío.
+  await loginPage.goto(`${FRONTEND_URL}/admin/login`, { timeout: 60_000 });
   await loginPage.getByTestId("admin-login-email").fill(adminEmail);
   await loginPage.getByTestId("admin-login-password").fill(adminPassword);
   await Promise.all([
-    loginPage.waitForURL("**/admin/turnos"),
+    loginPage.waitForURL("**/admin/turnos", { timeout: 60_000 }),
     loginPage.getByTestId("admin-login-submit").click(),
   ]);
   await context.storageState({ path: ADMIN_STORAGE_STATE });
@@ -105,6 +118,14 @@ export default async function globalSetup() {
     imageUrl: "",
     description: "Servicio creado por la suite de e2e",
     details: [],
+    isActive: true,
+    order: 0,
+  });
+
+  const productName = `Producto E2E ${runId}`;
+  await postThroughProxy(context.request, "/api/products", {
+    name: productName,
+    price: 2500,
     isActive: true,
     order: 0,
   });
@@ -171,6 +192,15 @@ export default async function globalSetup() {
     `historial-e2e-${runId}@example.com`
   );
 
+  // Reserva dedicada para el e2e de Caja — cliente propio, para no depender
+  // del estado de otros turnos mutados en paralelo por otros specs.
+  const cajaCustomerName = `Cliente Caja E2E ${runId}`;
+  const cajaBookingId = await seedBooking(
+    `Turno para caja E2E ${runId}`,
+    cajaCustomerName,
+    `caja-e2e-${runId}@example.com`
+  );
+
   // Profesional con acceso propio (login) para el e2e de "Mi Agenda".
   const professionalLastName = `E2E ${runId}`;
   const professional = await postThroughProxy<{ id: number }>(context.request, "/api/professionals", {
@@ -231,6 +261,7 @@ export default async function globalSetup() {
       {
         serviceTitle,
         serviceSlug,
+        productName,
         adminEmail,
         adminPassword,
         misTurnosEmail,
@@ -243,6 +274,7 @@ export default async function globalSetup() {
         galleryTitle,
         videoTitle,
         historialCustomerName,
+        cajaBookingId,
       },
       null,
       2

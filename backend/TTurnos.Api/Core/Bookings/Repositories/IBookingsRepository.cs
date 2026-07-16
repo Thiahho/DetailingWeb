@@ -19,6 +19,9 @@ public interface IBookingsRepository
     Task<Booking?> FindAsync(int id);
     Task LoadTimeSlotAsync(Booking booking);
     Task<int> DeleteExpiredSlotsAsync(DateTime now);
+    Task<Booking?> GetByIdWithItemsAsync(int id);
+    void RemoveItemRange(IEnumerable<BookingItem> items);
+    void AddItemRange(IEnumerable<BookingItem> items);
     Task<int> SaveChangesAsync();
 }
 
@@ -31,6 +34,15 @@ public record NotificationLogSummary(
     int RetryCount,
     DateTime CreatedAt,
     DateTime? LastAttemptAt);
+
+public record BookingItemSummary(
+    int Id,
+    string ItemType,
+    int? ServiceId,
+    int? ProductId,
+    string Name,
+    int Quantity,
+    decimal UnitPrice);
 
 public record AdminBookingListItem(
     int Id,
@@ -55,7 +67,10 @@ public record AdminBookingListItem(
     DateTime? PaymentPaidAt,
     string? PaymentProvider,
     string NotificationStatus,
-    List<NotificationLogSummary> NotificationLogs);
+    List<NotificationLogSummary> NotificationLogs,
+    string? PhotoUrlsBefore,
+    string? PhotoUrlsAfter,
+    List<BookingItemSummary> Items);
 
 public record MyBookingItem(
     int Id,

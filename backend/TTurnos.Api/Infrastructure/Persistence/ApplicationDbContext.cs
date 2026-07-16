@@ -68,6 +68,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<SiteConfig> SiteConfigs { get; set; }
     public DbSet<GalleryItem> GalleryItems { get; set; }
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<BookingItem> BookingItems { get; set; }
+    public DbSet<CajaSession> CajaSessions { get; set; }
+    public DbSet<CajaMovement> CajaMovements { get; set; }
 
     //Clientes
     public DbSet<CustomerProfile> CustomerProfiles { get; set; }
@@ -262,6 +266,9 @@ public class ApplicationDbContext : DbContext
                 .HasFilter("\"Status\" <> 'Cancelled'")
                 .IsUnique();
 
+            entity.Property(e => e.PhotoUrlsBefore).HasColumnType("jsonb");
+            entity.Property(e => e.PhotoUrlsAfter).HasColumnType("jsonb");
+
             entity.HasOne(b => b.Tenant)
                 .WithMany()
                 .HasForeignKey(b => b.TenantId)
@@ -420,6 +427,85 @@ public class ApplicationDbContext : DbContext
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });
 
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<BookingItem>(entity =>
+        {
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Booking)
+                .WithMany(b => b.Items)
+                .HasForeignKey(e => e.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Service)
+                .WithMany()
+                .HasForeignKey(e => e.ServiceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CajaSession>(entity =>
+        {
+            entity.Property(e => e.OpeningCashBalance).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.ClosingCashCounted).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CajaMovement>(entity =>
+        {
+            entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.CajaSession)
+                .WithMany(s => s.Movements)
+                .HasForeignKey(e => e.CajaSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Booking)
+                .WithMany()
+                .HasForeignKey(e => e.BookingId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.RefundOfMovement)
+                .WithMany()
+                .HasForeignKey(e => e.RefundOfMovementId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
         modelBuilder.Entity<BusinessSettings>(entity =>
         {
             entity.HasOne(e => e.Tenant)
@@ -445,11 +531,17 @@ public class ApplicationDbContext : DbContext
             // Único por tenant: dos salones distintos pueden tener cada uno un
             // cliente con el mismo teléfono.
             e.HasIndex(x => new { x.TenantId, x.Phone }).IsUnique();
+            e.Property(x => x.PhotoUrls).HasColumnType("jsonb");
 
             e.HasOne(x => x.Tenant)
                 .WithMany()
                 .HasForeignKey(x => x.TenantId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.FavoriteProfessional)
+                .WithMany()
+                .HasForeignKey(x => x.FavoriteProfessionalId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
         });

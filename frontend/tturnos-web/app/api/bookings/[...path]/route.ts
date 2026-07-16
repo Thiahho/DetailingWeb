@@ -292,6 +292,32 @@ export async function POST(
   }
 }
 
+// PUT: ej. /api/bookings/5/detail (admin - productos/servicios usados + fotos antes/después)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
+  const path = params.path?.join("/") || "";
+  const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
+  const body = await request.text();
+
+  try {
+    const response = await fetch(`${API_URL}/api/bookings/${path}`, {
+      method: "PUT",
+      headers: {
+        ...tenantHeader(request),
+        Authorization: token ? `Bearer ${token}` : "",
+        "Content-Type": "application/json",
+      },
+      body,
+    });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return NextResponse.json({ message: "Error de conexión con el servidor" }, { status: 500 });
+  }
+}
+
 // PATCH: ej. /api/bookings/5/confirm
 export async function PATCH(
   request: NextRequest,

@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const seed = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, ".e2e-seed.json"), "utf-8")
-) as { serviceTitle: string };
+) as { serviceTitle: string; professionalFullName: string };
 
 // Sesión de admin ya logueada (ver global-setup.ts) — evita quemar el rate
 // limit "auth" (5 req/min) logueando de nuevo en cada spec.
@@ -37,11 +37,20 @@ test.describe("Admin: Clientes y avisos", () => {
     await listItem.click();
     await expect(page.getByRole("heading", { name: customerName })).toBeVisible();
 
-    // Editar: agregar notas
+    // Editar: agregar notas + ficha extendida del CRM (cumpleaños, instagram, profesional favorito)
     await page.getByTestId("customer-edit-button").click();
     await page.getByTestId("customer-form-notes").fill("Nota de e2e");
+    await page.getByTestId("customer-form-birthday").fill("1990-05-20");
+    await page.getByTestId("customer-form-instagram").fill("@cliente.e2e");
+    await page.getByTestId("customer-form-favorite-professional").selectOption({ label: seed.professionalFullName });
     await page.getByTestId("customer-form-submit").click();
     await expect(page.getByText("Nota de e2e")).toBeVisible();
+
+    // Ficha extendida visible en el detalle
+    const crmDetails = page.getByTestId("customer-crm-details");
+    await expect(crmDetails).toContainText("20 May 1990");
+    await expect(crmDetails).toContainText("@cliente.e2e");
+    await expect(crmDetails).toContainText(seed.professionalFullName);
 
     // Programar un aviso (reserva un turno real + crea el ScheduledReminder)
     await page.getByTestId("reminder-create-button").click();
@@ -61,6 +70,9 @@ test.describe("Admin: Clientes y avisos", () => {
       .first();
     await expect(reminderItem).toBeVisible();
     await expect(reminderItem.getByText("Pendiente")).toBeVisible();
+
+    // El turno reservado junto con el aviso aparece en el historial del cliente
+    await expect(page.getByTestId("customer-history-item").first()).toContainText(seed.serviceTitle);
 
     // Cancelar el aviso (confirm() nativo del navegador)
     page.once("dialog", (dialog) => dialog.accept());

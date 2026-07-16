@@ -343,6 +343,38 @@ public class BookingsController : ControllerBase
 
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
+
+    // PUT: api/bookings/{id}/detail (admin - productos/servicios usados + fotos antes/después.
+    // Reemplaza la lista de items completa en cada guardado, más simple que CRUD granular
+    // por item y coherente con el flujo de UI de "guardar detalle" de una sola vez.)
+    [HttpPut("{id}/detail")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateBookingDetail(int id, [FromBody] UpdateBookingDetailRequest request)
+    {
+        var booking = await _repository.GetByIdWithItemsAsync(id);
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        booking.PhotoUrlsBefore = request.PhotoUrlsBefore;
+        booking.PhotoUrlsAfter = request.PhotoUrlsAfter;
+
+        _repository.RemoveItemRange(booking.Items);
+        var newItems = request.Items.Select(i => new BookingItem
+        {
+            BookingId = booking.Id,
+            ItemType = i.ItemType,
+            ServiceId = i.ItemType == BookingItemType.Service ? i.ServiceId : null,
+            ProductId = i.ItemType == BookingItemType.Product ? i.ProductId : null,
+            Name = i.Name,
+            Quantity = i.Quantity,
+            UnitPrice = i.UnitPrice,
+        }).ToList();
+        _repository.AddItemRange(newItems);
+
+        await _repository.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Detalle del turno actualizado correctamente" });
+    }
 }
 
 // DTOs
@@ -379,4 +411,33 @@ public class CreateBookingRequest
 
     [StringLength(2000)]
     public string? Message { get; set; }
+}
+
+public class UpdateBookingDetailRequest
+{
+    [StringLength(4000)]
+    public string? PhotoUrlsBefore { get; set; }
+
+    [StringLength(4000)]
+    public string? PhotoUrlsAfter { get; set; }
+
+    public List<BookingItemRequest> Items { get; set; } = new();
+}
+
+public class BookingItemRequest
+{
+    [Required, RegularExpression("^(Service|Product)$")]
+    public string ItemType { get; set; } = string.Empty;
+
+    public int? ServiceId { get; set; }
+    public int? ProductId { get; set; }
+
+    [Required, StringLength(150)]
+    public string Name { get; set; } = string.Empty;
+
+    [Range(1, 999)]
+    public int Quantity { get; set; } = 1;
+
+    [Range(0, 9_999_999)]
+    public decimal UnitPrice { get; set; }
 }

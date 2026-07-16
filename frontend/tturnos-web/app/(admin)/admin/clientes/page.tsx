@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
-import { Plus, ChevronLeft, Bell, BellOff, Pencil, Trash2, X, Check, Clock, RefreshCw, CalendarDays, PenLine } from "lucide-react";
+import { Plus, ChevronLeft, Bell, BellOff, Pencil, Trash2, X, Check, Clock, RefreshCw, CalendarDays, PenLine, Cake, Instagram as InstagramIcon, Star, History } from "lucide-react";
+import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -13,7 +14,46 @@ interface Customer {
   name: string;
   email?: string;
   notes?: string;
+  birthday?: string | null;
+  instagram?: string | null;
+  favoriteProfessionalId?: number | null;
+  favoriteProfessionalName?: string | null;
+  photoUrls?: string | null;
   createdAt: string;
+}
+
+interface ProfessionalOption {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+interface BookingHistoryItem {
+  id: number;
+  status: string;
+  service?: string | null;
+  subject: string;
+  professionalId?: number | null;
+  professionalName?: string | null;
+  startDateTime: string;
+  endDateTime: string;
+}
+
+function parsePhotoUrls(raw?: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatBirthday(iso?: string | null) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-");
+  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  return `${parseInt(d)} ${months[parseInt(m) - 1]}${y ? ` ${y}` : ""}`;
 }
 
 interface Reminder {
@@ -62,6 +102,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function BookingStatusBadge({ status }: { status: string }) {
+  if (status === "Confirmed")
+    return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/20 text-emerald-700">Confirmado</span>;
+  if (status === "Cancelled")
+    return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-red-500/20 text-red-600">Cancelado</span>;
+  return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-700">Pendiente</span>;
+}
+
 // ── Modal base ────────────────────────────────────────────────────
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -80,13 +128,24 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 // ── Customer form ─────────────────────────────────────────────────
 
+interface CustomerFormData {
+  phone: string;
+  name: string;
+  email?: string;
+  notes?: string;
+  birthday?: string;
+  instagram?: string;
+  favoriteProfessionalId?: number;
+  photoUrls?: string;
+}
+
 function CustomerForm({
   initial,
   onSave,
   onClose,
 }: {
   initial?: Partial<Customer>;
-  onSave: (data: { phone: string; name: string; email?: string; notes?: string }) => Promise<void>;
+  onSave: (data: CustomerFormData) => Promise<void>;
   onClose: () => void;
 }) {
   const [form, setForm] = useState({
@@ -94,12 +153,26 @@ function CustomerForm({
     name: initial?.name ?? "",
     email: initial?.email ?? "",
     notes: initial?.notes ?? "",
+    birthday: initial?.birthday ?? "",
+    instagram: initial?.instagram ?? "",
+    favoriteProfessionalId: initial?.favoriteProfessionalId ?? null as number | null,
   });
+  const [photos, setPhotos] = useState<string[]>(parsePhotoUrls(initial?.photoUrls));
+  const [professionals, setProfessionals] = useState<ProfessionalOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    fetch("/api/professionals").then((r) => r.json()).then((data) => {
+      if (Array.isArray(data)) setProfessionals(data);
+    });
+  }, []);
+
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const addPhoto = (url: string) => { if (url) setPhotos((p) => [...p, url]); };
+  const removePhoto = (idx: number) => setPhotos((p) => p.filter((_, i) => i !== idx));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +180,16 @@ function CustomerForm({
     setSaving(true);
     setError("");
     try {
-      await onSave({ phone: form.phone, name: form.name, email: form.email || undefined, notes: form.notes || undefined });
+      await onSave({
+        phone: form.phone,
+        name: form.name,
+        email: form.email || undefined,
+        notes: form.notes || undefined,
+        birthday: form.birthday || undefined,
+        instagram: form.instagram || undefined,
+        favoriteProfessionalId: form.favoriteProfessionalId ?? undefined,
+        photoUrls: photos.length > 0 ? JSON.stringify(photos) : undefined,
+      });
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error al guardar.");
@@ -131,9 +213,54 @@ function CustomerForm({
         <label className="block text-charcoal/50 text-xs mb-1">Email</label>
         <input value={form.email} onChange={set("email")} className="input-field" placeholder="juan@email.com" type="email" />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-charcoal/50 text-xs mb-1">Cumpleaños</label>
+          <input data-testid="customer-form-birthday" value={form.birthday} onChange={set("birthday")} className="input-field" type="date" />
+        </div>
+        <div>
+          <label className="block text-charcoal/50 text-xs mb-1">Instagram</label>
+          <input data-testid="customer-form-instagram" value={form.instagram} onChange={set("instagram")} className="input-field" placeholder="@usuario" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-charcoal/50 text-xs mb-1">Profesional favorito</label>
+        <select
+          data-testid="customer-form-favorite-professional"
+          value={form.favoriteProfessionalId ?? ""}
+          onChange={(e) => setForm((f) => ({ ...f, favoriteProfessionalId: e.target.value ? parseInt(e.target.value) : null }))}
+          className="input-field"
+        >
+          <option value="">— Sin preferencia —</option>
+          {professionals.map((p) => (
+            <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+          ))}
+        </select>
+      </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Notas</label>
         <textarea data-testid="customer-form-notes" value={form.notes} onChange={set("notes")} className="input-field h-16 resize-none" placeholder="Alergias, preferencias, tratamientos anteriores, etc." />
+      </div>
+      <div>
+        <label className="block text-charcoal/50 text-xs mb-1">Fotos</label>
+        {photos.length > 0 && (
+          <div className="flex gap-2 flex-wrap mb-2" data-testid="customer-form-photos">
+            {photos.map((url, i) => (
+              <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-mauve/15">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(i)}
+                  data-testid="customer-form-photo-remove"
+                  className="absolute top-0 right-0 bg-black/60 text-white rounded-bl-lg p-0.5"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <CloudinaryUpload value="" onChange={addPhoto} folder="tturnos/clientes" hint="Antes/después, tratamientos, etc." />
       </div>
       <div className="flex gap-2 pt-1">
         <button type="submit" disabled={saving} data-testid="customer-form-submit" className="flex-1 btn-primary">
@@ -553,6 +680,8 @@ export default function ClientesPage() {
   const [selected, setSelected] = useState<Customer | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loadingReminders, setLoadingReminders] = useState(false);
+  const [history, setHistory] = useState<BookingHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // modals
   const [showCustomerForm, setShowCustomerForm] = useState(false);
@@ -590,13 +719,25 @@ export default function ClientesPage() {
     }
   }
 
+  async function loadHistory(customerId: number) {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`/api/reminders/customers/${customerId}/history`);
+      const data = await res.json();
+      if (Array.isArray(data)) setHistory(data);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }
+
   function selectCustomer(c: Customer) {
     setSelected(c);
     loadReminders(c.id);
+    loadHistory(c.id);
   }
 
   // ── customer CRUD ──────────────────────────────────────────────
-  async function saveCustomer(data: { phone: string; name: string; email?: string; notes?: string }) {
+  async function saveCustomer(data: CustomerFormData) {
     if (editingCustomer) {
       const res = await fetch(`/api/reminders/customers/${editingCustomer.id}`, {
         method: "PUT",
@@ -648,6 +789,9 @@ export default function ClientesPage() {
     }
     const created = await res.json();
     setReminders((prev) => [...prev, created]);
+    // El aviso reserva un turno real de paso — refrescar el historial para que
+    // se refleje sin depender de que el admin recargue la página a mano.
+    if (selected) loadHistory(selected.id);
   }
 
   async function cancelReminder(r: Reminder) {
@@ -735,6 +879,42 @@ export default function ClientesPage() {
                 </div>
               </div>
 
+              {/* ficha extendida: cumpleaños, instagram, profesional favorito, fotos */}
+              {(selected.birthday || selected.instagram || selected.favoriteProfessionalName || parsePhotoUrls(selected.photoUrls).length > 0) && (
+                <div data-testid="customer-crm-details" className="mb-6 space-y-3">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                    {selected.birthday && (
+                      <span className="flex items-center gap-1.5 text-charcoal/50 text-xs">
+                        <Cake size={13} /> {formatBirthday(selected.birthday)}
+                      </span>
+                    )}
+                    {selected.instagram && (
+                      <a
+                        href={`https://instagram.com/${selected.instagram.replace(/^@/, "")}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-charcoal/50 hover:text-charcoal text-xs transition"
+                      >
+                        <InstagramIcon size={13} /> {selected.instagram}
+                      </a>
+                    )}
+                    {selected.favoriteProfessionalName && (
+                      <span className="flex items-center gap-1.5 text-charcoal/50 text-xs">
+                        <Star size={13} /> {selected.favoriteProfessionalName}
+                      </span>
+                    )}
+                  </div>
+                  {parsePhotoUrls(selected.photoUrls).length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {parsePhotoUrls(selected.photoUrls).map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-lg overflow-hidden border border-mauve/15 block">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* reminders section */}
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-charcoal/70 text-sm font-medium">Avisos programados</h2>
@@ -819,6 +999,37 @@ export default function ClientesPage() {
                     ))}
                 </div>
               )}
+
+              {/* history section */}
+              <div className="mt-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <History size={15} className="text-charcoal/40" />
+                  <h2 className="text-charcoal/70 text-sm font-medium">Historial de turnos</h2>
+                </div>
+                {loadingHistory ? (
+                  <p className="text-charcoal/30 text-sm py-6 text-center">Cargando...</p>
+                ) : history.length === 0 ? (
+                  <p className="text-charcoal/30 text-sm py-6 text-center border border-mauve/15 rounded-xl">Sin turnos registrados todavía.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {history.map((h) => (
+                      <div
+                        key={h.id}
+                        data-testid="customer-history-item"
+                        className="flex items-center justify-between bg-porcelain border border-mauve/15 rounded-xl px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-charcoal text-sm font-medium truncate">{h.service || h.subject}</p>
+                          <p className="text-charcoal/40 text-xs">
+                            {formatDate(h.startDateTime)}{h.professionalName ? ` · ${h.professionalName}` : ""}
+                          </p>
+                        </div>
+                        <BookingStatusBadge status={h.status} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* ── list view ── */

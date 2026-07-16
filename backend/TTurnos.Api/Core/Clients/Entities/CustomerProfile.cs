@@ -15,6 +15,12 @@ public class CustomerProfile : ITenantScoped
     public string Name { get; set; } = string.Empty;
     public string? Email { get; set; }
     public string? Notes { get; set; }
+    public DateOnly? Birthday { get; set; }
+    public string? Instagram { get; set; }
+    public int? FavoriteProfessionalId { get; set; }
+    public Professional? FavoriteProfessional { get; set; }
+    // Array JSON de URLs de Cloudinary (mismo patrón que Professional.Schedule: string crudo, jsonb).
+    public string? PhotoUrls { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<ScheduledReminder> ScheduledReminders { get; set; } = [];

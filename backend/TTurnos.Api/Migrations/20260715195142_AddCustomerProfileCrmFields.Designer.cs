@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TTurnos.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TTurnos.Api.Infrastructure.Persistence;
 namespace TTurnos.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715195142_AddCustomerProfileCrmFields")]
+    partial class AddCustomerProfileCrmFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,12 +82,6 @@ namespace TTurnos.Api.Migrations
                     b.Property<string>("Message")
                         .HasColumnType("text");
 
-                    b.Property<string>("PhotoUrlsAfter")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("PhotoUrlsBefore")
-                        .HasColumnType("jsonb");
-
                     b.Property<int?>("ProfessionalId")
                         .HasColumnType("integer");
 
@@ -120,152 +117,6 @@ namespace TTurnos.Api.Migrations
                         .HasFilter("\"Status\" <> 'Cancelled'");
 
                     b.ToTable("Bookings");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Bookings.BookingItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BookingId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("ItemType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("ProductId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ServiceId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("ServiceId");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("BookingItems");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Caja.CajaMovement", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("BookingId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CajaSessionId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Method")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("RefundOfMovementId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("CajaSessionId");
-
-                    b.HasIndex("RefundOfMovementId");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("CajaMovements");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Caja.CajaSession", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int?>("ClosedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("ClosingCashCounted")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("OpenedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("OpenedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("OpeningCashBalance")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("CajaSessions");
                 });
 
             modelBuilder.Entity("TTurnos.Api.Core.Clients.ClientAccessCode", b =>
@@ -640,43 +491,6 @@ namespace TTurnos.Api.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Payments");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Products.Product", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("TTurnos.Api.Core.Professionals.Professional", b =>
@@ -1516,83 +1330,6 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("TimeSlot");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Bookings.BookingItem", b =>
-                {
-                    b.HasOne("TTurnos.Api.Core.Bookings.Booking", "Booking")
-                        .WithMany("Items")
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TTurnos.Api.Core.Products.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TTurnos.Api.Core.Services.Service", "Service")
-                        .WithMany()
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Service");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Caja.CajaMovement", b =>
-                {
-                    b.HasOne("TTurnos.Api.Core.Bookings.Booking", "Booking")
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TTurnos.Api.Core.Caja.CajaSession", "CajaSession")
-                        .WithMany("Movements")
-                        .HasForeignKey("CajaSessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TTurnos.Api.Core.Caja.CajaMovement", "RefundOfMovement")
-                        .WithMany()
-                        .HasForeignKey("RefundOfMovementId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Booking");
-
-                    b.Navigation("CajaSession");
-
-                    b.Navigation("RefundOfMovement");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Caja.CajaSession", b =>
-                {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("TTurnos.Api.Core.Clients.ClientAccessCode", b =>
                 {
                     b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
@@ -1712,17 +1449,6 @@ namespace TTurnos.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Booking");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Products.Product", b =>
-                {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
 
                     b.Navigation("Tenant");
                 });
@@ -1968,14 +1694,7 @@ namespace TTurnos.Api.Migrations
 
             modelBuilder.Entity("TTurnos.Api.Core.Bookings.Booking", b =>
                 {
-                    b.Navigation("Items");
-
                     b.Navigation("Payment");
-                });
-
-            modelBuilder.Entity("TTurnos.Api.Core.Caja.CajaSession", b =>
-                {
-                    b.Navigation("Movements");
                 });
 
             modelBuilder.Entity("TTurnos.Api.Core.Clients.CustomerProfile", b =>

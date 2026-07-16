@@ -2,7 +2,19 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
+import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
+
+interface BookingItemRecord {
+  id: number;
+  itemType: "Service" | "Product";
+  serviceId?: number | null;
+  productId?: number | null;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
 
 interface BookingRecord {
   id: number;
@@ -22,6 +34,22 @@ interface BookingRecord {
   paymentAmount?: number;
   paymentPaidAt?: string;
   paymentProvider?: string;
+  photoUrlsBefore?: string | null;
+  photoUrlsAfter?: string | null;
+  items?: BookingItemRecord[];
+}
+
+interface ServiceOption { id: number; title: string; }
+interface ProductOption { id: number; name: string; price: number; }
+
+function parsePhotoUrls(raw?: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 function formatDateFriendly(isoString: string) {
@@ -74,6 +102,13 @@ export default function HistorialPage() {
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<BookingRecord | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [detailItems, setDetailItems] = useState<BookingItemRecord[]>([]);
+  const [photosBefore, setPhotosBefore] = useState<string[]>([]);
+  const [photosAfter, setPhotosAfter] = useState<string[]>([]);
+  const [newItem, setNewItem] = useState({ itemType: "Service" as "Service" | "Product", refId: 0, quantity: 1, unitPrice: 0 });
+  const [savingDetail, setSavingDetail] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
@@ -81,9 +116,70 @@ export default function HistorialPage() {
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setBookings(data); })
       .finally(() => setLoading(false));
+    fetch("/api/services/all").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setServices(data); });
+    fetch("/api/products").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setProducts(data); });
   }, [router]);
 
   useEffect(() => { setPage(1); }, [filter, search]);
+
+  useEffect(() => {
+    if (!detail) return;
+    setDetailItems(detail.items ?? []);
+    setPhotosBefore(parsePhotoUrls(detail.photoUrlsBefore));
+    setPhotosAfter(parsePhotoUrls(detail.photoUrlsAfter));
+    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0 });
+  }, [detail]);
+
+  const addItem = () => {
+    if (!newItem.refId) return;
+    const catalog = newItem.itemType === "Service" ? services : products;
+    const found = catalog.find((c) => c.id === newItem.refId);
+    if (!found) return;
+    const name = newItem.itemType === "Service" ? (found as ServiceOption).title : (found as ProductOption).name;
+    setDetailItems((prev) => [...prev, {
+      id: 0,
+      itemType: newItem.itemType,
+      serviceId: newItem.itemType === "Service" ? newItem.refId : null,
+      productId: newItem.itemType === "Product" ? newItem.refId : null,
+      name,
+      quantity: newItem.quantity,
+      unitPrice: newItem.unitPrice,
+    }]);
+    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0 });
+  };
+
+  const removeItem = (idx: number) => setDetailItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const saveDetail = async () => {
+    if (!detail) return;
+    setSavingDetail(true);
+    try {
+      const payload = {
+        photoUrlsBefore: photosBefore.length > 0 ? JSON.stringify(photosBefore) : null,
+        photoUrlsAfter: photosAfter.length > 0 ? JSON.stringify(photosAfter) : null,
+        items: detailItems.map((i) => ({
+          itemType: i.itemType,
+          serviceId: i.serviceId ?? undefined,
+          productId: i.productId ?? undefined,
+          name: i.name,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+        })),
+      };
+      const res = await fetch(`/api/bookings/${detail.id}/detail`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const merged = { photoUrlsBefore: payload.photoUrlsBefore, photoUrlsAfter: payload.photoUrlsAfter, items: detailItems };
+        setBookings((prev) => prev.map((b) => b.id === detail.id ? { ...b, ...merged } : b));
+        setDetail((prev) => prev ? { ...prev, ...merged } : prev);
+      }
+    } finally {
+      setSavingDetail(false);
+    }
+  };
 
   const confirmBooking = async (id: number, booking?: BookingRecord) => {
     setConfirming(true);
@@ -354,7 +450,7 @@ export default function HistorialPage() {
       {/* Modal detalle */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetail(null)}>
-          <div data-testid="historial-detail-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div data-testid="historial-detail-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
                 <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
@@ -383,6 +479,138 @@ export default function HistorialPage() {
                   )}
                 </div>
               </div>
+
+              {/* Productos y servicios utilizados */}
+              <div className="pt-2 border-t border-mauve/5">
+                <p className="text-charcoal/30 text-[11px] uppercase tracking-wider mb-2">Productos y servicios utilizados</p>
+                {detailItems.length > 0 && (
+                  <div className="space-y-1.5 mb-2" data-testid="historial-item-list">
+                    {detailItems.map((item, i) => (
+                      <div key={i} data-testid="historial-item-row" className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-charcoal/70">{item.name} <span className="text-charcoal/30 text-xs">×{item.quantity}</span></span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-charcoal/50 text-xs">${(item.unitPrice * item.quantity).toLocaleString("es-AR")}</span>
+                          <button type="button" onClick={() => removeItem(i)} data-testid="historial-item-remove" className="text-red-600/60 hover:text-red-600 text-xs">✕</button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-xs font-semibold pt-1.5 border-t border-mauve/5">
+                      <span className="text-charcoal/50">Total</span>
+                      <span className="text-charcoal">${detailItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toLocaleString("es-AR")}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-1.5 items-center">
+                  <select
+                    value={newItem.itemType}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, itemType: e.target.value as "Service" | "Product", refId: 0, unitPrice: 0 }))}
+                    data-testid="historial-item-type"
+                    className="bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                  >
+                    <option value="Service">Servicio</option>
+                    <option value="Product">Producto</option>
+                  </select>
+                  <select
+                    value={newItem.refId}
+                    onChange={(e) => {
+                      const id = parseInt(e.target.value) || 0;
+                      if (newItem.itemType === "Product") {
+                        const p = products.find((x) => x.id === id);
+                        setNewItem((prev) => ({ ...prev, refId: id, unitPrice: p?.price ?? 0 }));
+                      } else {
+                        setNewItem((prev) => ({ ...prev, refId: id }));
+                      }
+                    }}
+                    data-testid="historial-item-select"
+                    className="flex-1 min-w-0 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                  >
+                    <option value={0}>Elegir...</option>
+                    {(newItem.itemType === "Service" ? services : products).map((c) => (
+                      <option key={c.id} value={c.id}>{newItem.itemType === "Service" ? (c as ServiceOption).title : (c as ProductOption).name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                    data-testid="historial-item-quantity"
+                    className="w-11 bg-cream border border-mauve/10 rounded-lg px-1 py-1.5 text-xs text-charcoal text-center focus:outline-none"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={newItem.unitPrice}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, unitPrice: parseFloat(e.target.value) || 0 }))}
+                    placeholder="Precio"
+                    data-testid="historial-item-price"
+                    className="w-16 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={addItem}
+                    data-testid="historial-item-add"
+                    className="bg-porcelain/10 hover:bg-porcelain/20 text-charcoal text-xs px-2.5 py-1.5 rounded-lg transition shrink-0"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Fotos antes/después */}
+              <div className="pt-2 border-t border-mauve/5 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-charcoal/30 text-[11px] uppercase tracking-wider mb-2">Fotos antes</p>
+                  {photosBefore.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap mb-1.5" data-testid="historial-photos-before">
+                      {photosBefore.map((url, i) => (
+                        <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden border border-mauve/15">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setPhotosBefore((p) => p.filter((_, idx) => idx !== i))}
+                            className="absolute top-0 right-0 bg-black/60 text-white rounded-bl-lg p-0.5"
+                          >
+                            <X size={9} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <CloudinaryUpload value="" onChange={(url) => url && setPhotosBefore((p) => [...p, url])} folder="tturnos/historial" hint="" />
+                </div>
+                <div>
+                  <p className="text-charcoal/30 text-[11px] uppercase tracking-wider mb-2">Fotos después</p>
+                  {photosAfter.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap mb-1.5" data-testid="historial-photos-after">
+                      {photosAfter.map((url, i) => (
+                        <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden border border-mauve/15">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setPhotosAfter((p) => p.filter((_, idx) => idx !== i))}
+                            className="absolute top-0 right-0 bg-black/60 text-white rounded-bl-lg p-0.5"
+                          >
+                            <X size={9} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <CloudinaryUpload value="" onChange={(url) => url && setPhotosAfter((p) => [...p, url])} folder="tturnos/historial" hint="" />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={saveDetail}
+                disabled={savingDetail}
+                data-testid="historial-save-detail"
+                className="w-full bg-porcelain/10 hover:bg-porcelain/20 text-charcoal py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50"
+              >
+                {savingDetail ? "Guardando..." : "Guardar detalle"}
+              </button>
             </div>
 
             <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">

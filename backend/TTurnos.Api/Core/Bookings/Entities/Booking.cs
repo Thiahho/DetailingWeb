@@ -26,4 +26,7 @@ public class Booking : ITenantScoped
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CancelledAt { get; set; }
     public Payment? Payment { get; set; }
+    public ICollection<BookingItem> Items { get; set; } = new List<BookingItem>();
+    public string? PhotoUrlsBefore { get; set; }
+    public string? PhotoUrlsAfter { get; set; }
 }

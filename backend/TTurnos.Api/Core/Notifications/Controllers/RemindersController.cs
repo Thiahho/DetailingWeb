@@ -49,6 +49,10 @@ public class RemindersController(ReminderService reminderService) : ControllerBa
         return deleted ? NoContent() : NotFound();
     }
 
+    [HttpGet("customers/{id:int}/history")]
+    public async Task<IActionResult> GetCustomerHistory(int id) =>
+        Ok(await reminderService.GetCustomerHistoryAsync(id));
+
     // ── ScheduledReminders ────────────────────────────────────────
 
     [HttpGet]

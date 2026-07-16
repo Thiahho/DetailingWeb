@@ -41,6 +41,7 @@ public class BookingsRepository : IBookingsRepository
             .Include(b => b.TimeSlot)
             .Include(b => b.Payment)
             .Include(b => b.Professional)
+            .Include(b => b.Items)
             .GroupJoin(
                 _context.NotificationLogs,
                 b => b.Id,
@@ -81,6 +82,12 @@ public class BookingsRepository : IBookingsRepository
                     .Select(l => new NotificationLogSummary(
                         l.Channel, l.EventType, l.Status, l.ProviderMessageId, l.ErrorMessage,
                         l.RetryCount, l.CreatedAt, l.LastAttemptAt))
+                    .ToList(),
+                x.Booking.PhotoUrlsBefore,
+                x.Booking.PhotoUrlsAfter,
+                x.Booking.Items
+                    .Select(i => new BookingItemSummary(
+                        i.Id, i.ItemType, i.ServiceId, i.ProductId, i.Name, i.Quantity, i.UnitPrice))
                     .ToList()))
             .ToListAsync();
 
@@ -138,6 +145,13 @@ public class BookingsRepository : IBookingsRepository
 
     public Task<int> DeleteExpiredSlotsAsync(DateTime now) =>
         _context.TimeSlots.Where(t => t.EndDateTime < now).ExecuteDeleteAsync();
+
+    public Task<Booking?> GetByIdWithItemsAsync(int id) =>
+        _context.Bookings.Include(b => b.Items).FirstOrDefaultAsync(b => b.Id == id);
+
+    public void RemoveItemRange(IEnumerable<BookingItem> items) => _context.BookingItems.RemoveRange(items);
+
+    public void AddItemRange(IEnumerable<BookingItem> items) => _context.BookingItems.AddRange(items);
 
     public Task<int> SaveChangesAsync() => _context.SaveChangesAsync();
 }

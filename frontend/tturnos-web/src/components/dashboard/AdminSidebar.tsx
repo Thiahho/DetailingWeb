@@ -7,7 +7,7 @@ import { getSiteConfig } from "@/src/lib/siteConfig";
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
-  MoreHorizontal, Building2,
+  MoreHorizontal, Building2, Package, Wallet,
 } from "lucide-react";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
@@ -32,6 +32,8 @@ const groups: NavGroup[] = [
       { href: "/admin/clientes", label: "Clientes", icon: Users },
       { href: "/admin/profesionales", label: "Equipo", icon: UserCog },
       { href: "/admin/servicios", label: "Servicios", icon: Wrench },
+      { href: "/admin/productos", label: "Productos", icon: Package },
+      { href: "/admin/caja", label: "Caja", icon: Wallet },
       { href: "/admin/configuracion", label: "Empresa", icon: Building2 },
     ],
   },

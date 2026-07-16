@@ -23,6 +23,8 @@ builder.Services.AddScoped<IContentVideosRepository, ContentVideosRepository>();
 builder.Services.AddScoped<IGalleryRepository, GalleryRepository>();
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 builder.Services.AddScoped<IServicesRepository, ServicesRepository>();
+builder.Services.AddScoped<IProductsRepository, ProductsRepository>();
+builder.Services.AddScoped<ICajaRepository, CajaRepository>();
 builder.Services.AddScoped<ITimeSlotsRepository, TimeSlotsRepository>();
 builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
 builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
