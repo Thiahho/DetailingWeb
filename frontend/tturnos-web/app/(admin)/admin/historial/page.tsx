@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
+import { Button } from "@/src/components/shared/Button";
 
 interface BookingItemRecord {
   id: number;
@@ -409,7 +410,7 @@ export default function HistorialPage() {
                           <button
                             onClick={(e) => { e.stopPropagation(); confirmBooking(b.id, b); }}
                             data-testid="historial-confirm-button"
-                            className="text-xs text-blue-700 hover:text-blue-700 font-medium transition"
+                            className="text-xs text-blushdark hover:text-blush font-medium transition"
                           >
                             Confirmar
                           </button>
@@ -547,14 +548,16 @@ export default function HistorialPage() {
                     data-testid="historial-item-price"
                     className="w-16 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={addItem}
                     data-testid="historial-item-add"
-                    className="bg-porcelain/10 hover:bg-porcelain/20 text-charcoal text-xs px-2.5 py-1.5 rounded-lg transition shrink-0"
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0"
                   >
                     +
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -602,15 +605,16 @@ export default function HistorialPage() {
                 </div>
               </div>
 
-              <button
+              <Button
                 type="button"
                 onClick={saveDetail}
                 disabled={savingDetail}
                 data-testid="historial-save-detail"
-                className="w-full bg-porcelain/10 hover:bg-porcelain/20 text-charcoal py-2 rounded-lg text-sm font-semibold transition disabled:opacity-50"
+                variant="secondary"
+                className="w-full"
               >
                 {savingDetail ? "Guardando..." : "Guardar detalle"}
-              </button>
+              </Button>
             </div>
 
             <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
@@ -625,13 +629,14 @@ export default function HistorialPage() {
                 WhatsApp
               </a>
               {detail.status !== "Confirmed" && detail.status !== "Cancelled" && (
-                <button
+                <Button
                   onClick={() => confirmBooking(detail.id, detail)}
                   disabled={confirming}
-                  className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-700 py-2.5 rounded-lg text-sm font-semibold transition disabled:opacity-50"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {confirming ? "Confirmando..." : "Confirmar"}
-                </button>
+                </Button>
               )}
             </div>
           </div>

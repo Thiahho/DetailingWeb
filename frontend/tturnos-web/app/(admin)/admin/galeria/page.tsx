@@ -6,6 +6,7 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 interface GalleryItem {
   id: number;
@@ -122,20 +123,17 @@ export default function GaleriaAdminPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Galería</h1>
             <p className="text-charcoal/50 text-sm mt-1">Administrá las imágenes que se muestran en la sección de trabajos</p>
           </div>
-          <button
-            onClick={openCreate}
-            className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm"
-          >
+          <Button onClick={openCreate} variant="primary" className="shrink-0 flex items-center gap-2">
             <span className="text-xl leading-none">+</span>
             <span className="hidden sm:inline">Agregar imagen</span>
             <span className="sm:hidden">Agregar</span>
-          </button>
+          </Button>
         </div>
 
         {items.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay imágenes en la galería</p>
-            <button onClick={openCreate} className="mt-4 text-green-700 hover:text-green-700 transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
               + Agregar la primera
             </button>
           </div>
@@ -160,22 +158,22 @@ export default function GaleriaAdminPage() {
                   </div>
                   <p className="text-charcoal/40 text-xs uppercase tracking-wider">{item.tag}</p>
                   <div className="mt-4 flex gap-2">
-                    <button onClick={() => openEdit(item)} data-testid="gallery-edit-button" className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition">
+                    <Button onClick={() => openEdit(item)} data-testid="gallery-edit-button" variant="secondary" size="sm" className="flex-1">
                       Editar
-                    </button>
+                    </Button>
                     {deleteConfirmId === item.id ? (
                       <div className="flex gap-1">
-                        <button onClick={() => handleDelete(item.id)} data-testid="gallery-delete-confirm-button" className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition">
+                        <Button onClick={() => handleDelete(item.id)} data-testid="gallery-delete-confirm-button" variant="danger" size="sm">
                           Confirmar
-                        </button>
-                        <button onClick={() => setDeleteConfirmId(null)} className="bg-porcelain/5 text-charcoal text-sm px-3 py-2 rounded-lg transition">
+                        </Button>
+                        <Button onClick={() => setDeleteConfirmId(null)} variant="secondary" size="sm">
                           Cancelar
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button onClick={() => setDeleteConfirmId(item.id)} data-testid="gallery-delete-button" className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition">
+                      <Button onClick={() => setDeleteConfirmId(item.id)} data-testid="gallery-delete-button" variant="danger" size="sm">
                         Eliminar
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -201,7 +199,7 @@ export default function GaleriaAdminPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Título</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   data-testid="gallery-form-title"
                   value={formData.title}
                   onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))}
@@ -213,7 +211,7 @@ export default function GaleriaAdminPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Tag / Categoría</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.tag}
                   onChange={(e) => setFormData((p) => ({ ...p, tag: e.target.value }))}
                   placeholder="Detailing · Pulido · Lavado"
@@ -236,7 +234,7 @@ export default function GaleriaAdminPage() {
                   <input
                     type="number"
                     min={0}
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.order}
                     onChange={(e) => setFormData((p) => ({ ...p, order: parseInt(e.target.value) || 0 }))}
                   />
@@ -244,7 +242,7 @@ export default function GaleriaAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
                   <select
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.isActive ? "true" : "false"}
                     onChange={(e) => setFormData((p) => ({ ...p, isActive: e.target.value === "true" }))}
                   >
@@ -255,17 +253,18 @@ export default function GaleriaAdminPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
                   data-testid="gallery-form-submit"
-                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {saving ? "Guardando..." : editingItem ? "Guardar cambios" : "Agregar imagen"}
-                </button>
-                <button type="button" onClick={closeForm} className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition">
+                </Button>
+                <Button type="button" onClick={closeForm} variant="secondary">
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
           </div>

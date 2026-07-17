@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
+import { Button } from "@/src/components/shared/Button";
 
 interface Booking {
   id: number;
@@ -485,12 +486,13 @@ export default function AdminDashboard() {
               >
                 WhatsApp
               </a>
-              <button
+              <Button
                 onClick={() => handleLiberar(detailSlot.id, detailSlot.booking?.status === "Confirmed")}
-                className="flex-1 bg-porcelain/5 hover:bg-red-500/10 text-charcoal/60 hover:text-red-600 border border-mauve/5 hover:border-red-500/30 py-2.5 rounded-lg text-sm font-semibold transition"
+                variant="danger"
+                className="flex-1"
               >
                 {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

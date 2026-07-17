@@ -6,6 +6,7 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { extractMapEmbedSrc, clearSiteConfigCache } from "@/src/lib/siteConfig";
+import { Button } from "@/src/components/shared/Button";
 
 type MessageType = "success" | "error";
 
@@ -147,7 +148,7 @@ export default function ConfiguracionPage() {
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Nombre del negocio</label>
               <input
-                className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                className="form-input mt-1.5"
                 data-testid="config-business-name"
                 value={formData.businessName}
                 onChange={(e) => setFormData((prev) => ({ ...prev, businessName: e.target.value }))}
@@ -169,7 +170,7 @@ export default function ConfiguracionPage() {
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">URL del sitio</label>
               <input
-                className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                className="form-input mt-1.5"
                 value={formData.siteUrl}
                 onChange={(e) => setFormData((prev) => ({ ...prev, siteUrl: e.target.value }))}
                 placeholder="https://mistudio.com"
@@ -184,7 +185,7 @@ export default function ConfiguracionPage() {
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">WhatsApp</label>
               <input
-                className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                className="form-input mt-1.5"
                 value={formData.whatsAppNumber}
                 onChange={(e) => setFormData((prev) => ({ ...prev, whatsAppNumber: e.target.value }))}
                 placeholder="+54 9 11 1234-5678"
@@ -195,7 +196,7 @@ export default function ConfiguracionPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Dirección completa</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.location}
                   onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
                   placeholder="Av. Siempre Viva 742, Springfield"
@@ -204,7 +205,7 @@ export default function ConfiguracionPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Dirección corta (footer)</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.locationShort}
                   onChange={(e) => setFormData((prev) => ({ ...prev, locationShort: e.target.value }))}
                   placeholder="Springfield"
@@ -221,7 +222,7 @@ export default function ConfiguracionPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Instagram (link)</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.instagramUrl}
                   onChange={(e) => setFormData((prev) => ({ ...prev, instagramUrl: e.target.value }))}
                   placeholder="https://instagram.com/mistudio"
@@ -230,7 +231,7 @@ export default function ConfiguracionPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Instagram (usuario)</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.instagramHandle}
                   onChange={(e) => setFormData((prev) => ({ ...prev, instagramHandle: e.target.value }))}
                   placeholder="@mistudio"
@@ -245,7 +246,7 @@ export default function ConfiguracionPage() {
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Google Maps</label>
               <textarea
-                className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition text-sm"
+                className="form-input mt-1.5 resize-none"
                 rows={3}
                 value={formData.mapEmbedUrl}
                 onChange={(e) => setFormData((prev) => ({ ...prev, mapEmbedUrl: e.target.value }))}
@@ -280,7 +281,7 @@ export default function ConfiguracionPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Badge de portada</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.heroBadge}
                     onChange={(e) => setFormData((prev) => ({ ...prev, heroBadge: e.target.value }))}
                     placeholder="✨ Nuevo en la ciudad"
@@ -289,7 +290,7 @@ export default function ConfiguracionPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Título de portada</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.heroTitle}
                     onChange={(e) => setFormData((prev) => ({ ...prev, heroTitle: e.target.value }))}
                   />
@@ -297,7 +298,7 @@ export default function ConfiguracionPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Bajada de portada</label>
                   <textarea
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition text-sm"
+                    className="form-input mt-1.5 resize-none"
                     rows={2}
                     value={formData.heroSubtitle}
                     onChange={(e) => setFormData((prev) => ({ ...prev, heroSubtitle: e.target.value }))}
@@ -306,7 +307,7 @@ export default function ConfiguracionPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Descripción para buscadores (SEO)</label>
                   <textarea
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-blush focus:outline-none transition text-sm"
+                    className="form-input mt-1.5 resize-none"
                     rows={2}
                     value={formData.metaDescription}
                     onChange={(e) => setFormData((prev) => ({ ...prev, metaDescription: e.target.value }))}
@@ -316,14 +317,16 @@ export default function ConfiguracionPage() {
             )}
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={saving}
             data-testid="config-submit"
-            className="w-full bg-blush hover:bg-blushdark text-white py-3.5 rounded-full font-semibold shadow-glow transition disabled:opacity-50"
+            variant="primary"
+            shape="pill"
+            className="w-full"
           >
             {saving ? "Guardando..." : "Guardar cambios"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

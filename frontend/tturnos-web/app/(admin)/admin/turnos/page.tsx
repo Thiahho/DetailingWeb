@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 // --- Interfaces ---
 interface Booking {
@@ -498,7 +499,7 @@ export default function TurnosPage() {
                 <input
                   type="date"
                   data-testid="slot-form-date"
-                  className="w-full mt-2 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition-colors"
+                  className="form-input mt-2"
                   value={formData.date}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, date: e.target.value }))
@@ -518,7 +519,7 @@ export default function TurnosPage() {
                     maxLength={2}
                     placeholder="HH"
                     data-testid="slot-form-hour"
-                    className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
+                    className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-blush focus:outline-none transition-colors"
                     value={formData.hour}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 2);
@@ -537,7 +538,7 @@ export default function TurnosPage() {
                     maxLength={2}
                     placeholder="MM"
                     data-testid="slot-form-minute"
-                    className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-green-500 focus:outline-none transition-colors"
+                    className="w-20 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal text-center focus:border-blush focus:outline-none transition-colors"
                     value={formData.minute}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 2);
@@ -559,7 +560,7 @@ export default function TurnosPage() {
                   </label>
                   <select
                     data-testid="slot-form-professional"
-                    className="w-full mt-2 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition-colors"
+                    className="form-input mt-2"
                     value={formData.professionalId}
                     onChange={(e) => setFormData((prev) => ({ ...prev, professionalId: e.target.value }))}
                     required
@@ -573,27 +574,24 @@ export default function TurnosPage() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={creating}
                   data-testid="slot-form-submit"
-                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {creating
                     ? "Procesando..."
                     : editingSlot
                     ? "Guardar Cambios"
                     : "Crear Turno"}
-                </button>
+                </Button>
 
                 {editingSlot && (
-                  <button
-                    type="button"
-                    onClick={cancelEditing}
-                    className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition"
-                  >
+                  <Button type="button" onClick={cancelEditing} variant="secondary">
                     Cancelar
-                  </button>
+                  </Button>
                 )}
               </div>
             </form>
@@ -655,7 +653,7 @@ export default function TurnosPage() {
               <div className="mb-3 px-1">
                 <select
                   data-testid="slot-list-professional-filter"
-                  className="w-full bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-green-500"
+                  className="w-full bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-blush"
                   value={professionalFilter}
                   onChange={(e) => { setProfessionalFilter(e.target.value); setCurrentPage(1); }}
                 >
@@ -778,7 +776,7 @@ export default function TurnosPage() {
                           <>
                             <button
                               onClick={() => startEditing(slot)}
-                              className="text-blue-700 hover:text-blue-700 text-xs font-medium uppercase tracking-wide transition"
+                              className="text-blushdark hover:text-blush text-xs font-medium uppercase tracking-wide transition"
                             >
                               Editar
                             </button>
@@ -794,7 +792,7 @@ export default function TurnosPage() {
                           <>
                             <button
                               onClick={() => setDetailSlot(slot)}
-                              className="text-blue-700 hover:text-blue-700 text-xs font-medium uppercase tracking-wide transition"
+                              className="text-blushdark hover:text-blush text-xs font-medium uppercase tracking-wide transition"
                             >
                               Ver detalle
                             </button>
@@ -1021,12 +1019,13 @@ export default function TurnosPage() {
             {/* Footer */}
             <div className="px-6 py-4 border-t border-mauve/5 flex flex-col gap-2">
               {slotExpired ? (
-                <button
+                <Button
                   onClick={() => { setDetailSlot(null); deleteSlot(detailSlot.id); }}
-                  className="w-full bg-red-600/20 border border-red-600/50 hover:bg-red-600/30 text-red-600 py-2.5 rounded-lg text-sm font-semibold transition"
+                  variant="danger"
+                  className="w-full"
                 >
                   Eliminar turno expirado
-                </button>
+                </Button>
               ) : (
                 <>
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -1037,20 +1036,22 @@ export default function TurnosPage() {
                       Confirmar + WhatsApp
                     </button>
                     {detailSlot.booking.status !== "Confirmed" && (
-                      <button
+                      <Button
                         onClick={() => confirmarTurno(detailSlot.booking!.id, detailSlot.booking!, detailSlot.startDateTime)}
-                        className="flex-1 bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-700 py-2.5 rounded-lg text-sm font-semibold transition"
+                        variant="primary"
+                        className="flex-1"
                       >
                         Confirmar
-                      </button>
+                      </Button>
                     )}
                   </div>
-                  <button
+                  <Button
                     onClick={() => { setDetailSlot(null); habilitarTurno(detailSlot.id, detailSlot.booking!.status === "Confirmed"); }}
-                    className="w-full bg-porcelain/5 hover:bg-red-500/10 text-charcoal/50 hover:text-red-600 border border-transparent hover:border-red-500/20 py-2 rounded-lg text-sm font-medium transition"
+                    variant="danger"
+                    className="w-full"
                   >
                     {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

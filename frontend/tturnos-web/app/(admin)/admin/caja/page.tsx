@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 type MovementType = "Charge" | "Deposit" | "Refund" | "ManualIn" | "ManualOut";
 type MovementMethod = "Cash" | "Transfer";
@@ -159,7 +160,7 @@ function MovementModal({
                 value={type}
                 onChange={(e) => setType(e.target.value as MovementType)}
                 data-testid="caja-movement-type"
-                className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+                className="form-input mt-1.5"
               >
                 {typeOptions.map((t) => <option key={t} value={t}>{movementTypeLabel(t)}</option>)}
               </select>
@@ -171,7 +172,7 @@ function MovementModal({
               value={method}
               onChange={(e) => setMethod(e.target.value as MovementMethod)}
               data-testid="caja-movement-method"
-              className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+              className="form-input mt-1.5"
             >
               <option value="Cash">Efectivo</option>
               <option value="Transfer">Transferencia</option>
@@ -187,7 +188,7 @@ function MovementModal({
                 onChange={(e) => setBookingId(e.target.value === "" ? "" : parseInt(e.target.value))}
                 placeholder="ID de turno"
                 data-testid="caja-movement-booking-id"
-                className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+                className="form-input mt-1.5"
               />
             </div>
           )}
@@ -201,7 +202,7 @@ function MovementModal({
               onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
               required
               data-testid="caja-movement-amount"
-              className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+              className="form-input mt-1.5"
             />
           </div>
           <div>
@@ -210,18 +211,13 @@ function MovementModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               data-testid="caja-movement-description"
-              className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+              className="form-input mt-1.5"
             />
           </div>
           {error && <p className="text-red-600 text-xs">{error}</p>}
-          <button
-            type="submit"
-            disabled={saving}
-            data-testid="caja-movement-submit"
-            className="w-full bg-blush hover:bg-blushdark text-white py-2.5 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
-          >
+          <Button type="submit" disabled={saving} data-testid="caja-movement-submit" variant="primary" className="w-full">
             {saving ? "Guardando..." : "Guardar"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>
@@ -271,9 +267,9 @@ function CloseCajaModal({
           <p data-testid="caja-close-difference" className={`text-2xl font-bold ${diffColor}`}>
             {result.difference === 0 ? "Sin diferencia" : `${result.difference > 0 ? "+" : ""}${formatMoney(result.difference)}`}
           </p>
-          <button onClick={onClosed} className="mt-4 w-full bg-blush hover:bg-blushdark text-white py-2.5 rounded-lg font-semibold transition">
+          <Button onClick={onClosed} variant="primary" className="mt-4 w-full">
             Listo
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -294,7 +290,7 @@ function CloseCajaModal({
               value={counted}
               onChange={(e) => setCounted(parseFloat(e.target.value) || 0)}
               data-testid="caja-close-counted"
-              className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+              className="form-input mt-1.5"
             />
           </div>
           <div>
@@ -303,18 +299,13 @@ function CloseCajaModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal text-sm resize-none focus:border-green-500 focus:outline-none"
+              className="form-input mt-1.5 resize-none"
             />
           </div>
           {error && <p className="text-red-600 text-xs">{error}</p>}
-          <button
-            type="submit"
-            disabled={saving}
-            data-testid="caja-close-submit"
-            className="w-full bg-red-600 hover:bg-red-500 text-white py-2.5 rounded-lg font-semibold transition disabled:opacity-50"
-          >
+          <Button type="submit" disabled={saving} data-testid="caja-close-submit" variant="danger" className="w-full">
             {saving ? "Cerrando..." : "Confirmar cierre"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>
@@ -467,17 +458,12 @@ export default function CajaAdminPage() {
                       value={openingBalance}
                       onChange={(e) => setOpeningBalance(parseFloat(e.target.value) || 0)}
                       data-testid="caja-open-balance-input"
-                      className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+                      className="form-input mt-1.5"
                     />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={opening}
-                    data-testid="caja-open-submit"
-                    className="w-full bg-blush hover:bg-blushdark text-white py-2.5 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
-                  >
+                  <Button type="submit" disabled={opening} data-testid="caja-open-submit" variant="primary" className="w-full">
                     {opening ? "Abriendo..." : "Abrir caja"}
-                  </button>
+                  </Button>
                 </form>
               </div>
             ) : (
@@ -508,34 +494,18 @@ export default function CajaAdminPage() {
 
                 {/* Acciones */}
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <button
-                    onClick={() => setMovementModal({ mode: "charge" })}
-                    data-testid="caja-action-charge"
-                    className="bg-blush hover:bg-blushdark text-white px-4 py-2 rounded-lg font-semibold text-sm transition"
-                  >
+                  <Button onClick={() => setMovementModal({ mode: "charge" })} data-testid="caja-action-charge" variant="primary">
                     Cobrar turno
-                  </button>
-                  <button
-                    onClick={() => setMovementModal({ mode: "refund" })}
-                    data-testid="caja-action-refund"
-                    className="bg-porcelain/10 hover:bg-porcelain/20 text-charcoal px-4 py-2 rounded-lg font-semibold text-sm transition"
-                  >
+                  </Button>
+                  <Button onClick={() => setMovementModal({ mode: "refund" })} data-testid="caja-action-refund" variant="secondary">
                     Devolución
-                  </button>
-                  <button
-                    onClick={() => setMovementModal({ mode: "manual" })}
-                    data-testid="caja-action-manual"
-                    className="bg-porcelain/10 hover:bg-porcelain/20 text-charcoal px-4 py-2 rounded-lg font-semibold text-sm transition"
-                  >
+                  </Button>
+                  <Button onClick={() => setMovementModal({ mode: "manual" })} data-testid="caja-action-manual" variant="secondary">
                     Movimiento manual
-                  </button>
-                  <button
-                    onClick={() => setCloseModalOpen(true)}
-                    data-testid="caja-action-close"
-                    className="ml-auto bg-red-900/20 hover:bg-red-900/40 text-red-600 px-4 py-2 rounded-lg font-semibold text-sm transition"
-                  >
+                  </Button>
+                  <Button onClick={() => setCloseModalOpen(true)} data-testid="caja-action-close" variant="danger" className="ml-auto">
                     Cerrar caja
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Turnos con saldo pendiente */}
@@ -556,13 +526,14 @@ export default function CajaAdminPage() {
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="text-charcoal/70 text-sm font-semibold">{formatMoney(b.balance)}</span>
-                            <button
+                            <Button
                               onClick={() => setMovementModal({ mode: "charge", bookingId: b.bookingId, amount: b.balance })}
                               data-testid="caja-pending-charge-button"
-                              className="bg-porcelain/10 hover:bg-porcelain/20 text-charcoal text-xs px-3 py-1.5 rounded-lg transition"
+                              variant="secondary"
+                              size="sm"
                             >
                               Cobrar
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -612,7 +583,7 @@ export default function CajaAdminPage() {
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
                 data-testid="caja-monthly-month"
-                className="block mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-green-500 focus:outline-none"
+                className="block mt-1.5 bg-cream border border-mauve/10 rounded-lg p-2.5 text-charcoal focus:border-blush focus:outline-none"
               />
             </div>
 

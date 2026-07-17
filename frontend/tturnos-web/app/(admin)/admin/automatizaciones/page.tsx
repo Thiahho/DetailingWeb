@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 interface AutomationRule {
   id: number;
@@ -246,22 +247,18 @@ export default function AutomatizacionesPage() {
               Reglas que avisan solas a tus clientes: cumpleaños, clientes inactivos, y lo que sumes después
             </p>
           </div>
-          <button
-            onClick={openCreate}
-            data-testid="automation-rule-create-button"
-            className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm md:text-base"
-          >
+          <Button onClick={openCreate} data-testid="automation-rule-create-button" variant="primary" className="shrink-0 flex items-center gap-2">
             <span className="text-xl leading-none">+</span>
             <span className="hidden sm:inline">Nueva Regla</span>
             <span className="sm:hidden">Nueva</span>
-          </button>
+          </Button>
         </div>
 
         {/* Grid de reglas */}
         {rules.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay reglas de automatización cargadas</p>
-            <button onClick={openCreate} className="mt-4 text-green-700 hover:text-green-700 transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
               + Crear la primera
             </button>
           </div>
@@ -303,52 +300,49 @@ export default function AutomatizacionesPage() {
                 )}
 
                 <div className="mt-4 flex flex-col gap-2">
-                  <button
+                  <Button
                     onClick={() => handleRunNow(rule)}
                     disabled={runningId === rule.id}
                     data-testid="automation-rule-run-now-button"
-                    className="w-full bg-blue-600/20 border border-blue-600/50 hover:bg-blue-600/30 text-blue-700 text-sm py-2 rounded-lg transition disabled:opacity-50"
+                    variant="secondary"
+                    className="w-full"
                   >
                     {runningId === rule.id ? "Evaluando..." : "Probar ahora"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => openHistory(rule)}
                     data-testid="automation-rule-history-button"
-                    className="w-full bg-porcelain/5 hover:bg-porcelain/10 text-charcoal/70 text-sm py-2 rounded-lg transition"
+                    variant="secondary"
+                    className="w-full"
                   >
                     Ver envíos
-                  </button>
+                  </Button>
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       onClick={() => openEdit(rule)}
                       data-testid="automation-rule-edit-button"
-                      className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition"
+                      variant="secondary"
+                      className="flex-1"
                     >
                       Editar
-                    </button>
+                    </Button>
                     {deleteConfirmId === rule.id ? (
                       <div className="flex gap-1">
-                        <button
-                          onClick={() => handleDelete(rule.id)}
-                          className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition"
-                        >
+                        <Button onClick={() => handleDelete(rule.id)} variant="danger">
                           Confirmar
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="bg-porcelain/5 text-charcoal text-sm px-3 py-2 rounded-lg transition"
-                        >
+                        </Button>
+                        <Button onClick={() => setDeleteConfirmId(null)} variant="secondary">
                           Cancelar
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
+                      <Button
                         onClick={() => setDeleteConfirmId(rule.id)}
                         data-testid="automation-rule-delete-button"
-                        className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition"
+                        variant="danger"
                       >
                         Eliminar
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -385,7 +379,7 @@ export default function AutomatizacionesPage() {
                   Nombre (interno, solo para vos)
                 </label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   data-testid="automation-rule-form-name"
                   value={formData.name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
@@ -397,7 +391,7 @@ export default function AutomatizacionesPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Tipo de disparador</label>
                 <select
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   data-testid="automation-rule-form-trigger"
                   value={formData.triggerType}
                   onChange={(e) => handleTriggerChange(e.target.value as AutomationRule["triggerType"])}
@@ -416,7 +410,7 @@ export default function AutomatizacionesPage() {
                     type="number"
                     min={1}
                     max={3650}
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     data-testid="automation-rule-form-inactive-days"
                     value={formData.inactiveDays}
                     onChange={(e) =>
@@ -438,7 +432,7 @@ export default function AutomatizacionesPage() {
                   type="number"
                   min={1}
                   max={3650}
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   data-testid="automation-rule-form-cooldown"
                   value={formData.cooldownDays}
                   onChange={(e) =>
@@ -456,7 +450,7 @@ export default function AutomatizacionesPage() {
                   Texto para el cliente
                 </label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   data-testid="automation-rule-form-client-label"
                   value={formData.clientLabel}
                   onChange={(e) => setFormData((prev) => ({ ...prev, clientLabel: e.target.value }))}
@@ -472,7 +466,7 @@ export default function AutomatizacionesPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Mensaje</label>
                 <textarea
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm resize-none"
+                  className="form-input mt-1.5 resize-none"
                   data-testid="automation-rule-form-message"
                   rows={4}
                   value={formData.messageTemplate}
@@ -488,7 +482,7 @@ export default function AutomatizacionesPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
                 <select
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.isActive ? "true" : "false"}
                   onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
                 >
@@ -498,21 +492,18 @@ export default function AutomatizacionesPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
                   data-testid="automation-rule-form-submit"
-                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {saving ? "Guardando..." : editingRule ? "Guardar cambios" : "Crear regla"}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition"
-                >
+                </Button>
+                <Button type="button" onClick={closeForm} variant="secondary">
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
           </div>

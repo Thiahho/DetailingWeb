@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 interface Product {
   id: number;
@@ -138,22 +139,18 @@ export default function ProductosAdminPage() {
               Catálogo de productos usados en los turnos (Historial) y, más adelante, en Caja
             </p>
           </div>
-          <button
-            onClick={openCreate}
-            data-testid="product-create-button"
-            className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm md:text-base"
-          >
+          <Button onClick={openCreate} data-testid="product-create-button" variant="primary" className="shrink-0 flex items-center gap-2">
             <span className="text-xl leading-none">+</span>
             <span className="hidden sm:inline">Nuevo Producto</span>
             <span className="sm:hidden">Nuevo</span>
-          </button>
+          </Button>
         </div>
 
         {/* Lista de productos */}
         {products.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay productos cargados</p>
-            <button onClick={openCreate} className="mt-4 text-green-700 hover:text-green-700 transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
               + Crear el primero
             </button>
           </div>
@@ -180,37 +177,41 @@ export default function ProductosAdminPage() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex gap-2 justify-end">
-                        <button
+                        <Button
                           onClick={() => openEdit(product)}
                           data-testid="product-edit-button"
-                          className="bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-xs px-3 py-1.5 rounded-lg transition"
+                          variant="secondary"
+                          size="sm"
                         >
                           Editar
-                        </button>
+                        </Button>
                         {deleteConfirmId === product.id ? (
                           <div className="flex gap-1">
-                            <button
+                            <Button
                               onClick={() => handleDelete(product.id)}
                               data-testid="product-delete-confirm-button"
-                              className="bg-red-600 hover:bg-red-500 text-charcoal text-xs px-3 py-1.5 rounded-lg transition"
+                              variant="danger"
+                              size="sm"
                             >
                               Confirmar
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={() => setDeleteConfirmId(null)}
-                              className="bg-porcelain/5 text-charcoal text-xs px-3 py-1.5 rounded-lg transition"
+                              variant="secondary"
+                              size="sm"
                             >
                               Cancelar
-                            </button>
+                            </Button>
                           </div>
                         ) : (
-                          <button
+                          <Button
                             onClick={() => setDeleteConfirmId(product.id)}
                             data-testid="product-delete-button"
-                            className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-xs px-3 py-1.5 rounded-lg transition"
+                            variant="danger"
+                            size="sm"
                           >
                             Eliminar
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -240,7 +241,7 @@ export default function ProductosAdminPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Nombre</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   data-testid="product-form-name"
                   value={formData.name}
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
@@ -256,7 +257,7 @@ export default function ProductosAdminPage() {
                     type="number"
                     min={0}
                     step="0.01"
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     data-testid="product-form-price"
                     value={formData.price}
                     onChange={(e) => setFormData((prev) => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
@@ -268,7 +269,7 @@ export default function ProductosAdminPage() {
                   <input
                     type="number"
                     min={0}
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.order}
                     onChange={(e) => setFormData((prev) => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
                   />
@@ -278,7 +279,7 @@ export default function ProductosAdminPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
                 <select
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.isActive ? "true" : "false"}
                   onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
                 >
@@ -288,21 +289,18 @@ export default function ProductosAdminPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
                   data-testid="product-form-submit"
-                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {saving ? "Guardando..." : editingProduct ? "Guardar cambios" : "Crear producto"}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition"
-                >
+                </Button>
+                <Button type="button" onClick={closeForm} variant="secondary">
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
           </div>

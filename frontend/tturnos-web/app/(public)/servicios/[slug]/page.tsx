@@ -56,34 +56,34 @@ export default async function ServiceDetail({ params }: { params: { slug: string
   if (!service) notFound();
 
   return (
-    <main className="min-h-screen bg-midnight px-6 py-16 text-slate-100">
+    <main className="min-h-screen bg-cream px-6 py-16 text-charcoal">
       <div className="mx-auto max-w-3xl space-y-10">
-        <Link href="/servicios" className="text-xs uppercase tracking-[0.2em] text-white/60 hover:text-white transition">
+        <Link href="/servicios" className="text-xs uppercase tracking-[0.2em] text-charcoal/60 hover:text-charcoal transition">
           ← Volver a servicios
         </Link>
 
         <div className="grid gap-10 md:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
             <span className="badge">Detalle del servicio</span>
-            <h1 className="text-4xl font-semibold">{service.title}</h1>
+            <h1 className="text-4xl font-semibold text-charcoal">{service.title}</h1>
 
             {service.description && (
-              <p className="text-white/70 leading-relaxed">{service.description}</p>
+              <p className="text-charcoal/70 leading-relaxed">{service.description}</p>
             )}
 
             <div className="flex flex-wrap gap-3 text-sm">
               {service.duration && (
-                <span className="rounded-full border border-white/10 px-4 py-2 text-white/70">
+                <span className="rounded-full border border-mauve/15 px-4 py-2 text-charcoal/60">
                   ⏱ {service.duration}
                 </span>
               )}
-              <span className="rounded-full border border-lux/50 px-4 py-2 text-lux">
+              <span className="rounded-full border border-blush/40 px-4 py-2 text-blushdark">
                 {service.price}
               </span>
             </div>
 
             {service.details?.length > 0 && (
-              <ul className="glass-card space-y-2 p-6 text-sm text-white/70">
+              <ul className="glass-card space-y-2 p-6 text-sm text-charcoal/60">
                 {service.details.map((item, i) => (
                   <li key={i}>✔ {item}</li>
                 ))}
@@ -92,14 +92,14 @@ export default async function ServiceDetail({ params }: { params: { slug: string
 
             <Link
               href={`/#contacto`}
-              className="inline-block rounded-full bg-lux px-8 py-3 text-sm font-semibold text-black shadow-gold transition hover:scale-[1.02]"
+              className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
             >
               Presupuestar
             </Link>
           </div>
 
           {service.imageUrl && (
-            <div className="glass-card overflow-hidden rounded-2xl border border-white/10">
+            <div className="glass-card overflow-hidden rounded-2xl border border-mauve/10">
               <img
                 alt={service.title}
                 className="h-full w-full object-cover"

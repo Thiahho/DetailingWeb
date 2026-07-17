@@ -6,6 +6,7 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 interface Service {
   id: number;
@@ -216,22 +217,18 @@ export default function ServiciosAdminPage() {
               Administrá los servicios que se muestran en tu sitio y formulario de reserva
             </p>
           </div>
-          <button
-            onClick={openCreate}
-            data-testid="service-create-button"
-            className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm md:text-base"
-          >
+          <Button onClick={openCreate} data-testid="service-create-button" variant="primary" className="shrink-0 flex items-center gap-2">
             <span className="text-xl leading-none">+</span>
             <span className="hidden sm:inline">Nuevo Servicio</span>
             <span className="sm:hidden">Nuevo</span>
-          </button>
+          </Button>
         </div>
 
         {/* Grid de servicios */}
         {services.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay servicios cargados</p>
-            <button onClick={openCreate} className="mt-4 text-green-700 hover:text-green-700 transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
               + Crear el primero
             </button>
           </div>
@@ -292,37 +289,42 @@ export default function ServiciosAdminPage() {
                   </ul>
 
                   <div className="mt-4 flex gap-2">
-                    <button
+                    <Button
                       onClick={() => openEdit(service)}
                       data-testid="service-edit-button"
-                      className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition"
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1"
                     >
                       Editar
-                    </button>
+                    </Button>
                     {deleteConfirmId === service.id ? (
                       <div className="flex gap-1">
-                        <button
+                        <Button
                           onClick={() => handleDelete(service.id)}
                           data-testid="service-delete-confirm-button"
-                          className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition"
+                          variant="danger"
+                          size="sm"
                         >
                           Confirmar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => setDeleteConfirmId(null)}
-                          className="bg-porcelain/5 text-charcoal text-sm px-3 py-2 rounded-lg transition"
+                          variant="secondary"
+                          size="sm"
                         >
                           Cancelar
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
+                      <Button
                         onClick={() => setDeleteConfirmId(service.id)}
                         data-testid="service-delete-button"
-                        className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition"
+                        variant="danger"
+                        size="sm"
                       >
                         Eliminar
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -351,7 +353,7 @@ export default function ServiciosAdminPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Título</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   data-testid="service-form-title"
                   value={formData.title}
                   onChange={(e) => handleTitleChange(e.target.value)}
@@ -364,7 +366,7 @@ export default function ServiciosAdminPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Slug</label>
                 <input
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal/70 focus:border-green-500 focus:outline-none transition font-mono text-sm"
+                  className="form-input mt-1.5 font-mono"
                   data-testid="service-form-slug"
                   value={formData.slug}
                   onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
@@ -378,7 +380,7 @@ export default function ServiciosAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Precio</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     data-testid="service-form-price"
                     value={formData.price}
                     onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
@@ -389,7 +391,7 @@ export default function ServiciosAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Duración</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.duration}
                     onChange={(e) => setFormData((prev) => ({ ...prev, duration: e.target.value }))}
                     placeholder="4-6 hs"
@@ -415,7 +417,7 @@ export default function ServiciosAdminPage() {
                   Descripción
                 </label>
                 <textarea
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm resize-none"
+                  className="form-input mt-1.5 resize-none"
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
@@ -431,7 +433,7 @@ export default function ServiciosAdminPage() {
                   {formData.details.map((detail, i) => (
                     <input
                       key={i}
-                      className="w-full bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
+                      className="form-input"
                       value={detail}
                       onChange={(e) => updateDetail(i, e.target.value)}
                       placeholder={`Detalle ${i + 1}`}
@@ -445,7 +447,7 @@ export default function ServiciosAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Categoría</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     data-testid="service-form-category"
                     value={formData.category}
                     onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
@@ -458,7 +460,7 @@ export default function ServiciosAdminPage() {
                     type="number"
                     min={0}
                     max={480}
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     data-testid="service-form-buffer"
                     value={formData.bufferMinutes}
                     onChange={(e) => setFormData((prev) => ({ ...prev, bufferMinutes: parseInt(e.target.value) || 0 }))}
@@ -483,7 +485,7 @@ export default function ServiciosAdminPage() {
                   <input
                     type="number"
                     min={0}
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.order}
                     onChange={(e) => setFormData((prev) => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
                   />
@@ -494,7 +496,7 @@ export default function ServiciosAdminPage() {
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
                 <select
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                  className="form-input mt-1.5"
                   value={formData.isActive ? "true" : "false"}
                   onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
                 >
@@ -510,7 +512,7 @@ export default function ServiciosAdminPage() {
                   <button
                     type="button"
                     onClick={() => setCustomFields((prev) => [...prev, emptyField()])}
-                    className="text-green-700 hover:text-green-700 text-xs transition"
+                    className="text-blushdark hover:text-blush text-xs transition"
                   >
                     + Agregar campo
                   </button>
@@ -523,7 +525,7 @@ export default function ServiciosAdminPage() {
                     <div key={i} className="bg-cream border border-mauve/10 rounded-lg p-3 space-y-2">
                       <div className="flex flex-col sm:flex-row gap-2">
                         <input
-                          className="flex-1 bg-black/30 border border-mauve/10 rounded p-2 text-charcoal text-sm focus:border-green-500 focus:outline-none"
+                          className="flex-1 bg-ivory border border-mauve/10 rounded p-2 text-charcoal text-sm focus:border-blush focus:outline-none"
                           placeholder="Nombre del campo"
                           value={field.name}
                           onChange={(e) => {
@@ -534,7 +536,7 @@ export default function ServiciosAdminPage() {
                         />
                         <div className="flex gap-2">
                           <input
-                            className="flex-1 sm:w-28 sm:flex-none bg-black/30 border border-mauve/10 rounded p-2 text-charcoal/70 text-sm font-mono focus:border-green-500 focus:outline-none"
+                            className="flex-1 sm:w-28 sm:flex-none bg-ivory border border-mauve/10 rounded p-2 text-charcoal/70 text-sm font-mono focus:border-blush focus:outline-none"
                             placeholder="key"
                             value={field.key}
                             onChange={(e) => updateCustomField(i, { key: e.target.value })}
@@ -544,7 +546,7 @@ export default function ServiciosAdminPage() {
                       </div>
                       <div className="flex gap-2 items-center">
                         <select
-                          className="bg-black/30 border border-mauve/10 rounded p-2 text-charcoal text-sm focus:border-green-500 focus:outline-none"
+                          className="bg-ivory border border-mauve/10 rounded p-2 text-charcoal text-sm focus:border-blush focus:outline-none"
                           value={field.type}
                           onChange={(e) => updateCustomField(i, { type: e.target.value as CustomFieldDef["type"] })}
                         >
@@ -567,7 +569,7 @@ export default function ServiciosAdminPage() {
                         <div>
                           <p className="text-charcoal/40 text-xs mb-1">Opciones (una por línea)</p>
                           <textarea
-                            className="w-full bg-black/30 border border-mauve/10 rounded p-2 text-charcoal text-sm focus:border-green-500 focus:outline-none resize-none"
+                            className="w-full bg-ivory border border-mauve/10 rounded p-2 text-charcoal text-sm focus:border-blush focus:outline-none resize-none"
                             rows={3}
                             value={field.options.join("\n")}
                             onChange={(e) => updateCustomField(i, { options: e.target.value.split("\n").map((o) => o.trim()).filter(Boolean) })}
@@ -582,21 +584,18 @@ export default function ServiciosAdminPage() {
 
               {/* Botones */}
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
                   data-testid="service-form-submit"
-                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {saving ? "Guardando..." : editingService ? "Guardar cambios" : "Crear servicio"}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition"
-                >
+                </Button>
+                <Button type="button" onClick={closeForm} variant="secondary">
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
           </div>

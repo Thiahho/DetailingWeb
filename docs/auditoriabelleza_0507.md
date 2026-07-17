@@ -169,7 +169,7 @@ Primer módulo del pivot a gestión de turnos para salones de belleza (`TTurnosR
 | ~~Automatizaciones~~ — ✅ resuelto (17/07, primer corte, ver sección 24) | motor visual trigger→condición→acción→espera; **reutilizable parcialmente** desde `ReminderBackgroundService`/`NotificationRetryBackgroundService` (ver hallazgo semántico en sección 5) | Alto (motor visual es un producto en sí mismo) |
 | ~~Caja~~ — ✅ resuelto (16/07, primer corte, ver sección 15) | cobros, devoluciones, señas, caja diaria/mensual | Alto (nuevo dominio, toca Payments) |
 | ~~Estadísticas (extensión)~~ — ✅ resuelto (16/07, ver sección 23) | dashboards nuevos: profesional con mayores ventas, horas ocupadas/libres, ausencias | Medio (1-2 días, ya hay una base en `AnalyticsController`) |
-| UX / Design system | sistema de diseño formal (botones, inputs, dark mode, etc.) | Medio-Alto (transversal a todo el frontend) |
+| ~~UX / Design system~~ — ✅ resuelto (17/07, primer corte: botones/inputs unificados en las 17 páginas admin, ver secciones 25-26; dark mode queda fuera de este corte) | sistema de diseño formal (botones, inputs, dark mode, etc.) | Medio-Alto (transversal a todo el frontend) |
 
 *Esfuerzo aproximado en horas/días de desarrollo — ajustar según la tarifa y el criterio de quien arme el presupuesto final.
 
@@ -715,3 +715,103 @@ No había ninguna forma de ver, desde el admin, a qué clientes les había llega
 - **Gotcha de esta sesión en particular:** el backend real del usuario estaba corriendo en paralelo mientras se implementaba, bloqueando el `.exe` final (`MSB3027`/copy-lock) en cada `dotnet build` — no es un error de compilación (confirmado grepeando el log completo por `error CS`, cero matches), pero sí impedía que `dotnet ef migrations add` viera los cambios nuevos vía el flag `--no-build` (usaba el `.dll` viejo en `bin/`, generando migraciones vacías dos veces antes de notar la causa). Solución aplicada: copiar a mano `obj/Debug/net9.0/TTurnos.Api.dll` sobre `bin/Debug/net9.0/TTurnos.Api.dll` (el `.dll` sí se recompila en `obj/` aunque falle el copy final del `.exe`) antes de cada `migrations add --no-build`.
 - **No se corrió `dotnet test` ni la suite e2e** — mismo motivo que la sección 23, sin Docker en este entorno.
 - **Verificación end-to-end real (crear regla → "Probar ahora" → confirmar `ScheduledReminder` creado → confirmar envío real) no se completó en esta sesión** — quedó pendiente de que el usuario reinicie su backend local para tomar los últimos cambios (ClientLabel + canal de email + historial de envíos). A diferencia de otras secciones de esta auditoría, este primer corte se documenta con la implementación y los checks estáticos (build/typecheck) confirmados, pero sin la corrida real todavía.
+
+---
+
+## 25. Actualización — sesión 17/07 (UX / Design system — arranque)
+
+Único ítem de la tabla de la sección 7 que seguía sin ningún trabajo (los otros seis módulos del PRD ya se habían cerrado en sesiones anteriores, incluidas las secciones 23 y 24 de más arriba). Sesión enfocada exclusivamente en frontend, sin tocar backend.
+
+### Parte 1 — Unificación de la página pública de Servicios
+
+Retomando la nota de la sección 11 ("ese archivo usa un sistema de diseño distinto, midnight/lux, remanente del template previo al pivot"): al revisar `tailwind.config.js` se confirmó que **`midnight` y `lux` no están definidas en ningún lado** — no son "otra paleta", son clases muertas. El resultado real en `app/(public)/servicios/page.tsx` y `.../servicios/[slug]/page.tsx` era `bg-midnight` (sin efecto, fondo por defecto) combinado con `text-slate-100` (gris casi blanco, sí es un color real de Tailwind) — texto prácticamente invisible sobre fondo claro. Un bug activo, no solo inconsistencia visual.
+
+**Fix aplicado:** ambos archivos migrados a la misma paleta que ya usa la Home (`cream/charcoal/mauve/blush/champagne`, reusando `.glass-card`/`.badge` de `globals.css`, ya themeados correctamente porque son clases globales).
+
+**Verificado:** `npx tsc --noEmit` limpio. Confirmado visualmente con un screenshot de Playwright contra el dev server real — header/hero legible y coherente con el resto del sitio (sin datos de servicios en el screenshot porque el backend .NET no estaba levantado en este entorno; los 500 de `/api/services` son por eso, no por el cambio de estilos).
+
+### Parte 2 — Relevamiento de botones e inputs en las 16 páginas admin
+
+Antes de tocar código, se hizo el mismo tipo de relevamiento que ya se usó para unificar el Toast (sección 20), vía un agente de exploración dedicado. Hallazgos:
+
+- **No existe ningún componente `Button`/`Input` compartido.** `globals.css` define `.form-input` desde hace tiempo, pero tiene **0 usos reales** en las 16 páginas — mismo patrón exacto que el Toast antes de unificarse (una clase compartida que nadie usa).
+- **Botón primario:** 5 variantes distintas (una domina en 6 páginas; login/cuenta/configuración usan una variante pill deliberada para CTA único; Contenido usaba verde plano sin relación con la marca).
+- **Botón de peligro:** 7 variantes, con un bug de contraste real (`text-charcoal` sobre fondo rojo en Galería/Productos, poco legible) — **no corregido todavía**, ver pendientes.
+- **Inputs:** 8 variantes inline distintas, incluyendo un `focus:border-green-500` sin relación semántica con la marca (drift de copiar/pegar).
+- **Hallazgo que corrigió una primera lectura incorrecta:** `clientes/page.tsx` parecía tener botones/inputs rotos (clases `input-field`/`btn-primary`/`btn-ghost` no encontradas por un primer grep). Al leer el archivo completo apareció la causa real: definía su **propio** sistema de estilos vía `<style jsx global>` al final del archivo — una séptima variante aislada, con paleta dorado/champagne que no se usa en ningún otro lado del admin. No estaba roto, estaba simplemente desconectado del resto.
+
+### Componente nuevo: `src/components/shared/Button.tsx`
+
+Variantes `primary` (blush + `shadow-glow`, la más usada), `secondary` (outline mauve), `danger` (rojo, con contraste correcto — `text-white`, no el `text-charcoal` que tenía el bug de Galería/Productos); tamaños `default`/`sm`; forma `default`/`pill` (para los CTA únicos de login/cuenta/configuración, mantenidos como variante deliberada en vez de forzarlos a la forma dominante).
+
+**Bug propio encontrado en verificación visual, no solo lectura de código:** la variante `secondary` (`bg-porcelain/5`, sin borde) quedaba prácticamente invisible dentro del modal de Clientes, cuyo fondo (`bg-porcelain`) es del mismo color de base — confirmado con un screenshot real, no evidente leyendo el className aislado. **Fix:** se agregó `border border-mauve/15` a la variante, para que se lea como botón sin importar el color del contenedor.
+
+### Migración piloto: Clientes y Contenido
+
+Alcance acotado a las dos páginas con problemas reales encontrados en el relevamiento (Clientes por el sistema aislado, Contenido por el verde fuera de marca):
+
+- `clientes/page.tsx`: eliminado el bloque `<style jsx global>` completo; los 11 inputs/selects/textarea migrados a `.form-input`; los 4 botones (`CustomerForm` y `ReminderForm`, guardar/cancelar) migrados a `<Button variant="primary">`/`<Button variant="secondary">`.
+- `contenido/page.tsx`: botones "+ Nuevo video"/"Guardar" (verde) → `<Button variant="primary">`; "Editar"/"Cancelar" → `variant="secondary"`; "Eliminar" → `variant="danger"`; inputs de título/orden → `.form-input`.
+
+**Verificado:** `npx tsc --noEmit` y `npx next build` (build de producción completa) limpios. Verificación visual real contra el dev server: como el middleware (`middleware.ts`) protege `/admin/*` a nivel de servidor por la sola *presencia* de la cookie `admin_token`/`token` (no valida la firma en ese punto, eso lo hace el backend después), se simuló una sesión localmente con una cookie dummy + flags de `localStorage`/`sessionStorage` — válido solo para QA visual local, no un bypass de nada real, ya que cualquier llamada a la API real seguiría exigiendo un JWT válido del backend (no levantado en este entorno). Se confirmaron ambos modales ("Nuevo video", "Nuevo cliente") con inputs y botones ya coherentes con el resto del sitio.
+
+### Explícitamente pendiente al cierre de esta sesión (cerrado en la sección 26, misma conversación)
+
+- **14 páginas admin restantes** con el mismo drift documentado arriba: turnos, calendario, servicios, profesionales, galería, productos, caja, configuración, cuenta, login, historial, automatizaciones, dashboard, estadísticas.
+- El bug de contraste de los botones de peligro en Galería/Productos (`text-charcoal` sobre rojo) — el componente `Button` ya lo resuelve, pero esas páginas todavía no fueron migradas.
+- Un componente `Input`/`Select` compartido — por ahora solo se promovió el uso de la clase `.form-input` ya existente, no se extrajo un componente React.
+- Dark mode — no se empezó.
+- Decisión explícita de no correr la suite e2e de Playwright ni `dotnet test` en esta sesión: los cambios son puramente de frontend/estilos, sin tocar backend ni lógica, y el riesgo de regresión funcional es bajo — pero no se puede dar por cerrado el pendiente sin correrla al menos una vez con el backend disponible.
+
+---
+
+## 26. Actualización — sesión 17/07 (rollout del Button/`.form-input` a las 14 páginas admin restantes)
+
+Continuación directa de la sección 25 en la misma conversación: se pidió explícitamente seguir con el rollout completo en vez de dejarlo en el piloto de Clientes/Contenido.
+
+### Alcance: las 14 páginas restantes, `estadisticas` confirmada 100% de solo lectura
+
+`turnos`, `calendario`, `servicios`, `profesionales`, `galería`, `productos`, `caja`, `configuración`, `cuenta`, `login`, `historial`, `automatizaciones`, `page.tsx` (dashboard) migradas. `estadisticas/page.tsx` se verificó por grep (`<button|<input|<select|<textarea`, cero resultados) — no tiene ningún control interactivo, no había nada que migrar, tal como ya se sospechaba en el relevamiento.
+
+### Bug real encontrado por el propio proceso de migración, no por lectura de código: `.form-input` no se puede combinar con un ancho fijo
+
+Al migrar los inputs de hora/minuto de `turnos/page.tsx` (`w-20`, dos campos lado a lado con `:` en el medio) a `form-input w-20`, se generó y comparó el CSS compilado (`npx tailwindcss -i globals.css -o out.css`) para confirmar el orden de cascada: `.w-20` (utility, línea 970 del output) aparece **antes** que `.form-input` (línea 2940) — como `globals.css` declara `.form-input` después de `@tailwind utilities`, su `width: 100%` (heredado del `@apply w-full` original) queda más abajo en la cascada y **gana** por igual especificidad, aunque `w-20` esté escrito después en el `className`. Es decir, `form-input w-20` habría renderizado a ancho completo, rompiendo el layout compacto de hora/minuto — un bug que solo aparece en runtime, no se ve leyendo el JSX. **Fix:** esos dos inputs quedaron con su clase bespoke original (`w-20 bg-cream border ...`), solo corrigiendo el foco verde a `focus:border-blush` — no se forzó `.form-input` donde no encaja. Ningún otro input migrado en esta sesión tenía un conflicto de ancho equivalente (se revisó cada uno antes de aplicar `form-input`).
+
+### Otros bugs de contraste/drift corregidos de paso (no solo el de Galería/Productos ya conocido)
+
+- **`servicios/page.tsx`** — el bloque "Campos adicionales del formulario" (constructor de campos dinámicos del formulario público) usaba `bg-black/30` (fondo casi negro) **dentro de un contenedor `bg-cream`**, con `text-charcoal` (texto oscuro) encima — texto oscuro sobre fondo oscuro, mal contraste real en producción. Corregido a `bg-ivory` + `focus:border-blush` en los 4 controles de ese bloque (nombre del campo, key, tipo, textarea de opciones).
+- **Panel principal (`admin/page.tsx`) y `calendario/page.tsx`** — el botón "Cancelar turno"/"Liberar turno" (acción destructiva real) estaba estilizado neutro (`bg-porcelain/5 ... hover:text-red-600`, el rojo solo aparecía en hover) — exactamente el hallazgo ya anotado en el relevamiento de la sección 25 ("Turnos... estilizado neutral"), reproducido también en estos otros dos lugares. Los tres (`admin/page.tsx`, `admin/turnos/page.tsx`, `admin/calendario/page.tsx`) migrados a `<Button variant="danger">`.
+- **`turnos/page.tsx`** — links de texto "Editar"/"Ver detalle" en `text-blue-700` (azul fuera de marca, sin relación con la paleta `cream/mauve/blush`) → `text-blushdark`. Mismo fix en `calendario/page.tsx` ("+ Reservar"/"Ver detalle") y `historial/page.tsx` ("Confirmar").
+- **`historial/page.tsx`, `turnos/page.tsx`, `calendario/page.tsx`** — botones "Confirmar" con outline azul (`bg-blue-600/20 border-blue-600/50`) migrados a `<Button variant="primary">`.
+
+### Qué se dejó deliberadamente sin tocar (mismo criterio que la sección 25: no forzar todo a un solo componente)
+
+- Controles de navegación/paginación (flechas prev/next, números de página), tabs de filtro tipo segmented-control (estado, vista mes/semana/día, profesional), y buscadores con ícono — son patrones estructuralmente distintos a un botón de acción o un input de formulario; forzarlos al componente `Button`/`.form-input` habría roto su affordance específica sin ganar consistencia real.
+- Inputs compactos dentro de filas densas (editor de ítems de `historial`, horario semanal de `profesionales`, selector de tipo/monto de `caja`) — incompatibles con el padding/tamaño fijo de `.form-input` sin rehacer el layout de la fila; se dejaron con su estilo propio, solo corrigiendo colores fuera de marca donde los había.
+- Checkboxes con `accent-green-500`/`accent-blush` — decorativos, no parte del sistema de botones/inputs.
+- El WhatsApp CTA verde (`bg-green-600`, usado en varios modales de detalle) — es un color de marca deliberado (WhatsApp), no drift; se dejó igual que en sesiones anteriores.
+
+### Verificación
+
+- `npx tsc --noEmit`: limpio, corrido después de cada archivo (14 checkpoints, no solo al final).
+- `npx next build` (producción completa): limpio, 0 errores, corrido después del rollout completo.
+- Verificación visual real contra el dev server (mismo método de sesión con cookie/localStorage simulados de la sección 25, backend .NET no disponible en este entorno): capturas de `turnos` (confirma que el fix de ancho hora/minuto no rompió el layout — "09 : 00" se ve compacto, no estirado), `caja` (formulario "Abrir caja"), `automatizaciones` (modal "Nueva Regla" completo) y `calendario` (vista Mes). Sin errores de React en consola.
+- **No se corrió la suite e2e de Playwright ni `dotnet test`** — mismo criterio que la sección 25: cambios puramente de estilos/estructura de componentes en el frontend, sin tocar lógica de negocio ni contratos de API. Recomendado correr `npx playwright test --workers=3` antes de dar el rollout por cerrado en un entorno con el backend disponible, dado el volumen de archivos tocados (14 páginas).
+
+Con esto se cierran los cinco puntos pendientes de la sección 25 salvo dos, que quedan fuera de alcance a propósito (no regresiones, decisiones de scope): un componente `Input`/`Select` de React (hoy es solo la clase CSS `.form-input`) y **dark mode**, que no se encaró en ningún momento de esta sesión.
+
+---
+
+## 27. Actualización — sesión 17/07 (bug de fechas cortadas en Calendario, vista Semana)
+
+Reportado por el usuario después del rollout de las secciones 25-26: en `/admin/calendario`, vista Semana, las fechas de la fila de encabezado ("13 lun", "14 mar", etc.) se veían cortadas.
+
+### Diagnóstico: reproducido con datos de prueba, no solo lectura de código
+
+Se armó una página temporal (`app/(admin)/admin/debugagenda123/`, borrada al cerrar la sesión) que renderiza `AgendaCalendar` con profesionales y turnos mock, sin depender del backend — permitió reproducir el bug de forma aislada y confirmar visualmente antes de tocar CSS. Un screenshot recortado sobre la celda de fecha mostró los números con la mitad superior cortada.
+
+**Causa raíz:** en la sesión 16 (rediseño visual del calendario) se agregó `padding: 10px 6px` a `.rbc-header` en `agenda-calendar.css`. Ese selector aplica tanto a la fila de nombre de profesional como a la fila de fechas por día (vista Semana). Con `box-sizing: border-box` (reset global de Tailwind), react-big-calendar estira `.rbc-header` por flexbox al alto que le da su fila contenedora — no al revés — y esa fila de fechas terminó midiendo solo ~21px de alto real. Con 20px de padding vertical (10px arriba + 10px abajo) comidos por el `border-box` dentro de esos 21px, quedaba menos de 1px de espacio visible para una línea de texto de ~21.6px de alto — de ahí el recorte casi total, dejando ver solo una franja del borde inferior de cada número. Confirmado midiendo estilos computados en el navegador (`getComputedStyle`), no solo inspección visual.
+
+**Fix aplicado:** `min-height: 40px` en `.agenda-calendar .rbc-time-header-content .rbc-row` y `.rbc-row-resource` — le da a esas filas alto suficiente para que el padding y el texto convivan sin recortarse.
+
+**Verificado:** reproducido el bug con la página de prueba, confirmada la causa con estilos computados, aplicado el fix y reverificado visualmente — las fechas se ven completas en Semana. Vista Día no estaba afectada (no tiene esa fila de fechas por día, solo la de profesional) y se confirmó sin cambios. Página de debug y screenshots temporales borrados al cerrar; único archivo modificado: `src/components/calendar/agenda-calendar.css`.

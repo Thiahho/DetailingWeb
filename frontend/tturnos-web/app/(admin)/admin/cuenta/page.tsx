@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth, isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import PasswordInput from "@/src/components/ui/PasswordInput";
+import { Button } from "@/src/components/shared/Button";
 
 type MessageType = "success" | "error" | "warning";
 
@@ -103,7 +104,7 @@ export default function CuentaPage() {
                 data-testid="cuenta-current-password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full rounded-xl border border-mauve/10 bg-porcelain/5 px-4 py-3 text-charcoal focus:border-blush/50 outline-none transition"
+                className="form-input"
               />
             </div>
 
@@ -115,7 +116,7 @@ export default function CuentaPage() {
                 data-testid="cuenta-new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full rounded-xl border border-mauve/10 bg-porcelain/5 px-4 py-3 text-charcoal focus:border-blush/50 outline-none transition"
+                className="form-input"
               />
             </div>
 
@@ -127,18 +128,20 @@ export default function CuentaPage() {
                 data-testid="cuenta-confirm-password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
-                className="w-full rounded-xl border border-mauve/10 bg-porcelain/5 px-4 py-3 text-charcoal focus:border-blush/50 outline-none transition"
+                className="form-input"
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
               data-testid="cuenta-submit"
-              className="w-full rounded-full bg-blush px-6 py-3.5 font-semibold text-charcoal shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
+              variant="primary"
+              shape="pill"
+              className="w-full"
             >
               {loading ? "Guardando..." : "Cambiar contraseña"}
-            </button>
+            </Button>
           </form>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import AgendaCalendar from "@/src/components/calendar/AgendaCalendar";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 interface Service {
   id: number;
@@ -444,7 +445,7 @@ export default function CalendarioPage() {
                                 <button
                                   data-testid="calendario-slot-reserve-button"
                                   onClick={() => { setReserveSlot(slot); setReserveError(""); }}
-                                  className="text-xs text-green-700 hover:text-green-700 font-medium transition"
+                                  className="text-xs text-blushdark hover:text-blush font-medium transition"
                                 >
                                   + Reservar
                                 </button>
@@ -452,7 +453,7 @@ export default function CalendarioPage() {
                                 <button
                                   data-testid="calendario-slot-detail-button"
                                   onClick={() => slot.booking && setDetailBooking({ slot })}
-                                  className="text-xs text-blue-700 hover:text-blue-700 font-medium transition"
+                                  className="text-xs text-blushdark hover:text-blush font-medium transition"
                                 >
                                   Ver detalle
                                 </button>
@@ -489,7 +490,7 @@ export default function CalendarioPage() {
                 <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Nombre del cliente</label>
                 <input
                   data-testid="calendario-reserve-name"
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
+                  className="form-input mt-1.5"
                   value={reserveForm.customerName}
                   onChange={(e) => setReserveForm((p) => ({ ...p, customerName: e.target.value }))}
                   placeholder="Juan García"
@@ -500,7 +501,7 @@ export default function CalendarioPage() {
                 <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Teléfono / WhatsApp</label>
                 <input
                   data-testid="calendario-reserve-phone"
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
+                  className="form-input mt-1.5"
                   value={reserveForm.customerPhone}
                   onChange={(e) => setReserveForm((p) => ({ ...p, customerPhone: e.target.value }))}
                   placeholder="1123456789"
@@ -511,7 +512,7 @@ export default function CalendarioPage() {
                 <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Servicio</label>
                 <select
                   data-testid="calendario-reserve-service"
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
+                  className="form-input mt-1.5"
                   value={reserveForm.service}
                   onChange={(e) => setReserveForm((p) => ({ ...p, service: e.target.value }))}
                   required
@@ -526,7 +527,7 @@ export default function CalendarioPage() {
                 <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno *</label>
                 <input
                   data-testid="calendario-reserve-subject"
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
+                  className="form-input mt-1.5"
                   value={reserveForm.subject}
                   onChange={(e) => setReserveForm((p) => ({ ...p, subject: e.target.value }))}
                   placeholder="Ej: lavado completo, corte y color..."
@@ -541,7 +542,7 @@ export default function CalendarioPage() {
                   </p>
                 ) : (
                   <select
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
+                    className="form-input mt-1.5"
                     value={reserveForm.professionalId}
                     onChange={(e) => setReserveForm((p) => ({ ...p, professionalId: e.target.value }))}
                   >
@@ -555,7 +556,7 @@ export default function CalendarioPage() {
               <div>
                 <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Notas (opcional)</label>
                 <textarea
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm resize-none"
+                  className="form-input mt-1.5 resize-none"
                   rows={2}
                   value={reserveForm.message}
                   onChange={(e) => setReserveForm((p) => ({ ...p, message: e.target.value }))}
@@ -566,21 +567,18 @@ export default function CalendarioPage() {
               {reserveError && <p className="text-red-600 text-sm">{reserveError}</p>}
 
               <div className="flex gap-3 pt-1">
-                <button
+                <Button
                   data-testid="calendario-reserve-submit"
                   type="submit"
                   disabled={reserving}
-                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50 text-sm"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {reserving ? "Reservando..." : "Confirmar reserva"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReserveSlot(null)}
-                  className="px-5 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal py-3 rounded-lg font-semibold transition text-sm"
-                >
+                </Button>
+                <Button type="button" onClick={() => setReserveSlot(null)} variant="secondary">
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -630,13 +628,14 @@ export default function CalendarioPage() {
               >
                 WhatsApp
               </a>
-              <button
+              <Button
                 data-testid="calendario-liberar-button"
                 onClick={() => liberarTurno(detailBooking.slot.id, detailBooking.slot.booking?.status === "Confirmed")}
-                className="flex-1 bg-porcelain/5 hover:bg-red-500/10 text-charcoal/60 hover:text-red-600 border border-mauve/5 hover:border-red-500/30 py-2.5 rounded-lg text-sm font-semibold transition"
+                variant="danger"
+                className="flex-1"
               >
                 {detailBooking.slot.booking?.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
