@@ -459,7 +459,7 @@ export default function TurnosPage() {
               Administra los turnos disponibles para reservas
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <a
               href="/admin/estadisticas"
               className="bg-ivory border border-mauve/10 hover:border-mauve/20 text-charcoal/70 hover:text-charcoal px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
@@ -600,7 +600,7 @@ export default function TurnosPage() {
           </div>
 
           {/* COLUMNA DERECHA: Lista Estilo Imagen */}
-          <div className="bg-ivory border border-mauve/5 rounded-xl p-6 flex flex-col h-[700px]">
+          <div className="bg-ivory border border-mauve/5 rounded-xl p-6 flex flex-col h-[70vh] md:h-[700px]">
             {/* Header de la lista */}
             <div className="flex justify-between items-center mb-4 px-1">
               <div className="flex items-center gap-3">
@@ -669,7 +669,7 @@ export default function TurnosPage() {
 
             {/* Acciones en lote */}
             {selectedIds.length > 0 && (
-              <div className="flex gap-2 mb-4 px-1">
+              <div className="flex flex-col sm:flex-row gap-2 mb-4 px-1">
                 <button
                   onClick={bulkRelease}
                   disabled={bulkAction}
@@ -856,7 +856,7 @@ export default function TurnosPage() {
 
             {/* --- Footer / Paginación --- */}
             {slots.length > 0 && (
-              <div className="pt-6 mt-2 flex justify-center items-center gap-4 border-t border-mauve/5">
+              <div className="pt-6 mt-2 flex flex-wrap justify-center items-center gap-3 border-t border-mauve/5">
                 {/* Flecha Izquierda */}
                 <button
                   onClick={goToPrevPage}
@@ -879,10 +879,17 @@ export default function TurnosPage() {
                   </svg>
                 </button>
 
-                {/* Números de Página */}
-                <div className="flex gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
+                {/* Números de Página (con elipsis si hay muchas) */}
+                <div className="flex flex-wrap justify-center items-center gap-2">
+                  {getPaginationRange(currentPage, totalPages).map((page, idx) =>
+                    page === "..." ? (
+                      <span
+                        key={`dots-${idx}`}
+                        className="w-8 h-8 flex items-center justify-center text-charcoal/30 text-sm select-none"
+                      >
+                        …
+                      </span>
+                    ) : (
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
@@ -1022,7 +1029,7 @@ export default function TurnosPage() {
                 </button>
               ) : (
                 <>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={() => confirmarYEnviarWhatsApp(detailSlot)}
                       className="flex-1 text-center bg-green-600 hover:bg-green-500 text-charcoal py-2.5 rounded-lg text-sm font-semibold transition"
@@ -1078,6 +1085,38 @@ function formatDateFriendly(isoString: string) {
   const dayName = days[date.getDay()];
 
   return `${dayName} ${day}/${month}/${year} - ${hours}:${minutes}`;
+}
+
+// Genera los números de página a mostrar, colapsando el resto en "..."
+// para que la lista no crezca sin límite con muchos turnos.
+function getPaginationRange(current: number, total: number, siblingCount = 1): (number | "...")[] {
+  const totalVisible = siblingCount * 2 + 5; // primera + última + actual + vecinos + 2 elipsis
+  if (total <= totalVisible) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const leftSibling = Math.max(current - siblingCount, 1);
+  const rightSibling = Math.min(current + siblingCount, total);
+  const showLeftDots = leftSibling > 2;
+  const showRightDots = rightSibling < total - 1;
+
+  if (!showLeftDots && showRightDots) {
+    const leftItemCount = 3 + siblingCount * 2;
+    const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+    return [...leftRange, "...", total];
+  }
+
+  if (showLeftDots && !showRightDots) {
+    const rightItemCount = 3 + siblingCount * 2;
+    const rightRange = Array.from({ length: rightItemCount }, (_, i) => total - rightItemCount + i + 1);
+    return [1, "...", ...rightRange];
+  }
+
+  const middleRange = Array.from(
+    { length: rightSibling - leftSibling + 1 },
+    (_, i) => leftSibling + i
+  );
+  return [1, "...", ...middleRange, "...", total];
 }
 
 // Retorna true si el turno ya pasó su horario de inicio

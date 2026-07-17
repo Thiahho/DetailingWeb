@@ -24,6 +24,17 @@ interface UpcomingBooking {
   startDateTime: string;
 }
 
+interface ProfessionalStat {
+  professionalId: number;
+  professionalName: string;
+  revenueThisMonth: number;
+  paidBookingsThisMonth: number;
+  occupiedHours: number;
+  freeHours: number;
+  occupancyRate: number;
+  upcomingAbsences: number;
+}
+
 interface AnalyticsSummary {
   bookingsThisMonth: number;
   bookingsLastMonth: number;
@@ -41,6 +52,7 @@ interface AnalyticsSummary {
   topServices: TopService[];
   bookingsByMonth: MonthlyBooking[];
   upcomingBookings: UpcomingBooking[];
+  professionalStats: ProfessionalStat[];
 }
 
 const MONTH_NAMES = [
@@ -235,6 +247,51 @@ export default function EstadisticasPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Estadísticas por profesional */}
+        <div className="mt-6 bg-ivory border border-mauve/5 rounded-xl p-6">
+          <h2 className="text-charcoal font-semibold mb-1">Por profesional</h2>
+          <p className="text-charcoal/40 text-xs mb-5">Ventas, ocupación y ausencias del mes actual</p>
+          {data.professionalStats.length === 0 ? (
+            <p className="text-charcoal/30 text-sm">No hay profesionales activos</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[560px]">
+                <thead>
+                  <tr className="text-left text-charcoal/40 text-xs uppercase tracking-wider border-b border-mauve/10">
+                    <th className="pb-2 pr-3 font-medium">Profesional</th>
+                    <th className="pb-2 pr-3 font-medium">Ventas</th>
+                    <th className="pb-2 pr-3 font-medium">Ocupación</th>
+                    <th className="pb-2 pr-3 font-medium">Hs. ocupadas / libres</th>
+                    <th className="pb-2 font-medium">Ausencias</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.professionalStats.map((p) => (
+                    <tr key={p.professionalId} className="border-b border-mauve/5 last:border-0">
+                      <td className="py-3 pr-3 text-charcoal font-medium whitespace-nowrap">{p.professionalName}</td>
+                      <td className="py-3 pr-3 text-charcoal/80 whitespace-nowrap">
+                        ${p.revenueThisMonth.toLocaleString("es-AR")}
+                        <span className="text-charcoal/40 text-xs ml-1">({p.paidBookingsThisMonth})</span>
+                      </td>
+                      <td className="py-3 pr-3 text-charcoal/80">{p.occupancyRate}%</td>
+                      <td className="py-3 pr-3 text-charcoal/60 font-mono text-xs whitespace-nowrap">
+                        {p.occupiedHours}h / {p.freeHours}h
+                      </td>
+                      <td className="py-3">
+                        {p.upcomingAbsences > 0 ? (
+                          <span className="text-orange-700 font-medium">{p.upcomingAbsences}</span>
+                        ) : (
+                          <span className="text-charcoal/30">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Próximas reservas */}

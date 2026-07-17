@@ -28,6 +28,7 @@ builder.Services.AddScoped<ICajaRepository, CajaRepository>();
 builder.Services.AddScoped<ITimeSlotsRepository, TimeSlotsRepository>();
 builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
 builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
+builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -63,6 +64,7 @@ builder.Services.AddHostedService<ReminderBackgroundService>();
 builder.Services.AddScoped<ReminderService>();
 builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
+builder.Services.AddScoped<AutomationRuleEvaluationJob>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);
 

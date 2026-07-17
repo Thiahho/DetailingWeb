@@ -78,6 +78,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<ScheduledReminder> ScheduledReminders { get; set; }
     public DbSet<ReminderLog> ReminderLogs { get; set; }
 
+    //Automatizaciones
+    public DbSet<AutomationRule> AutomationRules { get; set; }
+    public DbSet<AutomationRuleExecution> AutomationRuleExecutions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -581,6 +585,44 @@ public class ApplicationDbContext : DbContext
              .WithMany(x => x.Logs)
              .HasForeignKey(x => x.ScheduledReminderId)
              .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        // ── Automatizaciones ──────────────────────────────────────────────
+        modelBuilder.Entity<AutomationRule>(e =>
+        {
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<AutomationRuleExecution>(e =>
+        {
+            e.HasIndex(x => new { x.AutomationRuleId, x.CustomerProfileId, x.ExecutedAt });
+
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.AutomationRule)
+             .WithMany()
+             .HasForeignKey(x => x.AutomationRuleId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.CustomerProfile)
+             .WithMany()
+             .HasForeignKey(x => x.CustomerProfileId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.ScheduledReminder)
+             .WithMany()
+             .HasForeignKey(x => x.ScheduledReminderId)
+             .OnDelete(DeleteBehavior.SetNull);
 
             e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
         });

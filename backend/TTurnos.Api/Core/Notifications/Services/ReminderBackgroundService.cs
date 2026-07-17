@@ -6,9 +6,6 @@ public class ReminderBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ReminderBackgroundService> _logger;
-    private static readonly TimeZoneInfo _argentinaZone =
-        TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
-
     private readonly IConfiguration _configuration;
 
     public ReminderBackgroundService(IServiceScopeFactory scopeFactory, ILogger<ReminderBackgroundService> logger, IConfiguration configuration)
@@ -17,9 +14,6 @@ public class ReminderBackgroundService : BackgroundService
         _logger = logger;
         _configuration = configuration;
     }
-
-    private static DateTime NowArgentina() =>
-        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _argentinaZone);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -38,7 +32,7 @@ public class ReminderBackgroundService : BackgroundService
 
                 // Los slots se guardan en hora de Argentina (igual que TimeSlotsController),
                 // independiente de la timezone del servidor donde corra el proceso.
-                var now = NowArgentina();
+                var now = ArgentinaClock.Now();
                 var windowStart = now.AddMinutes(windowMinutesStart);
                 var windowEnd = now.AddMinutes(windowMinutesEnd);
 

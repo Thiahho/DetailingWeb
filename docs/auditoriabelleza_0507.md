@@ -166,9 +166,9 @@ Primer módulo del pivot a gestión de turnos para salones de belleza (`TTurnosR
 | ~~Agenda multi-profesional~~ — ✅ resuelto (15/07, ver sección 12) | vista día/semana/mes, drag&drop, filtros por profesional — hoy no existe nada de esto, es build desde cero | Alto (varios días, probablemente requiere librería tipo FullCalendar) |
 | ~~Clientes (CRM completo)~~ — ✅ resuelto (15/07, ver sección 13) | ficha extendida: cumpleaños, Instagram, notas, fotos, profesional favorito, historial | Medio (1-2 días) |
 | ~~Historial~~ — ✅ resuelto (16/07, ver sección 14) | registro detallado por turno con productos/fotos/pago | Medio (1-2 días) |
-| Automatizaciones | motor visual trigger→condición→acción→espera; **reutilizable parcialmente** desde `ReminderBackgroundService`/`NotificationRetryBackgroundService` (ver hallazgo semántico en sección 5) | Alto (motor visual es un producto en sí mismo) |
+| ~~Automatizaciones~~ — ✅ resuelto (17/07, primer corte, ver sección 24) | motor visual trigger→condición→acción→espera; **reutilizable parcialmente** desde `ReminderBackgroundService`/`NotificationRetryBackgroundService` (ver hallazgo semántico en sección 5) | Alto (motor visual es un producto en sí mismo) |
 | ~~Caja~~ — ✅ resuelto (16/07, primer corte, ver sección 15) | cobros, devoluciones, señas, caja diaria/mensual | Alto (nuevo dominio, toca Payments) |
-| Estadísticas (extensión) | dashboards nuevos: profesional con mayores ventas, horas ocupadas/libres, ausencias | Medio (1-2 días, ya hay una base en `AnalyticsController`) |
+| ~~Estadísticas (extensión)~~ — ✅ resuelto (16/07, ver sección 23) | dashboards nuevos: profesional con mayores ventas, horas ocupadas/libres, ausencias | Medio (1-2 días, ya hay una base en `AnalyticsController`) |
 | UX / Design system | sistema de diseño formal (botones, inputs, dark mode, etc.) | Medio-Alto (transversal a todo el frontend) |
 
 *Esfuerzo aproximado en horas/días de desarrollo — ajustar según la tarifa y el criterio de quien arme el presupuesto final.
@@ -658,3 +658,60 @@ Confirmado por grep que `ReminderService`/`RemindersController` no tenían otros
 - Suite e2e completa (`npx playwright test --workers=3`): **18/18 ✅**, con un hallazgo de infraestructura de testing en el camino — la base `bd_turnos_e2e` se quedó completamente sin turnos disponibles (0 de ~87 turnos futuros libres) por la cantidad de corridas completas de la suite acumuladas en esta única sesión (aprox. 10+ corridas entre las secciones 17 a 22). Causa: `TimeSlotGeneratorService.GenerateSlotsForDayAsync` solo evita duplicados por `StartDateTime` (sin filtrar por `IsAvailable`), así que una vez que un horario del día queda reservado, `RegenerateAllSlotsAsync` (que borra y recrea solo los turnos **disponibles**, nunca los reservados) ya no vuelve a generar un turno libre ahí — correcto para el negocio real (un turno reservado no debe "reaparecer" libre), pero agota la ventana fija de `MaxDaysInAdvance=10` días si se corre la suite demasiadas veces el mismo día calendario contra una base que nunca se resetea (mismo problema de fondo ya documentado en las secciones 9, 12, 13 y 15). Solucionado puntualmente borrando los `TimeSlots` futuros de `bd_turnos_e2e` a mano (confirmado antes que los `ON DELETE` de todas las FKs relacionadas —`BookingItems`, `Payments`, `NotificationLogs` en cascada; `CajaMovements`, `ScheduledReminders` a null— no iban a bloquear el borrado), no es un bug de la app ni algo introducido por esta sesión.
 
 Con esto quedan **cerrados los cinco puntos** de la lista de pendientes que arrancó en la sección 16.
+
+---
+
+## 23. Actualización — sesión 16/07 (Estadísticas — extensión "Por profesional")
+
+Penúltimo módulo grande del PRD de la tabla de la sección 7: dashboards nuevos por profesional (ventas, horas ocupadas/libres, ausencias). Ya había una base en `AnalyticsController`/`AnalyticsRepository` (`GET api/analytics/summary`), así que se extendió agregando un método nuevo en vez de crear un controller aparte.
+
+### Qué se agregó
+
+- `IAnalyticsRepository.GetProfessionalStatsAsync(monthStart, monthEnd)`: por cada profesional activo, calcula del mes actual — ventas (suma de `Payment.Amount` con `Status=Approved` y `PaidAt` en el mes, unido por `Booking.ProfessionalId`), turnos pagados, horas ocupadas/libres (a partir de los `TimeSlot` del profesional en el mes, materializados en memoria y sumados como `(EndDateTime-StartDateTime).TotalHours` — mismo criterio que otros métodos de este repositorio que no traducen bien a SQL), % de ocupación, y ausencias próximas (conteo de `BlockedDates` con `ProfessionalId` propio desde hoy en adelante).
+- Campo nuevo `professionalStats` agregado a la respuesta existente de `GET /api/analytics/summary` — no se creó un endpoint nuevo.
+- Frontend: nueva sección "Por profesional" en `/admin/estadisticas`, tabla con scroll horizontal en mobile.
+
+### Verificación
+
+- `dotnet build` y `npx tsc --noEmit`: limpios.
+- **No se corrió `dotnet test` ni la suite e2e de Playwright en esta sesión** — a diferencia de sesiones anteriores, este entorno no tiene Docker disponible (Testcontainers lo requiere para levantar Postgres en los tests de integración). Se agregó igualmente una aserción de shape (`professionalStats` presente) al test de integración existente de Analytics, para que corra la próxima vez que alguien la ejecute con Docker disponible.
+
+---
+
+## 24. Actualización — sesión 16/07-17/07 (Automatizaciones — primer corte)
+
+Último módulo grande del PRD de la tabla de la sección 7, además del Design System: "motor visual trigger→condición→acción→espera". Decisión de alcance acordada con el usuario antes de empezar: **no** construir un motor visual tipo canvas (Zapier/n8n) — esta misma auditoría ya señalaba que "es un producto en sí mismo" (sección 7) — sino una lista de reglas simple, cubriendo los dos triggers de mayor valor real para el negocio: cliente inactivo (win-back) y cumpleaños de cliente.
+
+### Diseño: reutilizar el pipeline de envío existente en vez de reconstruirlo
+
+El sistema ya tenía ~90% de la infraestructura necesaria: `ScheduledReminder` (entidad) + `HangfireReminderJob` (procesa pendientes cada 5 min, WhatsApp directo o Email+WhatsApp si hay `Booking` vinculado). La pieza que faltaba era solo el "quién dispara" — así que el nuevo job de automatizaciones **no reimplementa el envío**, solo decide a quién y crea un `ScheduledReminder` con `ScheduledFor = ahora`, que el job existente recoge solo en su próximo tick.
+
+### Nuevo módulo `Core/Automations/`
+
+- Entidades: `AutomationRule` (trigger, condición embebida en `InactiveDays`, `MessageTemplate`, `CooldownDays`, `IsActive`) y `AutomationRuleExecution` (log de deduplicación, referenciando el `ScheduledReminder` que generó).
+- `IAutomationRulesRepository`/`AutomationRulesRepository`: CRUD + `EvaluateRuleAsync` (matchea cumpleaños por `CustomerProfile.Birthday` o inactividad por última reserva agrupada por `CustomerPhone` — no hay FK `Booking`→`CustomerProfile`, el vínculo es siempre por teléfono).
+- `AutomationRuleEvaluationJob`: job de Hangfire diario (`0 12 * * *` UTC ≈ 9am Argentina).
+- `AutomationRulesController` (`api/automationrules`): CRUD + `POST {id}/run-now` para probar sin esperar el cron.
+- `ArgentinaClock` extraído a `Shared/Utilities/` (antes duplicado como método privado de `ReminderBackgroundService`) — ahora genuinamente compartido entre ese servicio y el nuevo job.
+- Migraciones: `AddAutomationRules`, `AddClientLabelToAutomationRules`, `AddScheduledReminderToAutomationRuleExecution` (las últimas dos, ver más abajo).
+
+### Hallazgo crítico de diseño: tenant scoping dentro de un job sin HTTP context
+
+Un Hangfire recurring job no pasa por `TenantResolutionMiddleware`, así que `ICurrentTenant.TenantId == 0` dentro del job — el query filter automático de EF (`HasQueryFilter(x => x.TenantId == _currentTenant.TenantId)`) filtraría todo por `TenantId=0` y devolvería cero filas en producción real. `HangfireReminderJob` ya resolvía esto (`IgnoreQueryFilters()` + `TenantId` seteado a mano en cada insert, ver su línea que crea el próximo recordatorio recurrente) — el mismo patrón se replicó en `AutomationRulesRepository.EvaluateRuleAsync` y en `GetActiveRulesCrossTenantAsync`.
+
+### Dos ajustes de producto pedidos por el usuario después del primer corte
+
+1. **El nombre interno de la regla se filtraba al mensaje del cliente**: `ScheduledReminder.ServiceLabel` (que alimenta el placeholder `{servicio}`) salía directo de `AutomationRule.Name` — un campo pensado solo para que el admin identifique la regla. Se agregó `ClientLabel`, un campo separado y deliberadamente distinto de `Name`, para que un nombre interno tipo "Regla winback V2" nunca llegue a la vista del cliente.
+2. **Las automatizaciones no mandaban email**: como nunca tienen `BookingId` vinculado, siempre caían en la rama de `HangfireReminderJob` que solo hacía WhatsApp directo. Se extendió esa rama para que, si el `CustomerProfile` tiene email cargado, también intente `GmailProvider.SendToAddressAsync` — best-effort, si el email falla no se marca el recordatorio como fallido porque WhatsApp (canal principal) ya salió. De yapa, esto también mejora los avisos manuales sin turno vinculado que ya existían antes de esta sesión.
+
+### Tercer ajuste: visibilidad de a quién le disparó cada regla
+
+No había ninguna forma de ver, desde el admin, a qué clientes les había llegado un aviso automático. Se vinculó `AutomationRuleExecution` con el `ScheduledReminder` específico que generó (antes eran dos inserts sin relación entre sí), y se agregó `GET /api/automationrules/{id}/executions` + un botón "Ver envíos" por regla en `/admin/automatizaciones`, mostrando cliente, teléfono, cuándo se disparó, y el estado real del envío (Pendiente/Enviado/Falló).
+
+### Verificación
+
+- `dotnet build` y `npx tsc --noEmit`: limpios en cada paso.
+- 3 migraciones generadas y verificadas por lectura del código generado (no solo confiando en que corrieron sin error) — se aplican solas al arrancar la API vía `Database.Migrate()`, no hizo falta un `database update` manual.
+- **Gotcha de esta sesión en particular:** el backend real del usuario estaba corriendo en paralelo mientras se implementaba, bloqueando el `.exe` final (`MSB3027`/copy-lock) en cada `dotnet build` — no es un error de compilación (confirmado grepeando el log completo por `error CS`, cero matches), pero sí impedía que `dotnet ef migrations add` viera los cambios nuevos vía el flag `--no-build` (usaba el `.dll` viejo en `bin/`, generando migraciones vacías dos veces antes de notar la causa). Solución aplicada: copiar a mano `obj/Debug/net9.0/TTurnos.Api.dll` sobre `bin/Debug/net9.0/TTurnos.Api.dll` (el `.dll` sí se recompila en `obj/` aunque falle el copy final del `.exe`) antes de cada `migrations add --no-build`.
+- **No se corrió `dotnet test` ni la suite e2e** — mismo motivo que la sección 23, sin Docker en este entorno.
+- **Verificación end-to-end real (crear regla → "Probar ahora" → confirmar `ScheduledReminder` creado → confirmar envío real) no se completó en esta sesión** — quedó pendiente de que el usuario reinicie su backend local para tomar los últimos cambios (ClientLabel + canal de email + historial de envíos). A diferencia de otras secciones de esta auditoría, este primer corte se documenta con la implementación y los checks estáticos (build/typecheck) confirmados, pero sin la corrida real todavía.

@@ -28,6 +28,12 @@ public static class BackgroundJobsSetup
             "*/5 * * * *" // cada 5 minutos
         );
 
+        RecurringJob.AddOrUpdate<AutomationRuleEvaluationJob>(
+            "evaluate-automation-rules",
+            job => job.EvaluateAllActiveRulesAsync(),
+            "0 12 * * *" // 12:00 UTC ≈ 09:00 Argentina (sin horario de verano)
+        );
+
         return app;
     }
 }
