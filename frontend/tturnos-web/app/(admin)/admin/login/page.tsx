@@ -4,6 +4,7 @@ import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { setLoggedIn, verifySession } from "@/src/lib/auth";
 import PasswordInput from "@/src/components/ui/PasswordInput";
+import { Button } from "@/src/components/shared/Button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -82,7 +83,7 @@ export default function LoginPage() {
             <input
               type="text"
               data-testid="admin-login-email"
-              className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
+              className="form-input"
               placeholder="admin@tturnos.com"
               value={formData.email}
               onChange={(e) =>
@@ -97,7 +98,7 @@ export default function LoginPage() {
               Contraseña
             </label>
             <PasswordInput
-              className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
+              className="form-input"
               data-testid="admin-login-password"
               placeholder="••••••••"
               value={formData.password}
@@ -108,14 +109,16 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
             data-testid="admin-login-submit"
-            className="w-full rounded-full bg-blush px-6 py-4 font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
+            variant="primary"
+            shape="pill"
+            className="w-full"
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -34,6 +34,15 @@
   background: rgba(239, 225, 217, 0.35); /* porcelain/35 */
 }
 
+/* Las filas de header (nombre de profesional y fecha por día) se estiran
+   por flexbox al alto que les da la fila contenedora, no al revés — sin un
+   min-height explícito, el padding de arriba se come casi toda la línea de
+   texto (box-sizing: border-box) y las fechas quedan cortadas arriba. */
+.agenda-calendar .rbc-time-header-content .rbc-row,
+.agenda-calendar .rbc-time-header-content .rbc-row-resource {
+  min-height: 40px;
+}
+
 .agenda-calendar .rbc-today {
   background-color: rgba(198, 162, 110, 0.07); /* champagne wash */
 }

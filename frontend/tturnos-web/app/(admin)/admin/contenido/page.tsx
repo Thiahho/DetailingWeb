@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 interface ContentVideo {
   id: number;
@@ -116,12 +117,9 @@ export default function ContenidoAdminPage() {
             <h1 className="text-3xl font-bold text-charcoal">Gestión de Contenido</h1>
             <p className="text-charcoal/50 text-sm">Administrá los videos destacados del home.</p>
           </div>
-          <button
-            onClick={openCreate}
-            className="rounded-lg bg-green-600 px-4 py-2 font-semibold text-charcoal hover:bg-green-500"
-          >
+          <Button onClick={openCreate} variant="primary">
             + Nuevo video
-          </button>
+          </Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -132,8 +130,8 @@ export default function ContenidoAdminPage() {
               <p className="text-xs text-charcoal/60">Orden: {video.order}</p>
               <p className="text-xs text-charcoal/60">{video.isActive ? "Activo" : "Inactivo"}</p>
               <div className="mt-3 flex gap-2">
-                <button onClick={() => openEdit(video)} data-testid="video-edit-button" className="flex-1 rounded-lg bg-porcelain/10 py-2 text-sm text-charcoal">Editar</button>
-                <button onClick={() => handleDelete(video.id)} data-testid="video-delete-button" className="rounded-lg bg-red-900/50 px-3 py-2 text-sm text-red-600">Eliminar</button>
+                <Button onClick={() => openEdit(video)} data-testid="video-edit-button" variant="secondary" size="sm" className="flex-1">Editar</Button>
+                <Button onClick={() => handleDelete(video.id)} data-testid="video-delete-button" variant="danger" size="sm">Eliminar</Button>
               </div>
             </div>
           ))}
@@ -147,7 +145,7 @@ export default function ContenidoAdminPage() {
 
             <div>
               <label className="text-xs text-charcoal/60">Título</label>
-              <input data-testid="video-form-title" className="mt-1 w-full rounded-lg border border-mauve/10 bg-cream p-3 text-charcoal" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} required />
+              <input data-testid="video-form-title" className="form-input mt-1" value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} required />
             </div>
 
             <div>
@@ -172,7 +170,7 @@ export default function ContenidoAdminPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs text-charcoal/60">Orden</label>
-                <input type="number" className="mt-1 w-full rounded-lg border border-mauve/10 bg-cream p-3 text-charcoal" value={formData.order} onChange={(e) => setFormData((p) => ({ ...p, order: Number(e.target.value) }))} />
+                <input type="number" className="form-input mt-1" value={formData.order} onChange={(e) => setFormData((p) => ({ ...p, order: Number(e.target.value) }))} />
               </div>
               <label className="flex items-center gap-2 pt-6 text-sm text-charcoal">
                 <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData((p) => ({ ...p, isActive: e.target.checked }))} />
@@ -181,8 +179,8 @@ export default function ContenidoAdminPage() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg bg-porcelain/10 px-4 py-2 text-charcoal">Cancelar</button>
-              <button type="submit" data-testid="video-form-submit" className="rounded-lg bg-green-600 px-4 py-2 text-charcoal">Guardar</button>
+              <Button type="button" onClick={() => setShowForm(false)} variant="secondary">Cancelar</Button>
+              <Button type="submit" data-testid="video-form-submit" variant="primary">Guardar</Button>
             </div>
           </form>
         </div>

@@ -7,6 +7,7 @@ import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import PasswordInput from "@/src/components/ui/PasswordInput";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { Button } from "@/src/components/shared/Button";
 
 interface ServiceOption {
   id: number;
@@ -251,22 +252,18 @@ export default function ProfesionalesAdminPage() {
               Administrá el equipo del salón y qué servicios ofrece cada uno
             </p>
           </div>
-          <button
-            onClick={openCreate}
-            data-testid="professional-create-button"
-            className="shrink-0 bg-blush hover:bg-blushdark text-white px-4 md:px-5 py-2.5 rounded-lg font-semibold shadow-glow transition flex items-center gap-2 text-sm md:text-base"
-          >
+          <Button onClick={openCreate} data-testid="professional-create-button" variant="primary" className="shrink-0 flex items-center gap-2">
             <span className="text-xl leading-none">+</span>
             <span className="hidden sm:inline">Nuevo Profesional</span>
             <span className="sm:hidden">Nuevo</span>
-          </button>
+          </Button>
         </div>
 
         {/* Grid de profesionales */}
         {professionals.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay profesionales cargados</p>
-            <button onClick={openCreate} className="mt-4 text-green-700 hover:text-green-700 transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
               + Crear el primero
             </button>
           </div>
@@ -330,37 +327,42 @@ export default function ProfesionalesAdminPage() {
                   )}
 
                   <div className="mt-4 flex gap-2">
-                    <button
+                    <Button
                       onClick={() => openEdit(professional)}
                       data-testid="professional-edit-button"
-                      className="flex-1 bg-porcelain/5 hover:bg-porcelain/10 text-charcoal text-sm py-2 rounded-lg transition"
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1"
                     >
                       Editar
-                    </button>
+                    </Button>
                     {deleteConfirmId === professional.id ? (
                       <div className="flex gap-1">
-                        <button
+                        <Button
                           onClick={() => handleDelete(professional.id)}
                           data-testid="professional-delete-confirm-button"
-                          className="bg-red-600 hover:bg-red-500 text-charcoal text-sm px-3 py-2 rounded-lg transition"
+                          variant="danger"
+                          size="sm"
                         >
                           Confirmar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => setDeleteConfirmId(null)}
-                          className="bg-porcelain/5 text-charcoal text-sm px-3 py-2 rounded-lg transition"
+                          variant="secondary"
+                          size="sm"
                         >
                           Cancelar
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
+                      <Button
                         onClick={() => setDeleteConfirmId(professional.id)}
                         data-testid="professional-delete-button"
-                        className="bg-red-900/20 hover:bg-red-900/40 text-red-600 text-sm px-3 py-2 rounded-lg transition"
+                        variant="danger"
+                        size="sm"
                       >
                         Eliminar
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -390,7 +392,7 @@ export default function ProfesionalesAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Nombre</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     data-testid="professional-form-firstname"
                     value={formData.firstName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
@@ -401,7 +403,7 @@ export default function ProfesionalesAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Apellido</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     data-testid="professional-form-lastname"
                     value={formData.lastName}
                     onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
@@ -436,7 +438,7 @@ export default function ProfesionalesAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Especialidad</label>
                   <input
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.specialty}
                     onChange={(e) => setFormData((prev) => ({ ...prev, specialty: e.target.value }))}
                     placeholder="Colorista"
@@ -512,7 +514,7 @@ export default function ProfesionalesAdminPage() {
                     min={0}
                     max={100}
                     step={0.5}
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.commission}
                     onChange={(e) => setFormData((prev) => ({ ...prev, commission: parseFloat(e.target.value) || 0 }))}
                   />
@@ -522,7 +524,7 @@ export default function ProfesionalesAdminPage() {
                   <input
                     type="number"
                     min={0}
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.order}
                     onChange={(e) => setFormData((prev) => ({ ...prev, order: parseInt(e.target.value) || 0 }))}
                   />
@@ -530,7 +532,7 @@ export default function ProfesionalesAdminPage() {
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Estado</label>
                   <select
-                    className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                    className="form-input mt-1.5"
                     value={formData.isActive ? "true" : "false"}
                     onChange={(e) => setFormData((prev) => ({ ...prev, isActive: e.target.value === "true" }))}
                   >
@@ -542,21 +544,18 @@ export default function ProfesionalesAdminPage() {
 
               {/* Botones */}
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="submit"
                   disabled={saving}
                   data-testid="professional-form-submit"
-                  className="flex-1 bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
+                  variant="primary"
+                  className="flex-1"
                 >
                   {saving ? "Guardando..." : editingProfessional ? "Guardar cambios" : "Crear profesional"}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="px-6 bg-porcelain/5 text-charcoal py-3 rounded-lg font-semibold hover:bg-porcelain/10 transition"
-                >
+                </Button>
+                <Button type="button" onClick={closeForm} variant="secondary">
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
 
@@ -574,7 +573,7 @@ export default function ProfesionalesAdminPage() {
                     <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Email</label>
                     <input
                       type="email"
-                      className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                      className="form-input mt-1.5"
                       value={accessForm.email}
                       onChange={(e) => setAccessForm((prev) => ({ ...prev, email: e.target.value }))}
                       placeholder="marcos@studionails.com"
@@ -585,7 +584,7 @@ export default function ProfesionalesAdminPage() {
                     <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Usuario (opcional)</label>
                     <input
                       type="text"
-                      className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                      className="form-input mt-1.5"
                       value={accessForm.username}
                       onChange={(e) => setAccessForm((prev) => ({ ...prev, username: e.target.value }))}
                       placeholder="Ej: marcos"
@@ -596,7 +595,7 @@ export default function ProfesionalesAdminPage() {
                       {editingProfessional.accountEmail ? "Nueva contraseña" : "Contraseña"}
                     </label>
                     <PasswordInput
-                      className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition"
+                      className="form-input mt-1.5"
                       value={accessForm.password}
                       onChange={(e) => setAccessForm((prev) => ({ ...prev, password: e.target.value }))}
                       placeholder="Mínimo 6 caracteres"
@@ -604,13 +603,14 @@ export default function ProfesionalesAdminPage() {
                       required
                     />
                   </div>
-                  <button
+                  <Button
                     type="submit"
                     disabled={savingAccess}
-                    className="w-full bg-porcelain/10 hover:bg-porcelain/20 text-charcoal py-2.5 rounded-lg font-semibold transition disabled:opacity-50 text-sm"
+                    variant="secondary"
+                    className="w-full"
                   >
                     {savingAccess ? "Guardando..." : editingProfessional.accountEmail ? "Cambiar contraseña" : "Activar acceso"}
-                  </button>
+                  </Button>
                 </form>
               </div>
             )}

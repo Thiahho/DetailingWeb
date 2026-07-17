@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { Plus, ChevronLeft, Bell, BellOff, Pencil, Trash2, X, Check, Clock, RefreshCw, CalendarDays, PenLine, Cake, Instagram as InstagramIcon, Star, History } from "lucide-react";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
+import { Button } from "@/src/components/shared/Button";
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -203,24 +204,24 @@ function CustomerForm({
       {error && <p className="text-red-600 text-xs">{error}</p>}
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Nombre *</label>
-        <input data-testid="customer-form-name" value={form.name} onChange={set("name")} className="input-field" placeholder="Juan Pérez" />
+        <input data-testid="customer-form-name" value={form.name} onChange={set("name")} className="form-input" placeholder="Juan Pérez" />
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Teléfono *</label>
-        <input data-testid="customer-form-phone" value={form.phone} onChange={set("phone")} className="input-field" placeholder="5491112345678" />
+        <input data-testid="customer-form-phone" value={form.phone} onChange={set("phone")} className="form-input" placeholder="5491112345678" />
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Email</label>
-        <input value={form.email} onChange={set("email")} className="input-field" placeholder="juan@email.com" type="email" />
+        <input value={form.email} onChange={set("email")} className="form-input" placeholder="juan@email.com" type="email" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-charcoal/50 text-xs mb-1">Cumpleaños</label>
-          <input data-testid="customer-form-birthday" value={form.birthday} onChange={set("birthday")} className="input-field" type="date" />
+          <input data-testid="customer-form-birthday" value={form.birthday} onChange={set("birthday")} className="form-input" type="date" />
         </div>
         <div>
           <label className="block text-charcoal/50 text-xs mb-1">Instagram</label>
-          <input data-testid="customer-form-instagram" value={form.instagram} onChange={set("instagram")} className="input-field" placeholder="@usuario" />
+          <input data-testid="customer-form-instagram" value={form.instagram} onChange={set("instagram")} className="form-input" placeholder="@usuario" />
         </div>
       </div>
       <div>
@@ -229,7 +230,7 @@ function CustomerForm({
           data-testid="customer-form-favorite-professional"
           value={form.favoriteProfessionalId ?? ""}
           onChange={(e) => setForm((f) => ({ ...f, favoriteProfessionalId: e.target.value ? parseInt(e.target.value) : null }))}
-          className="input-field"
+          className="form-input"
         >
           <option value="">— Sin preferencia —</option>
           {professionals.map((p) => (
@@ -239,7 +240,7 @@ function CustomerForm({
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Notas</label>
-        <textarea data-testid="customer-form-notes" value={form.notes} onChange={set("notes")} className="input-field h-16 resize-none" placeholder="Alergias, preferencias, tratamientos anteriores, etc." />
+        <textarea data-testid="customer-form-notes" value={form.notes} onChange={set("notes")} className="form-input h-16 resize-none" placeholder="Alergias, preferencias, tratamientos anteriores, etc." />
       </div>
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Fotos</label>
@@ -263,10 +264,10 @@ function CustomerForm({
         <CloudinaryUpload value="" onChange={addPhoto} folder="tturnos/clientes" hint="Antes/después, tratamientos, etc." />
       </div>
       <div className="flex gap-2 pt-1">
-        <button type="submit" disabled={saving} data-testid="customer-form-submit" className="flex-1 btn-primary">
+        <Button type="submit" disabled={saving} data-testid="customer-form-submit" variant="primary" className="flex-1">
           {saving ? "Guardando..." : "Guardar"}
-        </button>
-        <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
+        </Button>
+        <Button type="button" onClick={onClose} variant="secondary">Cancelar</Button>
       </div>
     </form>
   );
@@ -527,14 +528,14 @@ function ReminderForm({
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Servicio *</label>
         {services.length > 0 ? (
-          <select data-testid="reminder-form-service" value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="input-field">
+          <select data-testid="reminder-form-service" value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="form-input">
             <option value="">— Seleccioná un servicio —</option>
             {services.map((s) => (
               <option key={s.id} value={s.title}>{s.title}</option>
             ))}
           </select>
         ) : (
-          <input value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="input-field" placeholder="Ej: Corte y color" />
+          <input value={serviceLabel} onChange={(e) => handleServiceChange(e.target.value)} className="form-input" placeholder="Ej: Corte y color" />
         )}
       </div>
 
@@ -582,7 +583,7 @@ function ReminderForm({
       {/* Detalle del turno */}
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Detalle del turno *</label>
-        <input data-testid="reminder-form-detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="input-field" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." required />
+        <input data-testid="reminder-form-detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="form-input" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." required />
       </div>
 
       {/* Fecha/hora */}
@@ -602,7 +603,7 @@ function ReminderForm({
 
         {manualMode ? (
           <div>
-            <input type="datetime-local" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="input-field" />
+            <input type="datetime-local" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="form-input" />
             <p className="text-charcoal/25 text-[10px] mt-1">Se creará el turno automáticamente en esa fecha.</p>
           </div>
         ) : loadingSlots ? (
@@ -661,7 +662,7 @@ function ReminderForm({
       {/* Repetición del aviso */}
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Repetir aviso cada (días)</label>
-        <input value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} type="number" min="1" className="input-field" placeholder="Ej: 30 — dejar vacío para no repetir" />
+        <input value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} type="number" min="1" className="form-input" placeholder="Ej: 30 — dejar vacío para no repetir" />
       </div>
 
       {/* Mensaje personalizado del aviso 24h */}
@@ -669,7 +670,7 @@ function ReminderForm({
         <label className="block text-charcoal/50 text-xs mb-1">Mensaje del aviso 24h <span className="text-charcoal/25">(opcional)</span></label>
         <textarea
           value={reminderMessage} onChange={(e) => setReminderMessage(e.target.value)}
-          className="input-field h-16 resize-none"
+          className="form-input h-16 resize-none"
           placeholder={"Vacío = mensaje por defecto.\nVariables: {nombre} {servicio} {fecha}"}
         />
       </div>
@@ -677,10 +678,10 @@ function ReminderForm({
       <p className="text-charcoal/25 text-[10px]">Se enviará confirmación al cliente y al admin al reservar. El aviso WhatsApp se manda 24 hs antes (5 min en pruebas).</p>
 
       <div className="flex gap-2">
-        <button type="submit" disabled={saving} data-testid="reminder-form-submit" className="flex-1 btn-primary">
+        <Button type="submit" disabled={saving} data-testid="reminder-form-submit" variant="primary" className="flex-1">
           {saving ? savingStep || "Procesando..." : "Reservar y programar aviso"}
-        </button>
-        <button type="button" onClick={onClose} className="btn-ghost">Cancelar</button>
+        </Button>
+        <Button type="button" onClick={onClose} variant="secondary">Cancelar</Button>
       </div>
     </form>
   );
@@ -1069,7 +1070,7 @@ export default function ClientesPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre, teléfono o email..."
                 data-testid="customer-search"
-                className="input-field mb-4"
+                className="form-input mb-4"
               />
 
               {loading ? (
@@ -1105,42 +1106,6 @@ export default function ClientesPage() {
         </div>
       </div>
 
-      {/* ── inline styles for inputs ── */}
-      <style jsx global>{`
-        .input-field {
-          width: 100%;
-          background: #ffffff;
-          border: 1px solid rgba(156,124,136,0.15);
-          border-radius: 8px;
-          padding: 8px 12px;
-          color: #2E2328;
-          font-size: 13px;
-          outline: none;
-          transition: border-color 0.15s;
-        }
-        .input-field::placeholder { color: rgba(138,122,126,0.6); }
-        .input-field:focus { border-color: rgba(214,154,166,0.6); }
-        .btn-primary {
-          padding: 8px 16px;
-          background: rgba(198,162,110,0.15);
-          color: #9c7a4a;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-          transition: background 0.15s;
-        }
-        .btn-primary:hover:not(:disabled) { background: rgba(198,162,110,0.25); }
-        .btn-primary:disabled { opacity: 0.5; }
-        .btn-ghost {
-          padding: 8px 16px;
-          background: rgba(46,35,40,0.04);
-          color: rgba(46,35,40,0.5);
-          border-radius: 8px;
-          font-size: 13px;
-          transition: background 0.15s;
-        }
-        .btn-ghost:hover { background: rgba(46,35,40,0.08); color: #2E2328; }
-      `}</style>
     </div>
   );
 }
