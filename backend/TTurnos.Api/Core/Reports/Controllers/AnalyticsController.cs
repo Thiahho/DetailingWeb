@@ -80,6 +80,10 @@ public class AnalyticsController : ControllerBase
             now, nextWeek, 5,
             BookingStatus.Pending, BookingStatus.LegacyReserved, BookingStatus.Confirmed);
 
+        // Estadísticas por profesional del mes actual: ventas, horas ocupadas/libres, ausencias
+        var endOfMonth = startOfMonth.AddMonths(1);
+        var professionalStats = await _repository.GetProfessionalStatsAsync(startOfMonth, endOfMonth);
+
         return Ok(new
         {
             bookingsThisMonth,
@@ -97,7 +101,8 @@ public class AnalyticsController : ControllerBase
             avgLeadTimeHours = Math.Round(avgLeadTimeHours, 1),
             topServices,
             bookingsByMonth,
-            upcomingBookings
+            upcomingBookings,
+            professionalStats
         });
     }
 }

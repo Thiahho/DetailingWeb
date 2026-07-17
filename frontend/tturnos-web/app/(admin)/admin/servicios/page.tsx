@@ -336,7 +336,7 @@ export default function ServiciosAdminPage() {
       {showForm && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={closeForm}>
           <div
-            className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-ivory border border-mauve/10 rounded-2xl p-4 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -374,7 +374,7 @@ export default function ServiciosAdminPage() {
               </div>
 
               {/* Precio y Duración */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Precio</label>
                   <input
@@ -441,7 +441,7 @@ export default function ServiciosAdminPage() {
               </div>
 
               {/* Categoría y Buffer */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Categoría</label>
                   <input
@@ -467,7 +467,7 @@ export default function ServiciosAdminPage() {
               </div>
 
               {/* Color y Orden */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Color</label>
                   <input
@@ -521,7 +521,7 @@ export default function ServiciosAdminPage() {
                 <div className="space-y-3 mt-2">
                   {customFields.map((field, i) => (
                     <div key={i} className="bg-cream border border-mauve/10 rounded-lg p-3 space-y-2">
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           className="flex-1 bg-black/30 border border-mauve/10 rounded p-2 text-charcoal text-sm focus:border-green-500 focus:outline-none"
                           placeholder="Nombre del campo"
@@ -532,13 +532,15 @@ export default function ServiciosAdminPage() {
                             updateCustomField(i, { name, key: field.key ? field.key : key });
                           }}
                         />
-                        <input
-                          className="w-28 bg-black/30 border border-mauve/10 rounded p-2 text-charcoal/70 text-sm font-mono focus:border-green-500 focus:outline-none"
-                          placeholder="key"
-                          value={field.key}
-                          onChange={(e) => updateCustomField(i, { key: e.target.value })}
-                        />
-                        <button type="button" onClick={() => removeCustomField(i)} className="text-red-600/70 hover:text-red-600 px-1">✕</button>
+                        <div className="flex gap-2">
+                          <input
+                            className="flex-1 sm:w-28 sm:flex-none bg-black/30 border border-mauve/10 rounded p-2 text-charcoal/70 text-sm font-mono focus:border-green-500 focus:outline-none"
+                            placeholder="key"
+                            value={field.key}
+                            onChange={(e) => updateCustomField(i, { key: e.target.value })}
+                          />
+                          <button type="button" onClick={() => removeCustomField(i)} className="text-red-600/70 hover:text-red-600 px-1">✕</button>
+                        </div>
                       </div>
                       <div className="flex gap-2 items-center">
                         <select

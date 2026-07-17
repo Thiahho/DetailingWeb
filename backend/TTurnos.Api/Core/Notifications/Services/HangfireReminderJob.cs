@@ -4,7 +4,7 @@ namespace TTurnos.Api.Core.Notifications;
 
 public class HangfireReminderJob(
     ApplicationDbContext db,
-    INotificationProvider wsp,
+    IEnumerable<INotificationProvider> notificationProviders,
     NotificationService notificationService,
     IConfiguration configuration,
     ILogger<HangfireReminderJob> logger
@@ -12,6 +12,15 @@ public class HangfireReminderJob(
 {
     // Margen para no perder reminders en el borde del ciclo de 5 min
     private readonly TimeSpan _lookahead = TimeSpan.FromMinutes(6);
+
+    // En Testing solo hay un provider (Noop, Channel="Noop") — en ese caso caemos al
+    // único disponible, igual que la vieja inyección directa de INotificationProvider.
+    private INotificationProvider Whatsapp =>
+        notificationProviders.FirstOrDefault(p => p.Channel == "WhatsApp")
+        ?? notificationProviders.Last();
+
+    private INotificationProvider? Email =>
+        notificationProviders.FirstOrDefault(p => p.Channel == "Email");
 
     public async Task ProcessPendingRemindersAsync()
     {
@@ -61,11 +70,33 @@ public class HangfireReminderJob(
             }
             else
             {
-                // ── Sin booking: solo WhatsApp directo ──
+                // ── Sin booking: WhatsApp directo + email si el cliente tiene uno cargado ──
                 var message = BuildMessage(reminder);
-                var result = await wsp.SendDirectAsync(reminder.CustomerProfile.Phone, message);
+                var result = await Whatsapp.SendDirectAsync(reminder.CustomerProfile.Phone, message);
                 log.Status = "Sent";
                 log.ProviderMessageId = result.ProviderMessageId;
+                log.Channel = "WhatsApp";
+
+                // Best-effort: si falla el email no marcamos el recordatorio como fallido,
+                // el WhatsApp ya se mandó (canal principal para este tipo de aviso).
+                if (Email is not null && !string.IsNullOrWhiteSpace(reminder.CustomerProfile.Email))
+                {
+                    try
+                    {
+                        var emailResult = await Email.SendToAddressAsync(
+                            reminder.CustomerProfile.Email!,
+                            new NotificationMessage { Subject = reminder.ServiceLabel, Body = message });
+
+                        if (emailResult.Success)
+                            log.Channel = "WhatsApp+Email";
+                        else
+                            logger.LogWarning("Email a {Email} no enviado: {Error}", reminder.CustomerProfile.Email, emailResult.Error);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Error enviando email a {Email}", reminder.CustomerProfile.Email);
+                    }
+                }
             }
 
             reminder.Status = ReminderStatus.Sent;

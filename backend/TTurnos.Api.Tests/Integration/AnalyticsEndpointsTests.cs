@@ -41,5 +41,6 @@ public class AnalyticsEndpointsTests
         Assert.True(body.TryGetProperty("totalBookings", out _));
         Assert.True(body.TryGetProperty("occupancyRate", out _));
         Assert.True(body.TryGetProperty("topServices", out _));
+        Assert.True(body.TryGetProperty("professionalStats", out _));
     }
 }

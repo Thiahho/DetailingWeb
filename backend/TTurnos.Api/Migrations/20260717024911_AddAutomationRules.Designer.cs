@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TTurnos.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TTurnos.Api.Infrastructure.Persistence;
 namespace TTurnos.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260717024911_AddAutomationRules")]
+    partial class AddAutomationRules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,10 +47,6 @@ namespace TTurnos.Api.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClientLabel")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<int>("CooldownDays")
                         .HasColumnType("integer");
@@ -103,17 +102,12 @@ namespace TTurnos.Api.Migrations
                     b.Property<DateTime>("ExecutedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<int?>("ScheduledReminderId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("TenantId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerProfileId");
-
-                    b.HasIndex("ScheduledReminderId");
 
                     b.HasIndex("TenantId");
 
@@ -1600,11 +1594,6 @@ namespace TTurnos.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.Core.Clients.ScheduledReminder", "ScheduledReminder")
-                        .WithMany()
-                        .HasForeignKey("ScheduledReminderId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -1614,8 +1603,6 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("AutomationRule");
 
                     b.Navigation("CustomerProfile");
-
-                    b.Navigation("ScheduledReminder");
 
                     b.Navigation("Tenant");
                 });
