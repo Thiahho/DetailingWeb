@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
+import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 
 interface ContentVideo {
   id: number;
@@ -23,14 +24,6 @@ const emptyForm = {
   order: 0,
 };
 
-type ToastType = "success" | "error";
-interface Toast {
-  id: number;
-  type: ToastType;
-  title: string;
-  message?: string;
-}
-
 export default function ContenidoAdminPage() {
   const router = useRouter();
   const [videos, setVideos] = useState<ContentVideo[]>([]);
@@ -38,13 +31,7 @@ export default function ContenidoAdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingVideo, setEditingVideo] = useState<ContentVideo | null>(null);
   const [formData, setFormData] = useState(emptyForm);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
-  const showToast = useCallback((type: ToastType, title: string, message?: string) => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, type, title, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
-  }, []);
+  const { toasts, showToast, removeToast } = useToast();
 
   const loadVideos = useCallback(async () => {
     try {
@@ -121,19 +108,7 @@ export default function ContenidoAdminPage() {
 
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6">
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`rounded-lg px-4 py-3 text-sm text-charcoal ${
-              t.type === "success" ? "bg-green-600" : "bg-red-600"
-            }`}
-          >
-            <p className="font-semibold">{t.title}</p>
-            {t.message && <p className="text-charcoal/80">{t.message}</p>}
-          </div>
-        ))}
-      </div>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
 
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between">

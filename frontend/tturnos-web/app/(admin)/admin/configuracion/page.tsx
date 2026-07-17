@@ -39,36 +39,44 @@ export default function ConfiguracionPage() {
       router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login");
       return;
     }
-    loadConfig();
-  }, [router]);
-
-  const loadConfig = async () => {
-    try {
-      const res = await fetch("/api/siteconfig");
-      if (res.ok) {
-        const data = await res.json();
-        setFormData({
-          businessName: data.businessName || "",
-          whatsAppNumber: data.whatsAppNumber || "",
-          instagramUrl: data.instagramUrl || "",
-          instagramHandle: data.instagramHandle || "",
-          location: data.location || "",
-          locationShort: data.locationShort || "",
-          mapEmbedUrl: data.mapEmbedUrl || "",
-          siteUrl: data.siteUrl || "",
-          logoUrl: data.logoUrl || "",
-          heroTitle: data.heroTitle || "",
-          heroSubtitle: data.heroSubtitle || "",
-          heroBadge: data.heroBadge || "",
-          metaDescription: data.metaDescription || "",
-        });
+    // React StrictMode invoca este efecto dos veces en dev — sin el guard
+    // "ignore", la respuesta de la primera invocación puede resolver tarde
+    // (rutas frías = compilación on-demand lenta) y pisar con datos viejos
+    // lo que el usuario ya haya escrito en el form antes de guardar.
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/siteconfig");
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore) {
+            setFormData({
+              businessName: data.businessName || "",
+              whatsAppNumber: data.whatsAppNumber || "",
+              instagramUrl: data.instagramUrl || "",
+              instagramHandle: data.instagramHandle || "",
+              location: data.location || "",
+              locationShort: data.locationShort || "",
+              mapEmbedUrl: data.mapEmbedUrl || "",
+              siteUrl: data.siteUrl || "",
+              logoUrl: data.logoUrl || "",
+              heroTitle: data.heroTitle || "",
+              heroSubtitle: data.heroSubtitle || "",
+              heroBadge: data.heroBadge || "",
+              metaDescription: data.metaDescription || "",
+            });
+          }
+        }
+      } catch (error) {
+        logError("Error cargando configuración:", error);
+      } finally {
+        if (!ignore) setLoading(false);
       }
-    } catch (error) {
-      logError("Error cargando configuración:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

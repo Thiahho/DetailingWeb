@@ -465,3 +465,196 @@ Alcance según el PRD (sección 7 de este documento): ficha extendida con cumple
 - Suite completa de e2e (18 specs) corrida con `--workers=3`: **15/18**. De los 3 fallos, `admin-agenda.spec.ts` y `admin-clientes.spec.ts` son la misma flakiness bajo carga paralela ya documentada (secciones 9 y 13) — confirmado corriéndolos solos, donde pasan limpio.
 
 **Hallazgo nuevo (16/07), no investigado — fuera de alcance de esta sesión:** `admin-config.spec.ts` (nombre del negocio) empezó a fallar de forma consistente, incluso corrido en soledad y con `.next/cache` borrado a mano — el valor que persiste tras recargar no es el que el test acaba de guardar, sino uno de una corrida anterior. Se confirmó por `git status` que esta sesión no tocó ningún archivo de `admin/configuracion` ni `api/siteconfig`, así que no es una regresión de Caja, pero tampoco se diagnosticó la causa real (candidatos: el mismo patrón de cache de Next.js ya documentado en la sección 9, o un bug real en cómo `SiteConfigRepository` resuelve la fila vigente tras muchas corridas de e2e acumuladas en la misma base sin resetear — sección 9 y 12 ya advierten que `bd_turnos_e2e` no se resetea sola). Queda pendiente de investigar en una próxima sesión.
+
+---
+
+## 16. Actualización — sesión 16/07 (continuación) — Avisos manuales, aviso al profesional, limpieza de "Vehículo", calendario responsive
+
+Continuación de la misma fecha (16/07) sobre el estado de la sección 15, en una conversación distinta enfocada en pulir el flujo de avisos de Clientes, sumar un canal de aviso al profesional, y llevar el calendario semana/día (sección 12) a un estado usable en mobile. No se generó ninguna migración EF nueva en esta sesión — todos los cambios de backend son sobre DTOs/servicios/config existentes.
+
+### Bug: el selector de profesional desaparecía en "Nuevo aviso" si no había mapeo servicio↔profesional
+
+`ReminderForm` (`app/(admin)/admin/clientes/page.tsx`) filtraba los profesionales disponibles por `p.services?.some(s => s.id === selectedServiceObj.id)` — el mismo criterio que la reserva pública. Como asignar servicios a un profesional es opcional en su ficha (`/admin/profesionales`, `serviceIds` arranca en `[]`), en cuanto esa carga faltaba (algo común, sobre todo en salones que recién arrancan con el módulo multi-profesional) el selector quedaba completamente vacío — ni siquiera se podía crear el turno manual, porque ese modo exige elegir profesional y no había ninguno para elegir. Confirmado con datos reales del entorno local: los profesionales sembrados por la propia suite de e2e tienen `services: []`. **Fix aplicado:** si ningún profesional tiene el servicio vinculado, el selector cae a mostrar todos los profesionales activos en vez de bloquear — tiene sentido acá porque es el admin asignando el turno a mano, no un cliente autoreservándose (criterio distinto al de la reserva pública, documentado en el propio comentario del código).
+
+**De paso:** si el cliente ya tiene un `favoriteProfessionalId` cargado (CRM, sección 13), el formulario ahora lo preselecciona al abrir "Nuevo aviso" — sigue siendo editable, no reemplaza la posibilidad de elegir "Sin preferencia" u otro profesional.
+
+### Panel principal: bloque "Próximos avisos programados" + envío manual + "marcar enviado"
+
+Pedido explícito: un bloque en el panel (`/admin`, no solo dentro de la ficha de cada cliente) para ver los avisos `Pending` próximos y poder mandarlos a mano (WhatsApp/email) si el automático no corrió o no está configurado.
+
+- **Backend:** `ReminderResponse` (`Core/Notifications/DTOs/ReminderModels.cs`) suma `CustomerEmail` (antes solo tenía `CustomerName`/`CustomerPhone`, insuficiente para armar un `mailto:`). `ReminderService.MarkSentAsync(id)` marca un `ScheduledReminder` `Pending`/`Failed` como `Sent` sin pasar por el envío automático — para que el job recurrente de Hangfire no lo vuelva a mandar más tarde si el admin ya lo mandó a mano. Nuevo endpoint `POST /api/reminders/{id}/mark-sent` en `RemindersController.cs`.
+- **Frontend:** proxy nuevo `app/api/reminders/[id]/mark-sent/route.ts` (mismo patrón que `.../cancel`). El Panel principal (`app/(admin)/admin/page.tsx`) suma una sección arriba de las stats: lista los avisos `Pending` (`GET /api/reminders?status=Pending`, endpoint que ya existía sin usar desde el frontend), con un botón **WhatsApp** (`wa.me` con el mensaje precargado, mismo patrón ya usado en `/admin/turnos`/`/admin/calendario`/`/admin/historial`), un botón **Email** (`mailto:`, solo si el cliente tiene email) y **Marcar enviado**.
+
+### Panel principal: modal de detalle al hacer clic en un turno
+
+`/admin` mostraba los turnos en tabla/cards pero sin forma de ver el detalle completo sin ir a Calendario o Turnos. Se agregó un modal de detalle (cliente, teléfono, servicio, detalle del turno, especialista, pago si tiene, mensaje, botones WhatsApp/Liberar-Cancelar) al clickear cualquier turno con reserva, reusando el mismo patrón visual ya construido en `/admin/calendario` (sección 12). Los turnos libres no son clickeables; el botón de liberar dentro de la fila/card usa `stopPropagation` para no disparar el modal sin querer.
+
+### Aviso por email al profesional asignado al crear un turno
+
+Pedido: que el sistema notifique al profesional (no solo al cliente/admin) cuando se le carga un turno nuevo, con un link que lo lleve a su agenda con el turno resaltado.
+
+**Backend** (`Core/Notifications/`, `Infrastructure/Integrations/`, `Shared/Interfaces/NotificationContracts.cs`):
+- Nuevo método en la interfaz `INotificationProvider`: `SendToAddressAsync(toEmail, message)` — espejo de `SendDirectAsync(phone, ...)` que ya existía para WhatsApp, pero para email a una dirección arbitraria (no la del cliente del booking). Implementado en `GmailProvider` (reusa el bloque SMTP existente, extraído a un helper privado compartido con `SendAsync`), y como "no soportado" en `WhatsAppProvider`/`EmailProvider`(Resend)/`NoopNotificationProvider`/`FakeNotificationProvider` (tests) — todos los implementadores de la interfaz debieron actualizarse para seguir compilando.
+- Nuevo evento `NotificationEventType.ProfessionalBookingCreated`, tokens de template nuevos (`{{profesional}}`, `{{telefono_cliente}}`, `{{link_agenda}}`) en `NotificationTemplateService`, template default en `appsettings.json` (`Templates:ProfessionalBookingCreated`), toggle `Notifications:NotifyProfessional` (default `true`) y `Notifications:ProfessionalAgendaBaseUrl` (no se agregó a `appsettings.Production.json` — mismo criterio ya usado ahí para `MyBookingsBaseUrl`, se apoya en el fallback hardcodeado del código).
+- `NotificationService.DispatchForBookingAsync`, en el evento `BookingCreated`, llama a un nuevo método privado `TryNotifyProfessionalAsync`: resuelve el email vía `Users` (`Role="Professional"`, mismo `ProfessionalId`+`TenantId` que el booking — el email del profesional vive en `User`, no en `Professional`), arma el link `{agendaBaseUrl}?bookingId={id}`, y lo manda por el provider de `Channel == "Email"`. Todo en try/catch (best-effort: un fallo acá no debe romper la reserva ni las notificaciones al cliente) y el `NotificationLog` que genera tiene `IsRetryable = false` a propósito, para que `RetryPendingAsync` (que reconstruye datos orientados al cliente, no sabe nada de profesionales) nunca lo reprocese.
+
+**Frontend:** `/profesional/agenda` (`app/(professional)/profesional/agenda/page.tsx`) ahora lee `?bookingId=` de la URL (`useSearchParams`, envuelto en `<Suspense>` — mismo patrón ya usado en `/cancelar`, necesario en Next 14 para no forzar toda la ruta a client-side rendering) y resalta con badge "NUEVO" + auto-scroll (`scrollIntoView`) el turno que coincide con ese id.
+
+**Explícitamente fuera de alcance:** un "enviar ahora" que dispare el mismo canal automático (WhatsApp Business API + email) bajo demanda — se limitó a WhatsApp/email manual del lado del admin (Panel principal) y al aviso automático al profesional al crear el turno, no se construyó un botón de reenvío forzado del automático.
+
+### Limpieza de campo fantasma "Vehículo" en todo el frontend
+
+El backend reemplazó `Vehicle` por `Subject` hace mucho (migración histórica `ReplaceVehicleWithSubjectOnBooking`, visible en `Migrations/`), pero el frontend nunca terminó de migrar: varias interfaces TypeScript seguían declarando y mostrando `vehicle`, un campo que **ningún endpoint del backend devuelve realmente** (confirmado leyendo `TimeSlotsController`, `BookingsController.GetBooking`, `AnalyticsRepository.GetUpcomingBookingsAsync` — todos proyectan `Subject`, ninguno `Vehicle`) — el dato mostrado era siempre `undefined`/`—`. Más grave: el modal "Nueva reserva" de `/admin/calendario` tenía un input **"Vehículo" marcado `required`** que no se guardaba en ningún lado (el payload lo mandaba, pero ni el backend ni ninguna vista posterior lo leían), duplicando innecesariamente al campo real "Detalle del turno".
+
+**Fix aplicado** (reemplazo `vehicle`→`subject`, label "Detalle" en la UI): `app/(admin)/admin/page.tsx`, `app/(admin)/admin/calendario/page.tsx` (+ se eliminó el input "Vehículo" del formulario de reserva manual), `app/(admin)/admin/estadisticas/page.tsx`, `app/(client)/cancelar/page.tsx`, y los emails de confirmación/cancelación/reprogramación en `app/api/bookings/route.ts` y `app/api/bookings/[...path]/route.ts` (mostraban "Vehículo" con datos que nunca se guardaban). Se actualizaron `e2e/admin-agenda.spec.ts` y `e2e/admin-calendario.spec.ts` para dejar de rellenar el input eliminado.
+
+### Calendario semana/día: rediseño visual, toasts en vez de `alert()`, y crear turno al arrastrar dentro del horario laboral
+
+Continuación directa de la Agenda multi-profesional de la sección 12: pedido de mejorar el diseño (calificado por el usuario de "poco dinámico") y la UX de la notificación de error al arrastrar un turno sin destino libre.
+
+- **Rediseño visual** (`src/components/calendar/agenda-calendar.css`, nuevo): `react-big-calendar` corría 100% con su hoja de estilos default (gris, sin relación con la paleta `cream/ivory/mauve/blush/champagne` del resto del admin) — cero overrides existían en el repo. Se agregaron: bordes retinteados en mauve, "hoy" resaltado en champagne suave, línea de "ahora" en blush, pills de evento con sombra + hover con elevación, texto truncado con ellipsis. Toolbar interno de la librería reemplazado por uno propio (◄ ► Hoy + fecha, mismo lenguaje visual que el resto del panel) y `resourceHeader` custom con un punto de color (`Professional.CalendarColor`) junto al nombre de cada columna.
+- **Toasts en vez de `alert()` nativo:** `AgendaCalendar.tsx` tenía un `alert("No hay ningún turno disponible ese día para ese profesional.")` en `handleEventDrop`, y `admin/calendario/page.tsx` tenía dos más iguales en `handleReschedule` (error y catch) — los tres reemplazados por el mismo sistema de toast ya usado en `/admin/turnos`, `/admin/caja`, `/admin/profesionales`, `/admin/servicios`, `/admin/galeria`, `/admin/productos` (copiado, no extraído a componente compartido — six archivos ya duplican el mismo patrón, no se tocaron). El mensaje de error ahora nombra al profesional real en vez de "ese profesional", y se agregó un toast de éxito al reprogramar (antes quedaba mudo).
+- **Crear turno al arrastrar dentro del horario laboral (pedido explícito):** si al soltar un turno reservado no hay ningún turno libre ese día para el profesional destino, antes de mostrar el error se chequea `Professional.Schedule` (mismo criterio que `ProfessionalsController.IsWorkingDuringSlot` del backend: sin horario cargado = siempre disponible) contra el punto exacto donde se soltó. Si cae dentro de la jornada, se crea un `TimeSlot` nuevo ahí (`POST /api/timeslots`) y recién ahí se reprograma la reserva sobre él (`onCreateAndReschedule`, nuevo prop de `AgendaCalendar`) — con un toast de éxito distinto que aclara que se creó un turno nuevo. Si cae fuera de la jornada, o el turno estaba "Sin asignar" (no hay horario propio contra qué validar), se mantiene el aviso de error. No cambia el comportamiento existente cuando sí hay un turno libre ese día (sigue snapeando al más cercano).
+
+### Tamaño ajustable (S/M/L) y bug crítico de layout roto en mobile
+
+Pedido: "jugar con el tamaño" del calendario y sus "notas" (el texto de cada evento), responsive y adaptado a mobile.
+
+- **Control de densidad:** tres botones S/M/L (420/640/820px de alto) en el toolbar propio, persistidos en `localStorage`, con default automático a compacto si la primera visita es desde una pantalla angosta (`window.innerWidth < 768`). Contenedor de la grilla envuelto en `overflow-x-auto` con un `min-width` calculado según cantidad de columnas de profesional (×7 si es vista semana), para que en mobile la grilla scrollee horizontal en vez de comprimirse hasta ser ilegible.
+- **Bug crítico encontrado con verificación real en navegador, no solo lectura de código:** tras el primer corte, el usuario reportó "MODO MOBILE no se adapta el calendario". Se diagnosticó levantando un Playwright standalone contra los dev servers ya corriendo (backend `:5048`, frontend `:3000`), reusando la sesión de admin ya autenticada (`e2e/.auth-admin.json`) en viewport de 390px, midiendo `document.documentElement.scrollWidth` vs `clientWidth` y recorriendo la cadena de ancestros con `getComputedStyle` — confirmó que **toda la página** (no solo el calendario) se estiraba a ~1300px de ancho en un viewport de 390px. Causa raíz: `app/(admin)/admin/layout.tsx` tiene `<div class="flex"><Sidebar/><main class="flex-1">` — un `flex-1` sin `min-width: 0` no se achica por debajo del contenido más ancho que tenga adentro (el clásico bug de `min-width: auto` implícito en flex items), así que el `min-width` en píxeles del calendario (hasta 10920px con los ~12 profesionales de prueba acumulados en la base × 7 días de la vista semana) se propagaba hacia arriba y estiraba toda la página en vez de quedar contenido en su propio `overflow-x-auto`. **Fix:** `min-w-0` en ese `<main>` — el fix estándar para este problema, sin efecto en desktop. Reverificado con el mismo script: `scrollWidth === clientWidth` tanto en semana como en día, en 390px y en 1440px.
+- **Segundo hallazgo del mismo diagnóstico:** el control S/M/L, al vivir dentro del toolbar interno de la librería, quedaba dentro del área con scroll horizontal — en mobile, invisible sin scrollear primero (confirmado midiendo la posición del control contra el viewport visible: `visibleWithoutScroll: false`). **Fix:** el toolbar se sacó por completo del árbol de `react-big-calendar` (`toolbar={false}` en el `Calendar`, navegación/label calculados a mano en `AgendaCalendar.tsx` usando `date-fns` con locale `es`) y se renderiza afuera del contenedor con scroll — siempre visible. Al mover el label fuera de RBC aparecieron dos bugs propios de la primera implementación, encontrados con el mismo método de verificación visual: faltaba `{ locale: es }` en el formato del rango semanal (mostraba "13 – 19 De July"), y la clase `capitalize` de Tailwind ponía mayúscula en cada palabra en vez de solo la primera del texto — ambos corregidos y reverificados con captura de pantalla.
+- **Regresión propia encontrada antes de cerrar la sesión:** mover el toolbar rompió `e2e/admin-agenda.spec.ts`, que ubicaba el botón "Siguiente" por accesibilidad (`getByRole("button", { name: "Siguiente" })`, texto que generaba el toolbar default de RBC vía la prop `messages`). El toolbar propio nuevo usa `aria-label="Período siguiente"`, distinto texto. **Fix:** se agregaron `data-testid="agenda-toolbar-{prev,next,today}"` a los tres botones (más robusto que matchear texto accesible) y se actualizó el spec para usarlos. Verificado con un script Playwright standalone (no la suite completa, ver nota de alcance abajo): los tres botones son visibles y clickeables, y click en "Siguiente"/"Hoy" cambia el label del rango correctamente ("13 – 19 de julio" → "20 – 26 de julio" → "13 – 19 de julio").
+
+**Verificado en esta sesión:**
+- `dotnet build` (backend) y `npx tsc --noEmit` + `npx next build` (frontend, corrido varias veces a medida que se iba iterando): 0 errores en todos los casos.
+- Verificación visual real con Playwright standalone (no como parte de la suite `e2e/`) contra los dev servers ya corriendo, con sesión de admin autenticada: capturas de pantalla en 390px y 1440px confirmando el fix del layout mobile, medición de `scrollWidth`/`clientWidth` antes y después del fix, y confirmación funcional de que los botones de navegación del nuevo toolbar responden y cambian el estado.
+- **No se corrió la suite completa de e2e (`npx playwright test`)** en esta sesión — los `webServer` de `playwright.config.ts` tienen `reuseExistingServer: false` a propósito (ver sección 9), y los dev servers ya estaban corriendo manualmente en los mismos puertos para las verificaciones puntuales de arriba; correrla habría requerido primero bajarlos. Quedó verificado narrowly el punto exacto de la regresión encontrada (selectores del nuevo toolbar), pero **no** el flujo completo de `admin-agenda.spec.ts` de punta a punta (crear turnos, reservar, arrastrar, reprogramar) ni el resto de la suite (18 specs a esta altura). Recomendado antes de dar por cerrada esta sesión: correr `npx playwright test --workers=3` con los dev servers manuales apagados.
+- **No se corrió `dotnet test`** (requiere Docker/Testcontainers, no disponible en el entorno de esta sesión) — los cambios de backend son aditivos (nuevo método de interfaz implementado en los 5 providers existentes, nuevo endpoint, nuevos campos de DTO) y no tocan lógica de negocio existente, pero igual que en la sesión 10, no se puede dar por cerrado sin correr la suite (68 tests) al menos una vez.
+
+**Explícitamente fuera de alcance de esta sesión:** un componente de Toast compartido (sigue duplicado en 7 archivos ahora, incluyendo `admin/calendario/page.tsx`); soporte táctil real para el drag&drop en mobile (la librería lo permite pero no se probó, mismo pendiente ya anotado en la sección 12); mover el CRUD de Reminders/CustomerProfile fuera de `RemindersController` (deuda ya señalada en la sección 13, no se tocó).
+
+---
+
+## 17. Actualización — sesión 16/07 (cierre de los dos pendientes de la sección 16: suite e2e completa y `dotnet test`)
+
+Continuación directa de la sección 16, en una conversación distinta, dedicada exclusivamente a correr ambas suites completas hasta dejarlas verdes.
+
+### Bug de config encontrado al levantar la suite e2e: password de Postgres desactualizada
+
+Al correr `npx playwright test --workers=3`, el `webServer` del backend (`ASPNETCORE_ENVIRONMENT=Testing`) fallaba al arrancar con `28P01: la autentificación password falló para el usuario «postgres»` al aplicar las migraciones. `appsettings.Testing.json` tenía `Password=123456`, pero la instancia local de Postgres usa `456789` (la misma que ya está en `appsettings.json` por defecto) — desactualizada desde antes de esta sesión, no una regresión de la sección 16. **Fix:** `appsettings.Testing.json` → `Password=456789`.
+
+### Bug real encontrado por la suite: modal sin scroll deja el botón "Reservar y programar aviso" inalcanzable
+
+Con la password corregida, la suite corrió 17/18 — falló `admin-clientes.spec.ts` con `element is outside of the viewport` reintentando el click sobre `reminder-form-submit` durante 45s. Causa raíz: el componente `Modal` compartido en `app/(admin)/admin/clientes/page.tsx` (usado tanto por `CustomerForm` como por `ReminderForm`) no tenía `max-height` ni `overflow-y-auto` en su contenedor — el div de contenido crecía sin límite. Con los ~13 profesionales ya acumulados en `bd_turnos_e2e` (problema de fondo ya documentado en las secciones 9 y 12: la base de e2e no se resetea sola), la grilla de botones "Profesional" del `ReminderForm` empujó el formulario más allá de la altura del viewport, y sin mecanismo de scroll el botón de submit quedó permanentemente fuera de alcance. **No es un problema exclusivo del entorno de test:** cualquier salón real con un equipo de profesionales numeroso pegaría contra el mismo bug al intentar reservar un turno y programar un aviso desde la ficha de un cliente. **Fix aplicado:** `max-h-[90vh] flex flex-col` en el contenedor del modal y `overflow-y-auto` en el div de contenido (`app/(admin)/admin/clientes/page.tsx`, componente `Modal`). Reverificado: `admin-clientes.spec.ts` pasa dentro de la corrida completa.
+
+Nota aparte: correr `admin-clientes.spec.ts` en soledad (`--workers=1`, un solo spec) mostró un fallo distinto y no relacionado ("No hay turnos disponibles" al elegir fecha) que no se reprodujo corriendo la suite completa — probablemente un artefacto de orden/timing de siembra específico de aislar ese spec (el profesional recién creado en `global-setup.ts` se crea después del `PUT /api/businesssettings` que dispara la generación de turnos, y solo el conjunto completo de specs corriendo en paralelo parece dejarlo con turnos disponibles). No investigado a fondo — la corrida que importa (la suite completa) pasó limpia, y no es cómo se corre normalmente.
+
+### Resultado final
+
+- **`npx playwright test --workers=3`: 18/18 ✅** (1.6 min).
+- **`dotnet test` (backend, con Docker/Testcontainers ya disponible en este entorno a diferencia de la sesión 16): 78/78 ✅**, 0 fallos, 0 omitidos, 14s. Confirma que los cambios aditivos de la sección 16 (endpoint `mark-sent`, `SendToAddressAsync` en los 5 providers, nuevos campos de DTO) no rompieron nada existente. Warnings preexistentes sin relación (vulnerabilidad moderada en `MailKit` 4.15.1, conflicto de versión `Microsoft.EntityFrameworkCore.Relational` 9.0.0 vs 9.0.1) — no bloqueantes, no investigados en esta sesión.
+
+Con esto quedan cerrados los dos pendientes explícitos que la sección 16 dejó abiertos. **Siguen pendientes, sin tocar:** el hallazgo de `admin-config.spec.ts` fallando en soledad con cache sucio (sección 15), el componente de Toast compartido, el soporte táctil para drag&drop en mobile, y mover el CRUD de Reminders/CustomerProfile fuera de `RemindersController`.
+
+---
+
+## 18. Actualización — sesión 16/07 (cierre del hallazgo de `admin-config.spec.ts`)
+
+Continuación directa de la sección 17, en la misma conversación, atacando en orden el primer pendiente de la lista.
+
+### Bug real encontrado: no era cache de Next.js ni filas duplicadas — era una carrera en el `useEffect` de carga
+
+El hallazgo de la sección 15 especulaba dos candidatos (cache de Next.js, o `SiteConfigRepository` resolviendo mal la fila vigente). Ambos descartados con evidencia directa:
+
+- `SELECT * FROM "SiteConfigs"` contra `bd_turnos_e2e` (vía `docker run postgres:16-alpine psql -h host.docker.internal`, bypaseando toda capa de Next.js) mostró **una sola fila** — no hay condición de carrera de filas duplicadas ni ambigüedad de `FirstOrDefaultAsync()` sin `ORDER BY`.
+- Reproducido el fallo corriendo `admin-config.spec.ts` en soledad (`.next/cache` borrado a mano): tras el fallo, la misma consulta directa a la base mostró la fila con `UpdatedAt` recién actualizado (el PUT sí llegó y sí escribió) pero `BusinessName` con el valor **viejo**, no el que el test acababa de tipear. Eso descarta cache de lectura (GET) como causa — el problema está en qué value viajó en el body del PUT.
+
+**Causa raíz:** `ConfiguracionPage` (`app/(admin)/admin/configuracion/page.tsx`) cargaba el config en un `useEffect` sin guard de "ignorar respuesta tardía". React StrictMode (activo por default en Next.js App Router, sin `reactStrictMode: false` en `next.config.js`) invoca los efectos dos veces al montar en modo dev. En una corrida en soledad, con rutas "frías" (compilación on-demand lenta de `/admin/configuracion` y de la ruta proxy `/api/siteconfig`, mismo patrón ya documentado en `global-setup.ts`), la segunda invocación del efecto podía resolver **después** de que el test ya había tipeado el nuevo nombre — y su `setFormData(...)` sin guardas pisaba el estado entero con los datos viejos recién fetcheados, justo antes de que Playwright clickeara "Guardar". El PUT entonces salía con el valor viejo (de ahí el `UpdatedAt` nuevo con `BusinessName` viejo). En la suite completa esto no se ve porque para cuando corre este spec las rutas ya están compiladas (warm) y ambas invocaciones del efecto resuelven casi instantáneas, cerrando la ventana de carrera.
+
+**Fix aplicado:** guard estándar de React (`let ignore = false` + `return () => { ignore = true }`) alrededor del fetch inline en el `useEffect`, descartando `setFormData`/`setLoading` si el efecto ya fue invalidado por una invocación posterior.
+
+**Verificado:** `admin-config.spec.ts` en soledad con `.next/cache` borrado, corrido dos veces — pasa limpio (31s). Suite completa (`npx playwright test --workers=3`) re-corrida después del fix: **18/18 ✅**.
+
+**Nota:** el mismo patrón (`useEffect` sin guard de "ignore" antes de `setState` en un fetch de carga inicial) es potencialmente replicable en otras páginas admin que siguen la misma estructura — no auditado en esta sesión, alcance limitado al spec que efectivamente estaba fallando.
+
+---
+
+## 19. Actualización — sesión 16/07 (cierre del fallo aislado de `admin-clientes.spec.ts`)
+
+Segundo pendiente de la lista, mismo patrón de bug que la sección 18 confirmado en un componente distinto.
+
+### Causa raíz: mismo anti-patrón (fetch sin guard de "ignore"), esta vez en `ReminderForm`
+
+Reproducido de forma consistente corriendo `admin-clientes.spec.ts` en soledad: falla con "No hay turnos disponibles" al elegir fecha, pese a que consultas directas a la base (mismo método de la sección 18: `docker run postgres:16-alpine psql -h host.docker.internal`) confirmaron que el pool global de turnos sin asignar sí tenía disponibilidad (26 turnos futuros con `ProfessionalId` nulo e `IsAvailable=true`) en el momento exacto del fallo.
+
+`ReminderForm` (`app/(admin)/admin/clientes/page.tsx`) precarga `selectedProfessionalId` con el profesional favorito del cliente (sección 16), un profesional recién creado en `global-setup.ts` que nunca tiene turnos propios asignados (`POST /api/timeslots` con `ProfessionalId` explícito nunca se llamó para él). El `useEffect` que trae los turnos disponibles (`GET /api/timeslots/available?professionalId=X`) dispara con ese id apenas monta el formulario — request A, que el backend resuelve vacío porque `TimeSlotsRepository.GetAvailableAsync` filtra estricto por `ProfessionalId` cuando se pasa uno. Al elegir el servicio en el test, `handleServiceChange` resetea `selectedProfessionalId` a `null`, y el mismo efecto vuelve a dispararse — request B, sin filtro de profesional, que trae el pool global (con datos). Sin guard de cancelación, si A tarda más que B en resolver (plausible con rutas frías recién compiladas en una corrida aislada), su `.then` llega **después** y pisa el `slots` correcto de B con el resultado vacío de A.
+
+Exactamente el mismo anti-patrón que la sección 18 (`ConfiguracionPage`), en un `useEffect` distinto del mismo archivo. **Fix aplicado:** mismo guard `ignore` + cleanup en el `useEffect` de `ReminderForm` que hace `GET /api/timeslots/available`.
+
+**Verificado:** `admin-clientes.spec.ts` en soledad, dos corridas consecutivas — ambas pasan limpio (32s, 37s). Suite completa re-corrida después del fix: **18/18 ✅** (1.7 min).
+
+Con esto quedan cerrados los dos primeros puntos de la lista de pendientes. Dado que este mismo anti-patrón ya apareció dos veces en el mismo archivo, vale la pena tenerlo presente si aparecen más flakes de "datos viejos pisando datos nuevos" en otras páginas admin con `useEffect` de carga sin guard.
+
+---
+
+## 20. Actualización — sesión 16/07 (extracción del componente Toast compartido)
+
+Tercer punto de la lista de pendientes — deuda técnica pura (DRY), no un bug: el patrón de notificaciones toast estaba copy-pasteado en **8 páginas admin**, no 7 como decía la sección 16 (se sumó `admin/contenido/page.tsx`, no listado ahí). Se encontraron tres variantes con drift entre sí:
+
+- **Rica** (`turnos`, `calendario`): 4 tipos (incluye `info`), íconos SVG, animación de salida, `duration` configurable por toast. Los propios comentarios del código ("mismo patrón que /admin/turnos") ya señalaban esta como la referencia canónica.
+- **Simple** (`productos`, `caja`, `servicios`, `galeria`, `profesionales`): 3 tipos (sin `info`), sin íconos, duración fija (3700/4000ms), sin animación de entrada.
+- **Mínima** (`contenido`): 2 tipos (`success`/`error` únicamente), sin componente propio, `<div>` inline sin animación.
+
+**Fix aplicado:** extraído a `src/components/shared/Toast.tsx`, exportando `useToast()` (hook con `{ toasts, showToast, removeToast }`, usando un `useRef` como contador de id en vez de `Date.now()` a secas — el patrón original podía colisionar si dos toasts se disparaban en el mismo milisegundo) y `<ToastContainer />` (con la variante "rica" como diseño único, unificando visualmente las 8 páginas). Las 8 páginas se migraron a importar el hook/componente compartido y se les removió el bloque duplicado (tipo, interfaz, componente `ToastNotification` y a veces `ToastContainer` local).
+
+**Verificado:** `npx tsc --noEmit` (proyecto completo) sin errores; `npx next build` exitoso (41 páginas); suite e2e completa (`npx playwright test --workers=3`): **18/18 ✅**.
+
+Con esto se cierran los primeros tres puntos de la lista de pendientes. **Siguen pendientes:** soporte táctil para drag&drop en mobile del calendario, y mover el CRUD de Reminders/CustomerProfile fuera de `RemindersController`.
+
+---
+
+## 21. Actualización — sesión 16/07 (soporte táctil real para drag&drop en el calendario)
+
+Cuarto punto de la lista — el pendiente que la sección 16 había dejado anotado como "la librería lo permite pero no se probó". Al probarlo de verdad, resultó que la librería **no** lo permitía tal cual: había un bug real en `react-big-calendar` 1.20.0 (la última versión publicada, no hay fix upstream).
+
+### Causa raíz: `EventWrapper.handleStartDragging` descarta todo touch por un chequeo pensado solo para mouse
+
+Código fuente de `node_modules/react-big-calendar/lib/addons/dragAndDrop/EventWrapper.js` (leído directamente, no documentación): el handler que arranca el drag de un evento (cableado tanto a `onMouseDown` como a `onTouchStart`) empieza con `if (e.button !== 0) return;`. En un `TouchEvent`, la propiedad `button` no existe (`undefined`), así que `undefined !== 0` es `true` y la función corta **antes** de llamar a `onBeginAction` — todo `touchstart` se descartaba en silencio, sin importar el navegador o el dispositivo. El resto de la maquinaria de touch (`Selection.js`, el motor genérico de la librería) sí está completa: soporta `touchstart`/`touchmove`/`touchend`, `getEventCoordinates` extrae `touches[0]` correctamente, y hasta implementa un long-press de 250ms antes de armar el drag (para no pisar el scroll de la página) — ese único `if` en `EventWrapper` era el único punto roto.
+
+**Fix aplicado:** parcheado con `pnpm patch` (persiste el fix a través de reinstalaciones futuras vía `patches/react-big-calendar.patch` + `patchedDependencies` en `pnpm-workspace.yaml` — no es un fork, es la forma estándar de pnpm para fixear un bug de un paquete de terceros sin bifurcar el repo). El cambio: `if (e.button !== 0 && e.type !== 'touchstart') return;`.
+
+### Verificación real (no solo lectura de código)
+
+Confirmado con un script Playwright standalone (mismo patrón que la sección 16) contra los dev servers en Testing, con un contexto de navegador `hasTouch: true, isMobile: true` en viewport 390×844: se construyeron y dispararon `TouchEvent`s reales (`touchstart` → esperar >250ms por el long-press → `touchmove` en pasos → `touchend`) sobre un turno reservado en la vista Semana de `/admin/calendario`. Resultado: la clase `rbc-addons-dnd-dragged-event` apareció durante el movimiento (confirmando que el drag arrancó) y el turno terminó reprogramado con éxito — toast **"Turno reprogramado / Se movió a su nuevo horario."**, capturado en screenshot.
+
+Durante esta verificación aparecieron dos problemas del propio entorno de prueba (no del código de la app), documentados por si se repiten: (1) `TaskStop` sobre un proceso `npm run dev` backgroundeado no siempre mata al proceso real de Next.js (quedó un puerto 3000 zombie mientras un nuevo intento arrancaba en 3001/3002 — hubo que matar los PIDs a mano con `taskkill`); (2) mezclar una build de producción (`next build`, corrida en la sección 20 para verificar el refactor de Toast) con el mismo directorio `.next` que después usa `next dev` provoca 404 en los chunks estáticos — hace falta `rm -rf .next` completo (no solo `.next/cache`) antes de levantar el dev server después de una build de producción.
+
+**Verificado además:** suite e2e completa (`npx playwright test --workers=3`) con el patch instalado: **18/18 ✅** — el patch no rompe el drag&drop de mouse existente (mismo código, condición ampliada, no reemplazada).
+
+Con esto se cierran los primeros cuatro puntos de la lista. **Solo queda:** mover el CRUD de Reminders/CustomerProfile fuera de `RemindersController`.
+
+---
+
+## 22. Actualización — sesión 16/07 (separar CustomerProfile de RemindersController — deuda cerrada)
+
+Quinto y último punto de la lista de pendientes, señalado desde la sección 13. `RemindersController`/`ReminderService` mezclaban dos recursos distintos: `CustomerProfile` (ficha de cliente, CRM) y `ScheduledReminder` (avisos programados) — el mismo archivo tenía ambos CRUDs completos.
+
+### Split aplicado, sin cambiar ni una URL externa
+
+Para no romper el proxy del frontend (`app/api/reminders/customers/...`, que pega directo a rutas hardcodeadas del backend) ni los tests de integración existentes (`RemindersEndpointsTests.cs`, que también pegan a URLs literales), el split fue puramente interno — las rutas HTTP quedaron idénticas:
+
+- **Nuevo** `Core/Notifications/Services/CustomerProfileService.cs`: `GetProfilesAsync`, `GetProfileByIdAsync`, `CreateProfileAsync`, `UpdateProfileAsync`, `DeleteProfileAsync`, `GetCustomerHistoryAsync` (movidos tal cual desde `ReminderService`).
+- **Nuevo** `Core/Notifications/Controllers/CustomerProfilesController.cs`, con `[Route("api/reminders/customers")]` explícito (mismo prefijo de siempre, ahora fijo en vez de heredado de `[controller]`) — mismos 6 endpoints, mismos verbos, mismos códigos de respuesta.
+- `ReminderService.cs` y `RemindersController.cs` quedan reducidos a solo `ScheduledReminder` (`GetRemindersAsync`, `CreateReminderAsync`, `UpdateReminderAsync`, `CancelReminderAsync`, `MarkSentAsync` — este último agregado en la sección 16).
+- DTOs separados en dos archivos: `CustomerProfileModels.cs` (nuevo) y `ReminderModels.cs` (reducido a solo los records de `ScheduledReminder`).
+- `Program.cs`: se agregó `builder.Services.AddScoped<CustomerProfileService>();` junto al registro existente de `ReminderService`.
+
+Confirmado por grep que `ReminderService`/`RemindersController` no tenían otros consumidores en el código (solo se referenciaban entre sí y en `Program.cs`), así que no quedó nada más por actualizar del lado del backend.
+
+### Verificación
+
+- `dotnet build`: limpio.
+- `dotnet test`: **78/78 ✅**, incluye `RemindersEndpointsTests.cs` pegándole a las URLs literales (`/api/reminders`, `/api/reminders/customers`, `/api/reminders/customers/{id}`, `/api/reminders/{id}/cancel`) sin ninguna modificación — confirma que el split no cambió el contrato HTTP.
+- Suite e2e completa (`npx playwright test --workers=3`): **18/18 ✅**, con un hallazgo de infraestructura de testing en el camino — la base `bd_turnos_e2e` se quedó completamente sin turnos disponibles (0 de ~87 turnos futuros libres) por la cantidad de corridas completas de la suite acumuladas en esta única sesión (aprox. 10+ corridas entre las secciones 17 a 22). Causa: `TimeSlotGeneratorService.GenerateSlotsForDayAsync` solo evita duplicados por `StartDateTime` (sin filtrar por `IsAvailable`), así que una vez que un horario del día queda reservado, `RegenerateAllSlotsAsync` (que borra y recrea solo los turnos **disponibles**, nunca los reservados) ya no vuelve a generar un turno libre ahí — correcto para el negocio real (un turno reservado no debe "reaparecer" libre), pero agota la ventana fija de `MaxDaysInAdvance=10` días si se corre la suite demasiadas veces el mismo día calendario contra una base que nunca se resetea (mismo problema de fondo ya documentado en las secciones 9, 12, 13 y 15). Solucionado puntualmente borrando los `TimeSlots` futuros de `bd_turnos_e2e` a mano (confirmado antes que los `ON DELETE` de todas las FKs relacionadas —`BookingItems`, `Payments`, `NotificationLogs` en cascada; `CajaMovements`, `ScheduledReminders` a null— no iban a bloquear el borrado), no es un bug de la app ni algo introducido por esta sesión.
+
+Con esto quedan **cerrados los cinco puntos** de la lista de pendientes que arrancó en la sección 16.

@@ -1,0 +1,2 @@
+patchedDependencies:
+  react-big-calendar: patches/react-big-calendar.patch

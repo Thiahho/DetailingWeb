@@ -8,53 +8,6 @@ namespace TTurnos.Api.Core.Notifications;
 [Authorize(Roles = "Admin")]
 public class RemindersController(ReminderService reminderService) : ControllerBase
 {
-    // ── CustomerProfiles ─────────────────────────────────────────
-
-    [HttpGet("customers")]
-    public async Task<IActionResult> GetCustomers() =>
-        Ok(await reminderService.GetProfilesAsync());
-
-    [HttpGet("customers/{id:int}")]
-    public async Task<IActionResult> GetCustomer(int id)
-    {
-        var profile = await reminderService.GetProfileByIdAsync(id);
-        return profile is null ? NotFound() : Ok(profile);
-    }
-
-    [HttpPost("customers")]
-    public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerProfileRequest req)
-    {
-        var profile = await reminderService.CreateProfileAsync(req);
-        return CreatedAtAction(nameof(GetCustomer), new { id = profile.Id }, profile);
-    }
-
-    [HttpPut("customers/{id:int}")]
-    public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomerProfileRequest req)
-    {
-        try
-        {
-            var profile = await reminderService.UpdateProfileAsync(id, req);
-            return profile is null ? NotFound() : Ok(profile);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { error = ex.Message });
-        }
-    }
-
-    [HttpDelete("customers/{id:int}")]
-    public async Task<IActionResult> DeleteCustomer(int id)
-    {
-        var deleted = await reminderService.DeleteProfileAsync(id);
-        return deleted ? NoContent() : NotFound();
-    }
-
-    [HttpGet("customers/{id:int}/history")]
-    public async Task<IActionResult> GetCustomerHistory(int id) =>
-        Ok(await reminderService.GetCustomerHistoryAsync(id));
-
-    // ── ScheduledReminders ────────────────────────────────────────
-
     [HttpGet]
     public async Task<IActionResult> GetReminders([FromQuery] string? status = null) =>
         Ok(await reminderService.GetRemindersAsync(status));
@@ -100,6 +53,17 @@ public class RemindersController(ReminderService reminderService) : ControllerBa
         var cancelled = await reminderService.CancelReminderAsync(id);
         if (!cancelled)
             return NotFound(new { error = "Recordatorio no encontrado o ya enviado." });
+        return NoContent();
+    }
+
+    // El admin lo mandó a mano (WhatsApp/email personal) — evita que el job
+    // automático lo procese de nuevo más tarde.
+    [HttpPost("{id:int}/mark-sent")]
+    public async Task<IActionResult> MarkSent(int id)
+    {
+        var marked = await reminderService.MarkSentAsync(id);
+        if (!marked)
+            return NotFound(new { error = "Recordatorio no encontrado o ya procesado." });
         return NoContent();
     }
 }

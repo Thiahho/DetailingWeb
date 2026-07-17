@@ -13,4 +13,7 @@ public class FakeNotificationProvider : INotificationProvider
 
     public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default)
         => Task.FromResult(new NotificationSendResult { Success = true, ProviderMessageId = "fake-message-id" });
+
+    public Task<NotificationSendResult> SendToAddressAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken = default)
+        => Task.FromResult(new NotificationSendResult { Success = true, ProviderMessageId = "fake-message-id" });
 }

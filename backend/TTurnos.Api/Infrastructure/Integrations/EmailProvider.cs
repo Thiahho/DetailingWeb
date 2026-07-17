@@ -65,6 +65,48 @@ public class EmailProvider : INotificationProvider
     public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default) =>
         Task.FromResult(new NotificationSendResult { Success = false, Error = "EmailProvider no soporta envío directo por teléfono.", IsTransientFailure = false });
 
+    public async Task<NotificationSendResult> SendToAddressAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        if (!IsEnabled)
+        {
+            return new NotificationSendResult { Success = false, Error = "Email provider no configurado", IsTransientFailure = false };
+        }
+
+        var endpoint = _configuration["Notifications:Email:Endpoint"]!;
+        var payload = new
+        {
+            to = toEmail,
+            subject = message.Subject,
+            text = message.Body
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+        };
+
+        request.Headers.Add("Authorization", $"Bearer {_configuration["Notifications:Email:ApiKey"]}");
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return new NotificationSendResult
+            {
+                Success = true,
+                ProviderMessageId = TryExtractMessageId(responseBody)
+            };
+        }
+
+        return new NotificationSendResult
+        {
+            Success = false,
+            Error = responseBody,
+            IsTransientFailure = (int)response.StatusCode >= 500 || (int)response.StatusCode == 429
+        };
+    }
+
     private static string? TryExtractMessageId(string body)
     {
         try

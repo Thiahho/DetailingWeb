@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
+import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 
 type MovementType = "Charge" | "Deposit" | "Refund" | "ManualIn" | "ManualOut";
 type MovementMethod = "Cash" | "Transfer";
@@ -90,33 +91,6 @@ function movementTypeLabel(type: string) {
     case "ManualOut": return "Egreso manual";
     default: return type;
   }
-}
-
-// --- Toast ---
-type ToastType = "success" | "error" | "warning";
-interface Toast { id: number; type: ToastType; title: string; message?: string }
-
-function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => void }) {
-  const [exiting, setExiting] = useState(false);
-  useEffect(() => {
-    const t1 = setTimeout(() => setExiting(true), 3700);
-    const t2 = setTimeout(onClose, 4000);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [onClose]);
-
-  const colors = {
-    success: "from-green-600 to-green-500 border-green-400 shadow-green-500/30",
-    error: "from-red-600 to-red-500 border-red-400 shadow-red-500/30",
-    warning: "from-orange-600 to-orange-500 border-orange-400 shadow-orange-500/30",
-  };
-
-  return (
-    <div className={`bg-gradient-to-r ${colors[toast.type]} border rounded-xl p-4 pr-12 min-w-[300px] shadow-lg transition-all duration-300 ${exiting ? "translate-x-[120%] opacity-0" : "translate-x-0 opacity-100"}`}>
-      <p className="font-bold text-charcoal">{toast.title}</p>
-      {toast.message && <p className="text-charcoal/80 text-sm mt-1">{toast.message}</p>}
-      <button onClick={() => { setExiting(true); setTimeout(onClose, 300); }} className="absolute top-3 right-3 text-charcoal/60 hover:text-charcoal">✕</button>
-    </div>
-  );
 }
 
 function MovementModal({
@@ -357,7 +331,7 @@ export default function CajaAdminPage() {
   const [opening, setOpening] = useState(false);
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [movementModal, setMovementModal] = useState<{ mode: MovementMode; bookingId?: number; amount?: number } | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const { toasts, showToast, removeToast } = useToast();
 
   const [month, setMonth] = useState(() => {
     const d = new Date();
@@ -365,13 +339,6 @@ export default function CajaAdminPage() {
   });
   const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
   const [loadingMonthly, setLoadingMonthly] = useState(false);
-
-  const showToast = useCallback((type: ToastType, title: string, message?: string) => {
-    setToasts((prev) => [...prev, { id: Date.now(), type, title, message }]);
-  }, []);
-  const removeToast = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
 
   const loadCurrent = useCallback(async () => {
     try {
@@ -460,11 +427,7 @@ export default function CajaAdminPage() {
 
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
-      <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-3">
-        {toasts.map((t) => (
-          <ToastNotification key={t.id} toast={t} onClose={() => removeToast(t.id)} />
-        ))}
-      </div>
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
 
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">

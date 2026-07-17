@@ -7,7 +7,7 @@ interface BookingDetail {
   id: number;
   customerName: string;
   service: string;
-  vehicle: string;
+  subject: string;
   startDateTime: string;
   status: string;
   cancelledAt?: string;
@@ -128,7 +128,7 @@ function CancelarContent() {
 
               <div className="px-6 py-6 space-y-4">
                 <Row label="Nombre" value={booking.customerName} />
-                <Row label="Vehículo" value={booking.vehicle} />
+                <Row label="Detalle" value={booking.subject || "—"} />
                 <Row label="Servicio" value={booking.service || "—"} />
                 <Row label="Fecha y hora" value={formatDateFriendly(booking.startDateTime)} />
               </div>

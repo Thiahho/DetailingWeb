@@ -37,7 +37,7 @@ interface BookingDetail {
   customerName?: string;
   email?: string;
   customerPhone?: string;
-  vehicle?: string;
+  subject?: string;
   service?: string;
   startDateTime?: string;
   status?: string;
@@ -204,7 +204,7 @@ async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: s
             <p style="margin:0 0 12px;color:#4ade80;font-size:13px;text-transform:uppercase;letter-spacing:.1em;">Detalle de tu turno</p>
             <table style="width:100%;border-collapse:collapse;">
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Fecha y hora</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${turno}</td></tr>
-              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Vehículo</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.vehicle || "—"}</td></tr>
+              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Detalle</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.subject || "—"}</td></tr>
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Servicio</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.service || "—"}</td></tr>
             </table>
           </div>
@@ -346,7 +346,7 @@ export async function PATCH(
       notifyClientBookingConfirmed({
         email: body.email,
         customerName: body.customerName,
-        vehicle: body.vehicle,
+        subject: body.subject,
         service: body.service,
         startDateTime: body.startDateTime,
       }, params.path[0]).catch((emailErr) =>

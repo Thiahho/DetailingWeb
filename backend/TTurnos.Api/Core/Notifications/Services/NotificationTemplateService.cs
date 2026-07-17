@@ -150,6 +150,9 @@ public class NotificationTemplateService
             .Replace("{{fecha_hora}}", data.StartDateTime.ToString("dd/MM/yyyy HH:mm"))
             .Replace("{{ubicacion}}", data.Location)
             .Replace("{{link_cancelacion}}", data.CancellationLink)
-            .Replace("{{link_mis_turnos}}", data.MyBookingsLink);
+            .Replace("{{link_mis_turnos}}", data.MyBookingsLink)
+            .Replace("{{profesional}}", data.ProfessionalName ?? "")
+            .Replace("{{telefono_cliente}}", data.CustomerPhone ?? "")
+            .Replace("{{link_agenda}}", data.AgendaLink ?? "");
     }
 }

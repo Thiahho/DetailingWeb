@@ -1,0 +1,15 @@
+diff --git a/lib/addons/dragAndDrop/EventWrapper.js b/lib/addons/dragAndDrop/EventWrapper.js
+index 7135736b014a3b2cfe6d3b33e15f752b74053d8b..ff7e6cf75db6140806fe918fa9378d6704fc968a 100644
+--- a/lib/addons/dragAndDrop/EventWrapper.js
++++ b/lib/addons/dragAndDrop/EventWrapper.js
+@@ -46,7 +46,9 @@ var EventWrapper = /*#__PURE__*/function (_React$Component) {
+     };
+     _this.handleStartDragging = function (e) {
+       var _e$target$getAttribut;
+-      if (e.button !== 0) return;
++      // e.button es undefined en TouchEvent — sin este chequeo, todo touchstart
++      // se descartaba silenciosamente y el drag&drop nunca arrancaba en mobile.
++      if (e.button !== 0 && e.type !== 'touchstart') return;
+       // hack: because of the way the anchors are arranged in the DOM, resize
+       // anchor events will bubble up to the move anchor listener. Don't start
+       // move operations when we're on a resize anchor.

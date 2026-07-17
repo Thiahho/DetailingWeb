@@ -61,6 +61,7 @@ else
 builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 builder.Services.AddHostedService<ReminderBackgroundService>();
 builder.Services.AddScoped<ReminderService>();
+builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);

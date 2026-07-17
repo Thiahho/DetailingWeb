@@ -115,12 +115,12 @@ function BookingStatusBadge({ status }: { status: string }) {
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="bg-porcelain border border-mauve/10 rounded-xl w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-mauve/15">
+      <div className="bg-porcelain border border-mauve/10 rounded-xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-mauve/15 shrink-0">
           <span className="text-charcoal font-semibold text-sm">{title}</span>
           <button onClick={onClose} className="text-charcoal/40 hover:text-charcoal transition"><X size={18} /></button>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        <div className="px-5 py-4 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
@@ -323,7 +323,9 @@ function ReminderForm({
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [serviceLabel, setServiceLabel] = useState("");
-  const [selectedProfessionalId, setSelectedProfessionalId] = useState<number | null>(null);
+  // Precargado con el profesional favorito del cliente, si tiene uno cargado en su ficha — pero
+  // sigue siendo editable, el admin puede cambiarlo o volver a "Sin preferencia" libremente.
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<number | null>(customer.favoriteProfessionalId ?? null);
   const [detail, setDetail] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
@@ -348,10 +350,15 @@ function ReminderForm({
   const selectedServiceObj = services.find((s) => s.title === serviceLabel) ?? null;
 
   // Sin servicio seleccionado todavía: mostrar todos. Con servicio elegido:
-  // solo los profesionales que lo ofrecen (mismo criterio que la reserva pública).
-  const availableProfessionals = selectedServiceObj
+  // priorizar los profesionales que lo ofrecen (mismo criterio que la reserva
+  // pública), pero si ninguno tiene el servicio vinculado (falta esa carga en
+  // la ficha del profesional, algo muy común) no bloquear al admin — mostrar
+  // todos los activos igual, porque acá es el admin asignando el turno, no
+  // un cliente autoreservando.
+  const professionalsForService = selectedServiceObj
     ? professionals.filter((p) => p.services?.some((s) => s.id === selectedServiceObj.id))
     : professionals;
+  const availableProfessionals = professionalsForService.length > 0 ? professionalsForService : professionals;
 
   function handleServiceChange(title: string) {
     setServiceLabel(title);
@@ -365,17 +372,28 @@ function ReminderForm({
   // el servicio, igual que en la reserva pública).
   useEffect(() => {
     if (manualMode) return;
+    // Guard contra respuestas fuera de orden: si selectedProfessionalId cambia
+    // rápido (ej: precargado con el profesional favorito y luego reseteado a
+    // null al elegir servicio), una respuesta vieja que llega tarde no debe
+    // pisar el resultado de la petición más reciente.
+    let ignore = false;
     setLoadingSlots(true);
     const query = selectedProfessionalId ? `?professionalId=${selectedProfessionalId}` : "";
     fetch(`/api/timeslots/available${query}`)
       .then((r) => r.json())
       .then((data) => {
+        if (ignore) return;
         if (Array.isArray(data)) {
           const now = new Date();
           setSlots(data.filter((s: TimeSlot) => new Date(s.startDateTime.replace("Z", "")) > now));
         }
       })
-      .finally(() => setLoadingSlots(false));
+      .finally(() => {
+        if (!ignore) setLoadingSlots(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, [selectedProfessionalId, manualMode]);
 
   // GET /api/timeslots/available ya devuelve solo turnos disponibles por
@@ -525,7 +543,7 @@ function ReminderForm({
         <label className="block text-charcoal/50 text-xs mb-1">Profesional</label>
         {availableProfessionals.length === 0 ? (
           <p className="text-charcoal/30 text-xs">
-            {selectedServiceObj ? "Ningún profesional ofrece este servicio todavía." : "Seleccioná un servicio para ver quién lo ofrece."}
+            {professionals.length === 0 ? "No hay profesionales cargados todavía." : "Seleccioná un servicio para ver quién lo ofrece."}
           </p>
         ) : (
           <div className="flex gap-2 flex-wrap">

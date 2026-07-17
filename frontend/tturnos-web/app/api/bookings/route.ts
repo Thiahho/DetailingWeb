@@ -44,7 +44,7 @@ interface BookingPayload {
   customerName?: string;
   customerPhone?: string;
   email?: string;
-  vehicle?: string;
+  subject?: string;
   service?: string;
   message?: string;
 }
@@ -58,7 +58,7 @@ interface BookingResponse {
     endDateTime?: string;
     customerName?: string;
     email?: string;
-    vehicle?: string;
+    subject?: string;
     service?: string;
   };
 }
@@ -105,7 +105,7 @@ async function notifyAdminNewBooking(booking: BookingPayload, bookingData: Booki
   const safe = {
     customerName: booking.customerName || "No informado",
     customerPhone: booking.customerPhone || "No informado",
-    vehicle: booking.vehicle || "No informado",
+    subject: booking.subject || "No informado",
     service: booking.service || "No informado",
     turno: formatDateTime(bookingData.booking?.startDateTime),
     message: booking.message || "Sin mensaje adicional",
@@ -117,7 +117,7 @@ async function notifyAdminNewBooking(booking: BookingPayload, bookingData: Booki
     `<h2>📅 Nuevo turno reservado</h2>
     <p><strong>Cliente:</strong> ${safe.customerName}</p>
     <p><strong>WhatsApp:</strong> ${safe.customerPhone}</p>
-    <p><strong>Vehículo:</strong> ${safe.vehicle}</p>
+    <p><strong>Detalle:</strong> ${safe.subject}</p>
     <p><strong>Servicio:</strong> ${safe.service}</p>
     <p><strong>Turno:</strong> ${safe.turno}</p>
     <p><strong>Mensaje:</strong> ${safe.message}</p>`
@@ -152,7 +152,7 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
             <p style="margin:0 0 12px;color:#8b949e;font-size:13px;text-transform:uppercase;letter-spacing:.1em;">Detalle de tu reserva</p>
             <table style="width:100%;border-collapse:collapse;">
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Turno</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${turno}</td></tr>
-              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Vehículo</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.vehicle || "—"}</td></tr>
+              <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Detalle</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.subject || "—"}</td></tr>
               <tr><td style="color:#8b949e;font-size:14px;padding:6px 0;">Servicio</td><td style="color:#ffffff;font-size:14px;text-align:right;padding:6px 0;">${booking.service || "—"}</td></tr>
             </table>
           </div>

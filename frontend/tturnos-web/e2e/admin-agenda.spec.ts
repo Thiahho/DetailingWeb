@@ -75,7 +75,7 @@ test.describe("Admin: Agenda semanal (multi-profesional)", () => {
       const weeksAhead = Math.round(
         (mondayOf(future).getTime() - mondayOf(new Date()).getTime()) / (7 * 24 * 60 * 60 * 1000)
       );
-      const nextButton = page.getByRole("button", { name: "Siguiente" });
+      const nextButton = page.getByTestId("agenda-toolbar-next");
       for (let i = 0; i < weeksAhead; i++) {
         await nextButton.click();
       }
@@ -88,7 +88,6 @@ test.describe("Admin: Agenda semanal (multi-profesional)", () => {
       await expect(page.getByTestId("calendario-reserve-modal")).toBeVisible();
       await page.getByTestId("calendario-reserve-name").fill("Cliente Agenda E2E");
       await page.getByTestId("calendario-reserve-phone").fill("1123456789");
-      await page.getByTestId("calendario-reserve-vehicle").fill("N/A");
       await page.getByTestId("calendario-reserve-service").selectOption({ index: 1 });
       await page.getByTestId("calendario-reserve-subject").fill("Turno de agenda E2E");
       await page.getByTestId("calendario-reserve-submit").click();

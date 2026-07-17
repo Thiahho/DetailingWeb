@@ -10,6 +10,11 @@ public class NotificationTemplateData
     public required string Location { get; init; }
     public required string CancellationLink { get; init; }
     public required string MyBookingsLink { get; init; }
+
+    // Solo se completan para el aviso al profesional (ProfessionalBookingCreated).
+    public string? ProfessionalName { get; init; }
+    public string? CustomerPhone { get; init; }
+    public string? AgendaLink { get; init; }
 }
 
 public class NotificationMessage
@@ -38,4 +43,9 @@ public interface INotificationProvider
 
 
     Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default);
+
+    // Envío a una dirección de email arbitraria (no la del cliente del booking) — usado
+    // para avisarle al profesional asignado. Providers que no sean de email devuelven
+    // Success = false con un error descriptivo, igual que SendDirectAsync con teléfono.
+    Task<NotificationSendResult> SendToAddressAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken = default);
 }

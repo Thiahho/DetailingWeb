@@ -19,7 +19,7 @@ interface MonthlyBooking {
 interface UpcomingBooking {
   id: number;
   customerName: string;
-  vehicle: string;
+  subject: string;
   service: string;
   startDateTime: string;
 }
@@ -256,7 +256,7 @@ export default function EstadisticasPage() {
                     <div className="min-w-0">
                       <p className="text-charcoal text-sm font-medium truncate">{b.customerName}</p>
                       <p className="text-charcoal/40 text-xs mt-0.5 truncate">
-                        {b.vehicle} · {b.service?.replace(/-/g, " ")}
+                        {b.subject} · {b.service?.replace(/-/g, " ")}
                       </p>
                     </div>
                     <span className="text-charcoal/60 text-xs font-mono shrink-0">{label}</span>

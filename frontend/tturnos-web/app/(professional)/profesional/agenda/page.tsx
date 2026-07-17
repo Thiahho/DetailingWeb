@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { isProfessionalAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 
@@ -26,8 +26,12 @@ function isExpired(startDateTime: string) {
   return new Date(startDateTime) < new Date();
 }
 
-export default function ProfessionalAgendaPage() {
+function ProfessionalAgendaContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Viene del link del email "nuevo turno agendado" — resalta y hace scroll a ese turno.
+  const highlightedBookingId = searchParams.get("bookingId") ? Number(searchParams.get("bookingId")) : null;
+  const highlightedRef = useRef<HTMLDivElement | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -41,6 +45,12 @@ export default function ProfessionalAgendaPage() {
     }
     loadSlots();
   }, [router]);
+
+  useEffect(() => {
+    if (!loading && highlightedBookingId && highlightedRef.current) {
+      highlightedRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [loading, highlightedBookingId]);
 
   const loadSlots = async () => {
     try {
@@ -215,13 +225,18 @@ export default function ProfessionalAgendaPage() {
               <p className="text-charcoal/40 text-sm py-8 text-center">No tenés turnos cargados todavía.</p>
             ) : (
               <div className="space-y-2">
-                {upcoming.map((slot) => (
+                {upcoming.map((slot) => {
+                  const isHighlighted = highlightedBookingId != null && slot.booking?.id === highlightedBookingId;
+                  return (
                   <div
                     key={slot.id}
+                    ref={isHighlighted ? highlightedRef : undefined}
                     data-testid="agenda-slot-item"
                     data-slot-label={slot.label}
                     className={`p-4 rounded-xl border ${
-                      slot.isAvailable
+                      isHighlighted
+                        ? "border-champagne ring-2 ring-champagne/50 bg-champagne/10"
+                        : slot.isAvailable
                         ? "border-green-200 bg-green-50"
                         : slot.booking?.status === "Confirmed"
                         ? "border-blue-200 bg-blue-50"
@@ -230,7 +245,12 @@ export default function ProfessionalAgendaPage() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-charcoal font-medium text-sm">{slot.label}</p>
+                        <div className="flex items-center gap-2">
+                          {isHighlighted && (
+                            <span className="text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">NUEVO</span>
+                          )}
+                          <p className="text-charcoal font-medium text-sm">{slot.label}</p>
+                        </div>
                         {!slot.isAvailable && slot.booking && (
                           <p className="text-charcoal/60 text-xs mt-1">
                             {slot.booking.customerName} · {slot.booking.customerPhone}
@@ -268,12 +288,25 @@ export default function ProfessionalAgendaPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProfessionalAgendaPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-cream">
+        <p className="text-charcoal">Cargando tu agenda...</p>
+      </div>
+    }>
+      <ProfessionalAgendaContent />
+    </Suspense>
   );
 }

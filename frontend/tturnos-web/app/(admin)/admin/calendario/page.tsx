@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import AgendaCalendar from "@/src/components/calendar/AgendaCalendar";
+import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 
 interface Service {
   id: number;
@@ -16,7 +17,7 @@ interface Booking {
   id: number;
   customerName: string;
   customerPhone: string;
-  vehicle: string;
+  subject: string;
   service: string;
   professionalId?: number | null;
   professionalName?: string | null;
@@ -29,6 +30,7 @@ interface Professional {
   firstName: string;
   lastName: string;
   calendarColor?: string;
+  schedule?: string | null;
 }
 
 interface TimeSlot {
@@ -66,12 +68,13 @@ export default function CalendarioPage() {
   const [reserveSlot, setReserveSlot] = useState<TimeSlot | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
-  const [reserveForm, setReserveForm] = useState({ customerName: "", customerPhone: "", vehicle: "", service: "", subject: "", professionalId: "", message: "" });
+  const [reserveForm, setReserveForm] = useState({ customerName: "", customerPhone: "", service: "", subject: "", professionalId: "", message: "" });
   const [reserving, setReserving] = useState(false);
   const [reserveError, setReserveError] = useState("");
   const [professionalFilter, setProfessionalFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
   const [agendaDate, setAgendaDate] = useState(new Date());
+  const { toasts, showToast, removeToast } = useToast();
 
   const loadSlots = () =>
     fetch("/api/timeslots").then((r) => r.json()).then((data) => setSlots(Array.isArray(data) ? data : []));
@@ -149,7 +152,7 @@ export default function CalendarioPage() {
       const data = await res.json();
       if (res.ok) {
         setReserveSlot(null);
-        setReserveForm({ customerName: "", customerPhone: "", vehicle: "", service: "", subject: "", professionalId: "", message: "" });
+        setReserveForm({ customerName: "", customerPhone: "", service: "", subject: "", professionalId: "", message: "" });
         await loadSlots();
       } else {
         setReserveError(data.message || "No se pudo crear la reserva");
@@ -161,7 +164,7 @@ export default function CalendarioPage() {
     }
   };
 
-  const handleReschedule = async (bookingId: number, newTimeSlotId: number) => {
+  const handleReschedule = async (bookingId: number, newTimeSlotId: number, successMessage?: string) => {
     try {
       const res = await fetch(`/api/bookings/${bookingId}/admin-reschedule`, {
         method: "POST",
@@ -171,11 +174,38 @@ export default function CalendarioPage() {
       const data = await res.json();
       if (res.ok) {
         await loadSlots();
+        showToast("success", "Turno reprogramado", successMessage ?? "Se movió a su nuevo horario.");
       } else {
-        alert(data.message || "No se pudo reprogramar el turno");
+        showToast("error", "No se pudo reprogramar", data.message);
       }
     } catch {
-      alert("Error de conexión con el servidor");
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor.");
+    }
+  };
+
+  // Se usa cuando se arrastra un turno a un hueco sin turno libre pero dentro
+  // del horario laboral del profesional: crea el turno en ese momento exacto
+  // y recién ahí reprograma la reserva sobre él.
+  const handleCreateAndReschedule = async (
+    bookingId: number,
+    professionalId: number,
+    startDateTime: string,
+    endDateTime: string
+  ) => {
+    try {
+      const slotRes = await fetch("/api/timeslots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startDateTime, endDateTime, professionalId }),
+      });
+      const slotData = await slotRes.json();
+      if (!slotRes.ok) {
+        showToast("error", "No se pudo crear el turno", slotData.message);
+        return;
+      }
+      await handleReschedule(bookingId, slotData.slot.id, "Se creó un turno nuevo en ese horario y se movió la reserva.");
+    } catch {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor.");
     }
   };
 
@@ -200,6 +230,7 @@ export default function CalendarioPage() {
 
   return (
     <div className="p-4 md:p-6 font-sans">
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <div className={`mx-auto ${viewMode === "month" ? "max-w-5xl" : "max-w-7xl"}`}>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -230,7 +261,7 @@ export default function CalendarioPage() {
               {professionals.length > 0 && (
                 <select
                   data-testid="calendario-agenda-professional-filter"
-                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-green-500"
+                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-blush"
                   value={professionalFilter}
                   onChange={(e) => setProfessionalFilter(e.target.value)}
                 >
@@ -257,6 +288,8 @@ export default function CalendarioPage() {
                 if (slot?.booking) setDetailBooking({ slot });
               }}
               onReschedule={handleReschedule}
+              onCreateAndReschedule={handleCreateAndReschedule}
+              onError={(message) => showToast("warning", "No se pudo mover el turno", message)}
               professionalFilter={professionalFilter === "all" ? "all" : Number(professionalFilter)}
             />
           </div>
@@ -332,7 +365,7 @@ export default function CalendarioPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
               {professionals.length > 0 && (
                 <select
-                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-green-500"
+                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-3 py-1.5 text-xs text-charcoal focus:outline-none focus:border-blush"
                   value={professionalFilter}
                   onChange={(e) => setProfessionalFilter(e.target.value)}
                 >
@@ -399,7 +432,7 @@ export default function CalendarioPage() {
                             </div>
                             {!slot.isAvailable && slot.booking && (
                               <p className="text-charcoal/50 text-xs mt-1">
-                                {slot.booking.customerName} · {slot.booking.vehicle}
+                                {slot.booking.customerName} · {slot.booking.subject}
                                 {slot.booking.professionalName && ` · 👤 ${slot.booking.professionalName}`}
                               </p>
                             )}
@@ -471,17 +504,6 @@ export default function CalendarioPage() {
                   value={reserveForm.customerPhone}
                   onChange={(e) => setReserveForm((p) => ({ ...p, customerPhone: e.target.value }))}
                   placeholder="1123456789"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Vehículo</label>
-                <input
-                  data-testid="calendario-reserve-vehicle"
-                  className="w-full mt-1.5 bg-cream border border-mauve/10 rounded-lg p-3 text-charcoal focus:border-green-500 focus:outline-none transition text-sm"
-                  value={reserveForm.vehicle}
-                  onChange={(e) => setReserveForm((p) => ({ ...p, vehicle: e.target.value }))}
-                  placeholder="Toyota Corolla 2022"
                   required
                 />
               </div>
@@ -585,7 +607,7 @@ export default function CalendarioPage() {
                   {detailBooking.slot.booking!.customerPhone}
                 </a>
               } />
-              <Row label="Vehículo" value={detailBooking.slot.booking!.vehicle} />
+              <Row label="Detalle" value={detailBooking.slot.booking!.subject || "—"} />
               <Row label="Servicio" value={detailBooking.slot.booking!.service || "—"} />
               {detailBooking.slot.booking!.professionalName && (
                 <Row label="Especialista" value={detailBooking.slot.booking!.professionalName!} />
@@ -599,7 +621,7 @@ export default function CalendarioPage() {
                 href={`https://wa.me/+54${detailBooking.slot.booking!.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
                   (() => {
                     const { y, m, d } = parseLocalDate(detailBooking.slot.startDateTime);
-                    return `Hola ${detailBooking.slot.booking!.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${d} de ${MONTH_NAMES[m - 1]} ${y}\n🚗 *Vehículo:* ${detailBooking.slot.booking!.vehicle}\n🔧 *Servicio:* ${detailBooking.slot.booking!.service || "—"}\n\n¡Nos vemos!`;
+                    return `Hola ${detailBooking.slot.booking!.customerName} 👋\n\nTe confirmamos tu reserva en *AutoDetail Studio*:\n\n📅 *Fecha:* ${d} de ${MONTH_NAMES[m - 1]} ${y}\n📝 *Detalle:* ${detailBooking.slot.booking!.subject || "—"}\n🔧 *Servicio:* ${detailBooking.slot.booking!.service || "—"}\n\n¡Nos vemos!`;
                   })()
                 )}`}
                 target="_blank"

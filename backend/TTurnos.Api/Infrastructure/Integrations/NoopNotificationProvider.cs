@@ -15,4 +15,7 @@ public class NoopNotificationProvider : INotificationProvider
 
     public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default) =>
         Task.FromResult(new NotificationSendResult { Success = true, ProviderMessageId = "noop" });
+
+    public Task<NotificationSendResult> SendToAddressAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new NotificationSendResult { Success = true, ProviderMessageId = "noop" });
 }

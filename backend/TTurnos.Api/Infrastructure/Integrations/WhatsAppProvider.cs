@@ -54,6 +54,17 @@ public class WhatsAppProvider : INotificationProvider
         return SendToPhoneAsync(NormalizePhone(phone), messageBody, cancellationToken);
     }
 
+    public Task<NotificationSendResult> SendToAddressAsync(
+        string toEmail,
+        NotificationMessage message,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(new NotificationSendResult
+        {
+            Success = false,
+            Error = "WhatsAppProvider no soporta envío por email.",
+            IsTransientFailure = false
+        });
+
     // ── Core send ──────────────────────────────────────────────────────────────
 
     private async Task<NotificationSendResult> SendToPhoneAsync(

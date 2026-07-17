@@ -36,6 +36,7 @@ public class NotificationService
         var booking = await _context.Bookings
             .IgnoreQueryFilters()
             .Include(b => b.TimeSlot)
+            .Include(b => b.Professional)
             .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
 
         if (booking == null)
@@ -76,6 +77,95 @@ public class NotificationService
             _context.NotificationLogs.Add(log);
             await _context.SaveChangesAsync(cancellationToken);
             await TrySendAsync(log.Id, booking, message, cancellationToken);
+        }
+
+        // Aviso aparte al profesional asignado (si tiene cuenta con email cargado) — no
+        // debe afectar la creación del turno ni las notificaciones al cliente si falla.
+        if (eventType == NotificationEventType.BookingCreated)
+        {
+            await TryNotifyProfessionalAsync(booking, cancellationToken);
+        }
+    }
+
+    private async Task TryNotifyProfessionalAsync(Booking booking, CancellationToken cancellationToken)
+    {
+        if (!booking.ProfessionalId.HasValue) return;
+        if (!(_configuration.GetValue<bool?>("Notifications:NotifyProfessional") ?? true)) return;
+
+        try
+        {
+            var professionalEmail = await _context.Users
+                .IgnoreQueryFilters()
+                .Where(u => u.Role == "Professional" && u.ProfessionalId == booking.ProfessionalId && u.TenantId == booking.TenantId)
+                .Select(u => u.Email)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(professionalEmail)) return;
+
+            var emailProvider = _providers.FirstOrDefault(p => p.Channel == "Email");
+            if (emailProvider == null) return;
+
+            var agendaBaseUrl = _configuration["Notifications:ProfessionalAgendaBaseUrl"]
+                ?? "https://detailing-web-five.vercel.app/profesional/agenda";
+            var professionalName = booking.Professional != null
+                ? $"{booking.Professional.FirstName} {booking.Professional.LastName}".Trim()
+                : "";
+
+            var templateData = new NotificationTemplateData
+            {
+                CustomerName     = booking.CustomerName,
+                Service          = booking.Service ?? "Servicio no informado",
+                Subject          = booking.Subject,
+                StartDateTime    = booking.TimeSlot.StartDateTime,
+                Location         = _configuration["Notifications:Location"] ?? "Sucursal principal",
+                CancellationLink = "",
+                MyBookingsLink   = "",
+                ProfessionalName = professionalName,
+                CustomerPhone    = booking.CustomerPhone,
+                AgendaLink       = $"{agendaBaseUrl}?bookingId={booking.Id}"
+            };
+
+            var message = await _templateService.BuildAsync(NotificationEventType.ProfessionalBookingCreated, templateData, cancellationToken);
+
+            var log = new NotificationLog
+            {
+                TenantId  = booking.TenantId,
+                BookingId = booking.Id,
+                EventType = NotificationEventType.ProfessionalBookingCreated,
+                Channel   = "Email",
+                Provider  = emailProvider.ProviderName,
+                Status    = NotificationDeliveryStatus.Pending,
+                // No se reintenta con RetryPendingAsync: ese job reconstruye datos
+                // orientados al cliente y no sabe nada de profesionales/agenda.
+                IsRetryable = false
+            };
+            _context.NotificationLogs.Add(log);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var result = await emailProvider.SendToAddressAsync(professionalEmail, message, cancellationToken);
+
+            log.LastAttemptAt = DateTime.Now;
+            log.RetryCount = 1;
+
+            if (result.Success)
+            {
+                log.Status = NotificationDeliveryStatus.Sent;
+                log.ProviderMessageId = result.ProviderMessageId;
+                log.SentAt = DateTime.Now;
+                _logger.LogInformation("[Notification] Email a profesional enviado OK para booking {BookingId}", booking.Id);
+            }
+            else
+            {
+                log.Status = NotificationDeliveryStatus.Failed;
+                log.ErrorMessage = result.Error;
+                _logger.LogWarning("[Notification] Email a profesional falló para booking {BookingId}: {Error}", booking.Id, result.Error);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Notification] Error notificando al profesional del booking {BookingId}", booking.Id);
         }
     }
 

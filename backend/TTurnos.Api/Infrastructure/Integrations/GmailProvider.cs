@@ -21,19 +21,35 @@ public class GmailProvider : INotificationProvider
         _settings = settings.Value;
     }
 
-    public async Task<NotificationSendResult> SendAsync(Booking booking, NotificationMessage message, CancellationToken cancellationToken = default)
+    public Task<NotificationSendResult> SendAsync(Booking booking, NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(booking.Email))
+            return Task.FromResult(new NotificationSendResult { Success = false, Error = "El cliente no tiene email", IsTransientFailure = false });
+
+        return SendToAsync(booking.Email, message, cancellationToken);
+    }
+
+    public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new NotificationSendResult { Success = false, Error = "GmailProvider no soporta envío directo por teléfono.", IsTransientFailure = false });
+
+    public Task<NotificationSendResult> SendToAddressAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(toEmail))
+            return Task.FromResult(new NotificationSendResult { Success = false, Error = "Dirección de destino vacía", IsTransientFailure = false });
+
+        return SendToAsync(toEmail, message, cancellationToken);
+    }
+
+    private async Task<NotificationSendResult> SendToAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken)
     {
         if (!IsEnabled)
             return new NotificationSendResult { Success = false, Error = "Gmail no configurado", IsTransientFailure = false };
-
-        if (string.IsNullOrWhiteSpace(booking.Email))
-            return new NotificationSendResult { Success = false, Error = "El cliente no tiene email", IsTransientFailure = false };
 
         try
         {
             var email = new MimeMessage();
             email.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
-            email.To.Add(MailboxAddress.Parse(booking.Email));
+            email.To.Add(MailboxAddress.Parse(toEmail));
             email.Subject = message.Subject;
 
             var bodyBuilder = new BodyBuilder
@@ -67,9 +83,6 @@ public class GmailProvider : INotificationProvider
             return new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = true };
         }
     }
-
-    public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new NotificationSendResult { Success = false, Error = "GmailProvider no soporta envío directo por teléfono.", IsTransientFailure = false });
 
     private static string BuildHtmlBody(NotificationMessage message)
     {
