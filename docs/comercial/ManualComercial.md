@@ -130,6 +130,9 @@ Se puede conversar, pero hay que ser honestos: hoy la sucursal existe como conce
 **"¿Tengo que instalar algo?"**
 No. Es 100% web — el dueño, el equipo y los clientes acceden desde el navegador, en la computadora o el celular, sin instalar nada.
 
+**"No quiero que un empleado nuevo vea toda la facturación o pueda borrar cosas."**
+No tiene que verlo todo. El dueño le crea una cuenta con acceso limitado y elige exactamente qué módulos puede ver, cargar, editar o eliminar — un empleado de caja puede tener acceso solo a Caja y Turnos, por ejemplo, sin tocar Servicios ni Clientes.
+
 ---
 
 ## 6. Argumentos de venta (los diferenciadores reales)
@@ -148,6 +151,7 @@ Cada uno de estos está construido y verificado — no es aspiracional. Usar com
 10. **Probado, no prometido.** El sistema tiene una suite real de tests automatizados (más de 75 pruebas de integración contra una base de datos real, más pruebas end-to-end que simulan un usuario real navegando el sitio) — cada feature de este manual se puede demostrar funcionando, no es una lista de intenciones.
 11. **Un mismo sistema, tres formas de comprarlo.** El negocio puede pagar una suscripción mensual (SaaS), comprar el software una vez y correrlo por su cuenta (Licencia), o pedir un desarrollo a medida (Custom) — sin que eso signifique un producto distinto ni funcionalidades recortadas artificialmente entre una opción y otra.
 12. **Nace de un caso real, no de una idea de escritorio.** El origen automotriz y el salón de belleza que corre en producción hoy son la prueba de que el sistema fue construido resolviendo un negocio real primero.
+13. **Acceso del equipo a medida, no todo o nada.** El dueño no tiene que elegir entre darle a un empleado el mismo acceso que a un socio o no darle acceso al sistema — puede crearle una cuenta con permiso solo sobre los módulos que necesita (por ejemplo, caja y turnos, sin poder tocar servicios ni eliminar clientes), eligiendo módulo por módulo si puede ver, cargar, editar o eliminar.
 
 ---
 
@@ -161,11 +165,23 @@ Cada uno de estos está construido y verificado — no es aspiracional. Usar com
 **Solución:** el cliente reserva solo desde la web, 24/7, eligiendo servicio, profesional (o "sin preferencia") y horario, con confirmación inmediata. La reserva queda protegida contra doble booking a nivel de base de datos.
 **Resultado:** cero llamados para coordinar un turno, cero turnos duplicados.
 
+#### Reservas manuales (mostrador / teléfono)
+
+**Problema:** no todos los clientes reservan solos por la web — muchos llaman o se acercan directo al mostrador, y cargar ese turno a mano no debería significar volver a escribir los datos del cliente si ya está en la ficha, ni que esa reserva quede en un papel aparte del sistema.
+**Solución:** el equipo reserva cualquier turno libre directo desde el calendario o desde el panel principal, eligiendo un cliente ya registrado (el sistema autocompleta sus datos) o cargando uno nuevo — que además queda guardado automáticamente en su ficha de cliente, sin tener que cargarlo dos veces por separado.
+**Resultado:** un solo lugar para reservar, sea cliente nuevo o de siempre, sin doble carga de datos ni reservas que se escapan del sistema.
+
 #### Equipo / Profesionales
 
 **Problema:** con varios profesionales trabajando a la vez, coordinar quién está libre y cuándo es un caos de agendas separadas (o una sola compartida donde todos escriben encima).
 **Solución:** cada profesional se da de alta con su especialidad, color de calendario, horario semanal y comisión; tiene su propio login para ver y gestionar solo su propia agenda.
 **Resultado:** el dueño administra el equipo completo desde un solo lugar; cada profesional ve exactamente lo suyo, nada más.
+
+#### Permisos por rol (control de acceso del equipo)
+
+**Problema:** no todo el personal debería ver o poder tocar todo el sistema — un empleado de caja no necesita poder borrar servicios, y el dueño no siempre quiere darle a alguien nuevo el mismo acceso que a un socio.
+**Solución:** además del profesional (que solo ve su propia agenda) y del dueño (acceso total), se pueden crear cuentas de acceso limitado a las que el dueño les asigna, módulo por módulo del panel (turnos, clientes, servicios, caja, etc.), si pueden ver, cargar, editar o eliminar.
+**Resultado:** el dueño delega tareas del día a día sin resignar control sobre el resto del negocio.
 
 #### Agenda visual
 
@@ -245,7 +261,7 @@ Tabla de referencia rápida para no prometer de más en una llamada de venta.
 
 ### ✅ Se puede prometer y demostrar hoy
 
-Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-reserva, multi-profesional con agenda propia, agenda visual (mes/semana/día, drag&drop), servicios con categorías/buffer/precio, CRM de clientes, historial por turno con productos/fotos/pago, caja diaria y mensual con reconciliación, automatizaciones de reactivación/cumpleaños, recordatorios automáticos multicanal, pagos y señas por Mercado Pago, estadísticas generales y por profesional, aislamiento total de datos entre negocios (multi-tenant), autenticación y roles (Admin/Profesional/Cliente), panel 100% web sin instalación.
+Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-reserva, reserva manual desde el equipo (mostrador/teléfono) con cliente existente o nuevo y alta automática en el CRM, multi-profesional con agenda propia, agenda visual (mes/semana/día, drag&drop), servicios con categorías/buffer/precio, CRM de clientes, historial por turno con productos/fotos/pago, caja diaria y mensual con reconciliación, automatizaciones de reactivación/cumpleaños, recordatorios automáticos multicanal, pagos y señas por Mercado Pago, estadísticas generales y por profesional, aislamiento total de datos entre negocios (multi-tenant), autenticación y roles (Admin, Profesional, Staff con permisos granulares por módulo, Cliente), panel 100% web sin instalación.
 
 ### 🟡 Con matices — aclarar antes de cerrar
 
@@ -254,6 +270,7 @@ Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-rese
 - **Límites de plan para WhatsApp/IA:** hoy estas banderas no bloquean nada automáticamente aunque el plan no las incluya — el enforcement real de plan solo está activo para la cantidad de profesionales. No usar "tu plan no incluye IA" como argumento técnico de bloqueo todavía.
 - **Cobros reales con Mercado Pago:** el flujo funciona para demo y señas; antes de activar cobros reales de producción hay un pendiente de seguridad conocido (validación de firma del webhook) que el equipo técnico tiene identificado y diferido a propósito, no olvidado. Confirmar con el equipo técnico antes de vender "ya está listo para procesar pagos reales en producción" a un cliente que va a facturar en serio.
 - **Dominio propio por negocio (subdominio, ej. `salon.tturnos.app`):** el mecanismo está construido y probado, pero falta la configuración final de DNS en producción — hoy en producción se resuelve por otro medio (ver equipo técnico antes de prometer un subdominio propio andando el mismo día).
+- **Permisos por rol (Staff):** el control de acceso granular por módulo está construido y compila/corre — se verificó con llamadas reales (crear cuenta, asignar permisos) que responden correctamente, pero la última verificación (loguearse como esa cuenta y confirmar que el sistema efectivamente bloquea una acción sin permiso) quedó pendiente de cerrar, y todavía no tiene tests automatizados dedicados como el resto del sistema. Se puede mostrar la pantalla de gestión de permisos, pero confirmar con el equipo técnico el estado del enforcement antes de venderlo como cerrado a un cliente que dependa fuerte de ese control (ej. franquicias con varios encargados).
 
 ### ⏳ No prometer — es roadmap, no producto
 

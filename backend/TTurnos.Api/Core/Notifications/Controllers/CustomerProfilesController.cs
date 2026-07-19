@@ -8,14 +8,16 @@ namespace TTurnos.Api.Core.Notifications;
 // porque CustomerProfile y ScheduledReminder son recursos distintos.
 [ApiController]
 [Route("api/reminders/customers")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class CustomerProfilesController(CustomerProfileService customerProfileService) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.View)]
     public async Task<IActionResult> GetCustomers() =>
         Ok(await customerProfileService.GetProfilesAsync());
 
     [HttpGet("{id:int}")]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.View)]
     public async Task<IActionResult> GetCustomer(int id)
     {
         var profile = await customerProfileService.GetProfileByIdAsync(id);
@@ -23,6 +25,7 @@ public class CustomerProfilesController(CustomerProfileService customerProfileSe
     }
 
     [HttpPost]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Create)]
     public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerProfileRequest req)
     {
         var profile = await customerProfileService.CreateProfileAsync(req);
@@ -30,6 +33,7 @@ public class CustomerProfilesController(CustomerProfileService customerProfileSe
     }
 
     [HttpPut("{id:int}")]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Edit)]
     public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomerProfileRequest req)
     {
         try
@@ -44,6 +48,7 @@ public class CustomerProfilesController(CustomerProfileService customerProfileSe
     }
 
     [HttpDelete("{id:int}")]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Delete)]
     public async Task<IActionResult> DeleteCustomer(int id)
     {
         var deleted = await customerProfileService.DeleteProfileAsync(id);
@@ -51,6 +56,7 @@ public class CustomerProfilesController(CustomerProfileService customerProfileSe
     }
 
     [HttpGet("{id:int}/history")]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.View)]
     public async Task<IActionResult> GetCustomerHistory(int id) =>
         Ok(await customerProfileService.GetCustomerHistoryAsync(id));
 }

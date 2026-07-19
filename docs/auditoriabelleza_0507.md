@@ -815,3 +815,100 @@ Se armó una página temporal (`app/(admin)/admin/debugagenda123/`, borrada al c
 **Fix aplicado:** `min-height: 40px` en `.agenda-calendar .rbc-time-header-content .rbc-row` y `.rbc-row-resource` — le da a esas filas alto suficiente para que el padding y el texto convivan sin recortarse.
 
 **Verificado:** reproducido el bug con la página de prueba, confirmada la causa con estilos computados, aplicado el fix y reverificado visualmente — las fechas se ven completas en Semana. Vista Día no estaba afectada (no tiene esa fila de fechas por día, solo la de profesional) y se confirmó sin cambios. Página de debug y screenshots temporales borrados al cerrar; único archivo modificado: `src/components/calendar/agenda-calendar.css`.
+
+---
+
+## 28. Actualización — sesión 18/07 (reservar con cliente registrado o nuevo, desde Calendario Y desde el Panel principal)
+
+Pedido del usuario: en cualquier turno disponible, tanto en `/admin/calendario` como en el **Panel principal** (`/admin`, el dashboard con la tabla de próximos turnos), poder reservarlo eligiendo un **cliente ya registrado** (autocompletando sus datos) o cargando uno **nuevo** — y que ese cliente nuevo quede **registrado automáticamente** como ficha de `CustomerProfile`, no solo como texto suelto en el turno. Cambio **100% frontend**, sin migraciones ni endpoints nuevos — confirmado antes de tocar código que `CustomerProfileService.CreateProfileAsync` (sección 13) ya es idempotente por teléfono (devuelve el existente si ya está cargado en vez de duplicar o fallar), lo que vuelve seguro "registrar automáticamente" sin chequeo previo de duplicados del lado del frontend.
+
+**Estado anterior:** el modal "Nueva reserva" de Calendario (secciones 9-10) era de texto libre — nombre/teléfono a mano, sin buscar ni vincular un `CustomerProfile` existente. El Panel principal directamente no tenía ninguna forma de reservar: un turno libre en la tabla/tarjetas no respondía al click (`onClick` solo abría el detalle si el turno ya tenía `booking`).
+
+**Componente nuevo, compartido entre ambas pantallas:** `src/components/calendar/ReserveSlotModal.tsx` — antes no existía ningún customer-picker reutilizable en el frontend (cada pantalla que necesitaba clientes los buscaba inline, ver `/admin/clientes`). El componente:
+- Al montar, hace su propio fetch de `/api/services`, `/api/professionals` y `/api/reminders/customers` — no depende de que la página que lo monta ya los tenga cargados.
+- Toggle "Cliente registrado" / "Cliente nuevo" (default: registrado). En modo registrado, buscador que filtra por nombre/teléfono/email (mismo criterio que el buscador de `/admin/clientes`, sección 13) y al elegir uno autocompleta nombre/teléfono/email de solo lectura. En modo nuevo, inputs de nombre/teléfono (validados en el propio modal, teléfono ≥6 caracteres, mismo mínimo que exige el backend) y un campo de email nuevo que el modal original no tenía.
+- Al confirmar en modo nuevo: primero `POST /api/reminders/customers` (crea o recupera la ficha por teléfono), después `POST /api/bookings` con esos datos — mismo endpoint y mismo `CreateBookingRequest` de siempre, sin tocar el backend. El vínculo turno↔cliente sigue siendo por `CustomerPhone` como texto, no por `CustomerId` (no existe esa FK, mismo criterio ya documentado en la sección 13 para el historial de Clientes).
+
+**`/admin/calendario`:** el modal inline (`reserveForm`/`reserving`/`reserveError`/`handleReserve`, líneas ~72-166 y ~474-586 antes de este cambio) se reemplazó por `<ReserveSlotModal>`. Se eliminó también el fetch de `/api/services` de la página (quedó sin ningún otro consumidor una vez que el modal pasó a buscar los suyos propios) — verificado con grep antes de borrar que `services` no se usaba en ningún otro lugar de la página; `professionals` sí sigue usándose (filtros de mes/agenda) y no se tocó.
+
+**`/admin` (Panel principal):** hasta ahora era una pantalla de solo lectura + liberar/cancelar. Se agregó:
+- `interface Slot` suma `professionalId`/`professionalName` (ya los devuelve `/api/timeslots`, no se usaban en esta página).
+- Turnos libres (tarjetas mobile y filas de la tabla desktop) ahora son clickeables y muestran un botón "+ Reservar" en la columna de acción (antes esa columna quedaba vacía para turnos libres, solo mostraba "Liberar/Cancelar" para los reservados).
+- La carga de slots del `useEffect` inicial se extrajo a una función `reloadSlots()` reutilizable, para poder refrescar la lista después de reservar sin duplicar la lógica de filtrado/orden/límite de 30 turnos.
+- Mismo `<ReserveSlotModal>` que Calendario, montado condicionalmente sobre `reserveSlot`.
+
+**Regresión propia encontrada y corregida antes de cerrar la sesión:** los dos e2e existentes que reservan desde este modal (`e2e/admin-calendario.spec.ts` y `e2e/admin-agenda.spec.ts`, secciones 9 y 12) llenaban `calendario-reserve-name`/`calendario-reserve-phone` directamente — con el modo "Cliente registrado" como default nuevo, esos campos quedan ocultos hasta clickear "Cliente nuevo", así que ambos specs habrían empezado a fallar con este cambio. **Fix aplicado:** se agregó `await page.getByTestId("reserve-mode-new").click()` antes de llenar nombre/teléfono en los dos specs. Los `data-testid` del modal original (`calendario-reserve-modal`, `-service`, `-subject`, `-submit`, y `-name`/`-phone` dentro del modo nuevo) se preservaron sin cambios a propósito para minimizar el diff de los tests.
+
+**Verificado:**
+- `npx tsc --noEmit` (frontend): sin errores.
+- `pnpm build`: compila limpio, todas las rutas generadas incluyendo `/admin` y `/admin/calendario`.
+- `git status` confirmó que el único código tocado fue `app/(admin)/admin/calendario/page.tsx`, `app/(admin)/admin/page.tsx`, el componente nuevo, y los dos specs de e2e — ningún archivo de backend.
+
+**No verificado en esta sesión (pendiente):** no se corrió la suite de e2e completa (`npx playwright test`) tras el cambio — requiere el backend en modo `Testing` contra `bd_turnos_e2e` y no se levantó ese entorno en esta sesión. Los dos specs corregidos (`admin-calendario`, `admin-agenda`) deberían pasar dado el fix aplicado, pero eso sigue siendo una hipótesis hasta la próxima corrida real de la suite. Tampoco se escribió un e2e nuevo para el flujo de "cliente registrado" (autocompletar desde el buscador) ni para reservar desde el Panel principal — ambos caminos nuevos de esta sesión quedan sin cobertura automatizada, solo verificados por build/type-check.
+
+**Explícitamente fuera de alcance de esta sesión** (confirmado con el usuario antes de construir): el paso opcional de programar un aviso/recordatorio al reservar (sí existe en el flujo de Clientes, `ReminderForm`, sección 13) no se sumó a este modal — el pedido fue específicamente "cliente existente o nuevo", no el flujo completo de avisos.
+
+---
+
+## 29. Actualización — sesión 18/07 (atajos de teclado, detalle de turno accesible desde 3 pantallas más, y sistema de permisos por rol)
+
+Sesión larga con varios pedidos encadenados del usuario. Se documentan en el mismo orden en que se pidieron, de menor a mayor alcance — el módulo de Permisos (último pedido) es, con diferencia, el cambio más grande de esta entrada.
+
+### Toast: rediseño + bug de scroll infinito
+
+`src/components/shared/Toast.tsx` tenía fondo sólido saturado por tipo (verde/rojo/naranja/azul), desentonando con la paleta cream/ivory/mauve del resto del admin. Rediseño a card ivory con barra de acento lateral + chip de ícono + barra de progreso del tiempo restante, reusando `shadow-elevated`/`border-mauve` ya definidos en `tailwind.config.js`.
+
+**Bug real encontrado y corregido de paso:** `showToast` acumulaba notificaciones sin ningún límite en un contenedor `fixed` sin techo de altura — con varias seguidas (ej. varios guardados rápidos), el contenedor estiraba la altura de toda la página en vez de quedarse fijo arriba a la derecha. **Fix:** `showToast` cappea el array a los últimos 4 (FIFO), causa raíz resuelta en el estado, no con CSS. Como es un hook compartido, el fix aplica automático a las 13 páginas que usan `useToast`/`ToastContainer`.
+
+### Atajos de teclado en modales y formularios
+
+Hook nuevo `src/hooks/useModalHotkeys.ts` (Esc cierra / Ctrl-Cmd+Enter confirma vía `formRef.current?.requestSubmit()`), aplicado a `ConfirmDialog` (usado en toda la app) + 8 páginas admin con formularios CRUD (productos, servicios, insumos, profesionales, contenido, galería, automatizaciones, caja) + 5 modales de solo lectura (turnos, calendario, historial, clientes, mis-turnos) + la página pública + `ReserveSlotModal` — 16 archivos en total. Sin tests automatizados nuevos, verificado solo con `npx tsc --noEmit` limpio en cada archivo.
+
+### Detalle de turno accesible/editable desde 3 pantallas que antes no lo tenían
+
+Pedido en pasos sucesivos del usuario, sobre `/admin/calendario` primero y después replicado a otras dos pantallas:
+
+- **`/admin/calendario` — panel del día y detalle de turno:**
+  - El panel lateral de turnos del día (vista Mes) no tenía techo de altura — con muchos turnos cargados un mismo día, estiraba toda la página en vez de scrollear internamente (mismo patrón de bug que el Toast, en otra pantalla). **Fix:** `max-h-[520px] overflow-y-auto` en la lista, encabezado fijo afuera del área con scroll.
+  - Toda la fila de un turno reservado pasó a ser clickeable (antes solo un link chico "Ver detalle" adentro de la fila).
+  - El modal de detalle (compartido entre vista Mes y la agenda semana/día vía `AgendaCalendar`) sumó una sección de "Productos y servicios utilizados" con alta/baja de ítems (servicio extra, producto, insumo), reusando el mismo `PUT /api/bookings/{id}/detail` que ya existía para Historial (sección 14) — como `GET /api/timeslots` no trae los ítems del turno, se sumó un fetch de `GET /api/bookings` (que sí los trae) para cruzar por id al abrir el modal.
+  - Botón "Editar" nuevo en el modal de detalle, que cambia a un modal separado (cliente/teléfono/detalle/servicio/mensaje) — **endpoint nuevo `PUT /api/bookings/{id}` + DTO `UpdateBookingRequest`**, deliberadamente sin tocar `ProfessionalId`: reasignar profesional sigue siendo solo por drag&drop en la agenda, para no desincronizar `Booking.ProfessionalId` del `TimeSlot.ProfessionalId` del slot que ocupa (son dos campos independientes, ver sección 6).
+- **`/profesional/agenda`:** no tenía ningún detalle al clickear un turno — solo los botones "Eliminar"/"Liberar" de la sección 9. Se agregó un modal de solo lectura (Cliente, Teléfono, Detalle, Servicio, Mensaje, Estado + link de WhatsApp + botón Liberar). Requirió sumar `subject`/`message` a la respuesta de `GET /api/timeslots/mine` (`TimeSlotsController.cs`), que solo traía customerName/customerPhone/service/status.
+- **`/admin/clientes` (historial de un cliente):** las filas de "Historial de turnos" en la ficha de un cliente no abrían nada. Se agregó un modal de detalle (Fecha, Detalle, Servicio, Especialista, Mensaje, Estado, Pago, Ítems utilizados), reusando `GET /api/bookings` (ya trae todo eso) cruzado por id contra el historial resumido que ya cargaba la página — con fallback a los datos mínimos de la fila si por algún motivo no aparece en esa lista.
+
+Ningún cambio de este bloque tiene test automatizado nuevo — todos verificados solo con `dotnet build`/`npx tsc --noEmit` limpios.
+
+### Módulo nuevo: Permisos por rol (Staff) — el cambio más grande de esta sesión
+
+**Pedido del usuario:** un módulo donde el Admin pueda crear cuentas de acceso limitado y asignarles permisos de ver/crear/editar/eliminar, módulo por módulo del panel.
+
+**Decisiones de diseño confirmadas con el usuario antes de construir** (preguntadas explícitamente, no asumidas, dado el alcance):
+1. Es un **rol nuevo** ("Staff"), no una versión recortada de Admin ni permisos extra para Profesional — Admin sigue con acceso total siempre sin excepción, Professional no cambia.
+2. Granularidad de **4 acciones independientes por módulo**: Ver / Crear / Editar / Eliminar (no un esquema simplificado de 3 niveles).
+3. **Enforcement real en backend** (403 vía middleware/filter) además de ocultar cosas en el frontend — no solo UX cosmética.
+
+**Backend — dominio nuevo `Core/Roles`:**
+- Entidad `ModulePermission` (`TenantId`, `UserId`, `Module`, `CanView`/`CanCreate`/`CanEdit`/`CanDelete`), única por `(UserId, Module)`. `User.Role` suma el valor libre `"Staff"` — sigue siendo un string, no una entidad propia (`Core/Roles` seguía vacío hasta ahora, confirmado en la sección de arquitectura: el rol es un campo de `User`).
+- `PermissionModules`: **10 módulos, no 12.** Se consolidó Turnos+Calendario+Historial en un solo módulo `Turnos`, porque esas tres pantallas admin pegan a los mismos endpoints (`TimeSlotsController`/`BookingsController`) — separarlas en permisos distintos hubiera sido una distinción sin efecto real en el backend. El resto: Clientes, Servicios, Productos, Insumos, Profesionales, Caja, Contenido, Galeria, Automatizaciones.
+- `RequirePermissionAttribute` (`IAsyncAuthorizationFilter`), se combina con el `[Authorize(Roles=...)]` ya existente en cada acción. **Bug propio encontrado y corregido antes de terminar el rollout:** la primera versión devolvía 403 a cualquier rol que no fuera exactamente "Admin" o "Staff" — rompía endpoints que ya eran compartidos con Professional (`TimeSlotsController.CreateSlot/UpdateSlot/ReleaseSlot/DeleteSlot`, donde un profesional gestiona su propia agenda). **Fix:** el chequeo granular contra `ModulePermission` ahora solo se ejecuta para el rol Staff; cualquier otro rol que ya haya pasado el `[Authorize(Roles=...)]` de esa acción específica (Admin, Professional en sus propios endpoints) sigue de largo sin restricción adicional del filtro.
+- `PermissionsController` (`/api/permissions`, todo `[Authorize(Roles="Admin")]` salvo `GET me`): `GET modules` (catálogo), `GET me` (permisos efectivos del usuario logueado — Admin resuelve `true` en todo sin consultar la tabla), `GET/POST/PUT/DELETE staff[...]` (alta de cuenta, reemplazo completo de su grilla de permisos en cada guardado —mismo criterio que el detalle de turno de la sección 14—, cambio de contraseña, baja).
+- `AuthService.CreateStaffAccountAsync`/`ChangeStaffPasswordAsync`, mismo patrón que `CreateProfessionalAccountAsync` (sección 6) pero sin ficha vinculada. El login de Staff **no necesitó ningún cambio**: `AuthService.LoginAsync`/`GenerateJwtToken` ya eran genéricos por `Role`, así que una cuenta Staff loguea por el mismo `POST /api/auth/login` que Admin/Professional.
+- **Rollout de enforcement a 10 controllers**: Services, Products, Insumos, Professionals, Caja, ContentVideos, Gallery (`Modules/Beauty`), AutomationRules, CustomerProfiles+Reminders (módulo Clientes), Bookings+TimeSlots+BlockedDates (módulo Turnos). Cada acción administrativa suma `[RequirePermission(Modulo, Accion)]` mapeada 1 a 1 por verbo HTTP (GET→View, POST→Create, PUT→Edit, DELETE→Delete). **Deliberadamente fuera de este sistema:** `AnalyticsController` (Estadísticas) y `BusinessSettingsController`/`SiteConfigController` (Empresa) siguen exclusivos de Admin real — datos de facturación/configuración del negocio completo, no de un módulo puntual delegable. Tampoco se extendió `POST /api/auth/professional-account` (activar login de un profesional) a Staff aunque tenga permiso de Editar sobre Profesionales — emitir credenciales de acceso es más sensible que editar un campo; decisión propia no pedida explícitamente por el usuario, queda anotada acá para revisar si hace falta ampliarla.
+- Migración `AddModulePermissions` generada y aplicada (tabla `ModulePermissions`, índice único `(UserId, Module)`, FK a `Users` con `ON DELETE CASCADE`).
+
+**Frontend:**
+- `src/hooks/usePermissions.ts` — si el rol es Admin, `can()` resuelve `true` sin pegarle al backend; si es Staff, hace `GET /api/permissions/me` una vez y cachea en memoria.
+- `src/lib/auth.ts`: `isAdminAuthenticated()` (el guard que usan las ~15 páginas de `/admin/*`) pasó a aceptar Admin **o** Staff — antes exigía literal `role === "Admin"`, lo que hubiera dejado a cualquier Staff afuera en la puerta de entrada de cada página sin tener que tocarlas una por una. Se agregó `isFullAdmin()` (solo Admin real) para gatear lo que sigue siendo exclusivo del dueño de la cuenta (la propia página de Permisos, Estadísticas, Empresa).
+- `AdminSidebar.tsx`: cada link del menú suma un `module` (o `adminOnly: true` para Empresa/Estadísticas/Permisos) — un Staff sin permiso de Ver en un módulo directamente no ve esa entrada. Ítem nuevo "Permisos" agregado al grupo "Cuenta".
+- `app/(admin)/admin/permisos/page.tsx` (nueva): el Admin crea cuentas Staff (email/usuario/contraseña), les asigna una grilla de checkboxes Ver/Crear/Editar/Eliminar por módulo, les cambia la contraseña, o revoca el acceso (borra la cuenta, cascada sobre sus permisos). Marcar cualquier acción distinta de "Ver" auto-marca "Ver" también, en la UI — no tiene sentido poder editar un módulo que ni siquiera se puede ver en el menú.
+- `app/api/permissions/[...path]/route.ts` — proxy nuevo, mismo patrón catch-all que `caja`/`professionals`.
+
+**Verificación — parcial, con un pendiente explícito sin cerrar:**
+- `dotnet build` y `npx tsc --noEmit`: limpios después de cada archivo tocado, tanto backend como frontend.
+- Migración aplicada y verificada por SQL directo contra la base real.
+- Prueba real contra el backend corriendo localmente (no solo compilación): se registró un admin nuevo, se creó una cuenta Staff, y se le asignó permiso `Servicios: Ver+Editar` (sin Crear/Eliminar) vía HTTP real (`curl`) — los tres pasos respondieron `200`/`success:true`.
+- **La verificación quedó interrumpida antes de loguear como Staff y confirmar en runtime que el 403 realmente bloquea una acción sin permiso** (y que las acciones permitidas sí funcionan) — el usuario cortó la corrida para pedir otra cosa. Tampoco hay tests de integración automatizados nuevos para este módulo (los 92 tests de la sección 21 son anteriores, no lo cubren). **No dar por probado el enforcement real de punta a punta hasta correr ese chequeo pendiente.**
+
+### Incidente: base de datos local borrada por el usuario a mitad de sesión
+
+Durante la verificación del módulo de Permisos, el usuario borró accidentalmente la base de datos local (`bd_turnos_e2e`). Se recreó corriendo `dotnet ef database update` desde cero, que reaplicó **las 18 migraciones** del historial completo (no solo la nueva de Permisos) — confirmado por SQL directo que el schema quedó íntegro y que el tenant `legacy` volvió a sembrarse solo (vía el seed que trae la propia migración de multi-tenancy, sección 5 del histórico). **Lo que no se recupera:** ningún dato (usuarios Admin, servicios, clientes, turnos cargados) — no hay backup ni seeder de Admin por defecto en este proyecto (el `DatabaseSeeder` con el admin de ejemplo está comentado/muerto, confirmado en la sección 1 original). El usuario tuvo que volver a registrar un Admin desde cero vía `/api/auth/register`.

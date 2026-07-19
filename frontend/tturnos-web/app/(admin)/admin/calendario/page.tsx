@@ -1,18 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
+import { logError } from "@/src/lib/logger";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import AgendaCalendar from "@/src/components/calendar/AgendaCalendar";
+import ReserveSlotModal from "@/src/components/calendar/ReserveSlotModal";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { Button } from "@/src/components/shared/Button";
-
-interface Service {
-  id: number;
-  title: string;
-  slug: string;
-}
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface Booking {
   id: number;
@@ -44,6 +42,36 @@ interface TimeSlot {
   professionalName?: string | null;
 }
 
+interface BookingItemRecord {
+  id: number;
+  itemType: "Service" | "Product" | "Insumo";
+  serviceId?: number | null;
+  productId?: number | null;
+  insumoId?: number | null;
+  isSale?: boolean;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface BookingFullRecord {
+  id: number;
+  items?: BookingItemRecord[];
+  photoUrlsBefore?: string | null;
+  photoUrlsAfter?: string | null;
+}
+
+interface ServiceOption { id: number; title: string; slug: string; price: string; }
+interface ProductOption { id: number; name: string; price: number; }
+interface InsumoOption { id: number; name: string; stock: number; lowStockThreshold: number; }
+interface ServiceRecipeItem { insumoId: number; insumoName: string; quantity: number; }
+
+function parseServicePrice(raw: string): number {
+  const match = raw.replace(/\./g, "").match(/\d+([,.]\d+)?/);
+  if (!match) return 0;
+  return parseFloat(match[0].replace(",", ".")) || 0;
+}
+
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
@@ -66,16 +94,27 @@ export default function CalendarioPage() {
   const [current, setCurrent] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [detailBooking, setDetailBooking] = useState<{ slot: TimeSlot } | null>(null);
+  useModalHotkeys(!!detailBooking, { onClose: () => setDetailBooking(null) });
+  const [editingBooking, setEditingBooking] = useState<TimeSlot | null>(null);
+  const [editForm, setEditForm] = useState({ customerName: "", customerPhone: "", subject: "", service: "", message: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const editFormRef = useRef<HTMLFormElement>(null);
+  const closeEdit = () => { if (editingBooking) setDetailBooking({ slot: editingBooking }); setEditingBooking(null); };
+  useModalHotkeys(!!editingBooking, { onClose: closeEdit, onSubmit: () => editFormRef.current?.requestSubmit() });
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [insumos, setInsumos] = useState<InsumoOption[]>([]);
+  const [bookingsFull, setBookingsFull] = useState<BookingFullRecord[]>([]);
+  const [detailItems, setDetailItems] = useState<BookingItemRecord[]>([]);
+  const [newItem, setNewItem] = useState({ itemType: "Service" as "Service" | "Product" | "Insumo", refId: 0, quantity: 1, unitPrice: 0, isSale: false });
+  const [savingDetail, setSavingDetail] = useState(false);
   const [reserveSlot, setReserveSlot] = useState<TimeSlot | null>(null);
-  const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
-  const [reserveForm, setReserveForm] = useState({ customerName: "", customerPhone: "", service: "", subject: "", professionalId: "", message: "" });
-  const [reserving, setReserving] = useState(false);
-  const [reserveError, setReserveError] = useState("");
   const [professionalFilter, setProfessionalFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"month" | "week" | "day">("month");
   const [agendaDate, setAgendaDate] = useState(new Date());
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const loadSlots = () =>
     fetch("/api/timeslots").then((r) => r.json()).then((data) => setSlots(Array.isArray(data) ? data : []));
@@ -84,10 +123,20 @@ export default function CalendarioPage() {
     if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
     Promise.all([
       loadSlots(),
-      fetch("/api/services").then((r) => r.json()).then((d) => setServices(Array.isArray(d) ? d : [])),
       fetch("/api/professionals").then((r) => r.json()).then((d) => setProfessionals(Array.isArray(d) ? d : [])),
+      fetch("/api/services/all").then((r) => r.json()).then((d) => setServices(Array.isArray(d) ? d : [])),
+      fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])),
+      fetch("/api/insumos").then((r) => r.json()).then((d) => setInsumos(Array.isArray(d) ? d : [])),
+      fetch("/api/bookings").then((r) => r.json()).then((d) => setBookingsFull(Array.isArray(d) ? d : [])),
     ]).finally(() => setLoading(false));
   }, [router]);
+
+  useEffect(() => {
+    if (!detailBooking?.slot.booking) return;
+    const full = bookingsFull.find((b) => b.id === detailBooking.slot.booking!.id);
+    setDetailItems(full?.items ?? []);
+    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0, isSale: false });
+  }, [detailBooking, bookingsFull]);
 
   const prevMonth = () => setCurrent((c) => {
     if (c.month === 1) return { year: c.year - 1, month: 12 };
@@ -135,36 +184,6 @@ export default function CalendarioPage() {
   const isToday = (d: number) =>
     d === today.getDate() && current.month === today.getMonth() + 1 && current.year === today.getFullYear();
 
-  const handleReserve = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reserveSlot) return;
-    setReserving(true);
-    setReserveError("");
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          timeSlotId: reserveSlot.id,
-          ...reserveForm,
-          professionalId: reserveForm.professionalId ? Number(reserveForm.professionalId) : null,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setReserveSlot(null);
-        setReserveForm({ customerName: "", customerPhone: "", service: "", subject: "", professionalId: "", message: "" });
-        await loadSlots();
-      } else {
-        setReserveError(data.message || "No se pudo crear la reserva");
-      }
-    } catch {
-      setReserveError("Error de conexión");
-    } finally {
-      setReserving(false);
-    }
-  };
-
   const handleReschedule = async (bookingId: number, newTimeSlotId: number, successMessage?: string) => {
     try {
       const res = await fetch(`/api/bookings/${bookingId}/admin-reschedule`, {
@@ -210,11 +229,136 @@ export default function CalendarioPage() {
     }
   };
 
+  const addItem = async () => {
+    if (!newItem.refId) return;
+    const catalog = newItem.itemType === "Service" ? services : newItem.itemType === "Product" ? products : insumos;
+    const found = catalog.find((c) => c.id === newItem.refId);
+    if (!found) return;
+    const name = newItem.itemType === "Service" ? (found as ServiceOption).title : (found as ProductOption | InsumoOption).name;
+    const addedServiceId = newItem.itemType === "Service" ? newItem.refId : null;
+    const addedQuantity = newItem.quantity;
+    setDetailItems((prev) => [...prev, {
+      id: 0,
+      itemType: newItem.itemType,
+      serviceId: newItem.itemType === "Service" ? newItem.refId : null,
+      productId: newItem.itemType === "Product" ? newItem.refId : null,
+      insumoId: newItem.itemType === "Insumo" ? newItem.refId : null,
+      isSale: newItem.itemType === "Insumo" ? newItem.isSale : undefined,
+      name,
+      quantity: newItem.quantity,
+      // El insumo es costo interno salvo que se marque como venta: ahí sí se cobra al cliente.
+      unitPrice: newItem.itemType === "Insumo" && !newItem.isSale ? 0 : newItem.unitPrice,
+    }]);
+    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0, isSale: false });
+
+    // Al agregar un servicio, auto-agregar los insumos de su receta (editables/quitables antes de guardar).
+    if (addedServiceId) {
+      try {
+        const res = await fetch(`/api/services/${addedServiceId}/recipe`);
+        if (res.ok) {
+          const recipeItems: ServiceRecipeItem[] = await res.json();
+          if (recipeItems.length > 0) {
+            setDetailItems((prev) => [
+              ...prev,
+              ...recipeItems.map((r) => ({
+                id: 0,
+                itemType: "Insumo" as const,
+                insumoId: r.insumoId,
+                isSale: false,
+                name: r.insumoName,
+                quantity: r.quantity * addedQuantity,
+                unitPrice: 0,
+              })),
+            ]);
+          }
+        }
+      } catch (error) {
+        logError("Error cargando receta del servicio:", error);
+      }
+    }
+  };
+
+  const removeItem = (idx: number) => setDetailItems((prev) => prev.filter((_, i) => i !== idx));
+
+  const saveDetail = async () => {
+    const bookingId = detailBooking?.slot.booking?.id;
+    if (!bookingId) return;
+    const full = bookingsFull.find((b) => b.id === bookingId);
+    setSavingDetail(true);
+    try {
+      const payload = {
+        photoUrlsBefore: full?.photoUrlsBefore ?? null,
+        photoUrlsAfter: full?.photoUrlsAfter ?? null,
+        items: detailItems.map((i) => ({
+          itemType: i.itemType,
+          serviceId: i.serviceId ?? undefined,
+          productId: i.productId ?? undefined,
+          insumoId: i.insumoId ?? undefined,
+          isSale: i.isSale ?? false,
+          name: i.name,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+        })),
+      };
+      const res = await fetch(`/api/bookings/${bookingId}/detail`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setBookingsFull((prev) => prev.map((b) => (b.id === bookingId ? { ...b, items: detailItems } : b)));
+        showToast("success", "Detalle actualizado", "Se guardaron los cambios del turno.");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast("error", "No se pudo guardar", data.message);
+      }
+    } catch {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor.");
+    } finally {
+      setSavingDetail(false);
+    }
+  };
+
+  const openEdit = (slot: TimeSlot) => {
+    const b = slot.booking!;
+    setEditForm({ customerName: b.customerName, customerPhone: b.customerPhone, subject: b.subject, service: b.service ?? "", message: b.message ?? "" });
+    setEditingBooking(slot);
+    setDetailBooking(null);
+  };
+
+  const submitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBooking?.booking) return;
+    const bookingId = editingBooking.booking.id;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const updatedSlot: TimeSlot = { ...editingBooking, booking: { ...editingBooking.booking, ...editForm } };
+        setSlots((prev) => prev.map((s) => (s.id === updatedSlot.id ? updatedSlot : s)));
+        showToast("success", "Turno actualizado", data.message);
+        setEditingBooking(null);
+        setDetailBooking({ slot: updatedSlot });
+      } else {
+        showToast("error", "No se pudo actualizar", data.message);
+      }
+    } catch {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const liberarTurno = async (slotId: number, isConfirmed = false) => {
     const msg = isConfirmed
       ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
       : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
-    if (!confirm(msg)) return;
+    if (!(await confirm({ message: msg, confirmLabel: isConfirmed ? "Cancelar turno" : "Liberar turno" }))) return;
     const res = await fetch(`/api/timeslots/${slotId}/release`, { method: "PUT" });
     if (res.ok) {
       setDetailBooking(null);
@@ -232,6 +376,7 @@ export default function CalendarioPage() {
   return (
     <div className="p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
       <div className={`mx-auto ${viewMode === "month" ? "max-w-5xl" : "max-w-7xl"}`}>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -282,7 +427,7 @@ export default function CalendarioPage() {
               onViewChange={(v) => setViewMode(v)}
               onSelectAvailable={(slotId) => {
                 const slot = slots.find((s) => s.id === slotId);
-                if (slot) { setReserveSlot(slot); setReserveError(""); }
+                if (slot) setReserveSlot(slot);
               }}
               onSelectBooking={(slotId) => {
                 const slot = slots.find((s) => s.id === slotId);
@@ -399,7 +544,7 @@ export default function CalendarioPage() {
                 {daySlots.length === 0 ? (
                   <p className="text-charcoal/30 text-sm">Sin turnos este día</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
                     {daySlots
                       .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime))
                       .map((slot) => {
@@ -411,7 +556,8 @@ export default function CalendarioPage() {
                             data-testid="calendario-slot-row"
                             data-available={slot.isAvailable}
                             data-customer-name={slot.booking?.customerName ?? ""}
-                            className={`p-3 rounded-xl border transition ${
+                            onClick={() => !slot.isAvailable && slot.booking && setDetailBooking({ slot })}
+                            className={`p-3 rounded-xl border transition ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
                               slot.isAvailable
                                 ? "border-green-200 bg-green-50"
                                 : slot.booking?.status === "Confirmed"
@@ -444,7 +590,7 @@ export default function CalendarioPage() {
                               {slot.isAvailable ? (
                                 <button
                                   data-testid="calendario-slot-reserve-button"
-                                  onClick={() => { setReserveSlot(slot); setReserveError(""); }}
+                                  onClick={() => setReserveSlot(slot)}
                                   className="text-xs text-blushdark hover:text-blush font-medium transition"
                                 >
                                   + Reservar
@@ -473,122 +619,17 @@ export default function CalendarioPage() {
 
       {/* MODAL NUEVA RESERVA (ADMIN) */}
       {reserveSlot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setReserveSlot(null)}>
-          <div data-testid="calendario-reserve-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
-              <div>
-                <h2 className="text-charcoal font-semibold text-lg">Nueva reserva</h2>
-                <p className="text-charcoal/40 text-xs mt-0.5">
-                  {(() => { const { d, m, h, min } = parseLocalDate(reserveSlot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")} · ${d} de ${MONTH_NAMES[m - 1]}`; })()}
-                </p>
-              </div>
-              <button onClick={() => setReserveSlot(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
-            </div>
-
-            <form onSubmit={handleReserve} className="px-6 py-5 space-y-4">
-              <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Nombre del cliente</label>
-                <input
-                  data-testid="calendario-reserve-name"
-                  className="form-input mt-1.5"
-                  value={reserveForm.customerName}
-                  onChange={(e) => setReserveForm((p) => ({ ...p, customerName: e.target.value }))}
-                  placeholder="Juan García"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Teléfono / WhatsApp</label>
-                <input
-                  data-testid="calendario-reserve-phone"
-                  className="form-input mt-1.5"
-                  value={reserveForm.customerPhone}
-                  onChange={(e) => setReserveForm((p) => ({ ...p, customerPhone: e.target.value }))}
-                  placeholder="1123456789"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Servicio</label>
-                <select
-                  data-testid="calendario-reserve-service"
-                  className="form-input mt-1.5"
-                  value={reserveForm.service}
-                  onChange={(e) => setReserveForm((p) => ({ ...p, service: e.target.value }))}
-                  required
-                >
-                  <option value="">Seleccioná un servicio</option>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.slug}>{s.title}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno *</label>
-                <input
-                  data-testid="calendario-reserve-subject"
-                  className="form-input mt-1.5"
-                  value={reserveForm.subject}
-                  onChange={(e) => setReserveForm((p) => ({ ...p, subject: e.target.value }))}
-                  placeholder="Ej: lavado completo, corte y color..."
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Especialista</label>
-                {reserveSlot.professionalName ? (
-                  <p className="w-full mt-1.5 bg-porcelain/10 border border-mauve/10 rounded-lg p-3 text-charcoal text-sm">
-                    👤 {reserveSlot.professionalName} <span className="text-charcoal/40">(el turno ya es de este profesional)</span>
-                  </p>
-                ) : (
-                  <select
-                    className="form-input mt-1.5"
-                    value={reserveForm.professionalId}
-                    onChange={(e) => setReserveForm((p) => ({ ...p, professionalId: e.target.value }))}
-                  >
-                    <option value="">Sin preferencia</option>
-                    {professionals.map((pro) => (
-                      <option key={pro.id} value={pro.id}>{pro.firstName} {pro.lastName}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div>
-                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Notas (opcional)</label>
-                <textarea
-                  className="form-input mt-1.5 resize-none"
-                  rows={2}
-                  value={reserveForm.message}
-                  onChange={(e) => setReserveForm((p) => ({ ...p, message: e.target.value }))}
-                  placeholder="Observaciones..."
-                />
-              </div>
-
-              {reserveError && <p className="text-red-600 text-sm">{reserveError}</p>}
-
-              <div className="flex gap-3 pt-1">
-                <Button
-                  data-testid="calendario-reserve-submit"
-                  type="submit"
-                  disabled={reserving}
-                  variant="primary"
-                  className="flex-1"
-                >
-                  {reserving ? "Reservando..." : "Confirmar reserva"}
-                </Button>
-                <Button type="button" onClick={() => setReserveSlot(null)} variant="secondary">
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ReserveSlotModal
+          slot={reserveSlot}
+          onClose={() => setReserveSlot(null)}
+          onReserved={loadSlots}
+        />
       )}
 
       {/* MODAL DETALLE RESERVA */}
       {detailBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetailBooking(null)}>
-          <div data-testid="calendario-detail-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div data-testid="calendario-detail-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
                 <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
@@ -596,7 +637,16 @@ export default function CalendarioPage() {
                   {(() => { const { d, m, h, min } = parseLocalDate(detailBooking.slot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")} · ${d} de ${MONTH_NAMES[m - 1]}`; })()}
                 </p>
               </div>
-              <button onClick={() => setDetailBooking(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={() => openEdit(detailBooking.slot)}
+                  data-testid="calendario-edit-button"
+                  className="text-blushdark hover:text-blush transition text-xs font-semibold"
+                >
+                  Editar
+                </button>
+                <button onClick={() => setDetailBooking(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
+              </div>
             </div>
             <div className="px-6 py-5 space-y-4">
               <Row label="Cliente" value={detailBooking.slot.booking!.customerName} />
@@ -613,6 +663,122 @@ export default function CalendarioPage() {
               {detailBooking.slot.booking!.message && (
                 <Row label="Mensaje" value={detailBooking.slot.booking!.message!} />
               )}
+
+              {/* Productos y servicios utilizados */}
+              <div className="pt-2 border-t border-mauve/5">
+                <p className="text-charcoal/30 text-[11px] uppercase tracking-wider mb-2">Productos y servicios utilizados</p>
+                {detailItems.length > 0 && (
+                  <div className="space-y-1.5 mb-2" data-testid="calendario-item-list">
+                    {detailItems.map((item, i) => (
+                      <div key={i} data-testid="calendario-item-row" className="flex items-center justify-between gap-2 text-sm">
+                        <span className="text-charcoal/70">
+                          {item.name} <span className="text-charcoal/30 text-xs">×{item.quantity}</span>
+                          {item.itemType === "Insumo" && (
+                            <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.isSale ? "bg-emerald-500/20 text-emerald-700" : "bg-porcelain/30 text-charcoal/40"}`}>
+                              {item.isSale ? "VENTA" : "USO INTERNO"}
+                            </span>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-charcoal/50 text-xs">${(item.unitPrice * item.quantity).toLocaleString("es-AR")}</span>
+                          <button type="button" onClick={() => removeItem(i)} data-testid="calendario-item-remove" className="text-red-600/60 hover:text-red-600 text-xs">✕</button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-xs font-semibold pt-1.5 border-t border-mauve/5">
+                      <span className="text-charcoal/50">Total</span>
+                      <span className="text-charcoal">${detailItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toLocaleString("es-AR")}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <select
+                    value={newItem.itemType}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, itemType: e.target.value as "Service" | "Product" | "Insumo", refId: 0, unitPrice: 0, isSale: false }))}
+                    data-testid="calendario-item-type"
+                    className="bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                  >
+                    <option value="Service">Servicio</option>
+                    <option value="Product">Producto</option>
+                    <option value="Insumo">Insumo</option>
+                  </select>
+                  <select
+                    value={newItem.refId}
+                    onChange={(e) => {
+                      const id = parseInt(e.target.value) || 0;
+                      if (newItem.itemType === "Product") {
+                        const p = products.find((x) => x.id === id);
+                        setNewItem((prev) => ({ ...prev, refId: id, unitPrice: p?.price ?? 0 }));
+                      } else if (newItem.itemType === "Service") {
+                        const s = services.find((x) => x.id === id);
+                        setNewItem((prev) => ({ ...prev, refId: id, unitPrice: s ? parseServicePrice(s.price) : 0 }));
+                      } else {
+                        setNewItem((prev) => ({ ...prev, refId: id }));
+                      }
+                    }}
+                    data-testid="calendario-item-select"
+                    className="flex-1 min-w-0 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                  >
+                    <option value={0}>Elegir...</option>
+                    {newItem.itemType === "Service" && services.map((s) => (
+                      <option key={s.id} value={s.id}>{s.title} — {s.price}</option>
+                    ))}
+                    {newItem.itemType === "Product" && products.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                    {newItem.itemType === "Insumo" && insumos.map((i) => (
+                      <option key={i.id} value={i.id}>{i.name} ({i.stock <= 0 ? "SIN STOCK" : `Stock: ${i.stock}`})</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={newItem.quantity}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                    data-testid="calendario-item-quantity"
+                    className="w-11 bg-cream border border-mauve/10 rounded-lg px-1 py-1.5 text-xs text-charcoal text-center focus:outline-none"
+                  />
+                  {newItem.itemType === "Insumo" && (
+                    <label className="flex items-center gap-1 text-charcoal/60 text-[11px] cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={newItem.isSale}
+                        onChange={(e) => setNewItem((prev) => ({ ...prev, isSale: e.target.checked, unitPrice: e.target.checked ? prev.unitPrice : 0 }))}
+                        data-testid="calendario-item-sale-checkbox"
+                        className="accent-emerald-500"
+                      />
+                      Venta
+                    </label>
+                  )}
+                  {newItem.itemType === "Insumo" && !newItem.isSale ? (
+                    <span className="w-16 text-center text-[11px] text-charcoal/30 italic shrink-0">Interno</span>
+                  ) : (
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={newItem.unitPrice}
+                      onChange={(e) => setNewItem((prev) => ({ ...prev, unitPrice: parseFloat(e.target.value) || 0 }))}
+                      placeholder="Precio"
+                      data-testid="calendario-item-price"
+                      className="w-16 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                    />
+                  )}
+                  <Button type="button" onClick={addItem} data-testid="calendario-item-add" variant="secondary" size="sm" className="shrink-0">
+                    +
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  onClick={saveDetail}
+                  disabled={savingDetail}
+                  data-testid="calendario-save-detail"
+                  variant="secondary"
+                  className="w-full mt-3"
+                >
+                  {savingDetail ? "Guardando..." : "Guardar detalle"}
+                </Button>
+              </div>
             </div>
             <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
               <a
@@ -637,6 +803,81 @@ export default function CalendarioPage() {
                 {detailBooking.slot.booking?.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR RESERVA */}
+      {editingBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={closeEdit}>
+          <div data-testid="calendario-edit-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
+              <h2 className="text-charcoal font-semibold text-lg">Editar reserva</h2>
+              <button onClick={closeEdit} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
+            </div>
+            <form ref={editFormRef} onSubmit={submitEdit} className="px-6 py-5 space-y-4">
+              <div>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Cliente</label>
+                <input
+                  className="form-input mt-1.5"
+                  data-testid="calendario-edit-name"
+                  value={editForm.customerName}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, customerName: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Teléfono</label>
+                <input
+                  className="form-input mt-1.5"
+                  data-testid="calendario-edit-phone"
+                  value={editForm.customerPhone}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, customerPhone: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno</label>
+                <input
+                  className="form-input mt-1.5"
+                  data-testid="calendario-edit-subject"
+                  value={editForm.subject}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, subject: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Servicio</label>
+                <select
+                  className="form-input mt-1.5"
+                  data-testid="calendario-edit-service"
+                  value={editForm.service}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, service: e.target.value }))}
+                >
+                  <option value="">Sin servicio</option>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.slug}>{s.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Mensaje (opcional)</label>
+                <textarea
+                  className="form-input mt-1.5 resize-none"
+                  rows={2}
+                  value={editForm.message}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, message: e.target.value }))}
+                />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <Button type="submit" data-testid="calendario-edit-submit" disabled={savingEdit} variant="primary" className="flex-1">
+                  {savingEdit ? "Guardando..." : "Guardar cambios"}
+                </Button>
+                <Button type="button" onClick={closeEdit} variant="secondary">
+                  Cancelar
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

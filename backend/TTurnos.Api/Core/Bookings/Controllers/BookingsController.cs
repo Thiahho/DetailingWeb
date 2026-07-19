@@ -14,13 +14,15 @@ public class BookingsController : ControllerBase
     private readonly NotificationService _notificationService;
     private readonly AuthService _authService;
     private readonly IConfiguration _configuration;
+    private readonly IInsumosRepository _insumosRepository;
 
-    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration)
+    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository)
     {
         _repository = repository;
         _notificationService = notificationService;
         _authService = authService;
         _configuration = configuration;
+        _insumosRepository = insumosRepository;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -104,7 +106,8 @@ public class BookingsController : ControllerBase
 
     // GET: api/bookings (admin - todas las reservas)
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.View)]
     public async Task<IActionResult> GetAllBookings()
     {
         var bookings = await _repository.GetAllWithDetailsAsync();
@@ -279,7 +282,8 @@ public class BookingsController : ControllerBase
     // POST: api/bookings/{id}/admin-reschedule (admin - drag&drop de la agenda, sin las
     // restricciones del reschedule público: un admin sí puede mover turnos Confirmed)
     [HttpPost("{id}/admin-reschedule")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> AdminRescheduleBooking(int id, [FromBody] RescheduleRequest request)
     {
         await using var transaction = await _repository.BeginTransactionAsync();
@@ -318,7 +322,8 @@ public class BookingsController : ControllerBase
 
     // DELETE: api/bookings/expired (admin)
     [HttpDelete("expired")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Delete)]
     public async Task<IActionResult> DeleteExpiredBookings()
     {
         var now = DateTime.UtcNow;
@@ -330,7 +335,8 @@ public class BookingsController : ControllerBase
 
     // PATCH: api/bookings/{id}/confirm (admin)
     [HttpPatch("{id}/confirm")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> ConfirmBooking(int id)
     {
         var booking = await _repository.FindAsync(id);
@@ -344,11 +350,47 @@ public class BookingsController : ControllerBase
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
 
+    // PUT: api/bookings/{id} (admin - datos base de la reserva: cliente, teléfono, detalle,
+    // servicio, mensaje. No toca ProfessionalId: reasignar profesional se hace arrastrando
+    // el turno en la agenda, así el TimeSlot.ProfessionalId no queda desincronizado.)
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
+    public async Task<IActionResult> UpdateBooking(int id, [FromBody] UpdateBookingRequest request)
+    {
+        var booking = await _repository.FindAsync(id);
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        booking.CustomerName = request.CustomerName.Trim();
+        booking.CustomerPhone = request.CustomerPhone.Trim();
+        booking.Subject = request.Subject.Trim();
+        booking.Service = request.Service?.Trim();
+        booking.Message = string.IsNullOrWhiteSpace(request.Message) ? null : request.Message.Trim();
+
+        await _repository.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Reserva actualizada correctamente",
+            booking = new
+            {
+                customerName = booking.CustomerName,
+                customerPhone = booking.CustomerPhone,
+                subject = booking.Subject,
+                service = booking.Service,
+                message = booking.Message,
+            },
+        });
+    }
+
     // PUT: api/bookings/{id}/detail (admin - productos/servicios usados + fotos antes/después.
     // Reemplaza la lista de items completa en cada guardado, más simple que CRUD granular
     // por item y coherente con el flujo de UI de "guardar detalle" de una sola vez.)
     [HttpPut("{id}/detail")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> UpdateBookingDetail(int id, [FromBody] UpdateBookingDetailRequest request)
     {
         var booking = await _repository.GetByIdWithItemsAsync(id);
@@ -358,6 +400,32 @@ public class BookingsController : ControllerBase
         booking.PhotoUrlsBefore = request.PhotoUrlsBefore;
         booking.PhotoUrlsAfter = request.PhotoUrlsAfter;
 
+        // Reconciliar stock de insumos por delta (cantidad nueva - cantidad vieja) antes de
+        // reemplazar los items, así el ajuste es idempotente ante altas/ediciones/bajas repetidas
+        // sobre el mismo turno.
+        var oldInsumoQty = booking.Items
+            .Where(i => i.ItemType == BookingItemType.Insumo && i.InsumoId.HasValue)
+            .GroupBy(i => i.InsumoId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        var newInsumoQty = request.Items
+            .Where(i => i.ItemType == BookingItemType.Insumo && i.InsumoId.HasValue)
+            .GroupBy(i => i.InsumoId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        var affectedInsumoIds = oldInsumoQty.Keys.Union(newInsumoQty.Keys).ToList();
+        if (affectedInsumoIds.Count > 0)
+        {
+            var insumos = await _insumosRepository.FindManyAsync(affectedInsumoIds);
+            foreach (var insumo in insumos)
+            {
+                var oldQty = oldInsumoQty.GetValueOrDefault(insumo.Id);
+                var newQty = newInsumoQty.GetValueOrDefault(insumo.Id);
+                insumo.Stock -= newQty - oldQty;
+                insumo.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
         _repository.RemoveItemRange(booking.Items);
         var newItems = request.Items.Select(i => new BookingItem
         {
@@ -365,9 +433,13 @@ public class BookingsController : ControllerBase
             ItemType = i.ItemType,
             ServiceId = i.ItemType == BookingItemType.Service ? i.ServiceId : null,
             ProductId = i.ItemType == BookingItemType.Product ? i.ProductId : null,
+            InsumoId = i.ItemType == BookingItemType.Insumo ? i.InsumoId : null,
+            IsSale = i.ItemType == BookingItemType.Insumo && i.IsSale,
             Name = i.Name,
             Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice,
+            // El insumo es costo interno salvo que se marque como venta (IsSale): ahí sí se
+            // cobra al cliente. Servicios/productos siempre respetan el precio enviado.
+            UnitPrice = i.ItemType == BookingItemType.Insumo && !i.IsSale ? 0 : i.UnitPrice,
         }).ToList();
         _repository.AddItemRange(newItems);
 
@@ -382,6 +454,24 @@ public class RescheduleRequest
 {
     [Range(1, int.MaxValue)]
     public int NewTimeSlotId { get; set; }
+}
+
+public class UpdateBookingRequest
+{
+    [Required, StringLength(200, MinimumLength = 1)]
+    public string CustomerName { get; set; } = string.Empty;
+
+    [Required, StringLength(30, MinimumLength = 6)]
+    public string CustomerPhone { get; set; } = string.Empty;
+
+    [Required, StringLength(200, MinimumLength = 1)]
+    public string Subject { get; set; } = string.Empty;
+
+    [StringLength(200)]
+    public string? Service { get; set; }
+
+    [StringLength(2000)]
+    public string? Message { get; set; }
 }
 
 public class CreateBookingRequest
@@ -426,11 +516,15 @@ public class UpdateBookingDetailRequest
 
 public class BookingItemRequest
 {
-    [Required, RegularExpression("^(Service|Product)$")]
+    [Required, RegularExpression("^(Service|Product|Insumo)$")]
     public string ItemType { get; set; } = string.Empty;
 
     public int? ServiceId { get; set; }
     public int? ProductId { get; set; }
+    public int? InsumoId { get; set; }
+
+    // Solo aplica a ItemType=Insumo: true = venta al cliente (se cobra), false = uso interno (costo, gratis).
+    public bool IsSale { get; set; } = false;
 
     [Required, StringLength(150)]
     public string Name { get; set; } = string.Empty;

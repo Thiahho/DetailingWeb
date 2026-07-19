@@ -24,11 +24,14 @@ builder.Services.AddScoped<IGalleryRepository, GalleryRepository>();
 builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 builder.Services.AddScoped<IServicesRepository, ServicesRepository>();
 builder.Services.AddScoped<IProductsRepository, ProductsRepository>();
+builder.Services.AddScoped<IInsumosRepository, InsumosRepository>();
+builder.Services.AddScoped<IServiceInsumosRepository, ServiceInsumosRepository>();
 builder.Services.AddScoped<ICajaRepository, CajaRepository>();
 builder.Services.AddScoped<ITimeSlotsRepository, TimeSlotsRepository>();
 builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
 builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository>();
+builder.Services.AddScoped<IPermissionsRepository, PermissionsRepository>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {

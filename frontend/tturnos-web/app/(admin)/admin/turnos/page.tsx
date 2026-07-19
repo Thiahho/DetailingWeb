@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { Button } from "@/src/components/shared/Button";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 // --- Interfaces ---
 interface Booking {
@@ -74,6 +76,7 @@ export default function TurnosPage() {
 
   // Estado modal detalle
   const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
+  useModalHotkeys(!!detailSlot, { onClose: () => setDetailSlot(null) });
 
   // Estado filtro por estado
   type StatusFilter = "all" | "available" | "pending" | "confirmed" | "expired";
@@ -85,6 +88,7 @@ export default function TurnosPage() {
   };
 
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -191,7 +195,7 @@ export default function TurnosPage() {
   };
 
   const deleteSlot = async (id: number) => {
-    if (!confirm("¿Eliminar este turno?")) return;
+    if (!(await confirm({ message: "¿Eliminar este turno?", confirmLabel: "Eliminar turno" }))) return;
     try {
       const response = await fetch(`/api/timeslots/${id}`, {
         method: "DELETE",
@@ -276,7 +280,7 @@ export default function TurnosPage() {
     const msg = isConfirmed
       ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
       : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
-    if (!confirm(msg)) return;
+    if (!(await confirm({ message: msg, confirmLabel: isConfirmed ? "Cancelar turno" : "Liberar turno" }))) return;
     try {
       const response = await fetch(`/api/timeslots/${id}/release`, {
         method: "PUT",
@@ -331,7 +335,7 @@ export default function TurnosPage() {
       showToast("warning", "Acción no permitida", "Solo se pueden eliminar turnos habilitados o expirados");
       return;
     }
-    if (!confirm(`¿Eliminar ${availableSelected.length} turno(s)?`)) return;
+    if (!(await confirm({ message: `¿Eliminar ${availableSelected.length} turno(s)?`, confirmLabel: "Eliminar" }))) return;
 
     setBulkAction(true);
     try {
@@ -357,7 +361,7 @@ export default function TurnosPage() {
       showToast("warning", "Acción no permitida", "Solo se pueden habilitar turnos reservados");
       return;
     }
-    if (!confirm(`¿Cancelar ${reservedSelected.length} turno(s)? Las reservas quedarán canceladas y las fechas se liberarán.`)) return;
+    if (!(await confirm({ message: `¿Cancelar ${reservedSelected.length} turno(s)? Las reservas quedarán canceladas y las fechas se liberarán.`, confirmLabel: "Cancelar turnos" }))) return;
 
     setBulkAction(true);
     try {
@@ -433,6 +437,7 @@ export default function TurnosPage() {
     <div className="p-4 md:p-6 font-sans">
       {/* Toast Container */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       {/* Estilos de animación */}
       <style jsx global>{`

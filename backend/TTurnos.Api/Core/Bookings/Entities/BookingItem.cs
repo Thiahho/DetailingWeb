@@ -15,6 +15,11 @@ public class BookingItem : ITenantScoped
     public Service? Service { get; set; }
     public int? ProductId { get; set; }
     public Product? Product { get; set; }
+    public int? InsumoId { get; set; }
+    public Insumo? Insumo { get; set; }
+    // Solo aplica a ItemType=Insumo: true si el insumo se vendió al cliente (se cobra,
+    // cuenta como venta) en vez de consumirse internamente para el servicio (costo, gratis).
+    public bool IsSale { get; set; } = false;
     public string Name { get; set; } = string.Empty;
     public int Quantity { get; set; } = 1;
     public decimal UnitPrice { get; set; }

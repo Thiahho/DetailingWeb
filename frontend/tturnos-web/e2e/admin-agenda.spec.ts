@@ -86,6 +86,9 @@ test.describe("Admin: Agenda semanal (multi-profesional)", () => {
       await availableA.click();
 
       await expect(page.getByTestId("calendario-reserve-modal")).toBeVisible();
+      // El modal abre en modo "Cliente registrado" por default — pasar a
+      // "Cliente nuevo" para que aparezcan nombre/teléfono.
+      await page.getByTestId("reserve-mode-new").click();
       await page.getByTestId("calendario-reserve-name").fill("Cliente Agenda E2E");
       await page.getByTestId("calendario-reserve-phone").fill("1123456789");
       await page.getByTestId("calendario-reserve-service").selectOption({ index: 1 });

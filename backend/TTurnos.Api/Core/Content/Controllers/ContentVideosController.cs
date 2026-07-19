@@ -32,7 +32,8 @@ public class ContentVideosController : ControllerBase
     }
 
     [HttpGet("all")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Contenido, PermissionActions.View)]
     public async Task<IActionResult> GetAll()
     {
         var videos = await _repository.GetAllAsync();
@@ -50,7 +51,8 @@ public class ContentVideosController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Contenido, PermissionActions.Create)]
     public async Task<IActionResult> Create([FromBody] ContentVideoRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.VideoUrl))
@@ -72,7 +74,8 @@ public class ContentVideosController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Contenido, PermissionActions.Edit)]
     public async Task<IActionResult> Update(int id, [FromBody] ContentVideoRequest request)
     {
         var video = await _repository.FindAsync(id);
@@ -94,7 +97,8 @@ public class ContentVideosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Contenido, PermissionActions.Delete)]
     public async Task<IActionResult> Delete(int id)
     {
         var video = await _repository.FindAsync(id);

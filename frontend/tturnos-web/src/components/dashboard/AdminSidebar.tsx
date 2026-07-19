@@ -4,13 +4,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getSiteConfig } from "@/src/lib/siteConfig";
+import { usePermissions, type PermissionModuleKey } from "@/src/hooks/usePermissions";
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
-  MoreHorizontal, Building2, Package, Wallet, Zap,
+  MoreHorizontal, Building2, Package, Wallet, Zap, Boxes, ShieldCheck,
 } from "lucide-react";
 
-type NavItem = { href: string; label: string; icon: typeof LayoutDashboard };
+// `module`: a qué PermissionModule pertenece este link — un Staff sin permiso
+// de View en ese módulo no lo ve. Sin `module` = visible para cualquier rol
+// que ya esté en el panel (Panel, Cuenta). `adminOnly` = fuera del sistema de
+// permisos (Estadísticas/Empresa/Permisos tocan datos sensibles del negocio
+// completo, no de un módulo puntual) — solo Admin real, ni con todos los
+// permisos de Staff alcanza.
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; module?: PermissionModuleKey; adminOnly?: boolean };
 type NavGroup = { title: string; items: NavItem[] };
 
 // Panel queda suelto arriba (es el home). El resto se agrupa por dominio en vez
@@ -21,34 +28,36 @@ const groups: NavGroup[] = [
   {
     title: "Agenda",
     items: [
-      { href: "/admin/turnos", label: "Turnos", icon: List },
-      { href: "/admin/calendario", label: "Calendario", icon: CalendarDays },
-      { href: "/admin/historial", label: "Historial", icon: ClipboardList },
+      { href: "/admin/turnos", label: "Turnos", icon: List, module: "Turnos" },
+      { href: "/admin/calendario", label: "Calendario", icon: CalendarDays, module: "Turnos" },
+      { href: "/admin/historial", label: "Historial", icon: ClipboardList, module: "Turnos" },
     ],
   },
   {
     title: "Negocio",
     items: [
-      { href: "/admin/clientes", label: "Clientes", icon: Users },
-      { href: "/admin/profesionales", label: "Equipo", icon: UserCog },
-      { href: "/admin/servicios", label: "Servicios", icon: Wrench },
-      { href: "/admin/productos", label: "Productos", icon: Package },
-      { href: "/admin/caja", label: "Caja", icon: Wallet },
-      { href: "/admin/automatizaciones", label: "Automatizaciones", icon: Zap },
-      { href: "/admin/configuracion", label: "Empresa", icon: Building2 },
+      { href: "/admin/clientes", label: "Clientes", icon: Users, module: "Clientes" },
+      { href: "/admin/profesionales", label: "Equipo", icon: UserCog, module: "Profesionales" },
+      { href: "/admin/servicios", label: "Servicios", icon: Wrench, module: "Servicios" },
+      { href: "/admin/productos", label: "Productos", icon: Package, module: "Productos" },
+      { href: "/admin/insumos", label: "Insumos", icon: Boxes, module: "Insumos" },
+      { href: "/admin/caja", label: "Caja", icon: Wallet, module: "Caja" },
+      { href: "/admin/automatizaciones", label: "Automatizaciones", icon: Zap, module: "Automatizaciones" },
+      { href: "/admin/configuracion", label: "Empresa", icon: Building2, adminOnly: true },
     ],
   },
   {
     title: "Contenido",
     items: [
-      { href: "/admin/galeria", label: "Galería", icon: Image },
-      { href: "/admin/contenido", label: "Contenido", icon: Clapperboard },
+      { href: "/admin/galeria", label: "Galería", icon: Image, module: "Galeria" },
+      { href: "/admin/contenido", label: "Contenido", icon: Clapperboard, module: "Contenido" },
     ],
   },
   {
     title: "Cuenta",
     items: [
-      { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2 },
+      { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2, adminOnly: true },
+      { href: "/admin/permisos", label: "Permisos", icon: ShieldCheck, adminOnly: true },
       { href: "/admin/cuenta", label: "Cuenta", icon: KeyRound },
     ],
   },
@@ -58,16 +67,32 @@ const allItems: NavItem[] = [topItem, ...groups.flatMap((g) => g.items)];
 
 // Los 4 de uso diario van fijos en la barra mobile; el resto vive atrás del botón "Más".
 const mobilePrimaryHrefs = ["/admin", "/admin/turnos", "/admin/calendario", "/admin/historial"];
-const mobilePrimary = allItems.filter((i) => mobilePrimaryHrefs.includes(i.href));
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("/img/logo.png");
+  const { isAdmin, can, loading: loadingPermissions } = usePermissions();
 
   useEffect(() => {
     getSiteConfig().then((config) => { if (config.logoUrl) setLogoUrl(config.logoUrl); });
   }, []);
+
+  // Mientras cargan los permisos de un Staff, no mostrar nada todavía (evita el
+  // parpadeo de ver todo el menú y que un ítem sin permiso desaparezca después).
+  const visible = (item: NavItem) => {
+    if (isAdmin) return true;
+    if (item.adminOnly) return false;
+    if (!item.module) return true;
+    if (loadingPermissions) return false;
+    return can(item.module, "View");
+  };
+
+  const visibleGroups = groups
+    .map((g) => ({ ...g, items: g.items.filter(visible) }))
+    .filter((g) => g.items.length > 0);
+  const visibleAllItems = [topItem, ...visibleGroups.flatMap((g) => g.items)];
+  const mobilePrimary = visibleAllItems.filter((i) => mobilePrimaryHrefs.includes(i.href));
 
   const handleLogout = async () => {
     const { logout } = await import("@/src/lib/auth");
@@ -77,7 +102,7 @@ export default function AdminSidebar() {
   const isActive = (href: string) =>
     href === "/admin" ? pathname === "/admin" : pathname === href;
 
-  const isMoreActive = allItems
+  const isMoreActive = visibleAllItems
     .filter((i) => !mobilePrimaryHrefs.includes(i.href))
     .some((i) => isActive(i.href));
 
@@ -109,7 +134,7 @@ export default function AdminSidebar() {
             {topItem.label}
           </Link>
 
-          {groups.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.title}>
               <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-charcoal/30">
                 {group.title}
@@ -218,7 +243,7 @@ export default function AdminSidebar() {
                 {topItem.label}
               </Link>
 
-              {groups.map((group) => (
+              {visibleGroups.map((group) => (
                 <div key={group.title}>
                   <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-charcoal/30">
                     {group.title}

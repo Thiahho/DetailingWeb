@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface AutomationRule {
   id: number;
@@ -116,6 +117,9 @@ export default function AutomatizacionesPage() {
     setFormData(emptyForm);
   };
 
+  const formRef = useRef<HTMLFormElement>(null);
+  useModalHotkeys(showForm, { onClose: closeForm, onSubmit: () => formRef.current?.requestSubmit() });
+
   const handleTriggerChange = (triggerType: AutomationRule["triggerType"]) => {
     setFormData((prev) => ({
       ...prev,
@@ -225,6 +229,8 @@ export default function AutomatizacionesPage() {
     setHistoryRule(null);
     setExecutions([]);
   };
+
+  useModalHotkeys(!!historyRule, { onClose: closeHistory });
 
   if (loading) {
     return (
@@ -373,7 +379,7 @@ export default function AutomatizacionesPage() {
               <button onClick={closeForm} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
                   Nombre (interno, solo para vos)

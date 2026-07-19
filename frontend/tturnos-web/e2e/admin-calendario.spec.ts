@@ -51,6 +51,9 @@ test.describe("Admin: Calendario", () => {
     const customerName = `Cliente Calendario E2E ${Date.now()}`;
     const modal = page.getByTestId("calendario-reserve-modal");
     await expect(modal).toBeVisible();
+    // El modal abre por default en modo "Cliente registrado" — hay que pasar
+    // a "Cliente nuevo" para que aparezcan los campos de nombre/teléfono.
+    await page.getByTestId("reserve-mode-new").click();
     await page.getByTestId("calendario-reserve-name").fill(customerName);
     await page.getByTestId("calendario-reserve-phone").fill("+5491100000002");
     await page.getByTestId("calendario-reserve-service").selectOption({ label: seed.serviceTitle });

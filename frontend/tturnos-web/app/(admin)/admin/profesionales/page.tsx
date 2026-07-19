@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
@@ -8,6 +8,7 @@ import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import PasswordInput from "@/src/components/ui/PasswordInput";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface ServiceOption {
   id: number;
@@ -139,6 +140,9 @@ export default function ProfesionalesAdminPage() {
     setSchedule(defaultSchedule());
     setAccessForm({ email: "", username: "", password: "" });
   };
+
+  const formRef = useRef<HTMLFormElement>(null);
+  useModalHotkeys(showForm, { onClose: closeForm, onSubmit: () => formRef.current?.requestSubmit() });
 
   const handleCreateAccess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,7 +390,7 @@ export default function ProfesionalesAdminPage() {
               <button onClick={closeForm} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               {/* Nombre y Apellido */}
               <div className="grid grid-cols-2 gap-3">
                 <div>

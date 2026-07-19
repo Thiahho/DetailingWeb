@@ -4,12 +4,17 @@ import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { isProfessionalAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
+import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface Booking {
   id: number;
   customerName: string;
   customerPhone: string;
+  subject?: string;
   service?: string;
+  message?: string;
   status: string;
 }
 
@@ -36,7 +41,10 @@ function ProfessionalAgendaContent() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ date: "", hour: "09", minute: "00" });
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const { toasts, showToast, removeToast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+  const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
+  useModalHotkeys(!!detailSlot, { onClose: () => setDetailSlot(null) });
 
   useEffect(() => {
     if (!isProfessionalAuthenticated()) {
@@ -67,11 +75,6 @@ function ProfessionalAgendaContent() {
     }
   };
 
-  const showMessage = (type: "success" | "error", text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
-  };
-
   const createSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
@@ -94,14 +97,14 @@ function ProfessionalAgendaContent() {
       });
       const data = await res.json();
       if (res.ok) {
-        showMessage("success", "Turno creado en tu agenda");
+        showToast("success", "Turno creado en tu agenda");
         setFormData((prev) => ({ ...prev, date: "" }));
         loadSlots();
       } else {
-        showMessage("error", data.message || "No se pudo crear el turno");
+        showToast("error", data.message || "No se pudo crear el turno");
       }
     } catch (error) {
-      showMessage("error", "Error de conexión");
+      showToast("error", "Error de conexión");
       logError(error);
     } finally {
       setCreating(false);
@@ -109,25 +112,26 @@ function ProfessionalAgendaContent() {
   };
 
   const releaseSlot = async (id: number) => {
-    if (!confirm("¿Liberar este turno? Si tenía una reserva, se cancela.")) return;
+    if (!(await confirm({ message: "¿Liberar este turno? Si tenía una reserva, se cancela.", confirmLabel: "Liberar turno" }))) return;
     const res = await fetch(`/api/timeslots/${id}/release`, { method: "PUT" });
     if (res.ok) {
-      showMessage("success", "Turno liberado");
+      setDetailSlot(null);
+      showToast("success", "Turno liberado");
       loadSlots();
     } else {
-      showMessage("error", "No se pudo liberar el turno");
+      showToast("error", "No se pudo liberar el turno");
     }
   };
 
   const deleteSlot = async (id: number) => {
-    if (!confirm("¿Eliminar este turno de tu agenda?")) return;
+    if (!(await confirm({ message: "¿Eliminar este turno de tu agenda?", confirmLabel: "Eliminar turno" }))) return;
     const res = await fetch(`/api/timeslots/${id}`, { method: "DELETE" });
     const data = await res.json();
     if (res.ok) {
-      showMessage("success", "Turno eliminado");
+      showToast("success", "Turno eliminado");
       loadSlots();
     } else {
-      showMessage("error", data.message || "No se pudo eliminar el turno");
+      showToast("error", data.message || "No se pudo eliminar el turno");
     }
   };
 
@@ -145,13 +149,8 @@ function ProfessionalAgendaContent() {
 
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
-      {message && (
-        <div className={`fixed top-6 right-6 z-[9999] rounded-lg px-4 py-3 text-sm shadow-lg ${
-          message.type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
-        }`}>
-          {message.text}
-        </div>
-      )}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 md:mb-8">
@@ -233,7 +232,8 @@ function ProfessionalAgendaContent() {
                     ref={isHighlighted ? highlightedRef : undefined}
                     data-testid="agenda-slot-item"
                     data-slot-label={slot.label}
-                    className={`p-4 rounded-xl border ${
+                    onClick={() => !slot.isAvailable && slot.booking && setDetailSlot(slot)}
+                    className={`p-4 rounded-xl border ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
                       isHighlighted
                         ? "border-champagne ring-2 ring-champagne/50 bg-champagne/10"
                         : slot.isAvailable
@@ -278,7 +278,7 @@ function ProfessionalAgendaContent() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => releaseSlot(slot.id)}
+                            onClick={(e) => { e.stopPropagation(); releaseSlot(slot.id); }}
                             data-testid="agenda-slot-release"
                             className="text-green-700 hover:text-green-800 text-xs font-medium uppercase tracking-wide transition"
                           >
@@ -295,6 +295,59 @@ function ProfessionalAgendaContent() {
           </div>
         </div>
       </div>
+
+      {/* MODAL DETALLE RESERVA */}
+      {detailSlot?.booking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setDetailSlot(null)}>
+          <div data-testid="agenda-detail-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
+              <div>
+                <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
+                <p className="text-charcoal/40 text-xs mt-0.5">{detailSlot.label}</p>
+              </div>
+              <button onClick={() => setDetailSlot(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <Row label="Cliente" value={detailSlot.booking.customerName} />
+              <Row label="Teléfono" value={
+                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-700 hover:underline">
+                  {detailSlot.booking.customerPhone}
+                </a>
+              } />
+              {detailSlot.booking.subject && <Row label="Detalle" value={detailSlot.booking.subject} />}
+              <Row label="Servicio" value={detailSlot.booking.service || "—"} />
+              {detailSlot.booking.message && <Row label="Mensaje" value={detailSlot.booking.message} />}
+              <Row label="Estado" value={detailSlot.booking.status === "Confirmed" ? "Confirmado" : "Pendiente"} />
+            </div>
+            <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
+              <a
+                href={`https://wa.me/+54${detailSlot.booking.customerPhone.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-charcoal py-2.5 rounded-lg text-sm font-semibold transition"
+              >
+                WhatsApp
+              </a>
+              <button
+                data-testid="agenda-detail-release"
+                onClick={() => releaseSlot(detailSlot.id)}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2.5 rounded-lg text-sm font-semibold transition"
+              >
+                Liberar turno
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
+      <span className="text-charcoal text-sm text-right">{value}</span>
     </div>
   );
 }

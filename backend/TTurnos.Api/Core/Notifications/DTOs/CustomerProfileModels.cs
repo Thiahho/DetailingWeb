@@ -46,5 +46,8 @@ public record CustomerBookingHistoryItem(
     int? ProfessionalId,
     string? ProfessionalName,
     DateTime StartDateTime,
-    DateTime EndDateTime
+    DateTime EndDateTime,
+    List<InsumoUsageItem> InsumosUsados
 );
+
+public record InsumoUsageItem(string Name, int Quantity);

@@ -118,7 +118,7 @@ public static class TestDataFactory
         return slot;
     }
 
-    public static async Task<Booking> CreateBookingAsync(CustomWebApplicationFactory factory, int tenantId, int timeSlotId, string customerName, string email, string status = BookingStatus.Pending)
+    public static async Task<Booking> CreateBookingAsync(CustomWebApplicationFactory factory, int tenantId, int timeSlotId, string customerName, string email, string status = BookingStatus.Pending, string phone = "1122334455")
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -127,7 +127,7 @@ public static class TestDataFactory
             TenantId = tenantId,
             TimeSlotId = timeSlotId,
             CustomerName = customerName,
-            CustomerPhone = "1122334455",
+            CustomerPhone = phone,
             Email = email,
             CustomerEmailNormalized = email.Trim().ToLowerInvariant(),
             Subject = "Corte de pelo",
@@ -158,5 +158,44 @@ public static class TestDataFactory
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         return await db.Bookings.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookingId);
+    }
+
+    public static async Task<Insumo> CreateInsumoAsync(CustomWebApplicationFactory factory, int tenantId, string name, int stock, int lowStockThreshold = 0)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var insumo = new Insumo
+        {
+            TenantId = tenantId,
+            Name = name,
+            Stock = stock,
+            LowStockThreshold = lowStockThreshold,
+            IsActive = true
+        };
+        db.Insumos.Add(insumo);
+        await db.SaveChangesAsync();
+        return insumo;
+    }
+
+    public static async Task<Insumo?> GetInsumoIgnoringTenantAsync(CustomWebApplicationFactory factory, int insumoId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.Insumos.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == insumoId);
+    }
+
+    public static async Task<CustomerProfile> CreateCustomerProfileAsync(CustomWebApplicationFactory factory, int tenantId, string phone, string name)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = new CustomerProfile
+        {
+            TenantId = tenantId,
+            Phone = phone,
+            Name = name
+        };
+        db.CustomerProfiles.Add(profile);
+        await db.SaveChangesAsync();
+        return profile;
     }
 }

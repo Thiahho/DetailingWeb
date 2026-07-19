@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 type MovementType = "Charge" | "Deposit" | "Refund" | "ManualIn" | "ManualOut";
 type MovementMethod = "Cash" | "Transfer";
@@ -113,6 +114,8 @@ function MovementModal({
   const [error, setError] = useState("");
 
   const titles: Record<MovementMode, string> = { charge: "Cobrar turno", refund: "Registrar devolución", manual: "Movimiento manual" };
+  const formRef = useRef<HTMLFormElement>(null);
+  useModalHotkeys(true, { onClose, onSubmit: () => formRef.current?.requestSubmit() });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +155,7 @@ function MovementModal({
           <h2 className="text-lg font-bold text-charcoal">{titles[mode]}</h2>
           <button onClick={onClose} className="text-charcoal/40 hover:text-charcoal text-xl">✕</button>
         </div>
-        <form onSubmit={submit} className="space-y-3">
+        <form ref={formRef} onSubmit={submit} className="space-y-3">
           {typeOptions.length > 1 && (
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Tipo</label>
@@ -236,6 +239,11 @@ function CloseCajaModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ difference: number } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  useModalHotkeys(true, {
+    onClose: result ? onClosed : onClose,
+    onSubmit: () => formRef.current?.requestSubmit(),
+  });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,7 +288,7 @@ function CloseCajaModal({
       <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-charcoal mb-1">Cerrar caja</h2>
         <p className="text-charcoal/50 text-sm mb-4">Efectivo esperado: {formatMoney(expectedCash)}</p>
-        <form onSubmit={submit} className="space-y-3">
+        <form ref={formRef} onSubmit={submit} className="space-y-3">
           <div>
             <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Efectivo contado</label>
             <input

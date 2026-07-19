@@ -87,7 +87,7 @@ public class BookingsRepository : IBookingsRepository
                 x.Booking.PhotoUrlsAfter,
                 x.Booking.Items
                     .Select(i => new BookingItemSummary(
-                        i.Id, i.ItemType, i.ServiceId, i.ProductId, i.Name, i.Quantity, i.UnitPrice))
+                        i.Id, i.ItemType, i.ServiceId, i.ProductId, i.InsumoId, i.IsSale, i.Name, i.Quantity, i.UnitPrice))
                     .ToList()))
             .ToListAsync();
 
