@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
-import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import type { MovementMode, MovementType, MovementMethod } from "./_components/MovementModal";
 
-type MovementType = "Charge" | "Deposit" | "Refund" | "ManualIn" | "ManualOut";
-type MovementMethod = "Cash" | "Transfer";
-type MovementMode = "charge" | "refund" | "manual";
+// Los modales de movimiento y cierre de caja solo hacen falta al disparar
+// esas acciones puntuales: diferirlos evita que entren en el compile/bundle
+// inicial de la ruta.
+const MovementModal = dynamic(() => import("./_components/MovementModal"), { ssr: false });
+const CloseCajaModal = dynamic(() => import("./_components/CloseCajaModal"), { ssr: false });
 
 interface CajaMovementRecord {
   id: number;
@@ -93,231 +96,6 @@ function movementTypeLabel(type: string) {
     case "ManualOut": return "Egreso manual";
     default: return type;
   }
-}
-
-function MovementModal({
-  mode, initialBookingId, initialAmount, onClose, onSaved,
-}: {
-  mode: MovementMode;
-  initialBookingId?: number;
-  initialAmount?: number;
-  onClose: () => void;
-  onSaved: (message: string) => void;
-}) {
-  const typeOptions: MovementType[] = mode === "charge" ? ["Charge", "Deposit"] : mode === "refund" ? ["Refund"] : ["ManualIn", "ManualOut"];
-  const [type, setType] = useState<MovementType>(typeOptions[0]);
-  const [method, setMethod] = useState<MovementMethod>("Cash");
-  const [amount, setAmount] = useState(initialAmount ?? 0);
-  const [bookingId, setBookingId] = useState<number | "">(initialBookingId ?? "");
-  const [description, setDescription] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const titles: Record<MovementMode, string> = { charge: "Cobrar turno", refund: "Registrar devolución", manual: "Movimiento manual" };
-  const formRef = useRef<HTMLFormElement>(null);
-  useModalHotkeys(true, { onClose, onSubmit: () => formRef.current?.requestSubmit() });
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (amount <= 0) { setError("El monto debe ser mayor a 0"); return; }
-    setSaving(true);
-    setError("");
-    try {
-      const res = await fetch("/api/caja/movements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type,
-          method,
-          amount,
-          bookingId: mode === "manual" || bookingId === "" ? undefined : Number(bookingId),
-          description: description || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        onSaved(`${movementTypeLabel(type)} registrado`);
-        onClose();
-      } else {
-        setError(data.message || "No se pudo registrar el movimiento");
-      }
-    } catch {
-      setError("Error de conexión con el servidor");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-charcoal">{titles[mode]}</h2>
-          <button onClick={onClose} className="text-charcoal/40 hover:text-charcoal text-xl">✕</button>
-        </div>
-        <form ref={formRef} onSubmit={submit} className="space-y-3">
-          {typeOptions.length > 1 && (
-            <div>
-              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Tipo</label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as MovementType)}
-                data-testid="caja-movement-type"
-                className="form-input mt-1.5"
-              >
-                {typeOptions.map((t) => <option key={t} value={t}>{movementTypeLabel(t)}</option>)}
-              </select>
-            </div>
-          )}
-          <div>
-            <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Método</label>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value as MovementMethod)}
-              data-testid="caja-movement-method"
-              className="form-input mt-1.5"
-            >
-              <option value="Cash">Efectivo</option>
-              <option value="Transfer">Transferencia</option>
-            </select>
-          </div>
-          {mode !== "manual" && (
-            <div>
-              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Turno (ID, opcional)</label>
-              <input
-                type="number"
-                min={1}
-                value={bookingId}
-                onChange={(e) => setBookingId(e.target.value === "" ? "" : parseInt(e.target.value))}
-                placeholder="ID de turno"
-                data-testid="caja-movement-booking-id"
-                className="form-input mt-1.5"
-              />
-            </div>
-          )}
-          <div>
-            <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Monto</label>
-            <input
-              type="number"
-              min={0.01}
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-              required
-              data-testid="caja-movement-amount"
-              className="form-input mt-1.5"
-            />
-          </div>
-          <div>
-            <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Descripción (opcional)</label>
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              data-testid="caja-movement-description"
-              className="form-input mt-1.5"
-            />
-          </div>
-          {error && <p className="text-red-600 text-xs">{error}</p>}
-          <Button type="submit" disabled={saving} data-testid="caja-movement-submit" variant="primary" className="w-full">
-            {saving ? "Guardando..." : "Guardar"}
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function CloseCajaModal({
-  expectedCash, onClose, onClosed,
-}: {
-  expectedCash: number;
-  onClose: () => void;
-  onClosed: () => void;
-}) {
-  const [counted, setCounted] = useState(expectedCash);
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState<{ difference: number } | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  useModalHotkeys(true, {
-    onClose: result ? onClosed : onClose,
-    onSubmit: () => formRef.current?.requestSubmit(),
-  });
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
-    try {
-      const res = await fetch("/api/caja/close", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ closingCashCounted: counted, notes: notes || undefined }),
-      });
-      const data = await res.json();
-      if (res.ok) setResult({ difference: data.difference });
-      else setError(data.message || "No se pudo cerrar la caja");
-    } catch {
-      setError("Error de conexión con el servidor");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (result) {
-    const diffColor = result.difference === 0 ? "text-green-700" : result.difference > 0 ? "text-blue-700" : "text-red-600";
-    return (
-      <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-        <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 max-w-sm w-full text-center">
-          <p className="text-charcoal font-semibold mb-2">Caja cerrada</p>
-          <p className="text-charcoal/50 text-xs mb-1">Diferencia (contado − esperado)</p>
-          <p data-testid="caja-close-difference" className={`text-2xl font-bold ${diffColor}`}>
-            {result.difference === 0 ? "Sin diferencia" : `${result.difference > 0 ? "+" : ""}${formatMoney(result.difference)}`}
-          </p>
-          <Button onClick={onClosed} variant="primary" className="mt-4 w-full">
-            Listo
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-bold text-charcoal mb-1">Cerrar caja</h2>
-        <p className="text-charcoal/50 text-sm mb-4">Efectivo esperado: {formatMoney(expectedCash)}</p>
-        <form ref={formRef} onSubmit={submit} className="space-y-3">
-          <div>
-            <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Efectivo contado</label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={counted}
-              onChange={(e) => setCounted(parseFloat(e.target.value) || 0)}
-              data-testid="caja-close-counted"
-              className="form-input mt-1.5"
-            />
-          </div>
-          <div>
-            <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Notas (opcional)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className="form-input mt-1.5 resize-none"
-            />
-          </div>
-          {error && <p className="text-red-600 text-xs">{error}</p>}
-          <Button type="submit" disabled={saving} data-testid="caja-close-submit" variant="danger" className="w-full">
-            {saving ? "Cerrando..." : "Confirmar cierre"}
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
 }
 
 export default function CajaAdminPage() {

@@ -1,16 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import AgendaCalendar from "@/src/components/calendar/AgendaCalendar";
-import ReserveSlotModal from "@/src/components/calendar/ReserveSlotModal";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+
+// react-big-calendar y el modal de reserva solo hacen falta cuando se
+// cambia a vista semana/día o se abre "Reservar": diferirlos evita que su
+// peso (lib de calendario + CSS) entre en el compile/bundle inicial de la
+// página, que por defecto arranca en vista mes.
+const AgendaCalendar = dynamic(() => import("@/src/components/calendar/AgendaCalendar"), {
+  ssr: false,
+  loading: () => <div className="h-96 flex items-center justify-center text-charcoal/30 text-sm">Cargando agenda...</div>,
+});
+const ReserveSlotModal = dynamic(() => import("@/src/components/calendar/ReserveSlotModal"), { ssr: false });
 
 interface Booking {
   id: number;
