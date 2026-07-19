@@ -912,3 +912,38 @@ Ningún cambio de este bloque tiene test automatizado nuevo — todos verificado
 ### Incidente: base de datos local borrada por el usuario a mitad de sesión
 
 Durante la verificación del módulo de Permisos, el usuario borró accidentalmente la base de datos local (`bd_turnos_e2e`). Se recreó corriendo `dotnet ef database update` desde cero, que reaplicó **las 18 migraciones** del historial completo (no solo la nueva de Permisos) — confirmado por SQL directo que el schema quedó íntegro y que el tenant `legacy` volvió a sembrarse solo (vía el seed que trae la propia migración de multi-tenancy, sección 5 del histórico). **Lo que no se recupera:** ningún dato (usuarios Admin, servicios, clientes, turnos cargados) — no hay backup ni seeder de Admin por defecto en este proyecto (el `DatabaseSeeder` con el admin de ejemplo está comentado/muerto, confirmado en la sección 1 original). El usuario tuvo que volver a registrar un Admin desde cero vía `/api/auth/register`.
+
+---
+
+## 30. Actualización — sesión 19/07 (velocidad de carga del panel admin en desarrollo local)
+
+**Pedido del usuario:** las "ventanas" (páginas) del sitio tardaban en cargar — reducir ese tiempo. Antes de tocar nada se preguntó explícitamente si el problema era en producción o en desarrollo local, porque las causas y los fixes son completamente distintos (cold start del hosting vs. compilación de Next.js); el usuario confirmó que era **desarrollo local** (`pnpm dev` en su máquina).
+
+**Diagnóstico, no asumido — medido con `curl` contra el dev server real:** el proyecto (Next.js 14.2.5, App Router) compila cada ruta *on-demand* la primera vez que se visita en una corrida de `next dev` — no hay nada raro roto, es el comportamiento estándar del dev server, pero se agrava con archivos de página muy grandes. Medido antes de tocar nada: primera visita a una ruta ya compilada (mismo proceso, sin cambios) ~120-190ms; primera visita en frío a `/admin/calendario` (que además carga `react-big-calendar`, la única librería realmente pesada del frontend) ~4.7s. `next.config.js` estaba vacío (sin ninguna optimización de Next configurada) y el script `dev` no usaba Turbopack.
+
+**Causa estructural de fondo, no solo config:** varias páginas admin son archivos "use client" monolíticos de 700 a 1300 líneas, con los modales (formularios de alta/edición, detalle de turno/reserva) escritos *inline* en el mismo archivo e importados de forma estática — el navegador y el compilador de Next pagan el costo completo de esos modales aunque el admin nunca los abra en esa visita.
+
+**Fixes aplicados (`frontend/tturnos-web`):**
+1. `package.json`: script `dev` pasa a `next dev --turbo` (Turbopack).
+2. `next.config.js`: `experimental.optimizePackageImports` para `react-big-calendar`, `date-fns`, `lucide-react` — antes el archivo no tenía ninguna config.
+3. **Extracción de modales a `_components/` + `next/dynamic(..., { ssr: false })`** en las 6 páginas admin más pesadas, para sacar del compile/bundle inicial de cada ruta todo lo que solo hace falta al abrir un modal puntual:
+
+| Página | Líneas antes | Líneas después | Componente(s) extraído(s) |
+|---|---|---|---|
+| `/admin/calendario` | 895 | 904 | `AgendaCalendar` (react-big-calendar + CSS, la lib más pesada del proyecto), `ReserveSlotModal` — ya eran archivos separados, el cambio fue pasar de import estático a `next/dynamic` (el conteo de líneas casi no baja, la ganancia es que su compilación se difiere) |
+| `/admin/clientes` | 1287 | 644 | `CustomerFormModal`, `ReminderFormModal` |
+| `/admin/historial` | 737 | 491 | `BookingDetailModal` |
+| `/admin/turnos` | 1136 | 986 | `BookingDetailModal` |
+| `/admin/servicios` | 687 | 237 | `ServiceFormModal` (pasó a ser dueño de todo su propio estado — antes vivía en la página padre) |
+| `/admin/caja` | 674 | 452 | `MovementModal`, `CloseCajaModal` |
+
+Criterio de extracción: donde el modal ya era autosuficiente (Caja) se movió el componente tal cual; donde el formulario dependía de mucho estado del padre (Clientes, Servicios) se lo hizo dueño de su propio estado interno, recibiendo solo `initial`/`onSave`/`onClose` — igual que ya lo hacía `CustomerFormModal`, para no tener que enhebrar 15+ props sueltas. En Servicios esto además simplificó la página padre: `openEdit()` dejó de tener que precargar a mano `formData`/`customFields`/`recipe` antes de abrir el modal, el modal los resuelve solo a partir de `initial` vía un `useEffect`.
+
+**Bug propio introducido y corregido en el camino:** al reescribir a mano `ServiceFormModal.tsx`, el regex de sacar tildes (`normalize("NFD").replace(/[̀-ͯ]/g, "")`, usado para autogenerar el slug del servicio) se corrompió dos veces — el escape `̀-ͯ` terminó como caracteres Unicode combinantes literales en el archivo en vez de la secuencia de escape, rompiendo la limpieza de tildes. Se detectó por inspección antes de dar el archivo por bueno (no lo encontró `tsc`, porque sigue siendo un regex válido, solo que no hace lo mismo) y se corrigió reemplazándolo por una constante `DIACRITICS_RE` construida con `String.fromCharCode(0x0300)`/`String.fromCharCode(0x036f)` — evita depender de escribir esa secuencia de escape a mano.
+
+**Verificación:**
+- `npx tsc --noEmit` limpio en cada archivo tocado y en el proyecto completo al cierre (único resto: el error preexistente y no relacionado de `ConfirmDialog.tsx` sobre el namespace `JSX`, ya documentado antes de esta sesión).
+- Servidor de desarrollo levantado real (`pnpm dev`, con caché de `.next` borrada para medir en frío) y las 6 rutas afectadas devuelven `200` sin errores en el log del servidor.
+- **No se hizo click-through manual en navegador** de los flujos de cada modal (abrir, completar, guardar) — la verificación fue compilación + carga de página, no interacción real. Pendiente si se quiere confirmar al 100% que cada modal sigue funcionando igual que antes de la extracción.
+
+**Fuera de alcance de esta sesión, a propósito:** no se tocó el hosting de producción (Vercel + backend en Render) — si la lentitud también se nota en producción además de en local, la causa más probable ahí es otra por completo (cold start del backend en el free tier de Render, no cubierto por ninguno de estos cambios) y no se investigó en esta sesión porque el usuario confirmó que el problema era solo local. `/admin/productos` (687 líneas, quedó abierta en el editor durante la sesión) no se tocó — no estaba entre las páginas identificadas con el mismo patrón de modal pesado al momento de decidir el alcance.
