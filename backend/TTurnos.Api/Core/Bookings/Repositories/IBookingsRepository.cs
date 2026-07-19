@@ -40,6 +40,8 @@ public record BookingItemSummary(
     string ItemType,
     int? ServiceId,
     int? ProductId,
+    int? InsumoId,
+    bool IsSale,
     string Name,
     int Quantity,
     decimal UnitPrice);

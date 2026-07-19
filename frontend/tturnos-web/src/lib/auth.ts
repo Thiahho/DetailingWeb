@@ -43,9 +43,18 @@ export function getRole(): string | null {
   return localStorage.getItem("role");
 }
 
-// Sesión activa Y con rol Admin — usar este guard en /admin/*, no isAuthenticated()
-// a secas, porque un profesional logueado también pasa isAuthenticated().
+// Sesión activa Y con rol Admin o Staff — usar este guard en /admin/*, no
+// isAuthenticated() a secas, porque un profesional logueado también pasa
+// isAuthenticated(). Staff entra al panel igual que Admin, pero con acceso
+// acotado por módulo (ver usePermissions) — el backend es quien realmente lo
+// hace cumplir vía RequirePermission, esto solo decide si entra al panel.
 export function isAdminAuthenticated(): boolean {
+  return isAuthenticated() && (getRole() === "Admin" || getRole() === "Staff");
+}
+
+// Sesión activa Y con rol Admin exactamente (no Staff) — usar para gatear
+// funciones exclusivas del dueño de la cuenta, como administrar permisos.
+export function isFullAdmin(): boolean {
   return isAuthenticated() && getRole() === "Admin";
 }
 

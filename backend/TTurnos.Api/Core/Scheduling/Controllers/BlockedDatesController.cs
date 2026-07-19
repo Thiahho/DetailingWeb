@@ -5,7 +5,7 @@ namespace TTurnos.Api.Core.Scheduling;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class BlockedDatesController : ControllerBase
 {
     private readonly IBlockedDatesRepository _repository;
@@ -17,6 +17,7 @@ public class BlockedDatesController : ControllerBase
 
     // GET: api/blockeddates
     [HttpGet]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.View)]
     public async Task<IActionResult> GetBlockedDates()
     {
         var blockedDates = await _repository.GetUpcomingAsync();
@@ -34,6 +35,7 @@ public class BlockedDatesController : ControllerBase
 
     // POST: api/blockeddates (sin ProfessionalId bloquea todo el negocio; con valor, solo ese profesional)
     [HttpPost]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Create)]
     public async Task<IActionResult> BlockDate([FromBody] BlockDateRequest request)
     {
         var exists = await _repository.ExistsAsync(request.Date, request.ProfessionalId);
@@ -73,6 +75,7 @@ public class BlockedDatesController : ControllerBase
 
     // DELETE: api/blockeddates/5
     [HttpDelete("{id}")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Delete)]
     public async Task<IActionResult> UnblockDate(int id)
     {
         var blockedDate = await _repository.FindAsync(id);

@@ -5,6 +5,7 @@ global using TTurnos.Api.Core.Bookings;
 global using TTurnos.Api.Core.Scheduling;
 global using TTurnos.Api.Core.Professionals;
 global using TTurnos.Api.Core.Services;
+global using TTurnos.Api.Core.Insumos;
 global using TTurnos.Api.Core.Payments;
 global using TTurnos.Api.Core.Notifications;
 global using TTurnos.Api.Core.Content;

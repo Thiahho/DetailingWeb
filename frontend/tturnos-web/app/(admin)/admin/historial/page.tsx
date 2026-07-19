@@ -4,14 +4,18 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
+import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { Button } from "@/src/components/shared/Button";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface BookingItemRecord {
   id: number;
-  itemType: "Service" | "Product";
+  itemType: "Service" | "Product" | "Insumo";
   serviceId?: number | null;
   productId?: number | null;
+  insumoId?: number | null;
+  isSale?: boolean;
   name: string;
   quantity: number;
   unitPrice: number;
@@ -40,8 +44,16 @@ interface BookingRecord {
   items?: BookingItemRecord[];
 }
 
-interface ServiceOption { id: number; title: string; }
+interface ServiceOption { id: number; title: string; price: string; }
 interface ProductOption { id: number; name: string; price: number; }
+interface InsumoOption { id: number; name: string; stock: number; lowStockThreshold: number; }
+interface ServiceRecipeItem { insumoId: number; insumoName: string; quantity: number; }
+
+function parseServicePrice(raw: string): number {
+  const match = raw.replace(/\./g, "").match(/\d+([,.]\d+)?/);
+  if (!match) return 0;
+  return parseFloat(match[0].replace(",", ".")) || 0;
+}
 
 function parsePhotoUrls(raw?: string | null): string[] {
   if (!raw) return [];
@@ -102,13 +114,15 @@ export default function HistorialPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<BookingRecord | null>(null);
+  useModalHotkeys(!!detail, { onClose: () => setDetail(null) });
   const [confirming, setConfirming] = useState(false);
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
+  const [insumos, setInsumos] = useState<InsumoOption[]>([]);
   const [detailItems, setDetailItems] = useState<BookingItemRecord[]>([]);
   const [photosBefore, setPhotosBefore] = useState<string[]>([]);
   const [photosAfter, setPhotosAfter] = useState<string[]>([]);
-  const [newItem, setNewItem] = useState({ itemType: "Service" as "Service" | "Product", refId: 0, quantity: 1, unitPrice: 0 });
+  const [newItem, setNewItem] = useState({ itemType: "Service" as "Service" | "Product" | "Insumo", refId: 0, quantity: 1, unitPrice: 0, isSale: false });
   const [savingDetail, setSavingDetail] = useState(false);
 
   useEffect(() => {
@@ -119,6 +133,7 @@ export default function HistorialPage() {
       .finally(() => setLoading(false));
     fetch("/api/services/all").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setServices(data); });
     fetch("/api/products").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setProducts(data); });
+    fetch("/api/insumos").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setInsumos(data); });
   }, [router]);
 
   useEffect(() => { setPage(1); }, [filter, search]);
@@ -128,25 +143,56 @@ export default function HistorialPage() {
     setDetailItems(detail.items ?? []);
     setPhotosBefore(parsePhotoUrls(detail.photoUrlsBefore));
     setPhotosAfter(parsePhotoUrls(detail.photoUrlsAfter));
-    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0 });
+    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0, isSale: false });
   }, [detail]);
 
-  const addItem = () => {
+  const addItem = async () => {
     if (!newItem.refId) return;
-    const catalog = newItem.itemType === "Service" ? services : products;
+    const catalog = newItem.itemType === "Service" ? services : newItem.itemType === "Product" ? products : insumos;
     const found = catalog.find((c) => c.id === newItem.refId);
     if (!found) return;
-    const name = newItem.itemType === "Service" ? (found as ServiceOption).title : (found as ProductOption).name;
+    const name = newItem.itemType === "Service" ? (found as ServiceOption).title : (found as ProductOption | InsumoOption).name;
+    const addedServiceId = newItem.itemType === "Service" ? newItem.refId : null;
+    const addedQuantity = newItem.quantity;
     setDetailItems((prev) => [...prev, {
       id: 0,
       itemType: newItem.itemType,
       serviceId: newItem.itemType === "Service" ? newItem.refId : null,
       productId: newItem.itemType === "Product" ? newItem.refId : null,
+      insumoId: newItem.itemType === "Insumo" ? newItem.refId : null,
+      isSale: newItem.itemType === "Insumo" ? newItem.isSale : undefined,
       name,
       quantity: newItem.quantity,
-      unitPrice: newItem.unitPrice,
+      // El insumo es costo interno salvo que se marque como venta: ahí sí se cobra al cliente.
+      unitPrice: newItem.itemType === "Insumo" && !newItem.isSale ? 0 : newItem.unitPrice,
     }]);
-    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0 });
+    setNewItem({ itemType: "Service", refId: 0, quantity: 1, unitPrice: 0, isSale: false });
+
+    // Al agregar un servicio, auto-agregar los insumos de su receta (editables/quitables antes de guardar).
+    if (addedServiceId) {
+      try {
+        const res = await fetch(`/api/services/${addedServiceId}/recipe`);
+        if (res.ok) {
+          const recipeItems: ServiceRecipeItem[] = await res.json();
+          if (recipeItems.length > 0) {
+            setDetailItems((prev) => [
+              ...prev,
+              ...recipeItems.map((r) => ({
+                id: 0,
+                itemType: "Insumo" as const,
+                insumoId: r.insumoId,
+                isSale: false,
+                name: r.insumoName,
+                quantity: r.quantity * addedQuantity,
+                unitPrice: 0,
+              })),
+            ]);
+          }
+        }
+      } catch (error) {
+        logError("Error cargando receta del servicio:", error);
+      }
+    }
   };
 
   const removeItem = (idx: number) => setDetailItems((prev) => prev.filter((_, i) => i !== idx));
@@ -162,6 +208,8 @@ export default function HistorialPage() {
           itemType: i.itemType,
           serviceId: i.serviceId ?? undefined,
           productId: i.productId ?? undefined,
+          insumoId: i.insumoId ?? undefined,
+          isSale: i.isSale ?? false,
           name: i.name,
           quantity: i.quantity,
           unitPrice: i.unitPrice,
@@ -488,7 +536,14 @@ export default function HistorialPage() {
                   <div className="space-y-1.5 mb-2" data-testid="historial-item-list">
                     {detailItems.map((item, i) => (
                       <div key={i} data-testid="historial-item-row" className="flex items-center justify-between gap-2 text-sm">
-                        <span className="text-charcoal/70">{item.name} <span className="text-charcoal/30 text-xs">×{item.quantity}</span></span>
+                        <span className="text-charcoal/70">
+                          {item.name} <span className="text-charcoal/30 text-xs">×{item.quantity}</span>
+                          {item.itemType === "Insumo" && (
+                            <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.isSale ? "bg-emerald-500/20 text-emerald-700" : "bg-porcelain/30 text-charcoal/40"}`}>
+                              {item.isSale ? "VENTA" : "USO INTERNO"}
+                            </span>
+                          )}
+                        </span>
                         <div className="flex items-center gap-2">
                           <span className="text-charcoal/50 text-xs">${(item.unitPrice * item.quantity).toLocaleString("es-AR")}</span>
                           <button type="button" onClick={() => removeItem(i)} data-testid="historial-item-remove" className="text-red-600/60 hover:text-red-600 text-xs">✕</button>
@@ -501,15 +556,16 @@ export default function HistorialPage() {
                     </div>
                   </div>
                 )}
-                <div className="flex gap-1.5 items-center">
+                <div className="flex flex-wrap gap-1.5 items-center">
                   <select
                     value={newItem.itemType}
-                    onChange={(e) => setNewItem((prev) => ({ ...prev, itemType: e.target.value as "Service" | "Product", refId: 0, unitPrice: 0 }))}
+                    onChange={(e) => setNewItem((prev) => ({ ...prev, itemType: e.target.value as "Service" | "Product" | "Insumo", refId: 0, unitPrice: 0, isSale: false }))}
                     data-testid="historial-item-type"
                     className="bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
                   >
                     <option value="Service">Servicio</option>
                     <option value="Product">Producto</option>
+                    <option value="Insumo">Insumo</option>
                   </select>
                   <select
                     value={newItem.refId}
@@ -518,6 +574,9 @@ export default function HistorialPage() {
                       if (newItem.itemType === "Product") {
                         const p = products.find((x) => x.id === id);
                         setNewItem((prev) => ({ ...prev, refId: id, unitPrice: p?.price ?? 0 }));
+                      } else if (newItem.itemType === "Service") {
+                        const s = services.find((x) => x.id === id);
+                        setNewItem((prev) => ({ ...prev, refId: id, unitPrice: s ? parseServicePrice(s.price) : 0 }));
                       } else {
                         setNewItem((prev) => ({ ...prev, refId: id }));
                       }
@@ -526,8 +585,14 @@ export default function HistorialPage() {
                     className="flex-1 min-w-0 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
                   >
                     <option value={0}>Elegir...</option>
-                    {(newItem.itemType === "Service" ? services : products).map((c) => (
-                      <option key={c.id} value={c.id}>{newItem.itemType === "Service" ? (c as ServiceOption).title : (c as ProductOption).name}</option>
+                    {newItem.itemType === "Service" && services.map((s) => (
+                      <option key={s.id} value={s.id}>{s.title} — {s.price}</option>
+                    ))}
+                    {newItem.itemType === "Product" && products.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                    {newItem.itemType === "Insumo" && insumos.map((i) => (
+                      <option key={i.id} value={i.id}>{i.name} ({i.stock <= 0 ? "SIN STOCK" : `Stock: ${i.stock}`})</option>
                     ))}
                   </select>
                   <input
@@ -538,16 +603,32 @@ export default function HistorialPage() {
                     data-testid="historial-item-quantity"
                     className="w-11 bg-cream border border-mauve/10 rounded-lg px-1 py-1.5 text-xs text-charcoal text-center focus:outline-none"
                   />
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={newItem.unitPrice}
-                    onChange={(e) => setNewItem((prev) => ({ ...prev, unitPrice: parseFloat(e.target.value) || 0 }))}
-                    placeholder="Precio"
-                    data-testid="historial-item-price"
-                    className="w-16 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
-                  />
+                  {newItem.itemType === "Insumo" && (
+                    <label className="flex items-center gap-1 text-charcoal/60 text-[11px] cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={newItem.isSale}
+                        onChange={(e) => setNewItem((prev) => ({ ...prev, isSale: e.target.checked, unitPrice: e.target.checked ? prev.unitPrice : 0 }))}
+                        data-testid="historial-item-sale-checkbox"
+                        className="accent-emerald-500"
+                      />
+                      Venta
+                    </label>
+                  )}
+                  {newItem.itemType === "Insumo" && !newItem.isSale ? (
+                    <span className="w-16 text-center text-[11px] text-charcoal/30 italic shrink-0">Interno</span>
+                  ) : (
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={newItem.unitPrice}
+                      onChange={(e) => setNewItem((prev) => ({ ...prev, unitPrice: parseFloat(e.target.value) || 0 }))}
+                      placeholder="Precio"
+                      data-testid="historial-item-price"
+                      className="w-16 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                    />
+                  )}
                   <Button
                     type="button"
                     onClick={addItem}

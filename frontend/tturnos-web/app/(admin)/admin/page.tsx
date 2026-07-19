@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { Button } from "@/src/components/shared/Button";
+import ReserveSlotModal from "@/src/components/calendar/ReserveSlotModal";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 
 interface Booking {
   id: number;
@@ -25,6 +27,8 @@ interface Slot {
   endDateTime: string;
   isAvailable: boolean;
   booking?: Booking;
+  professionalId?: number | null;
+  professionalName?: string | null;
 }
 
 interface Reminder {
@@ -105,9 +109,10 @@ export default function AdminDashboard() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loadingReminders, setLoadingReminders] = useState(true);
   const [detailSlot, setDetailSlot] = useState<Slot | null>(null);
+  const [reserveSlot, setReserveSlot] = useState<Slot | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
-  useEffect(() => {
-    if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
+  const reloadSlots = () =>
     fetch("/api/timeslots")
       .then((r) => r.json())
       .then((data) => {
@@ -118,8 +123,11 @@ export default function AdminDashboard() {
           .sort((a: Slot, b: Slot) => parseLocalDate(a.startDateTime).getTime() - parseLocalDate(b.startDateTime).getTime())
           .slice(0, 30);
         setSlots(upcoming);
-      })
-      .finally(() => setLoading(false));
+      });
+
+  useEffect(() => {
+    if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
+    reloadSlots().finally(() => setLoading(false));
 
     fetch("/api/reminders?status=Pending")
       .then((r) => r.json())
@@ -130,7 +138,7 @@ export default function AdminDashboard() {
   }, [router]);
 
   const markReminderSent = async (id: number) => {
-    if (!confirm("¿Marcar este aviso como enviado? No se volverá a mandar automáticamente.")) return;
+    if (!(await confirm({ message: "¿Marcar este aviso como enviado? No se volverá a mandar automáticamente.", variant: "primary", confirmLabel: "Marcar enviado" }))) return;
     const res = await fetch(`/api/reminders/${id}/mark-sent`, { method: "POST" });
     if (res.ok) setReminders((prev) => prev.filter((r) => r.id !== id));
   };
@@ -150,7 +158,7 @@ export default function AdminDashboard() {
     const msg = isConfirmed
       ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
       : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
-    if (!confirm(msg)) return;
+    if (!(await confirm({ message: msg, confirmLabel: isConfirmed ? "Cancelar turno" : "Liberar turno" }))) return;
     const res = await fetch(`/api/timeslots/${id}/release`, { method: "PUT" });
     if (res.ok) {
       setSlots((prev) =>
@@ -283,8 +291,8 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={slot.id}
-                    onClick={() => slot.booking && setDetailSlot(slot)}
-                    className={`bg-ivory border border-mauve/5 rounded-xl p-4 ${hoy ? "border-mauve/10" : ""} ${slot.booking ? "cursor-pointer hover:border-mauve/20 transition" : ""}`}
+                    onClick={() => { if (slot.booking) setDetailSlot(slot); else if (slot.isAvailable) setReserveSlot(slot); }}
+                    className={`bg-ivory border border-mauve/5 rounded-xl p-4 ${hoy ? "border-mauve/10" : ""} ${slot.booking || slot.isAvailable ? "cursor-pointer hover:border-mauve/20 transition" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       {/* Fecha + hora */}
@@ -315,7 +323,14 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                       {/* Acción */}
-                      {!slot.isAvailable && (
+                      {slot.isAvailable ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setReserveSlot(slot); }}
+                          className="text-xs text-blushdark hover:text-blush transition font-medium shrink-0"
+                        >
+                          + Reservar
+                        </button>
+                      ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleLiberar(slot.id, slot.booking?.status === "Confirmed"); }}
                           className="text-xs text-red-600/60 hover:text-red-600 transition font-medium shrink-0"
@@ -364,10 +379,10 @@ export default function AdminDashboard() {
                     return (
                       <tr
                         key={slot.id}
-                        onClick={() => slot.booking && setDetailSlot(slot)}
+                        onClick={() => { if (slot.booking) setDetailSlot(slot); else if (slot.isAvailable) setReserveSlot(slot); }}
                         className={`border-b border-mauve/5 last:border-0 transition ${
                           hoy ? "bg-porcelain/[0.03]" : "hover:bg-porcelain/[0.02]"
-                        } ${slot.booking ? "cursor-pointer" : ""}`}
+                        } ${slot.booking || slot.isAvailable ? "cursor-pointer" : ""}`}
                       >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
@@ -415,7 +430,14 @@ export default function AdminDashboard() {
                           {slot.booking?.professionalName ?? <span className="text-charcoal/20">—</span>}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          {!slot.isAvailable && (
+                          {slot.isAvailable ? (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setReserveSlot(slot); }}
+                              className="text-xs text-blushdark hover:text-blush transition font-medium"
+                            >
+                              + Reservar
+                            </button>
+                          ) : (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleLiberar(slot.id, slot.booking?.status === "Confirmed"); }}
                               className="text-xs text-red-600/60 hover:text-red-600 transition font-medium"
@@ -497,6 +519,16 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {reserveSlot && (
+        <ReserveSlotModal
+          slot={reserveSlot}
+          onClose={() => setReserveSlot(null)}
+          onReserved={reloadSlots}
+        />
+      )}
+
+      {ConfirmDialog}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import BookingForm from "@/src/components/booking/BookingForms";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
 import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "@/src/lib/siteConfig";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface Service {
   id: number;
@@ -39,6 +40,7 @@ export default function Home() {
   const [visibleGallery, setVisibleGallery] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  useModalHotkeys(!!selectedService, { onClose: () => setSelectedService(null) });
   const [contentVideos, setContentVideos] = useState<ContentVideo[]>([]);
 
   const packsToShow = services.slice(0, visiblePacks);

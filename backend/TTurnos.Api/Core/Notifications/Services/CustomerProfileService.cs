@@ -99,7 +99,11 @@ public class CustomerProfileService(ApplicationDbContext db)
                 b.ProfessionalId,
                 b.Professional != null ? b.Professional.FirstName + " " + b.Professional.LastName : null,
                 b.TimeSlot.StartDateTime,
-                b.TimeSlot.EndDateTime))
+                b.TimeSlot.EndDateTime,
+                b.Items
+                    .Where(i => i.ItemType == BookingItemType.Insumo && !i.IsSale)
+                    .Select(i => new InsumoUsageItem(i.Name, i.Quantity))
+                    .ToList()))
             .ToListAsync();
     }
 

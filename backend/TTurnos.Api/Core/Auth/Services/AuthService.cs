@@ -98,6 +98,46 @@ public class AuthService
         };
     }
 
+    // Crea una cuenta Staff (empleado/encargado con acceso limitado por permisos —
+    // ver Core/Roles). A diferencia del profesional, no está ligada a una ficha.
+    public async Task<User> CreateStaffAccountAsync(string email, string password, string? username = null)
+    {
+        if (password.Length < 6)
+            throw new ArgumentException("La contraseña debe tener al menos 6 caracteres");
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var normalizedUsername = string.IsNullOrWhiteSpace(username) ? null : username.Trim();
+
+        if (await _context.Users.AnyAsync(u => u.Email == normalizedEmail))
+            throw new ArgumentException("Ese email ya está en uso");
+
+        if (normalizedUsername != null && await _context.Users.AnyAsync(u => u.Username == normalizedUsername))
+            throw new ArgumentException("Ese usuario ya está en uso");
+
+        var user = new User
+        {
+            Email = normalizedEmail,
+            Username = normalizedUsername,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            Role = "Staff"
+        };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
+    public async Task ChangeStaffPasswordAsync(int userId, string newPassword)
+    {
+        if (newPassword.Length < 6)
+            throw new ArgumentException("La contraseña debe tener al menos 6 caracteres");
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId && u.Role == "Staff")
+            ?? throw new ArgumentException("Usuario no encontrado");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<LoginResponse?> RegisterAsync(RegisterRequest request)
     {
         // Validar contraseñas

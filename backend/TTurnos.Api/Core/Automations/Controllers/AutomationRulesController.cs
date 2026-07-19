@@ -5,7 +5,7 @@ namespace TTurnos.Api.Core.Automations;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Staff")]
 public class AutomationRulesController : ControllerBase
 {
     private readonly IAutomationRulesRepository _repository;
@@ -20,6 +20,7 @@ public class AutomationRulesController : ControllerBase
         r.CooldownDays, r.IsActive, r.CreatedAt, r.LastRunAt);
 
     [HttpGet]
+    [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.View)]
     public async Task<IActionResult> GetRules()
     {
         var rules = await _repository.GetAllAsync();
@@ -27,6 +28,7 @@ public class AutomationRulesController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.View)]
     public async Task<IActionResult> GetRule(int id)
     {
         var rule = await _repository.GetByIdAsync(id);
@@ -34,6 +36,7 @@ public class AutomationRulesController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.Create)]
     public async Task<IActionResult> CreateRule([FromBody] CreateAutomationRuleRequest req)
     {
         if (req.TriggerType == AutomationTriggerType.ClientInactive && req.InactiveDays is null)
@@ -55,6 +58,7 @@ public class AutomationRulesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.Edit)]
     public async Task<IActionResult> UpdateRule(int id, [FromBody] UpdateAutomationRuleRequest req)
     {
         if (req.TriggerType == AutomationTriggerType.ClientInactive && req.InactiveDays is null)
@@ -75,6 +79,7 @@ public class AutomationRulesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.Delete)]
     public async Task<IActionResult> DeleteRule(int id)
     {
         var deleted = await _repository.DeleteAsync(id);
@@ -85,6 +90,7 @@ public class AutomationRulesController : ControllerBase
     // al cron diario. Usa el mismo IAutomationRulesRepository.EvaluateRuleAsync
     // que corre el job de Hangfire.
     [HttpPost("{id:int}/run-now")]
+    [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.Edit)]
     public async Task<IActionResult> RunNow(int id)
     {
         var rule = await _repository.GetByIdAsync(id);
@@ -98,6 +104,7 @@ public class AutomationRulesController : ControllerBase
 
     // Historial de envíos de esta regla: a quién le disparó y si el mensaje salió.
     [HttpGet("{id:int}/executions")]
+    [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.View)]
     public async Task<IActionResult> GetExecutions(int id)
     {
         var rule = await _repository.GetByIdAsync(id);

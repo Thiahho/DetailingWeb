@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface ContentVideo {
   id: number;
@@ -33,6 +34,9 @@ export default function ContenidoAdminPage() {
   const [editingVideo, setEditingVideo] = useState<ContentVideo | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const { toasts, showToast, removeToast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
+  const closeForm = () => setShowForm(false);
+  useModalHotkeys(showForm, { onClose: closeForm, onSubmit: () => formRef.current?.requestSubmit() });
 
   const loadVideos = useCallback(async () => {
     try {
@@ -140,7 +144,7 @@ export default function ContenidoAdminPage() {
 
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4">
-          <form onSubmit={handleSubmit} className="w-full max-w-xl space-y-4 rounded-xl bg-ivory p-6">
+          <form ref={formRef} onSubmit={handleSubmit} className="w-full max-w-xl space-y-4 rounded-xl bg-ivory p-6">
             <h2 className="text-xl font-bold text-charcoal">{editingVideo ? "Editar video" : "Nuevo video"}</h2>
 
             <div>
@@ -179,7 +183,7 @@ export default function ContenidoAdminPage() {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" onClick={() => setShowForm(false)} variant="secondary">Cancelar</Button>
+              <Button type="button" onClick={closeForm} variant="secondary">Cancelar</Button>
               <Button type="submit" data-testid="video-form-submit" variant="primary">Guardar</Button>
             </div>
           </form>

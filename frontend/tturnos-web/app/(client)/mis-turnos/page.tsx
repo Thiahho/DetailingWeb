@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { getWhatsAppLink } from "@/src/lib/siteConfig";
 import PaymentButton from "@/src/components/payments/PaymentButton";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface MyBooking {
   id: number;
@@ -67,7 +69,9 @@ export default function MisTurnosPage() {
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
+  useModalHotkeys(!!rescheduleBooking, { onClose: () => !rescheduling && setRescheduleBooking(null) });
   const [rescheduleError, setRescheduleError] = useState("");
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const fetchWaNumber = async () => {
     try {
@@ -94,7 +98,7 @@ export default function MisTurnosPage() {
   };
 
   const cancelBooking = async (id: number) => {
-    if (!confirm("¿Confirmás que querés cancelar este turno?")) return;
+    if (!(await confirm({ message: "¿Confirmás que querés cancelar este turno?", confirmLabel: "Cancelar turno", theme: "dark" }))) return;
     const res = await fetch(`/api/bookings/${id}/cancel`, { method: "POST", credentials: "include" });
     if (res.ok) {
       setItems((prev) =>
@@ -152,6 +156,7 @@ export default function MisTurnosPage() {
 
   return (
     <main className="min-h-screen bg-[#0f1115] p-6">
+      {ConfirmDialog}
       <div className="max-w-2xl mx-auto">
 
         {/* Formulario de email */}

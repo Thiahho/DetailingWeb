@@ -221,6 +221,12 @@ namespace TTurnos.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<int?>("InsumoId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsSale")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ItemType")
                         .IsRequired()
                         .HasColumnType("text");
@@ -247,6 +253,8 @@ namespace TTurnos.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BookingId");
+
+                    b.HasIndex("InsumoId");
 
                     b.HasIndex("ProductId");
 
@@ -583,6 +591,81 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("ContentVideos");
                 });
 
+            modelBuilder.Entity("TTurnos.Api.Core.Insumos.Insumo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LowStockThreshold")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Stock")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Insumos");
+                });
+
+            modelBuilder.Entity("TTurnos.Api.Core.Insumos.ServiceInsumo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("InsumoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InsumoId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("TenantId", "ServiceId", "InsumoId")
+                        .IsUnique();
+
+                    b.ToTable("ServiceInsumos");
+                });
+
             modelBuilder.Entity("TTurnos.Api.Core.Notifications.NotificationLog", b =>
                 {
                     b.Property<int>("Id")
@@ -821,6 +904,46 @@ namespace TTurnos.Api.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Professionals");
+                });
+
+            modelBuilder.Entity("TTurnos.Api.Core.Roles.ModulePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("CanCreate")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanEdit")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("CanView")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UserId", "Module")
+                        .IsUnique();
+
+                    b.ToTable("ModulePermissions");
                 });
 
             modelBuilder.Entity("TTurnos.Api.Core.Scheduling.BlockedDate", b =>
@@ -1654,6 +1777,11 @@ namespace TTurnos.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TTurnos.Api.Core.Insumos.Insumo", "Insumo")
+                        .WithMany()
+                        .HasForeignKey("InsumoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TTurnos.Api.Core.Products.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
@@ -1671,6 +1799,8 @@ namespace TTurnos.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Booking");
+
+                    b.Navigation("Insumo");
 
                     b.Navigation("Product");
 
@@ -1808,6 +1938,44 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("TTurnos.Api.Core.Insumos.Insumo", b =>
+                {
+                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("TTurnos.Api.Core.Insumos.ServiceInsumo", b =>
+                {
+                    b.HasOne("TTurnos.Api.Core.Insumos.Insumo", "Insumo")
+                        .WithMany()
+                        .HasForeignKey("InsumoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TTurnos.Api.Core.Services.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Insumo");
+
+                    b.Navigation("Service");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("TTurnos.Api.Core.Notifications.NotificationLog", b =>
                 {
                     b.HasOne("TTurnos.Api.Core.Bookings.Booking", "Booking")
@@ -1866,6 +2034,25 @@ namespace TTurnos.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("TTurnos.Api.Core.Roles.ModulePermission", b =>
+                {
+                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TTurnos.Api.Core.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TTurnos.Api.Core.Scheduling.BlockedDate", b =>

@@ -56,6 +56,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Treatment> Treatments { get; set; }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<ModulePermission> ModulePermissions { get; set; }
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
     public DbSet<BlockedDate> BlockedDates { get; set; }
     public DbSet<TimeSlot> TimeSlots { get; set; }
@@ -69,6 +70,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<GalleryItem> GalleryItems { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Product> Products { get; set; }
+    public DbSet<Insumo> Insumos { get; set; }
+    public DbSet<ServiceInsumo> ServiceInsumos { get; set; }
     public DbSet<BookingItem> BookingItems { get; set; }
     public DbSet<CajaSession> CajaSessions { get; set; }
     public DbSet<CajaMovement> CajaMovements { get; set; }
@@ -237,6 +240,23 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(u => u.ProfessionalId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<ModulePermission>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.Module }).IsUnique();
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });
@@ -443,6 +463,40 @@ public class ApplicationDbContext : DbContext
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });
 
+        modelBuilder.Entity<Insumo>(entity =>
+        {
+            entity.Property(e => e.UnitCost).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<ServiceInsumo>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.ServiceId, e.InsumoId }).IsUnique();
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Service)
+                .WithMany()
+                .HasForeignKey(e => e.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Insumo)
+                .WithMany()
+                .HasForeignKey(e => e.InsumoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
         modelBuilder.Entity<BookingItem>(entity =>
         {
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
@@ -465,6 +519,11 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Product)
                 .WithMany()
                 .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Insumo)
+                .WithMany()
+                .HasForeignKey(e => e.InsumoId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);

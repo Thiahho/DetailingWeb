@@ -6,6 +6,8 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { Plus, ChevronLeft, Bell, BellOff, Pencil, Trash2, X, Check, Clock, RefreshCw, CalendarDays, PenLine, Cake, Instagram as InstagramIcon, Star, History } from "lucide-react";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { Button } from "@/src/components/shared/Button";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -29,6 +31,11 @@ interface ProfessionalOption {
   lastName: string;
 }
 
+interface InsumoUsageItem {
+  name: string;
+  quantity: number;
+}
+
 interface BookingHistoryItem {
   id: number;
   status: string;
@@ -38,6 +45,35 @@ interface BookingHistoryItem {
   professionalName?: string | null;
   startDateTime: string;
   endDateTime: string;
+  insumosUsados?: InsumoUsageItem[];
+}
+
+interface BookingItemRecord {
+  id: number;
+  itemType: "Service" | "Product" | "Insumo";
+  isSale?: boolean;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+// Shape de /api/bookings (admin) — más completo que BookingHistoryItem, se usa
+// para el modal de detalle del historial de un cliente.
+interface BookingFullRecord {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  email?: string | null;
+  subject?: string | null;
+  service?: string | null;
+  professionalName?: string | null;
+  message?: string | null;
+  status: string;
+  startDateTime: string;
+  paymentStatus?: string;
+  paymentAmount?: number;
+  paymentProvider?: string;
+  items?: BookingItemRecord[];
 }
 
 function parsePhotoUrls(raw?: string | null): string[] {
@@ -103,6 +139,15 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
+      <span className="text-charcoal text-sm text-right">{value}</span>
+    </div>
+  );
+}
+
 function BookingStatusBadge({ status }: { status: string }) {
   if (status === "Confirmed")
     return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/20 text-emerald-700">Confirmado</span>;
@@ -114,6 +159,7 @@ function BookingStatusBadge({ status }: { status: string }) {
 // ── Modal base ────────────────────────────────────────────────────
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useModalHotkeys(true, { onClose });
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
       <div className="bg-porcelain border border-mauve/10 rounded-xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
@@ -310,11 +356,15 @@ function slotDateLabel(dateKey: string) {
 
 function ReminderForm({
   customer,
+  defaultScheduleReminder = false,
   onSave,
+  onBookingCreated,
   onClose,
 }: {
   customer: Customer;
+  defaultScheduleReminder?: boolean;
   onSave: (data: object) => Promise<void>;
+  onBookingCreated: () => void;
   onClose: () => void;
 }) {
   const [services, setServices] = useState<Service[]>([]);
@@ -328,10 +378,12 @@ function ReminderForm({
   // sigue siendo editable, el admin puede cambiarlo o volver a "Sin preferencia" libremente.
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<number | null>(customer.favoriteProfessionalId ?? null);
   const [detail, setDetail] = useState("");
+  const [message, setMessage] = useState("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [manualMode, setManualMode] = useState(false);
   const [manualDate, setManualDate] = useState("");
+  const [scheduleReminder, setScheduleReminder] = useState(defaultScheduleReminder);
   const [intervalDays, setIntervalDays] = useState("");
   const [reminderMessage, setReminderMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -483,6 +535,7 @@ function ReminderForm({
           subject:        detail,
           service:        serviceLabel,
           professionalId: selectedProfessionalId,
+          message:        message || undefined,
         }),
       });
       if (!bookingRes.ok) {
@@ -492,16 +545,20 @@ function ReminderForm({
       const bookingData = await bookingRes.json();
       const bookingId: number | undefined = bookingData.booking?.id;
 
-      // ── Paso 3: crear reminder (aviso 24h antes) ────────────────
-      setSavingStep("Programando aviso...");
-      await onSave({
-        customerProfileId: customer.id,
-        bookingId:         bookingId ?? null,
-        serviceLabel,
-        scheduledFor:      `${slotStartIso}:00`,
-        intervalDays:      intervalDays ? parseInt(intervalDays) : null,
-        messageTemplate:   reminderMessage || null,
-      });
+      // ── Paso 3 (opcional): crear reminder (aviso 24h antes) ─────
+      if (scheduleReminder) {
+        setSavingStep("Programando aviso...");
+        await onSave({
+          customerProfileId: customer.id,
+          bookingId:         bookingId ?? null,
+          serviceLabel,
+          scheduledFor:      `${slotStartIso}:00`,
+          intervalDays:      intervalDays ? parseInt(intervalDays) : null,
+          messageTemplate:   reminderMessage || null,
+        });
+      } else {
+        onBookingCreated();
+      }
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error al guardar.");
@@ -586,6 +643,18 @@ function ReminderForm({
         <input data-testid="reminder-form-detail" value={detail} onChange={(e) => setDetail(e.target.value)} className="form-input" placeholder="Ej: color rubio ceniza, extensiones, uñas gel..." required />
       </div>
 
+      {/* Notas */}
+      <div>
+        <label className="block text-charcoal/50 text-xs mb-1">Notas <span className="text-charcoal/25">(opcional)</span></label>
+        <textarea
+          data-testid="reminder-form-notes"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="form-input h-16 resize-none"
+          placeholder="Notas internas del turno..."
+        />
+      </div>
+
       {/* Fecha/hora */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -659,27 +728,48 @@ function ReminderForm({
         )}
       </div>
 
-      {/* Repetición del aviso */}
-      <div>
-        <label className="block text-charcoal/50 text-xs mb-1">Repetir aviso cada (días)</label>
-        <input value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} type="number" min="1" className="form-input" placeholder="Ej: 30 — dejar vacío para no repetir" />
+      {/* Programar aviso (opcional) */}
+      <div className="pt-2 border-t border-mauve/5">
+        <label className="flex items-center gap-2 text-charcoal/60 text-xs cursor-pointer">
+          <input
+            type="checkbox"
+            checked={scheduleReminder}
+            onChange={(e) => setScheduleReminder(e.target.checked)}
+            data-testid="reminder-form-schedule-checkbox"
+            className="accent-champagne"
+          />
+          También programar un aviso 24hs antes
+        </label>
       </div>
 
-      {/* Mensaje personalizado del aviso 24h */}
-      <div>
-        <label className="block text-charcoal/50 text-xs mb-1">Mensaje del aviso 24h <span className="text-charcoal/25">(opcional)</span></label>
-        <textarea
-          value={reminderMessage} onChange={(e) => setReminderMessage(e.target.value)}
-          className="form-input h-16 resize-none"
-          placeholder={"Vacío = mensaje por defecto.\nVariables: {nombre} {servicio} {fecha}"}
-        />
-      </div>
+      {scheduleReminder && (
+        <>
+          {/* Repetición del aviso */}
+          <div>
+            <label className="block text-charcoal/50 text-xs mb-1">Repetir aviso cada (días)</label>
+            <input value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} type="number" min="1" className="form-input" placeholder="Ej: 30 — dejar vacío para no repetir" />
+          </div>
 
-      <p className="text-charcoal/25 text-[10px]">Se enviará confirmación al cliente y al admin al reservar. El aviso WhatsApp se manda 24 hs antes (5 min en pruebas).</p>
+          {/* Mensaje personalizado del aviso 24h */}
+          <div>
+            <label className="block text-charcoal/50 text-xs mb-1">Mensaje del aviso 24h <span className="text-charcoal/25">(opcional)</span></label>
+            <textarea
+              value={reminderMessage} onChange={(e) => setReminderMessage(e.target.value)}
+              className="form-input h-16 resize-none"
+              placeholder={"Vacío = mensaje por defecto.\nVariables: {nombre} {servicio} {fecha}"}
+            />
+          </div>
+        </>
+      )}
+
+      <p className="text-charcoal/25 text-[10px]">
+        Se enviará confirmación al cliente y al admin al reservar.
+        {scheduleReminder && " El aviso WhatsApp se manda 24 hs antes (5 min en pruebas)."}
+      </p>
 
       <div className="flex gap-2">
         <Button type="submit" disabled={saving} data-testid="reminder-form-submit" variant="primary" className="flex-1">
-          {saving ? savingStep || "Procesando..." : "Reservar y programar aviso"}
+          {saving ? savingStep || "Procesando..." : scheduleReminder ? "Reservar y programar aviso" : "Reservar turno"}
         </Button>
         <Button type="button" onClick={onClose} variant="secondary">Cancelar</Button>
       </div>
@@ -694,6 +784,7 @@ export default function ClientesPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const { confirm, ConfirmDialog } = useConfirm();
 
   // detail view
   const [selected, setSelected] = useState<Customer | null>(null);
@@ -701,16 +792,22 @@ export default function ClientesPage() {
   const [loadingReminders, setLoadingReminders] = useState(false);
   const [history, setHistory] = useState<BookingHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [allBookings, setAllBookings] = useState<BookingFullRecord[]>([]);
+  const [detailBooking, setDetailBooking] = useState<BookingFullRecord | null>(null);
 
   // modals
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showReminderForm, setShowReminderForm] = useState(false);
+  // "turno" = registrar un turno manual sin forzar un aviso; "aviso" = flujo
+  // original (reserva + programa aviso 24hs, aviso tildado por defecto).
+  const [reminderFormMode, setReminderFormMode] = useState<"turno" | "aviso">("turno");
 
   // ── auth ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
     loadCustomers();
+    fetch("/api/bookings").then((r) => r.json()).then((d) => { if (Array.isArray(d)) setAllBookings(d); });
   }, []);
 
   // ── data fetching ──────────────────────────────────────────────
@@ -787,7 +884,7 @@ export default function ClientesPage() {
   }
 
   async function deleteCustomer(c: Customer) {
-    if (!confirm(`¿Eliminar a ${c.name}? Se borrarán también sus recordatorios.`)) return;
+    if (!(await confirm({ message: `¿Eliminar a ${c.name}? Se borrarán también sus recordatorios.`, confirmLabel: "Eliminar cliente" }))) return;
     const res = await fetch(`/api/reminders/customers/${c.id}`, { method: "DELETE" });
     if (res.ok) {
       setCustomers((prev) => prev.filter((x) => x.id !== c.id));
@@ -814,7 +911,7 @@ export default function ClientesPage() {
   }
 
   async function cancelReminder(r: Reminder) {
-    if (!confirm("¿Cancelar este recordatorio?")) return;
+    if (!(await confirm({ message: "¿Cancelar este recordatorio?", confirmLabel: "Cancelar recordatorio" }))) return;
     const res = await fetch(`/api/reminders/${r.id}/cancel`, { method: "POST" });
     if (res.ok) {
       setReminders((prev) => prev.map((x) => x.id === r.id ? { ...x, status: "Cancelled" } : x));
@@ -832,6 +929,7 @@ export default function ClientesPage() {
   // ── render ─────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-cream text-charcoal">
+      {ConfirmDialog}
       {/* ── modals ── */}
       {(showCustomerForm || editingCustomer) && (
         <Modal
@@ -847,12 +945,57 @@ export default function ClientesPage() {
       )}
 
       {showReminderForm && selected && (
-        <Modal title="Reservar turno y programar aviso" onClose={() => setShowReminderForm(false)}>
+        <Modal
+          title={reminderFormMode === "aviso" ? "Reservar turno y programar aviso" : "Nuevo turno"}
+          onClose={() => setShowReminderForm(false)}
+        >
           <ReminderForm
             customer={selected}
+            defaultScheduleReminder={reminderFormMode === "aviso"}
             onSave={saveReminder}
+            onBookingCreated={() => loadHistory(selected.id)}
             onClose={() => setShowReminderForm(false)}
           />
+        </Modal>
+      )}
+
+      {detailBooking && (
+        <Modal title="Detalle de reserva" onClose={() => setDetailBooking(null)}>
+          <div className="space-y-3" data-testid="customer-booking-detail-modal">
+            <Row label="Fecha" value={formatDate(detailBooking.startDateTime)} />
+            <Row label="Detalle" value={detailBooking.subject || "—"} />
+            <Row label="Servicio" value={detailBooking.service || "—"} />
+            {detailBooking.professionalName && <Row label="Especialista" value={detailBooking.professionalName} />}
+            {detailBooking.message && <Row label="Mensaje" value={detailBooking.message} />}
+            <Row label="Estado" value={<BookingStatusBadge status={detailBooking.status} />} />
+            {detailBooking.paymentStatus && (
+              <Row
+                label="Pago"
+                value={
+                  detailBooking.paymentStatus === "Approved"
+                    ? `✓ Pagado${detailBooking.paymentAmount ? ` $${detailBooking.paymentAmount.toLocaleString("es-AR")}` : ""}${detailBooking.paymentProvider ? ` · ${detailBooking.paymentProvider}` : ""}`
+                    : detailBooking.paymentStatus === "Pending"
+                    ? "Pago pendiente"
+                    : "Sin pago"
+                }
+              />
+            )}
+            {detailBooking.items && detailBooking.items.length > 0 && (
+              <div className="pt-2 border-t border-mauve/15">
+                <p className="text-charcoal/30 text-[11px] uppercase tracking-wider mb-2">Productos y servicios utilizados</p>
+                <div className="space-y-1.5">
+                  {detailBooking.items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-charcoal/70">
+                        {item.name} <span className="text-charcoal/30 text-xs">×{item.quantity}</span>
+                      </span>
+                      <span className="text-charcoal/50 text-xs">${(item.unitPrice * item.quantity).toLocaleString("es-AR")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </Modal>
       )}
 
@@ -946,7 +1089,7 @@ export default function ClientesPage() {
                     <RefreshCw size={14} />
                   </button>
                   <button
-                    onClick={() => setShowReminderForm(true)}
+                    onClick={() => { setReminderFormMode("aviso"); setShowReminderForm(true); }}
                     data-testid="reminder-create-button"
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-champagne/20 text-champagne text-xs font-medium rounded-lg hover:bg-champagne/30 transition"
                   >
@@ -963,7 +1106,7 @@ export default function ClientesPage() {
                   <Bell size={24} className="mx-auto text-charcoal/10 mb-3" />
                   <p className="text-charcoal/30 text-sm">Sin avisos programados</p>
                   <button
-                    onClick={() => setShowReminderForm(true)}
+                    onClick={() => { setReminderFormMode("aviso"); setShowReminderForm(true); }}
                     className="mt-3 text-champagne/70 text-xs hover:text-champagne transition"
                   >
                     Programar el primero
@@ -1021,27 +1164,60 @@ export default function ClientesPage() {
 
               {/* history section */}
               <div className="mt-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <History size={15} className="text-charcoal/40" />
-                  <h2 className="text-charcoal/70 text-sm font-medium">Historial de turnos</h2>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <History size={15} className="text-charcoal/40" />
+                    <h2 className="text-charcoal/70 text-sm font-medium">Historial de turnos</h2>
+                  </div>
+                  <button
+                    onClick={() => { setReminderFormMode("turno"); setShowReminderForm(true); }}
+                    data-testid="booking-create-button"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-champagne/20 text-champagne text-xs font-medium rounded-lg hover:bg-champagne/30 transition"
+                  >
+                    <Plus size={13} />
+                    Nuevo turno
+                  </button>
                 </div>
                 {loadingHistory ? (
                   <p className="text-charcoal/30 text-sm py-6 text-center">Cargando...</p>
                 ) : history.length === 0 ? (
-                  <p className="text-charcoal/30 text-sm py-6 text-center border border-mauve/15 rounded-xl">Sin turnos registrados todavía.</p>
+                  <div className="text-center py-6 border border-mauve/15 rounded-xl">
+                    <p className="text-charcoal/30 text-sm">Sin turnos registrados todavía.</p>
+                    <button
+                      onClick={() => { setReminderFormMode("turno"); setShowReminderForm(true); }}
+                      className="mt-3 text-champagne/70 text-xs hover:text-champagne transition"
+                    >
+                      Registrar el primero
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {history.map((h) => (
                       <div
                         key={h.id}
                         data-testid="customer-history-item"
-                        className="flex items-center justify-between bg-porcelain border border-mauve/15 rounded-xl px-4 py-3"
+                        onClick={() => setDetailBooking(allBookings.find((b) => b.id === h.id) ?? {
+                          id: h.id,
+                          customerName: selected!.name,
+                          customerPhone: selected!.phone,
+                          subject: h.subject,
+                          service: h.service,
+                          professionalName: h.professionalName,
+                          status: h.status,
+                          startDateTime: h.startDateTime,
+                        })}
+                        className="flex items-center justify-between bg-porcelain border border-mauve/15 rounded-xl px-4 py-3 cursor-pointer hover:brightness-95 transition"
                       >
                         <div className="min-w-0">
                           <p className="text-charcoal text-sm font-medium truncate">{h.service || h.subject}</p>
                           <p className="text-charcoal/40 text-xs">
                             {formatDate(h.startDateTime)}{h.professionalName ? ` · ${h.professionalName}` : ""}
                           </p>
+                          {h.insumosUsados && h.insumosUsados.length > 0 && (
+                            <p className="text-charcoal/30 text-xs mt-0.5 truncate">
+                              Insumos usados: {h.insumosUsados.map((i) => `${i.name} x${i.quantity}`).join(", ")}
+                            </p>
+                          )}
                         </div>
                         <BookingStatusBadge status={h.status} />
                       </div>

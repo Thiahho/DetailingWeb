@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface Service {
   id: number;
@@ -24,6 +25,9 @@ interface Service {
   bufferMinutes: number;
   color: string;
 }
+
+interface InsumoOption { id: number; name: string; stock: number; }
+interface RecipeItem { insumoId: number; insumoName: string; quantity: number; }
 
 interface CustomFieldDef {
   name: string;
@@ -61,6 +65,9 @@ export default function ServiciosAdminPage() {
   const { toasts, showToast, removeToast } = useToast();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldDef[]>([]);
+  const [insumosCatalog, setInsumosCatalog] = useState<InsumoOption[]>([]);
+  const [recipe, setRecipe] = useState<RecipeItem[]>([]);
+  const [newRecipeItem, setNewRecipeItem] = useState({ insumoId: 0, quantity: 1 });
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -68,6 +75,7 @@ export default function ServiciosAdminPage() {
       return;
     }
     loadServices();
+    fetch("/api/insumos").then((r) => r.json()).then((data) => { if (Array.isArray(data)) setInsumosCatalog(data); });
   }, [router]);
 
   const loadServices = async () => {
@@ -85,10 +93,11 @@ export default function ServiciosAdminPage() {
     setEditingService(null);
     setFormData({ ...emptyForm, details: ["", "", ""] });
     setCustomFields([]);
+    setRecipe([]);
     setShowForm(true);
   };
 
-  const openEdit = (service: Service) => {
+  const openEdit = async (service: Service) => {
     setEditingService(service);
     setFormData({
       title: service.title,
@@ -109,7 +118,14 @@ export default function ServiciosAdminPage() {
     } catch {
       setCustomFields([]);
     }
+    setRecipe([]);
     setShowForm(true);
+    try {
+      const res = await fetch(`/api/services/${service.id}/recipe`);
+      if (res.ok) setRecipe(await res.json());
+    } catch (error) {
+      logError("Error cargando receta del servicio:", error);
+    }
   };
 
   const closeForm = () => {
@@ -117,7 +133,22 @@ export default function ServiciosAdminPage() {
     setEditingService(null);
     setFormData({ ...emptyForm, details: ["", "", ""] });
     setCustomFields([]);
+    setRecipe([]);
+    setNewRecipeItem({ insumoId: 0, quantity: 1 });
   };
+
+  const formRef = useRef<HTMLFormElement>(null);
+  useModalHotkeys(showForm, { onClose: closeForm, onSubmit: () => formRef.current?.requestSubmit() });
+
+  const addRecipeItem = () => {
+    if (!newRecipeItem.insumoId) return;
+    const insumo = insumosCatalog.find((i) => i.id === newRecipeItem.insumoId);
+    if (!insumo) return;
+    setRecipe((prev) => [...prev, { insumoId: insumo.id, insumoName: insumo.name, quantity: newRecipeItem.quantity }]);
+    setNewRecipeItem({ insumoId: 0, quantity: 1 });
+  };
+
+  const removeRecipeItem = (idx: number) => setRecipe((prev) => prev.filter((_, i) => i !== idx));
 
   const updateCustomField = (index: number, patch: Partial<CustomFieldDef>) => {
     setCustomFields((prev) => prev.map((f, i) => i === index ? { ...f, ...patch } : f));
@@ -148,6 +179,12 @@ export default function ServiciosAdminPage() {
       });
       const data = await res.json();
       if (res.ok) {
+        const serviceId = editingService ? editingService.id : data.id;
+        await fetch(`/api/services/${serviceId}/recipe`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: recipe.map((r) => ({ insumoId: r.insumoId, quantity: r.quantity })) }),
+        });
         showToast("success", editingService ? "Servicio actualizado" : "Servicio creado", data.message);
         closeForm();
         loadServices();
@@ -348,7 +385,7 @@ export default function ServiciosAdminPage() {
               <button onClick={closeForm} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               {/* Título */}
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Título</label>
@@ -503,6 +540,50 @@ export default function ServiciosAdminPage() {
                   <option value="true">Activo</option>
                   <option value="false">Inactivo</option>
                 </select>
+              </div>
+
+              {/* Receta: insumos que consume este servicio */}
+              <div className="pt-2 border-t border-mauve/5">
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
+                  Insumos que consume (receta)
+                </label>
+                <p className="text-charcoal/30 text-[11px] mt-1 mb-2">
+                  Al cargar este servicio en el detalle de un turno, estos insumos se agregan solos con su cantidad (editable antes de guardar).
+                </p>
+                {recipe.length > 0 && (
+                  <div className="space-y-1.5 mb-2" data-testid="service-recipe-list">
+                    {recipe.map((item, i) => (
+                      <div key={i} data-testid="service-recipe-row" className="flex items-center justify-between gap-2 text-sm bg-cream border border-mauve/10 rounded-lg px-3 py-1.5">
+                        <span className="text-charcoal/70">{item.insumoName} <span className="text-charcoal/30 text-xs">×{item.quantity}</span></span>
+                        <button type="button" onClick={() => removeRecipeItem(i)} data-testid="service-recipe-remove" className="text-red-600/60 hover:text-red-600 text-xs">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-1.5 items-center">
+                  <select
+                    value={newRecipeItem.insumoId}
+                    onChange={(e) => setNewRecipeItem((prev) => ({ ...prev, insumoId: parseInt(e.target.value) || 0 }))}
+                    data-testid="service-recipe-select"
+                    className="flex-1 min-w-0 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
+                  >
+                    <option value={0}>Elegir insumo...</option>
+                    {insumosCatalog.map((i) => (
+                      <option key={i.id} value={i.id}>{i.name} (Stock: {i.stock})</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={newRecipeItem.quantity}
+                    onChange={(e) => setNewRecipeItem((prev) => ({ ...prev, quantity: parseInt(e.target.value) || 1 }))}
+                    data-testid="service-recipe-quantity"
+                    className="w-14 bg-cream border border-mauve/10 rounded-lg px-1 py-1.5 text-xs text-charcoal text-center focus:outline-none"
+                  />
+                  <Button type="button" onClick={addRecipeItem} data-testid="service-recipe-add" variant="secondary" size="sm" className="shrink-0">
+                    +
+                  </Button>
+                </div>
               </div>
 
               {/* Campos dinámicos */}

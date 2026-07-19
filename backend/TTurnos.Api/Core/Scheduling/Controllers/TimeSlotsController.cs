@@ -73,7 +73,9 @@ public class TimeSlotsController : ControllerBase
                     id = b.Id,
                     customerName = b.CustomerName,
                     customerPhone = b.CustomerPhone,
+                    subject = b.Subject,
                     service = b.Service,
+                    message = b.Message,
                     status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
                 }).FirstOrDefault()
         }));
@@ -81,7 +83,8 @@ public class TimeSlotsController : ControllerBase
 
     // GET: api/timeslots (admin - todos los turnos con info de reserva)
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.View)]
     public async Task<IActionResult> GetAllSlots()
     {
         var slots = await _repository.GetAllWithBookingsAsync();
@@ -122,7 +125,8 @@ public class TimeSlotsController : ControllerBase
 
     // POST: api/timeslots (admin crea para cualquiera; profesional solo para sí mismo)
     [HttpPost]
-    [Authorize(Roles = "Admin,Professional")]
+    [Authorize(Roles = "Admin,Professional,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Create)]
     public async Task<IActionResult> CreateSlot([FromBody] CreateTimeSlotRequest request)
     {
         if (request.StartDateTime <= NowArgentina())
@@ -184,7 +188,8 @@ public class TimeSlotsController : ControllerBase
 
     // PUT: api/timeslots/5 (admin, o el profesional dueño del turno)
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Professional")]
+    [Authorize(Roles = "Admin,Professional,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> UpdateSlot(int id, [FromBody] UpdateTimeSlotRequest request)
     {
         var slot = await _repository.GetByIdWithBookingsAsync(id);
@@ -238,7 +243,8 @@ public class TimeSlotsController : ControllerBase
 
     // PUT: api/timeslots/5/release (admin, o el profesional dueño del turno)
     [HttpPut("{id}/release")]
-    [Authorize(Roles = "Admin,Professional")]
+    [Authorize(Roles = "Admin,Professional,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> ReleaseSlot(int id)
     {
         var slot = await _repository.GetByIdWithBookingsAsync(id);
@@ -279,7 +285,8 @@ public class TimeSlotsController : ControllerBase
 
     // DELETE: api/timeslots/5 (admin, o el profesional dueño del turno)
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Professional")]
+    [Authorize(Roles = "Admin,Professional,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Delete)]
     public async Task<IActionResult> DeleteSlot(int id)
     {
         var slot = await _repository.GetByIdWithBookingsAsync(id);

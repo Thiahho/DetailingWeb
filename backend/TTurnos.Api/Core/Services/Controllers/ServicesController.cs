@@ -9,10 +9,12 @@ namespace TTurnos.Api.Core.Services;
 public class ServicesController : ControllerBase
 {
     private readonly IServicesRepository _repository;
+    private readonly IServiceInsumosRepository _recipeRepository;
 
-    public ServicesController(IServicesRepository repository)
+    public ServicesController(IServicesRepository repository, IServiceInsumosRepository recipeRepository)
     {
         _repository = repository;
+        _recipeRepository = recipeRepository;
     }
 
     // GET: api/services  (público)
@@ -42,7 +44,8 @@ public class ServicesController : ControllerBase
 
     // GET: api/services/all  (admin, incluye inactivos)
     [HttpGet("all")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.View)]
     public async Task<IActionResult> GetAllAdmin()
     {
         var services = await _repository.GetAllAsync();
@@ -98,7 +101,8 @@ public class ServicesController : ControllerBase
 
     // POST: api/services  (admin)
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Create)]
     public async Task<IActionResult> Create([FromBody] ServiceRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Slug))
@@ -149,7 +153,8 @@ public class ServicesController : ControllerBase
 
     // PUT: api/services/{id}  (admin)
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Edit)]
     public async Task<IActionResult> Update(int id, [FromBody] ServiceRequest request)
     {
         var service = await _repository.FindAsync(id);
@@ -182,7 +187,8 @@ public class ServicesController : ControllerBase
 
     // DELETE: api/services/{id}  (admin)
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Delete)]
     public async Task<IActionResult> Delete(int id)
     {
         var service = await _repository.FindAsync(id);
@@ -193,6 +199,49 @@ public class ServicesController : ControllerBase
         await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Servicio eliminado correctamente" });
+    }
+
+    // GET: api/services/{id}/recipe  (admin - insumos que consume este servicio, con cantidad)
+    [HttpGet("{id}/recipe")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.View)]
+    public async Task<IActionResult> GetRecipe(int id)
+    {
+        var items = await _recipeRepository.GetByServiceIdAsync(id);
+
+        return Ok(items.Select(i => new
+        {
+            i.InsumoId,
+            InsumoName = i.Insumo.Name,
+            i.Quantity
+        }));
+    }
+
+    // PUT: api/services/{id}/recipe  (admin - reemplaza la receta completa, mismo patrón
+    // que el detalle de un turno: más simple que CRUD granular por ítem)
+    [HttpPut("{id}/recipe")]
+    [Authorize(Roles = "Admin,Staff")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Edit)]
+    public async Task<IActionResult> UpdateRecipe(int id, [FromBody] UpdateServiceRecipeRequest request)
+    {
+        var service = await _repository.FindAsync(id);
+        if (service == null)
+            return NotFound(new { message = "Servicio no encontrado" });
+
+        var existing = await _recipeRepository.GetByServiceIdAsync(id);
+        _recipeRepository.RemoveRange(existing);
+
+        var newItems = request.Items.Select(i => new ServiceInsumo
+        {
+            ServiceId = id,
+            InsumoId = i.InsumoId,
+            Quantity = i.Quantity
+        }).ToList();
+        _recipeRepository.AddRange(newItems);
+
+        await _recipeRepository.SaveChangesAsync();
+
+        return Ok(new { message = "Receta actualizada correctamente" });
     }
 }
 
@@ -219,4 +268,18 @@ public class ServiceRequest
 
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
+}
+
+public class UpdateServiceRecipeRequest
+{
+    public List<ServiceRecipeItemRequest> Items { get; set; } = new();
+}
+
+public class ServiceRecipeItemRequest
+{
+    [Range(1, int.MaxValue)]
+    public int InsumoId { get; set; }
+
+    [Range(1, 999)]
+    public int Quantity { get; set; } = 1;
 }
