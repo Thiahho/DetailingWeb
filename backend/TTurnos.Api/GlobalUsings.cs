@@ -15,6 +15,7 @@ global using TTurnos.Api.Core.Automations;
 global using TTurnos.Api.Core.Reports;
 global using TTurnos.Api.Core.Settings;
 global using TTurnos.Api.Core.Content;
+global using TTurnos.Api.Core.Platform;
 global using TTurnos.Api.Infrastructure.Persistence;
 global using TTurnos.Api.Infrastructure.Integrations;
 global using TTurnos.Api.Infrastructure.BackgroundJobs;

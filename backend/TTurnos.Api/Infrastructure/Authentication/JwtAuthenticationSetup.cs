@@ -37,7 +37,8 @@ public static class JwtAuthenticationSetup
                     {
                         token = context.Request.Cookies["admin_token"]
                             ?? context.Request.Cookies["client_token"]
-                            ?? context.Request.Cookies["token"];
+                            ?? context.Request.Cookies["token"]
+                            ?? context.Request.Cookies["platform_token"];
                     }
 
                     context.Token = token;

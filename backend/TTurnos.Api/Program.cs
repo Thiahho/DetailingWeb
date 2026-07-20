@@ -48,6 +48,7 @@ builder.Services.AddControllers();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<PlatformAuthService>();
 builder.Services.AddHttpClient<NotificationTemplateService>();
 builder.Services.AddScoped<NotificationService>();
 // Testing (e2e de Playwright) no debe mandar WhatsApp/emails reales — appsettings.json
