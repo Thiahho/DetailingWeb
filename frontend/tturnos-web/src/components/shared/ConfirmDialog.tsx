@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactElement } from "react";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
@@ -19,7 +19,7 @@ interface ConfirmState extends ConfirmOptions {
   resolve: (value: boolean) => void;
 }
 
-const ICONS: Record<"danger" | "primary", JSX.Element> = {
+const ICONS: Record<"danger" | "primary", ReactElement> = {
   danger: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -53,7 +53,7 @@ export function useConfirm() {
 
   useModalHotkeys(!!state, { onClose: () => respond(false), onSubmit: () => respond(true) });
 
-  let ConfirmDialog: JSX.Element | null = null;
+  let ConfirmDialog: ReactElement | null = null;
 
   if (state) {
     const variant = state.variant ?? "danger";
