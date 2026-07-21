@@ -58,7 +58,7 @@ export default function TurnosPage() {
   // Estado modal detalle
   const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
   // Estado filtro por estado
-  type StatusFilter = "all" | "available" | "pending" | "confirmed" | "expired";
+  type StatusFilter = "all" | "available" | "disabled" | "pending" | "confirmed" | "expired";
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const handleFilterChange = (filter: StatusFilter) => {
@@ -312,6 +312,38 @@ export default function TurnosPage() {
     }
   };
 
+  const disableSlot = async (id: number) => {
+    if (!(await confirm({ message: "¿Deshabilitar este turno? No podrá reservarse hasta que lo vuelvas a habilitar.", confirmLabel: "Deshabilitar" }))) return;
+    try {
+      const response = await fetch(`/api/timeslots/${id}/disable`, { method: "PUT" });
+      const data = await response.json();
+      if (response.ok) {
+        showToast("success", "Turno deshabilitado", "Ya no aparece disponible para reservar", 4000);
+        loadSlots();
+      } else {
+        showToast("error", "Error", data.message || "No se pudo deshabilitar el turno");
+      }
+    } catch (error) {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      logError(error);
+    }
+  };
+
+  const enableSlot = async (id: number) => {
+    try {
+      const response = await fetch(`/api/timeslots/${id}/enable`, { method: "PUT" });
+      if (response.ok) {
+        showToast("success", "Turno habilitado", "El turno vuelve a estar disponible para reservar", 4000);
+        loadSlots();
+      } else {
+        showToast("error", "Error", "No se pudo habilitar el turno");
+      }
+    } catch (error) {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      logError(error);
+    }
+  };
+
   const toggleProfessional = (id: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -425,7 +457,8 @@ export default function TurnosPage() {
     const expired = isExpired(slot.startDateTime);
     if (statusFilter === "expired") return expired;
     if (expired) return false;
-    if (statusFilter === "available") return slot.isAvailable;
+    if (statusFilter === "available") return slot.isAvailable && !slot.isBlocked;
+    if (statusFilter === "disabled") return slot.isAvailable && !!slot.isBlocked;
     if (statusFilter === "pending") return !slot.isAvailable && slot.booking?.status !== "Confirmed";
     if (statusFilter === "confirmed") return !slot.isAvailable && slot.booking?.status === "Confirmed";
     return true;
@@ -664,6 +697,7 @@ export default function TurnosPage() {
                 [
                   { key: "all", label: "Todos" },
                   { key: "available", label: "Habilitado" },
+                  { key: "disabled", label: "Deshabilitado" },
                   { key: "pending", label: "Reservado" },
                   { key: "confirmed", label: "Confirmado" },
                   { key: "expired", label: "Expirado" },
@@ -729,6 +763,7 @@ export default function TurnosPage() {
               ) : (
                 currentSlots.map((slot) => {
                   const expired = isExpired(slot.startDateTime);
+                  const blocked = slot.isAvailable && !!slot.isBlocked;
                   return (
                   <div
                     key={slot.id}
@@ -739,6 +774,8 @@ export default function TurnosPage() {
                       ${
                         expired
                           ? "bg-porcelain/[0.02] border-mauve/10 opacity-60"
+                          : blocked
+                          ? "bg-porcelain/10 border-mauve/20"
                           : slot.isAvailable
                           ? "bg-green-50 border-green-200 hover:border-green-300"
                           : slot.booking?.status === "Confirmed"
@@ -768,6 +805,8 @@ export default function TurnosPage() {
                               className={`w-2.5 h-2.5 rounded-full ${
                                 expired
                                   ? "bg-porcelain/30"
+                                  : blocked
+                                  ? "bg-charcoal/30"
                                   : slot.isAvailable
                                   ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                                   : slot.booking?.status === "Confirmed"
@@ -779,6 +818,8 @@ export default function TurnosPage() {
                               className={`text-xs font-bold tracking-wider ${
                                 expired
                                   ? "text-charcoal/40"
+                                  : blocked
+                                  ? "text-charcoal/50"
                                   : slot.isAvailable
                                   ? "text-green-500"
                                   : slot.booking?.status === "Confirmed"
@@ -788,6 +829,8 @@ export default function TurnosPage() {
                             >
                               {expired
                                 ? "EXPIRADO"
+                                : blocked
+                                ? "DESHABILITADO"
                                 : slot.isAvailable
                                 ? "HABILITADO"
                                 : slot.booking?.status === "Confirmed"
@@ -815,6 +858,23 @@ export default function TurnosPage() {
                             >
                               Editar
                             </button>
+                            {blocked ? (
+                              <button
+                                onClick={() => enableSlot(slot.id)}
+                                data-testid="slot-enable-button"
+                                className="text-green-700 hover:text-green-700 text-xs font-medium uppercase tracking-wide transition"
+                              >
+                                Habilitar
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => disableSlot(slot.id)}
+                                data-testid="slot-disable-button"
+                                className="text-charcoal/50 hover:text-charcoal text-xs font-medium uppercase tracking-wide transition"
+                              >
+                                Deshabilitar
+                              </button>
+                            )}
                             <button
                               onClick={() => deleteSlot(slot.id)}
                               data-testid="slot-delete-button"

@@ -26,6 +26,7 @@ export interface TimeSlot {
   startDateTime: string;
   endDateTime: string;
   isAvailable: boolean;
+  isBlocked?: boolean;
   bookingsCount: number;
   label: string;
   booking?: Booking;

@@ -13,7 +13,7 @@ public class TimeSlotsRepository : ITimeSlotsRepository
 
     public Task<List<TimeSlot>> GetAvailableAsync(int? professionalId, DateTime after) =>
         _context.TimeSlots
-            .Where(t => t.IsAvailable && t.StartDateTime > after)
+            .Where(t => t.IsAvailable && !t.IsBlocked && t.StartDateTime > after)
             .Where(t => professionalId == null || t.ProfessionalId == professionalId)
             .Include(t => t.Professional)
             .OrderBy(t => t.StartDateTime)

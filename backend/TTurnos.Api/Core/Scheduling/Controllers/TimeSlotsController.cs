@@ -95,6 +95,7 @@ public class TimeSlotsController : ControllerBase
             startDateTime = s.StartDateTime,
             endDateTime = s.EndDateTime,
             isAvailable = s.IsAvailable,
+            isBlocked = s.IsBlocked,
             bookingsCount = s.Bookings.Count,
             label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
             professionalId = s.ProfessionalId,
@@ -273,6 +274,72 @@ public class TimeSlotsController : ControllerBase
 
         // Marcar turno como HABILITADO
         slot.IsAvailable = true;
+
+        await _repository.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Turno habilitado exitosamente"
+        });
+    }
+
+    // PUT: api/timeslots/5/disable (admin, o el profesional dueño del turno)
+    // Saca de circulación un turno HABILITADO (sin reserva) sin borrarlo.
+    [HttpPut("{id}/disable")]
+    [Authorize(Roles = "Admin,Professional,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
+    public async Task<IActionResult> DisableSlot(int id)
+    {
+        var slot = await _repository.GetByIdWithBookingsAsync(id);
+
+        if (slot == null)
+        {
+            return NotFound(new { message = "Turno no encontrado" });
+        }
+
+        var callerProfessionalId = CallerProfessionalId();
+        if (callerProfessionalId != null && slot.ProfessionalId != callerProfessionalId)
+        {
+            return Forbid();
+        }
+
+        if (!slot.IsAvailable)
+        {
+            return BadRequest(new { message = "No se puede deshabilitar un turno reservado. Liberalo primero." });
+        }
+
+        slot.IsBlocked = true;
+
+        await _repository.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Turno deshabilitado exitosamente"
+        });
+    }
+
+    // PUT: api/timeslots/5/enable (admin, o el profesional dueño del turno)
+    [HttpPut("{id}/enable")]
+    [Authorize(Roles = "Admin,Professional,Staff")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
+    public async Task<IActionResult> EnableSlot(int id)
+    {
+        var slot = await _repository.GetByIdWithBookingsAsync(id);
+
+        if (slot == null)
+        {
+            return NotFound(new { message = "Turno no encontrado" });
+        }
+
+        var callerProfessionalId = CallerProfessionalId();
+        if (callerProfessionalId != null && slot.ProfessionalId != callerProfessionalId)
+        {
+            return Forbid();
+        }
+
+        slot.IsBlocked = false;
 
         await _repository.SaveChangesAsync();
 

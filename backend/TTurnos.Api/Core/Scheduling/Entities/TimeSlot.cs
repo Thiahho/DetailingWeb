@@ -14,6 +14,10 @@ public class TimeSlot : ITenantScoped
     public DateTime EndDateTime { get; set; }
     [Column("IsAvailable")]
     public bool IsAvailable { get; set; } = true;
+    // Deshabilitado a mano por el admin/profesional (sin reserva): distinto de
+    // IsAvailable=false, que significa "tiene una reserva activa".
+    [Column("IsBlocked")]
+    public bool IsBlocked { get; set; } = false;
     [Column("MaxBookings")]
     public int MaxBookings { get; set; } = 1;
     [Column("GeneratedAt")]

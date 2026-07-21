@@ -30,7 +30,7 @@ public class BookingsRepository : IBookingsRepository
 
     public Task<int> TryClaimSlotAsync(int timeSlotId) =>
         _context.TimeSlots
-            .Where(t => t.Id == timeSlotId && t.IsAvailable)
+            .Where(t => t.Id == timeSlotId && t.IsAvailable && !t.IsBlocked)
             .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsAvailable, false));
 
     public Task ReleaseSlotAsync(int timeSlotId) =>
