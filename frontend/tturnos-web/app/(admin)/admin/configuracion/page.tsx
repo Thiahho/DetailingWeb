@@ -146,7 +146,7 @@ export default function ConfiguracionPage() {
             <h2 className="text-charcoal font-semibold text-sm uppercase tracking-wider">Identidad</h2>
 
             <div>
-              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Nombre del negocio</label>
+              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">TTurnos APP</label>
               <input
                 className="form-input mt-1.5"
                 data-testid="config-business-name"
