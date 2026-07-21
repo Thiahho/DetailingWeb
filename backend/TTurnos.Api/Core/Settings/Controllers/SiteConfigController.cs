@@ -8,20 +8,42 @@ namespace TTurnos.Api.Core.Settings;
 public class SiteConfigController : ControllerBase
 {
     private readonly ISiteConfigRepository _repository;
+    private readonly IPlanLimitsService _planLimits;
 
-    public SiteConfigController(ISiteConfigRepository repository)
+    public SiteConfigController(ISiteConfigRepository repository, IPlanLimitsService planLimits)
     {
         _repository = repository;
+        _planLimits = planLimits;
     }
 
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> Get()
     {
-        var config = await _repository.GetAsync();
-        if (config == null)
-            return Ok(new SiteConfig());
-        return Ok(config);
+        var config = await _repository.GetAsync() ?? new SiteConfig();
+        // Fail-open (mismo criterio que el resto de PlanLimitsService): un
+        // tenant sin plan asignado no muestra el badge — no cambia el
+        // comportamiento actual, que nunca lo mostró.
+        var hideBranding = await _planLimits.IsFeatureEnabledAsync("HideTTurnosBranding");
+
+        return Ok(new
+        {
+            config.Id,
+            config.BusinessName,
+            config.WhatsAppNumber,
+            config.InstagramUrl,
+            config.InstagramHandle,
+            config.Location,
+            config.LocationShort,
+            config.MapEmbedUrl,
+            config.SiteUrl,
+            config.LogoUrl,
+            config.HeroTitle,
+            config.HeroSubtitle,
+            config.HeroBadge,
+            config.MetaDescription,
+            hideBranding
+        });
     }
 
     [HttpPut]

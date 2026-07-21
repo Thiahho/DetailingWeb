@@ -9,7 +9,7 @@ namespace TTurnos.Api.Core.Notifications;
 [ApiController]
 [Route("api/reminders/customers")]
 [Authorize(Roles = "Admin,Staff")]
-public class CustomerProfilesController(CustomerProfileService customerProfileService) : ControllerBase
+public class CustomerProfilesController(CustomerProfileService customerProfileService, IPlanLimitsService planLimits) : ControllerBase
 {
     [HttpGet]
     [RequirePermission(PermissionModules.Clientes, PermissionActions.View)]
@@ -28,6 +28,15 @@ public class CustomerProfilesController(CustomerProfileService customerProfileSe
     [RequirePermission(PermissionModules.Clientes, PermissionActions.Create)]
     public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerProfileRequest req)
     {
+        var count = await customerProfileService.CountAsync();
+        if (!await planLimits.IsWithinLimitAsync("MaxClients", count))
+        {
+            return StatusCode(StatusCodes.Status402PaymentRequired, new
+            {
+                message = "Alcanzaste el límite de clientes de tu plan. Actualizá tu plan para agregar más."
+            });
+        }
+
         var profile = await customerProfileService.CreateProfileAsync(req);
         return CreatedAtAction(nameof(GetCustomer), new { id = profile.Id }, profile);
     }

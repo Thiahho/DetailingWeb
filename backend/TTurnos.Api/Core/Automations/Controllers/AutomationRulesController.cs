@@ -9,10 +9,23 @@ namespace TTurnos.Api.Core.Automations;
 public class AutomationRulesController : ControllerBase
 {
     private readonly IAutomationRulesRepository _repository;
+    private readonly IPlanLimitsService _planLimits;
 
-    public AutomationRulesController(IAutomationRulesRepository repository)
+    public AutomationRulesController(IAutomationRulesRepository repository, IPlanLimitsService planLimits)
     {
         _repository = repository;
+        _planLimits = planLimits;
+    }
+
+    private async Task<IActionResult?> CheckAutomationsAllowedAsync()
+    {
+        if (await _planLimits.IsFeatureEnabledAsync("CanUseAutomations"))
+            return null;
+
+        return StatusCode(StatusCodes.Status402PaymentRequired, new
+        {
+            message = "Las automatizaciones no están disponibles en tu plan actual."
+        });
     }
 
     private static AutomationRuleResponse ToResponse(AutomationRule r) => new(
@@ -39,6 +52,8 @@ public class AutomationRulesController : ControllerBase
     [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.Create)]
     public async Task<IActionResult> CreateRule([FromBody] CreateAutomationRuleRequest req)
     {
+        if (await CheckAutomationsAllowedAsync() is { } forbidden) return forbidden;
+
         if (req.TriggerType == AutomationTriggerType.ClientInactive && req.InactiveDays is null)
             return BadRequest(new { error = "InactiveDays es requerido para el trigger ClientInactive." });
 
@@ -61,6 +76,8 @@ public class AutomationRulesController : ControllerBase
     [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.Edit)]
     public async Task<IActionResult> UpdateRule(int id, [FromBody] UpdateAutomationRuleRequest req)
     {
+        if (await CheckAutomationsAllowedAsync() is { } forbidden) return forbidden;
+
         if (req.TriggerType == AutomationTriggerType.ClientInactive && req.InactiveDays is null)
             return BadRequest(new { error = "InactiveDays es requerido para el trigger ClientInactive." });
 
@@ -93,6 +110,8 @@ public class AutomationRulesController : ControllerBase
     [RequirePermission(PermissionModules.Automatizaciones, PermissionActions.Edit)]
     public async Task<IActionResult> RunNow(int id)
     {
+        if (await CheckAutomationsAllowedAsync() is { } forbidden) return forbidden;
+
         var rule = await _repository.GetByIdAsync(id);
         if (rule is null) return NotFound();
 

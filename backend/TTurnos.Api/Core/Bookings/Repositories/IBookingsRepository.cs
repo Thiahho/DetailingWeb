@@ -5,6 +5,7 @@ namespace TTurnos.Api.Core.Bookings;
 public interface IBookingsRepository
 {
     Task<bool> ProfessionalIsActiveAsync(int professionalId);
+    Task<int> CountThisMonthAsync();
     Task<IDbContextTransaction> BeginTransactionAsync();
     Task<int> TryClaimSlotAsync(int timeSlotId);
     Task ReleaseSlotAsync(int timeSlotId);

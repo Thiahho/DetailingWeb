@@ -15,11 +15,13 @@ public class PaymentsController : ControllerBase
 {
     private readonly IPaymentsRepository _repository;
     private readonly IConfiguration _configuration;
+    private readonly IPlanLimitsService _planLimits;
 
-    public PaymentsController(IPaymentsRepository repository, IConfiguration configuration)
+    public PaymentsController(IPaymentsRepository repository, IConfiguration configuration, IPlanLimitsService planLimits)
     {
         _repository = repository;
         _configuration = configuration;
+        _planLimits = planLimits;
     }
 
     // POST: api/payments/create-preference
@@ -39,6 +41,11 @@ public class PaymentsController : ControllerBase
         // If there's already an approved payment, don't create another
         if (booking.Payment?.Status == PaymentStatus.Approved)
             return BadRequest(new { success = false, message = "Esta reserva ya fue pagada" });
+
+        // Tenant explícito (booking.TenantId), no ambiental: el endpoint es
+        // [AllowAnonymous], más seguro resolver el plan por el dato en sí.
+        if (!await _planLimits.IsFeatureEnabledAsync(booking.TenantId, "CanUseMercadoPago"))
+            return StatusCode(StatusCodes.Status402PaymentRequired, new { success = false, message = "Este negocio no tiene pagos online habilitados en su plan actual" });
 
         var accessToken = _configuration["MercadoPago:AccessToken"];
         if (string.IsNullOrEmpty(accessToken))

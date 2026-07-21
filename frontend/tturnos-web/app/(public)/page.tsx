@@ -63,25 +63,74 @@ const BENEFICIOS = [
 
 const PLANES = [
   {
+    name: "Free",
+    price: "$0 / mes",
+    tagline: "Para empezar",
+    items: [
+      "1 profesional",
+      "Hasta 50 clientes",
+      "Hasta 50 turnos por mes",
+      "Agenda y página de reservas online",
+      "CRM e historial básico",
+      "Confirmación por email",
+    ],
+    note: "Podés quedarte en este plan el tiempo que quieras.",
+    cta: "Crear cuenta",
+  },
+  {
     name: "Starter",
-    tagline: "Para arrancar",
-    items: ["Agenda de un profesional", "Reservas online", "Recordatorios por email"],
+    price: "Mensual",
+    tagline: "Para profesionales independientes",
+    items: [
+      "Hasta 2 profesionales",
+      "Clientes y turnos ilimitados",
+      "CRM e historial completos",
+      "Subdominio propio, sin marca TTurnos",
+      "Caja básica y gestión de señas",
+    ],
+    cta: "Consultar precio",
   },
   {
     name: "Pro",
+    price: "Mensual",
     tagline: "El más elegido",
-    items: ["Agenda multi-profesional", "CRM de clientes", "Caja diaria", "WhatsApp"],
+    items: [
+      "Hasta 10 profesionales",
+      "Caja completa: apertura, cierre y señas",
+      "WhatsApp y Mercado Pago",
+      "Automatizaciones y recordatorios",
+      "Estadísticas avanzadas por profesional",
+    ],
     highlighted: true,
+    cta: "Consultar precio",
   },
   {
-    name: "Premium",
-    tagline: "Para equipos en crecimiento",
-    items: ["Todo lo de Pro", "Automatizaciones", "Estadísticas por profesional"],
+    name: "Business",
+    price: "Mensual",
+    tagline: "Para negocios consolidados",
+    items: [
+      "Profesionales ilimitados",
+      "Infraestructura de mayor capacidad",
+      "Soporte prioritario",
+      "Dominio propio (configuración asistida)",
+      "Capacitación y configuración inicial",
+    ],
+    cta: "Consultar precio",
+  },
+];
+
+const A_MEDIDA = [
+  {
+    name: "Licencia",
+    tagline: "Tu propia instalación",
+    description: "Instancia exclusiva de TTurnos: base de datos, infraestructura y dominio propios, sin marca TTurnos. Pago único, con mantenimiento mensual opcional (hosting, backups, actualizaciones).",
+    cta: "Consultar",
   },
   {
-    name: "Enterprise",
+    name: "Custom",
     tagline: "A medida",
-    items: ["Todo lo de Premium", "Múltiples sucursales", "Soporte prioritario"],
+    description: "Multi-sucursal real, integraciones externas, funcionalidades fuera del producto estándar. Presupuesto a medida de tu proyecto.",
+    cta: "Hablar con nosotros",
   },
 ];
 
@@ -206,6 +255,7 @@ export default function ComercialHome() {
               <div>
                 <h3 className="text-xl font-semibold text-charcoal">{plan.name}</h3>
                 <p className="text-xs uppercase tracking-widest text-charcoal/40">{plan.tagline}</p>
+                <p className="mt-1 text-sm font-medium text-blushdark">{plan.price}</p>
               </div>
               <ul className="flex-1 space-y-2 text-sm text-charcoal/60">
                 {plan.items.map((item) => (
@@ -215,11 +265,30 @@ export default function ComercialHome() {
                   </li>
                 ))}
               </ul>
+              {plan.note && <p className="text-xs text-charcoal/40">{plan.note}</p>}
               <a
                 href="#contacto"
                 className="mt-auto rounded-full border border-mauve/20 px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-charcoal/70 transition hover:border-blush hover:text-charcoal"
               >
-                Consultar precio
+                {plan.cta}
+              </a>
+            </article>
+          ))}
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          {A_MEDIDA.map((plan) => (
+            <article key={plan.name} className="glass-card flex flex-col gap-3 p-6">
+              <div>
+                <span className="badge">{plan.tagline}</span>
+                <h3 className="mt-3 text-xl font-semibold text-charcoal">{plan.name}</h3>
+              </div>
+              <p className="flex-1 text-sm text-charcoal/60">{plan.description}</p>
+              <a
+                href="#contacto"
+                className="self-start rounded-full border border-mauve/20 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-charcoal/70 transition hover:border-blush hover:text-charcoal"
+              >
+                {plan.cta}
               </a>
             </article>
           ))}

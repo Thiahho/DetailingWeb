@@ -13,6 +13,11 @@ export interface SiteConfig {
   heroSubtitle: string;
   heroBadge: string;
   metaDescription: string;
+  // Viaja solo en la respuesta cruda de GET /api/siteconfig (no pasa por
+  // getSiteConfig() de abajo, que solo whitelistea los campos editables del
+  // formulario admin) — true si el plan del tenant no incluye ocultar la
+  // marca TTurnos del pie de página público.
+  hideBranding?: boolean;
 }
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {

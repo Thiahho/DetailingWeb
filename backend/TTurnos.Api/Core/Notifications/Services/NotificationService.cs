@@ -10,6 +10,7 @@ public class NotificationService
     private readonly IConfiguration _configuration;
     private readonly ILogger<NotificationService> _logger;
     private readonly AuthService _authService;
+    private readonly IPlanLimitsService _planLimits;
 
     public NotificationService(
         ApplicationDbContext context,
@@ -17,7 +18,8 @@ public class NotificationService
         IEnumerable<INotificationProvider> providers,
         IConfiguration configuration,
         ILogger<NotificationService> logger,
-        AuthService authService)
+        AuthService authService,
+        IPlanLimitsService planLimits)
     {
         _context = context;
         _templateService = templateService;
@@ -25,6 +27,7 @@ public class NotificationService
         _configuration = configuration;
         _logger = logger;
         _authService = authService;
+        _planLimits = planLimits;
     }
 
     public async Task DispatchForBookingAsync(int bookingId, string eventType, CancellationToken cancellationToken = default)
@@ -63,6 +66,12 @@ public class NotificationService
 
         foreach (var provider in _providers)
         {
+            // Tenant explícito (no _currentTenant): este método corre tanto en
+            // requests HTTP como en background jobs sin tenant ambiental, ver
+            // el IgnoreQueryFilters de arriba.
+            if (provider.Channel == "WhatsApp" && !await _planLimits.IsFeatureEnabledAsync(booking.TenantId, "CanUseWhatsapp"))
+                continue;
+
             var log = new NotificationLog
             {
                 TenantId = booking.TenantId,

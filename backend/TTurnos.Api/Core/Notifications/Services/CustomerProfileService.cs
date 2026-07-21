@@ -18,6 +18,8 @@ public class CustomerProfileService(ApplicationDbContext db)
             .Select(x => MapProfile(x))
             .FirstOrDefaultAsync();
 
+    public Task<int> CountAsync() => db.CustomerProfiles.CountAsync();
+
     public async Task<CustomerProfileResponse> CreateProfileAsync(CreateCustomerProfileRequest req)
     {
         // Teléfono único — si ya existe, devuelve el existente

@@ -39,4 +39,30 @@ public class PlanLimitsService : IPlanLimitsService
 
         return limit == Unlimited || currentCount < limit;
     }
+
+    public Task<bool> IsFeatureEnabledAsync(string featureKey) =>
+        IsFeatureEnabledAsync(_currentTenant.TenantId, featureKey);
+
+    public async Task<bool> IsFeatureEnabledAsync(int tenantId, string featureKey)
+    {
+        var planId = await _context.Tenants
+            .AsNoTracking()
+            .Where(t => t.Id == tenantId)
+            .Select(t => t.PlanId)
+            .FirstOrDefaultAsync();
+
+        if (planId is null)
+            return true;
+
+        var value = await _context.PlanFeatures
+            .AsNoTracking()
+            .Where(pf => pf.PlanId == planId && pf.Feature!.Key == featureKey)
+            .Select(pf => pf.Value)
+            .FirstOrDefaultAsync();
+
+        if (value is null || !bool.TryParse(value, out var enabled))
+            return true;
+
+        return enabled;
+    }
 }

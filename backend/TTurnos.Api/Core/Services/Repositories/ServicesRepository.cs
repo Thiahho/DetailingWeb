@@ -24,6 +24,8 @@ public class ServicesRepository : IServicesRepository
             .ThenBy(s => s.CreatedAt)
             .ToListAsync();
 
+    public Task<int> CountActiveAsync() => _context.Services.CountAsync(s => s.IsActive);
+
     public Task<Service?> GetBySlugAsync(string slug, bool activeOnly) =>
         activeOnly
             ? _context.Services.FirstOrDefaultAsync(s => s.Slug == slug && s.IsActive)

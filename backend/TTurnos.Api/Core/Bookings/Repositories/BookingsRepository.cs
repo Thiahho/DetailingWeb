@@ -15,6 +15,16 @@ public class BookingsRepository : IBookingsRepository
     public Task<bool> ProfessionalIsActiveAsync(int professionalId) =>
         _context.Professionals.AnyAsync(p => p.Id == professionalId && p.IsActive);
 
+    // "Reservas por mes" del plan — cuenta por fecha de carga (CreatedAt), no
+    // por fecha del turno (TimeSlot.StartDateTime): mide cuánto uso hace el
+    // negocio de la plataforma este mes, no la agenda futura.
+    public Task<int> CountThisMonthAsync()
+    {
+        var now = DateTime.UtcNow;
+        var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        return _context.Bookings.CountAsync(b => b.CreatedAt >= startOfMonth);
+    }
+
     public Task<IDbContextTransaction> BeginTransactionAsync() =>
         _context.Database.BeginTransactionAsync();
 

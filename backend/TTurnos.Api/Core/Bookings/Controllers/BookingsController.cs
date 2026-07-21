@@ -15,14 +15,16 @@ public class BookingsController : ControllerBase
     private readonly AuthService _authService;
     private readonly IConfiguration _configuration;
     private readonly IInsumosRepository _insumosRepository;
+    private readonly IPlanLimitsService _planLimits;
 
-    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository)
+    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits)
     {
         _repository = repository;
         _notificationService = notificationService;
         _authService = authService;
         _configuration = configuration;
         _insumosRepository = insumosRepository;
+        _planLimits = planLimits;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -40,6 +42,16 @@ public class BookingsController : ControllerBase
 
             if (!professionalIsActive)
                 return BadRequest(new { success = false, message = "El profesional seleccionado no está disponible" });
+        }
+
+        var bookingsThisMonth = await _repository.CountThisMonthAsync();
+        if (!await _planLimits.IsWithinLimitAsync("MaxBookings", bookingsThisMonth))
+        {
+            return StatusCode(StatusCodes.Status402PaymentRequired, new
+            {
+                success = false,
+                message = "Este negocio alcanzó su límite de turnos de este mes. Contactalo directamente para coordinar."
+            });
         }
 
         await using var transaction = await _repository.BeginTransactionAsync();

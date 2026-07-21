@@ -10,11 +10,13 @@ public class ServicesController : ControllerBase
 {
     private readonly IServicesRepository _repository;
     private readonly IServiceInsumosRepository _recipeRepository;
+    private readonly IPlanLimitsService _planLimits;
 
-    public ServicesController(IServicesRepository repository, IServiceInsumosRepository recipeRepository)
+    public ServicesController(IServicesRepository repository, IServiceInsumosRepository recipeRepository, IPlanLimitsService planLimits)
     {
         _repository = repository;
         _recipeRepository = recipeRepository;
+        _planLimits = planLimits;
     }
 
     // GET: api/services  (público)
@@ -107,6 +109,15 @@ public class ServicesController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Slug))
             return BadRequest(new { message = "Título y slug son requeridos" });
+
+        var activeCount = await _repository.CountActiveAsync();
+        if (!await _planLimits.IsWithinLimitAsync("MaxServices", activeCount))
+        {
+            return StatusCode(StatusCodes.Status402PaymentRequired, new
+            {
+                message = "Alcanzaste el límite de servicios de tu plan. Actualizá tu plan para agregar más."
+            });
+        }
 
         var slugExists = await _repository.SlugExistsAsync(request.Slug);
         if (slugExists)

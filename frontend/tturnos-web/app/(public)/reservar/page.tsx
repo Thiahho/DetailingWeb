@@ -348,8 +348,15 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-mauve/10 px-6 py-10 text-center text-xs text-charcoal/50">
-        {siteConfig?.businessName || ""}
-        {siteConfig?.locationShort ? ` · ${siteConfig.locationShort}` : ""}
+        <p>
+          {siteConfig?.businessName || ""}
+          {siteConfig?.locationShort ? ` · ${siteConfig.locationShort}` : ""}
+        </p>
+        {siteConfig && !siteConfig.hideBranding && (
+          <a href="/" className="mt-2 inline-block text-charcoal/40 hover:text-charcoal/60 transition">
+            Potenciado por TTurnos
+          </a>
+        )}
       </footer>
 
       {siteConfig?.whatsAppNumber && (
