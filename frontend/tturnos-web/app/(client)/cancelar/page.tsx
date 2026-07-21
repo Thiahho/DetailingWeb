@@ -143,7 +143,7 @@ function CancelarContent() {
                   {cancelling ? "Cancelando..." : "Sí, cancelar mi turno"}
                 </button>
                 <a
-                  href="/"
+                  href="/reservar"
                   className="w-full text-center text-white/40 hover:text-white/70 py-2 text-sm transition"
                 >
                   No, mantener mi turno
@@ -165,7 +165,7 @@ function CancelarContent() {
                 <p className="text-white/50 text-sm mt-1">Tu turno fue cancelado correctamente. El horario quedó disponible.</p>
               </div>
               <a
-                href="/"
+                href="/reservar"
                 className="mt-2 text-green-400 hover:text-green-300 text-sm font-medium transition"
               >
                 Reservar un nuevo turno →
@@ -188,7 +188,7 @@ function CancelarContent() {
                 </p>
               </div>
               <a
-                href="/"
+                href="/reservar"
                 className="mt-2 text-white/40 hover:text-white/70 text-sm font-medium transition"
               >
                 Reservar un nuevo turno →

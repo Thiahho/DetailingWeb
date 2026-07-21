@@ -120,7 +120,7 @@ export default function AdminSidebar() {
           ════════════════════════════════════ */}
       <aside className="hidden md:flex fixed left-0 top-0 h-screen w-56 bg-ivory border-r border-mauve/10 flex-col z-40">
         <div className="px-5 py-6 border-b border-mauve/10">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/reservar" className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full overflow-hidden border border-mauve/15 bg-white">
               <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
             </div>
@@ -166,7 +166,7 @@ export default function AdminSidebar() {
           MOBILE — top bar
           ════════════════════════════════════ */}
       <header className="md:hidden fixed top-0 left-0 right-0 h-14 bg-ivory border-b border-mauve/10 z-40 flex items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/reservar" className="flex items-center gap-2.5">
           <div className="h-7 w-7 rounded-full overflow-hidden border border-mauve/15 bg-white">
             <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
           </div>

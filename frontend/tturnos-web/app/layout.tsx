@@ -1,6 +1,6 @@
 // app/layout.tsx
 import "./globals.css";
-import Navbar from "@/src/components/shared/Navbar";
+import SiteChrome from "@/src/components/shared/SiteChrome";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
@@ -72,8 +72,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`scroll-smooth ${sans.variable}`}>
       <body className="bg-cream font-sans antialiased text-charcoal">
-        <Navbar />
-        <div className="pt-20">{children}</div>
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

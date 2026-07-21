@@ -209,7 +209,7 @@ export default function MisTurnosPage() {
             {items.length === 0 ? (
               <div className="text-center py-16 text-white/40">
                 <p className="text-lg">No encontramos turnos para ese email</p>
-                <a href="/#contacto" className="mt-4 inline-block text-lux hover:underline text-sm">
+                <a href="/reservar#contacto" className="mt-4 inline-block text-lux hover:underline text-sm">
                   Reservar un turno
                 </a>
               </div>

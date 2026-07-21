@@ -37,7 +37,7 @@ export default function Navbar() {
   }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    if (pathname === "/") {
+    if (pathname === "/reservar") {
       e.preventDefault();
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     }
@@ -51,7 +51,7 @@ export default function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-mauve/10 bg-cream/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:py-6">
           {/* LOGO */}
-          <Link href="/" className="flex items-center gap-3 transition hover:opacity-80">
+          <Link href="/reservar" className="flex items-center gap-3 transition hover:opacity-80">
             <div className="relative h-10 w-10 md:h-12 md:w-12 rounded-full border border-mauve/15 bg-white">
               <img src={logoUrl} alt="Logo" className="h-full w-full object-contain rounded-full" />
             </div>
@@ -62,10 +62,10 @@ export default function Navbar() {
 
           {/* NAV DESKTOP */}
           <nav className="hidden items-center gap-6 text-sm text-charcoal/70 md:flex">
-            <Link href="/#servicios" onClick={(e) => handleNavClick(e, "servicios")} className="transition hover:text-charcoal">
+            <Link href="/reservar#servicios" onClick={(e) => handleNavClick(e, "servicios")} className="transition hover:text-charcoal">
               Servicios
             </Link>
-            <Link href="/#trabajos" onClick={(e) => handleNavClick(e, "trabajos")} className="transition hover:text-charcoal">
+            <Link href="/reservar#trabajos" onClick={(e) => handleNavClick(e, "trabajos")} className="transition hover:text-charcoal">
               Trabajos
             </Link>
             <Link
@@ -75,7 +75,7 @@ export default function Navbar() {
               Mis turnos
             </Link>
             <Link
-              href="/#contacto"
+              href="/reservar#contacto"
               onClick={(e) => handleNavClick(e, "contacto")}
               className="rounded-full border border-mauve/20 px-4 py-2 transition hover:border-blush hover:text-charcoal"
             >
@@ -124,14 +124,14 @@ export default function Navbar() {
             {/* Links */}
             <nav className="flex-1 px-4 py-5 space-y-2">
               <Link
-                href="/#servicios"
+                href="/reservar#servicios"
                 onClick={(e) => handleNavClick(e, "servicios")}
                 className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >
                 Servicios
               </Link>
               <Link
-                href="/#trabajos"
+                href="/reservar#trabajos"
                 onClick={(e) => handleNavClick(e, "trabajos")}
                 className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >
@@ -145,7 +145,7 @@ export default function Navbar() {
                 Mis turnos
               </Link>
               <Link
-                href="/#contacto"
+                href="/reservar#contacto"
                 onClick={(e) => handleNavClick(e, "contacto")}
                 className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >

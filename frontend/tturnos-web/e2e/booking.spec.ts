@@ -11,7 +11,7 @@ const seed = JSON.parse(
 
 test.describe("Flujo público de reserva", () => {
   test("un cliente ve servicios, reserva un turno y lo cancela", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/reservar");
 
     // Elegir el servicio sembrado en global-setup
     await page
