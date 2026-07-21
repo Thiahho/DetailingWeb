@@ -29,7 +29,10 @@ test.describe("Admin: gestión de Turnos", () => {
     await page.getByTestId("slot-form-date").fill(dateValue);
     await page.getByTestId("slot-form-hour").fill("11");
     await page.getByTestId("slot-form-minute").fill("00");
-    await page.getByTestId("slot-form-professional").selectOption({ label: seed.professionalFullName });
+    await page
+      .getByTestId("slot-form-professional")
+      .getByLabel(seed.professionalFullName)
+      .check();
     await page.getByTestId("slot-form-submit").click();
 
     // La lista pagina de a 6 y acumula turnos de corridas anteriores — filtrar

@@ -36,7 +36,12 @@ export default function TurnosPage() {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
 
   // Estados de formulario
-  const [formData, setFormData] = useState({ date: "", hour: "09", minute: "00", professionalId: "" });
+  const [formData, setFormData] = useState<{ date: string; hour: string; minute: string; professionalIds: string[] }>({
+    date: "",
+    hour: "09",
+    minute: "00",
+    professionalIds: [],
+  });
   const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
   const [creating, setCreating] = useState(false);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
@@ -96,6 +101,10 @@ export default function TurnosPage() {
 
   const createSlot = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.professionalIds.length === 0) {
+      showToast("error", "Error al crear turno", "Elegí al menos un profesional");
+      return;
+    }
     setCreating(true);
     try {
       // Enviar fecha como string local (sin conversión UTC)
@@ -112,23 +121,50 @@ export default function TurnosPage() {
       }
       const endDateTime = `${endDate}T${String(endHour).padStart(2, "0")}:${formData.minute}:00`;
 
-      const response = await fetch("/api/timeslots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          startDateTime,
-          endDateTime,
-          professionalId: formData.professionalId ? Number(formData.professionalId) : null,
-        }),
-      });
+      // Un turno idéntico por cada profesional elegido: el modelo de datos
+      // (TimeSlot.ProfessionalId) es siempre un único profesional, no hay
+      // concepto de turno compartido entre varios a la vez.
+      const results = await Promise.all(
+        formData.professionalIds.map(async (professionalId) => {
+          const response = await fetch("/api/timeslots", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              startDateTime,
+              endDateTime,
+              professionalId: Number(professionalId),
+            }),
+          });
+          const data = await response.json();
+          const professional = professionals.find((p) => String(p.id) === professionalId);
+          const professionalName = professional ? `${professional.firstName} ${professional.lastName}` : professionalId;
+          return { ok: response.ok, professionalName, message: data.message };
+        })
+      );
 
-      const data = await response.json();
-      if (response.ok) {
-        showToast("success", "Turno Creado", `Turno para el ${formData.date} a las ${formData.hour}:${formData.minute} creado exitosamente`, 5000);
-        setFormData({ date: "", hour: "09", minute: "00", professionalId: formData.professionalId });
+      const okCount = results.filter((r) => r.ok).length;
+      const failed = results.filter((r) => !r.ok);
+
+      if (okCount > 0) {
+        showToast(
+          "success",
+          "Turno Creado",
+          okCount === results.length
+            ? `Turno para el ${formData.date} a las ${formData.hour}:${formData.minute} creado para ${okCount} profesional(es)`
+            : `Turno creado para ${okCount} de ${results.length} profesional(es) seleccionado(s)`,
+          5000
+        );
+      }
+      if (failed.length > 0) {
+        showToast(
+          "error",
+          okCount > 0 ? "Algunos turnos no se pudieron crear" : "Error al crear turno",
+          failed.map((f) => `${f.professionalName}: ${f.message || "No se pudo crear"}`).join(" · ")
+        );
+      }
+      if (okCount > 0) {
+        setFormData({ date: "", hour: "09", minute: "00", professionalIds: formData.professionalIds });
         loadSlots();
-      } else {
-        showToast("error", "Error al crear turno", data.message || "No se pudo crear el turno");
       }
     } catch (error) {
       showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
@@ -155,7 +191,7 @@ export default function TurnosPage() {
       });
       if (response.ok) {
         showToast("success", "Turno Actualizado", "Los cambios se guardaron correctamente", 4000);
-        setFormData({ date: "", hour: "09", minute: "00", professionalId: "" });
+        setFormData({ date: "", hour: "09", minute: "00", professionalIds: [] });
         setEditingSlot(null);
         loadSlots();
       } else {
@@ -276,6 +312,15 @@ export default function TurnosPage() {
     }
   };
 
+  const toggleProfessional = (id: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      professionalIds: prev.professionalIds.includes(id)
+        ? prev.professionalIds.filter((p) => p !== id)
+        : [...prev.professionalIds, id],
+    }));
+  };
+
   // --- Funciones de Selección Múltiple ---
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
@@ -364,13 +409,13 @@ export default function TurnosPage() {
       date: datePart,
       hour: hour.padStart(2, "0"),
       minute: minute.padStart(2, "0"),
-      professionalId: slot.professionalId ? String(slot.professionalId) : "",
+      professionalIds: slot.professionalId ? [String(slot.professionalId)] : [],
     });
   };
 
   const cancelEditing = () => {
     setEditingSlot(null);
-    setFormData({ date: "", hour: "09", minute: "00", professionalId: "" });
+    setFormData({ date: "", hour: "09", minute: "00", professionalIds: [] });
   };
 
   // --- Filtrado por estado + profesional ---
@@ -535,20 +580,31 @@ export default function TurnosPage() {
               {!editingSlot && (
                 <div>
                   <label className="text-charcoal/70 text-sm font-medium">
-                    Profesional
+                    Profesional{formData.professionalIds.length > 1 ? "es" : ""}
                   </label>
-                  <select
-                    data-testid="slot-form-professional"
-                    className="form-input mt-2"
-                    value={formData.professionalId}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, professionalId: e.target.value }))}
-                    required
-                  >
-                    <option value="">Seleccioná un profesional</option>
-                    {professionals.map((p) => (
-                      <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
-                    ))}
-                  </select>
+                  <p className="text-charcoal/40 text-xs mt-0.5">
+                    Elegí uno o más — se crea un turno igual para cada profesional seleccionado
+                  </p>
+                  {professionals.length === 0 ? (
+                    <p className="text-charcoal/30 text-xs italic mt-1.5">No hay profesionales cargados todavía.</p>
+                  ) : (
+                    <div
+                      data-testid="slot-form-professional"
+                      className="mt-2 grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto bg-cream border border-mauve/10 rounded-lg p-3"
+                    >
+                      {professionals.map((p) => (
+                        <label key={p.id} className="flex items-center gap-1.5 text-charcoal/70 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.professionalIds.includes(String(p.id))}
+                            onChange={() => toggleProfessional(String(p.id))}
+                            className="accent-green-500"
+                          />
+                          {p.firstName} {p.lastName}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

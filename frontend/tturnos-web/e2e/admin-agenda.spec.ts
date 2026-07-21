@@ -42,7 +42,7 @@ test.describe("Admin: Agenda semanal (multi-profesional)", () => {
       await page.getByTestId("slot-form-date").fill(dateValue);
       await page.getByTestId("slot-form-hour").fill(hour);
       await page.getByTestId("slot-form-minute").fill("00");
-      await page.getByTestId("slot-form-professional").selectOption({ label: seed.professionalFullName });
+      await page.getByTestId("slot-form-professional").getByLabel(seed.professionalFullName).check();
       const [resp] = await Promise.all([
         page.waitForResponse((r) => r.url().includes("/api/timeslots") && r.request().method() === "POST"),
         page.getByTestId("slot-form-submit").click(),
