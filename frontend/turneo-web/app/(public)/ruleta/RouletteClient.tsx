@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Gift, PartyPopper, Sparkles } from "lucide-react";
 import { buildWhatsAppUrl } from "@/src/lib/contact";
 
 interface Prize {
@@ -232,13 +233,21 @@ export default function RouletteClient({
   return (
     <main className="flex min-h-screen flex-col items-center bg-cream px-6 py-16 text-charcoal">
       <div className="w-full max-w-xl space-y-8 text-center">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Link href="/" className="text-sm font-semibold text-charcoal/60 hover:text-charcoal">
             Turneo
           </Link>
-          <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
-            🎁 Girá la Ruleta Turneo
-          </h1>
+          <div className="flex items-center justify-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blush to-champagne shadow-gold">
+              <Gift className="h-5 w-5 text-white" strokeWidth={2} />
+            </span>
+            <h1 className="text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+              Girá la Ruleta{" "}
+              <span className="bg-gradient-to-r from-blushdark to-champagne bg-clip-text text-transparent">
+                Turneo
+              </span>
+            </h1>
+          </div>
           <p className="text-charcoal/70">
             Descubrí tu beneficio exclusivo para empezar a digitalizar tu salón.
           </p>
@@ -303,8 +312,8 @@ export default function RouletteClient({
             />
 
             {/* Centro */}
-            <div className="absolute left-1/2 top-1/2 z-10 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-champagne bg-cream text-lg shadow-soft">
-              🎁
+            <div className="absolute left-1/2 top-1/2 z-10 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-champagne bg-gradient-to-br from-white to-cream shadow-soft">
+              <Gift className="h-5 w-5 text-blushdark" strokeWidth={2.25} />
             </div>
           </div>
 
@@ -351,9 +360,16 @@ export default function RouletteClient({
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-blush px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blush px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
             >
-              {loading ? "Girando..." : "GIRAR LA RULETA 🎰"}
+              {loading ? (
+                "Girando..."
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" strokeWidth={2.25} />
+                  GIRAR LA RULETA
+                </>
+              )}
             </button>
             <p className="text-center text-[11px] text-charcoal/40">
               Una participación por WhatsApp. El premio tiene vigencia limitada desde que lo ganás.
@@ -370,7 +386,12 @@ export default function RouletteClient({
             {result.yaHabiaParticipado && (
               <p className="text-xs text-charcoal/50">Ya habías participado con este WhatsApp — este es tu premio.</p>
             )}
-            <p className="text-2xl">🎉 ¡GANASTE!</p>
+            <div className="flex flex-col items-center gap-2">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blush to-champagne shadow-gold">
+                <PartyPopper className="h-7 w-7 text-white" strokeWidth={2} />
+              </span>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-blushdark">¡Ganaste!</p>
+            </div>
             <h2 className="text-xl font-semibold text-charcoal">{result.premioNombre.toUpperCase()}</h2>
             {result.premioDescripcion && (
               <p className="text-sm text-charcoal/60">{result.premioDescripcion}</p>
