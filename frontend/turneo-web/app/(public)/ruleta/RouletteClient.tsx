@@ -245,7 +245,7 @@ export default function RouletteClient({
         </div>
 
         {/* RULETA VISUAL */}
-        <div className="relative mx-auto">
+        <div className="relative flex justify-center">
           <div
             className={`relative flex h-72 w-72 items-center justify-center rounded-full bg-cream p-2.5 shadow-elevated transition-shadow sm:h-80 sm:w-80 ${
               step === "spinning" ? "wheel-spinning-glow" : ""
