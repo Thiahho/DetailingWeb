@@ -12,7 +12,7 @@ export default function Navbar() {
   const [businessName, setBusinessName] = useState(
     process.env.NEXT_PUBLIC_BUSINESS_NAME || ""
   );
-  const [logoUrl, setLogoUrl] = useState("/img/logo.png");
+  const [logoUrl, setLogoUrl] = useState("/img/LogoPortada.png");
   const pathname = usePathname();
   const router = useRouter();
 
@@ -51,13 +51,12 @@ export default function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-mauve/10 bg-cream/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:py-6">
           {/* LOGO */}
-          <Link href="/reservar" className="flex items-center gap-3 transition hover:opacity-80">
-            <div className="relative h-10 w-10 md:h-12 md:w-12 rounded-full border border-mauve/15 bg-white">
-              <img src={logoUrl} alt="Logo" className="h-full w-full object-contain rounded-full" />
-            </div>
-            {businessName && (
-              <h1 className="text-base md:text-lg font-semibold text-charcoal">{businessName}</h1>
-            )}
+          <Link href="/reservar" className="flex items-center transition hover:opacity-80">
+            <img
+              src={logoUrl}
+              alt={businessName || "Logo"}
+              className="h-10 md:h-14 w-auto object-contain"
+            />
           </Link>
 
           {/* NAV DESKTOP */}
