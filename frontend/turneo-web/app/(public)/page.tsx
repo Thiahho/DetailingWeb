@@ -68,56 +68,69 @@ const PLANES = [
     tagline: "Para empezar",
     items: [
       "1 profesional",
-      "Hasta 50 clientes",
-      "Hasta 50 turnos por mes",
+      "Hasta 35 turnos por mes",
+      "Notificaciones por WhatsApp",
       "Agenda y página de reservas online",
       "CRM e historial básico",
-      "Confirmación por email",
     ],
     note: "Podés quedarte en este plan el tiempo que quieras.",
     cta: "Crear cuenta",
   },
   {
     name: "Starter",
-    price: "Mensual",
+    price: "$12.900 / mes",
     tagline: "Para profesionales independientes",
     items: [
-      "Hasta 2 profesionales",
-      "Clientes y turnos ilimitados",
+      "1 profesional",
+      "Hasta 50 turnos por mes",
       "CRM e historial completos",
       "Subdominio propio, sin marca Turneo",
       "Caja básica y gestión de señas",
     ],
-    cta: "Consultar precio",
+    cta: "Elegir plan",
   },
   {
     name: "Pro",
-    price: "Mensual",
+    price: "$24.900 / mes",
     tagline: "El más elegido",
     items: [
-      "Hasta 10 profesionales",
-      "Caja completa: apertura, cierre y señas",
+      "Hasta 5 profesionales",
+      "Hasta 500 turnos por mes",
       "WhatsApp y Mercado Pago",
-      "Automatizaciones y recordatorios",
-      "Estadísticas avanzadas por profesional",
+      "Caja completa: apertura, cierre y señas",
+      "Estadísticas por profesional",
     ],
     highlighted: true,
-    cta: "Consultar precio",
+    cta: "Elegir plan",
   },
   {
-    name: "Business",
-    price: "Mensual",
-    tagline: "Para negocios consolidados",
+    name: "Premium",
+    price: "$39.900 / mes",
+    tagline: "Para equipos grandes",
     items: [
-      "Profesionales ilimitados",
+      "Hasta 15 profesionales",
+      "Hasta 2.000 turnos por mes",
+      "WhatsApp y Mercado Pago",
+      "Automatizaciones y recordatorios con IA",
+      "Estadísticas avanzadas",
+    ],
+    cta: "Elegir plan",
+  },
+  {
+    name: "Enterprise",
+    price: "Desde $69.900 / mes",
+    tagline: "A tu medida",
+    items: [
+      "Profesionales y turnos sin límite",
+      "WhatsApp, Mercado Pago y automatizaciones con IA",
       "Infraestructura de mayor capacidad",
       "Soporte prioritario",
-      "Dominio propio (configuración asistida)",
-      "Capacitación y configuración inicial",
     ],
-    cta: "Consultar precio",
+    cta: "Hablar con nosotros",
   },
 ];
+
+const NOTA_ANUAL = "Pagando anual: pagá 10 meses y usá 12 (2 meses gratis).";
 
 const A_MEDIDA = [
   {
@@ -245,8 +258,9 @@ export default function ComercialHome() {
         <div className="space-y-3 text-center">
           <span className="badge mx-auto">Planes</span>
           <h2 className="text-3xl font-semibold text-charcoal">Un plan para cada etapa de tu negocio</h2>
+          <p className="text-sm text-charcoal/60">{NOTA_ANUAL}</p>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {PLANES.map((plan) => (
             <article
               key={plan.name}
