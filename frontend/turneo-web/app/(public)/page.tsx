@@ -147,9 +147,9 @@ const A_MEDIDA = [
   },
 ];
 
-// TODO: reemplazar por el canal de contacto real (email de negocio, WhatsApp
-// Business, etc.) antes de publicar esta página — este buzón todavía no existe.
-const CONTACT_EMAIL = "contacto@Turneo.app";
+const WHATSAPP_NUMBER = "541122692061";
+const buildWhatsAppUrl = (message: string) =>
+  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
 export default function ComercialHome() {
   return (
@@ -191,7 +191,9 @@ export default function ComercialHome() {
               Ver la web en vivo
             </Link>
             <a
-              href="#contacto"
+              href={buildWhatsAppUrl("Hola! Quiero sumar mi negocio a Turneo.")}
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full border border-mauve/20 px-6 py-3 text-sm text-charcoal/80 transition hover:border-blush hover:text-charcoal"
             >
               Quiero sumarme
@@ -281,7 +283,9 @@ export default function ComercialHome() {
               </ul>
               {plan.note && <p className="text-xs text-charcoal/40">{plan.note}</p>}
               <a
-                href="#contacto"
+                href={buildWhatsAppUrl(`Hola! Quiero más información sobre el plan ${plan.name} de Turneo.`)}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="mt-auto rounded-full border border-mauve/20 px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-charcoal/70 transition hover:border-blush hover:text-charcoal"
               >
                 {plan.cta}
@@ -299,7 +303,9 @@ export default function ComercialHome() {
               </div>
               <p className="flex-1 text-sm text-charcoal/60">{plan.description}</p>
               <a
-                href="#contacto"
+                href={buildWhatsAppUrl(`Hola! Quiero más información sobre ${plan.name} de Turneo.`)}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="self-start rounded-full border border-mauve/20 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-charcoal/70 transition hover:border-blush hover:text-charcoal"
               >
                 {plan.cta}
@@ -317,10 +323,12 @@ export default function ComercialHome() {
           Escribinos contándonos de tu negocio y coordinamos el alta de tu cuenta.
         </p>
         <a
-          href={`mailto:${CONTACT_EMAIL}`}
+          href={buildWhatsAppUrl("Hola! Quiero más información sobre Turneo.")}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
         >
-          Escribinos
+          Escribinos por WhatsApp
         </a>
       </section>
 
