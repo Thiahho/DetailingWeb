@@ -45,3 +45,27 @@ public record RouletteLeadSummary(
     DateTime? FechaUltimoContacto);
 
 public record UpdateLeadStatusRequest(string Estado, string? Notas);
+
+public record PrizeAdminSummary(
+    int Id,
+    string Name,
+    string? Description,
+    string Type,
+    decimal? Value,
+    int? DurationMonths,
+    decimal Probability,
+    int ValidityDays,
+    string CodeSlug,
+    bool IsActive,
+    int LeadsCount);
+
+public record SavePrizeRequest(
+    string Name,
+    string? Description,
+    string Type,
+    decimal? Value,
+    int? DurationMonths,
+    decimal Probability,
+    int ValidityDays,
+    string CodeSlug,
+    bool IsActive);
