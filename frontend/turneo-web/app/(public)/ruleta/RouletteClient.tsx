@@ -20,7 +20,80 @@ interface SpinResult {
 
 type Step = "form" | "spinning" | "result" | "additional" | "done";
 
-const SEGMENT_COLORS = ["#D69AA6", "#9C7C88"]; // blush / mauve, alternados
+// blush / mauve / blushdark — evita que el primer y último gajo (que se
+// tocan en la costura de 360°) queden pegados del mismo color, ver abajo.
+const SEGMENT_PALETTE = ["#D69AA6", "#9C7C88", "#C07E8C"];
+const DIVIDER_COLOR = "#C6A26E"; // champagne — separador dorado entre gajos
+
+function getSegmentColors(count: number) {
+  const colors = Array.from({ length: count }, (_, i) => SEGMENT_PALETTE[i % SEGMENT_PALETTE.length]);
+  if (count > 2 && colors[count - 1] === colors[0]) {
+    const alt = SEGMENT_PALETTE.find((c) => c !== colors[count - 1] && c !== colors[count - 2]);
+    if (alt) colors[count - 1] = alt;
+  }
+  return colors;
+}
+
+function buildWheelGradient(prizes: Prize[]) {
+  if (prizes.length === 0) return SEGMENT_PALETTE[0];
+
+  const seg = 360 / prizes.length;
+  const gap = Math.min(1.4, seg * 0.06);
+  const colors = getSegmentColors(prizes.length);
+  const stops: string[] = [];
+
+  prizes.forEach((_, i) => {
+    const start = i * seg;
+    const end = (i + 1) * seg;
+    stops.push(
+      `${DIVIDER_COLOR} ${start}deg`,
+      `${DIVIDER_COLOR} ${start + gap}deg`,
+      `${colors[i]} ${start + gap}deg`,
+      `${colors[i]} ${end - gap}deg`,
+      `${DIVIDER_COLOR} ${end - gap}deg`,
+      `${DIVIDER_COLOR} ${end}deg`
+    );
+  });
+
+  return `conic-gradient(${stops.join(", ")})`;
+}
+
+interface ConfettiPiece {
+  id: number;
+  left: number;
+  delay: number;
+  rotate: number;
+  color: string;
+}
+
+const CONFETTI_COLORS = ["#D69AA6", "#C6A26E", "#9C7C88", "#C9BFE0"];
+
+function Confetti() {
+  const pieces: ConfettiPiece[] = Array.from({ length: 22 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    delay: Math.random() * 0.3,
+    rotate: Math.random() * 360,
+    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  }));
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 -top-2 h-0 overflow-visible">
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="confetti-piece absolute top-0 block h-2 w-1.5 rounded-sm"
+          style={{
+            left: `${p.left}%`,
+            backgroundColor: p.color,
+            animationDelay: `${p.delay}s`,
+            transform: `rotate(${p.rotate}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 function formatFecha(iso: string) {
   const d = new Date(iso);
@@ -40,6 +113,7 @@ export default function RouletteClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<SpinResult | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({ nombreNegocio: "", whatsApp: "", nombreResponsable: "" });
@@ -97,8 +171,7 @@ export default function RouletteClient({
       setResult(spin);
 
       if (spin.yaHabiaParticipado || prizes.length === 0) {
-        setStep("result");
-        setLoading(false);
+        revealResult();
         return;
       }
 
@@ -117,10 +190,16 @@ export default function RouletteClient({
     }
   };
 
+  const revealResult = () => {
+    setStep("result");
+    setLoading(false);
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 1500);
+  };
+
   const handleWheelTransitionEnd = () => {
     if (step === "spinning") {
-      setStep("result");
-      setLoading(false);
+      revealResult();
     }
   };
 
@@ -166,44 +245,70 @@ export default function RouletteClient({
         </div>
 
         {/* RULETA VISUAL */}
-        <div className="relative mx-auto flex h-72 w-72 items-center justify-center sm:h-80 sm:w-80">
-          <div className="absolute -top-2 left-1/2 z-10 h-0 w-0 -translate-x-1/2 border-x-[14px] border-t-[22px] border-x-transparent border-t-blushdark" />
+        <div className="relative mx-auto">
           <div
-            ref={wheelRef}
-            onTransitionEnd={handleWheelTransitionEnd}
-            className="relative h-full w-full overflow-hidden rounded-full border-4 border-champagne shadow-glow"
-            style={{
-              transform: `rotate(${rotation}deg)`,
-              transition: step === "spinning" ? "transform 4s cubic-bezier(0.17,0.67,0.14,0.99)" : "none",
-              background:
-                prizes.length > 0
-                  ? `conic-gradient(${prizes
-                      .map((_, i) => {
-                        const seg = 360 / prizes.length;
-                        const color = SEGMENT_COLORS[i % SEGMENT_COLORS.length];
-                        return `${color} ${i * seg}deg ${(i + 1) * seg}deg`;
-                      })
-                      .join(", ")})`
-                  : "#D69AA6",
-            }}
+            className={`relative flex h-72 w-72 items-center justify-center rounded-full bg-cream p-2.5 shadow-elevated transition-shadow sm:h-80 sm:w-80 ${
+              step === "spinning" ? "wheel-spinning-glow" : ""
+            }`}
           >
-            {prizes.map((p, i) => {
-              const seg = 360 / prizes.length;
-              const centerAngle = i * seg + seg / 2;
-              return (
-                <div
-                  key={p.id}
-                  className="absolute inset-0"
-                  style={{ transform: `rotate(${centerAngle}deg)` }}
-                >
-                  <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[10px] font-semibold uppercase leading-tight text-white sm:top-4 sm:text-xs max-w-[70px] text-center">
-                    {p.name}
-                  </span>
-                </div>
-              );
-            })}
-            <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cream shadow" />
+            {/* Aro metálico exterior */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-champagne via-[#e8cfa0] to-champagne shadow-gold" />
+
+            {/* Puntero — fijo, no rota con la rueda */}
+            <div className="pointer-idle absolute -top-3 left-1/2 z-20 origin-bottom -translate-x-1/2">
+              <div className="mx-auto h-3 w-3 rounded-full bg-blushdark shadow-soft" />
+              <div className="mx-auto -mt-1 h-0 w-0 border-x-[11px] border-t-[20px] border-x-transparent border-t-blushdark drop-shadow" />
+            </div>
+
+            {/* Rueda giratoria */}
+            <div
+              ref={wheelRef}
+              onTransitionEnd={handleWheelTransitionEnd}
+              className="relative h-[calc(100%-1.25rem)] w-[calc(100%-1.25rem)] overflow-hidden rounded-full border-2 border-cream"
+              style={{
+                transform: `rotate(${rotation}deg)`,
+                transition:
+                  step === "spinning"
+                    ? "transform 4.2s cubic-bezier(0.18, 1.15, 0.32, 1)"
+                    : "none",
+                background: buildWheelGradient(prizes),
+              }}
+            >
+              {prizes.map((p, i) => {
+                const seg = 360 / prizes.length;
+                const centerAngle = i * seg + seg / 2;
+                return (
+                  <div key={p.id}>
+                    <div className="absolute inset-0" style={{ transform: `rotate(${centerAngle}deg)` }}>
+                      <span className="absolute left-1/2 top-3 -translate-x-1/2 max-w-[72px] text-center text-[10px] font-semibold uppercase leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.35)] sm:top-4 sm:text-xs">
+                        {p.name}
+                      </span>
+                    </div>
+                    {/* Peg del gajo — pasa "clickeando" bajo el puntero al girar */}
+                    <div className="absolute inset-0" style={{ transform: `rotate(${i * seg}deg)` }}>
+                      <span className="absolute left-1/2 top-0.5 h-2 w-2 -translate-x-1/2 rounded-full bg-cream/90 shadow-sm" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Brillo tipo vidrio — fijo, no rota, le da profundidad a la rueda */}
+            <div
+              className="pointer-events-none absolute inset-2.5 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.55), transparent 45%), radial-gradient(circle at 75% 80%, rgba(0,0,0,0.12), transparent 55%)",
+              }}
+            />
+
+            {/* Centro */}
+            <div className="absolute left-1/2 top-1/2 z-10 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-champagne bg-cream text-lg shadow-soft">
+              🎁
+            </div>
           </div>
+
+          {showConfetti && <Confetti />}
         </div>
 
         {step === "form" && (
@@ -257,11 +362,11 @@ export default function RouletteClient({
         )}
 
         {step === "spinning" && (
-          <p className="text-lg font-medium text-charcoal/70">Girando la ruleta...</p>
+          <p className="text-lg font-medium text-charcoal/70">Girando la ruleta…</p>
         )}
 
         {step === "result" && result && (
-          <div className="glass-card mx-auto max-w-sm space-y-4 p-6">
+          <div className="glass-card animate-pop-in mx-auto max-w-sm space-y-4 p-6">
             {result.yaHabiaParticipado && (
               <p className="text-xs text-charcoal/50">Ya habías participado con este WhatsApp — este es tu premio.</p>
             )}

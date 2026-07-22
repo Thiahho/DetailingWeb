@@ -31,3 +31,37 @@ body {
 .form-input {
   @apply w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40;
 }
+
+/* Ruleta de captación (/ruleta) — puntero, brillo y confetti al ganar */
+@keyframes pop-in {
+  0% { transform: scale(0.92); opacity: 0; }
+  60% { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop-in {
+  animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pointer-idle {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  50% { transform: translateX(-50%) rotate(-4deg); }
+}
+.pointer-idle {
+  animation: pointer-idle 1.8s ease-in-out infinite;
+}
+
+@keyframes wheel-spin-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(198, 162, 110, 0); }
+  50% { box-shadow: 0 0 45px 8px rgba(198, 162, 110, 0.45); }
+}
+.wheel-spinning-glow {
+  animation: wheel-spin-glow 0.7s ease-in-out infinite;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-12px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(160px) rotate(600deg); opacity: 0; }
+}
+.confetti-piece {
+  animation: confetti-fall 1.2s ease-in forwards;
+}
