@@ -947,3 +947,71 @@ Criterio de extracción: donde el modal ya era autosuficiente (Caja) se movió e
 - **No se hizo click-through manual en navegador** de los flujos de cada modal (abrir, completar, guardar) — la verificación fue compilación + carga de página, no interacción real. Pendiente si se quiere confirmar al 100% que cada modal sigue funcionando igual que antes de la extracción.
 
 **Fuera de alcance de esta sesión, a propósito:** no se tocó el hosting de producción (Vercel + backend en Render) — si la lentitud también se nota en producción además de en local, la causa más probable ahí es otra por completo (cold start del backend en el free tier de Render, no cubierto por ninguno de estos cambios) y no se investigó en esta sesión porque el usuario confirmó que el problema era solo local. `/admin/productos` (687 líneas, quedó abierta en el editor durante la sesión) no se tocó — no estaba entre las páginas identificadas con el mismo patrón de modal pesado al momento de decidir el alcance.
+
+---
+
+## 31. Actualización — sesión 22/07 (renombre TTurnos→Turneo duplicado, backend y frontend)
+
+El usuario reportó que los archivos de `TTurnos.Api`/`TTurnos.Api.Tests` (backend) y `tturnos-web`/`turneo-web` (frontend) se habían duplicado. Diagnóstico antes de tocar nada: `git status` mostró que `backend/TTurnos.Api`, `TTurnos.Api.Tests` y `TTurnos.sln` estaban trackeados en git, mientras que `backend/Turneo.Api`, `Turneo.Api.Tests`, `Turneo.sln` y `frontend/turneo-web` existían como carpetas **sin trackear**, casi idénticas en contenido a sus pares trackeados.
+
+**Causa raíz real, más grave que "hay carpetas de más":** el commit `7f95f08` ("2207 Turneo") ya había renombrado los **namespaces C#** de 219 archivos de `TTurnos` a `Turneo`, pero sin renombrar los archivos/carpetas ni el `.sln` — y el `.sln` trackeado (`backend/TTurnos.sln`) quedó apuntando a rutas `Turneo.Api\Turneo.Api.csproj` que **no existían** dentro de la carpeta `TTurnos.Api` real. Es decir: el `.sln` commiteado estaba roto. Alguien intentó arreglarlo creando las carpetas `Turneo.Api`/`Turneo.Api.Tests`/`Turneo.sln` nuevas (sin trackear, copias del contenido real con namespaces `Turneo`), en vez de renombrar en git. Mismo patrón en frontend: `frontend/tturnos-web` (trackeado, con el commit más reciente) vs. `frontend/turneo-web` (sin trackear) — únicamente diferían en que el segundo tenía un `.env.local` (con las credenciales reales de Mercado Pago/WhatsApp/Gmail) que el primero no tenía.
+
+**Fix aplicado:**
+- Se borraron los duplicados sin trackear (`backend/Turneo.Api`, `Turneo.Api.Tests`, `Turneo.sln`, `frontend/turneo-web`) — no aportaban nada que no estuviera ya en las carpetas trackeadas.
+- `git mv` de `backend/TTurnos.Api`→`Turneo.Api`, `TTurnos.Api.Tests`→`Turneo.Api.Tests`, `TTurnos.sln`→`Turneo.sln`, y los `.csproj`/`.http` internos — preserva historial de git, a diferencia de crear carpetas nuevas.
+- Antes de borrar `frontend/turneo-web`, se copió su `.env.local` a `tturnos-web` (que no tenía ninguno) para no perder esas credenciales; luego `git mv frontend/tturnos-web`→`turneo-web`.
+
+**Verificado:** `dotnet build Turneo.sln` — 0 errores (solo warnings preexistentes de paquetes NuGet). `npm install && npm run build` en el frontend — build exitoso. `grep -ri "TTurnos"` sobre todo el repo — sin resultados (ni siquiera en Dockerfile/README/docker-compose).
+
+---
+
+## 32. Actualización — sesión 22/07 (auditoría de aislamiento multi-tenant — sin fixes, solo hallazgos)
+
+El usuario preguntó si el aislamiento entre tenants era realmente obligatorio en cada consulta. Se auditó el mecanismo real en vez de responder de memoria.
+
+**Mecanismo confirmado:** `ApplicationDbContext.OnModelCreating` aplica `HasQueryFilter(e => e.TenantId == _currentTenant.TenantId)` a las ~28 entidades de `Core/` (Bookings, Users, Services, Professionals, Payments, Insumos, CustomerProfiles, Caja, etc.) — es un filtro global de EF Core, se aplica automáticamente a *cualquier* LINQ query contra esas tablas sin que el desarrollador tenga que acordarse de agregarlo por endpoint. `TenantResolutionMiddleware` resuelve el tenant en este orden: claim `tenant_id` del JWT → header `X-Tenant-Host` (rutas públicas proxeadas por el frontend) → host de la request directa → slug default de config.
+
+**Hallazgo (no corregido, dormant): 4 entidades de `SaaS/` sin query filter.** `TenantModule`, `Subscription`, `License`, `UsageRecord` tienen columna `TenantId` + FK a `Tenant`, pero **ningún** `HasQueryFilter` — a diferencia de `Branch`/`Theme` (Enterprise) que sí lo tienen. Confirmado por `grep` que **ningún controller consulta estas cuatro tablas todavía** (son scaffolding de billing/licencias sin ningún endpoint conectado) — no es una fuga activa hoy, pero el día que se cablee un endpoint de billing ahí, hay que acordarse de agregar el filtro a mano o el aislamiento no es automático como en el resto del sistema.
+
+**`IgnoreQueryFilters()` revisados uno por uno — todos deliberados y seguros:** `AutomationRulesRepository` (job de Hangfire sin HTTP context, re-filtra por `TenantId` a mano), `HangfireReminderJob`/`NotificationService`/`ReminderBackgroundService` (mismo motivo), `PaymentsRepository` (el webhook de MercadoPago llega sin tenant resuelto, pero busca por `bookingId`/PK global única, no por lista — no puede filtrar cross-tenant por diseño). Todos tienen comentarios en español explicando por qué es seguro saltear el filtro ahí puntualmente.
+
+**Cobertura de tests real, no exhaustiva:** `MultiTenancyIsolationTests.cs` tiene 5 tests (listado y detalle de Bookings, listado de Professionals, unicidad de email de User cruzando tenants, resolución por header `X-Tenant-Host`) — no hay un test de aislamiento dedicado por cada una de las 28 entidades, comparten el mismo mecanismo pero no están todas verificadas una por una.
+
+---
+
+## 33. Actualización — sesión 22/07 (landing comercial: WhatsApp, logo, precios)
+
+Cambios chicos sobre `frontend/turneo-web/app/(public)/page.tsx` (la home comercial de Turneo, no el sitio del salón):
+
+- **Botones de contacto → WhatsApp real:** todos los CTA (hero "Quiero sumarme", cada plan, Licencia/Custom, CTA final) apuntan ahora a `https://wa.me/541122692061` con un mensaje precargado distinto según el origen del clic, vía un helper nuevo y compartido `src/lib/contact.ts` (`buildWhatsAppUrl`). Reemplaza un `mailto:` a `contacto@Turneo.app`, dirección que nunca se configuró (estaba marcada `// TODO` en el propio código) y los anchors `#contacto` de los botones de plan.
+- **Logo real en vez de texto plano:** el `<span>Turneo</span>` del navbar (línea 160) pasa a ser `<img src="/img/LogoPortada.png">`, mismo patrón (`h-10 w-auto object-contain`) que ya usa el Navbar del sitio del salón.
+- **Precios sincronizados con el Anexo B del manual comercial** (ver `docs/comercial/ManualComercial.md`): la sección `PLANES` de la landing pasó de 4 planes sin precio público ("Consultar precio") a los 5 planes con precio ARS cerrado (Free/Starter/Pro/Premium/Enterprise) — ver detalle de precios en el manual, no se duplica acá.
+
+**Inconsistencia detectada y documentada, no corregida:** el catálogo real de `Plans` en el backend (seed `ReseedCommercialPlanCatalog`, usado por `/platform/tenants` para asignarle un plan a un negocio) tiene **otros nombres y otros límites** — Free/Starter/Pro/**Business**/Licencia/Custom, sin "Premium" ni "Enterprise", y todos los `PriceMonthly`/`PriceYearly` en `NULL`. La landing ya promete 5 planes con precio; el sistema que asignaría y (eventualmente) haría cumplir esos límites todavía no los conoce. Pendiente: una migración que alinee el catálogo real con los 5 planes de venta antes de activar cobros/enforcement de plan.
+
+---
+
+## 34. Actualización — sesión 22/07 (Ruleta de Captación — nuevo módulo `Marketing/Roulette`)
+
+Nueva herramienta de marketing propia de Turneo (no una feature del producto Belleza que usan los salones) — gamificación para captar leads comerciales, a partir de una spec de 36 secciones (`docs/RULETA.pdf`). Se acordó con el usuario acotar el alcance al MVP que la propia spec define (sus secciones 34-35), no el sistema completo (sin emails automáticos, sin CAPTCHA, sin dashboard de KPIs todavía).
+
+**Backend — nuevo dominio `Marketing/Roulette/`** (no tenant-scoped: vive en la misma `ApplicationDbContext` que `Tenant`/`Plan`, sin `HasQueryFilter`, es un lead de Turneo mismo, no un dato de un negocio de la plataforma):
+- `RoulettePrize` (Name, Description, Type enum, Value, DurationMonths, Probability, ValidityDays, CodeSlug, IsActive) y `RouletteLead` (datos prioritarios NombreNegocio/WhatsApp + secundarios opcionales Email/Instagram/TipoNegocio/CantidadProfesionales/ProblemaPrincipal, FK a Prize, CodigoPromocional único, Estado enum de 12 valores tipo funnel comercial, Fuente/Campaign para atribución, IpAddress como control secundario de abuso).
+- `RouletteService`: sorteo ponderado por `Probability` (`RandomNumberGenerator`, no `Random` para el código sino para el sorteo también se usó crypto-random), generación de código único con reintento (`TURNEO-{slug}-{4 chars}`), y anti-abuso principal por WhatsApp normalizado — si el mismo WhatsApp ya participó, no vuelve a girar: se le devuelve el mismo premio ya ganado (idempotente, así un refresh de página no lo deja afuera ni le da una segunda chance).
+- Endpoints públicos (`RouletteController`, `[AllowAnonymous]` + `[EnableRateLimiting("roulette")]` 10 req/min por IP): `GET prizes` (solo nombre de los activos, para dibujar la rueda), `POST spin`, `PATCH leads/{id}/additional-data` (no bloquea el premio, todo opcional).
+- Endpoints admin (`PlatformRouletteLeadsController`, `[Authorize(Roles="PlatformOwner")]` — mismo aislamiento exclusivo que `PlatformTenantsController`, verificado que sin sesión redirige a login): listar/cambiar estado/**eliminar** leads (borrar libera el WhatsApp para una nueva participación legítima), y CRUD de premios — sin `DELETE` de premios a propósito (`RouletteLead.PrizeId` es `Restrict`, borrar un premio ya entregado rompería el historial; se desactivan con `IsActive=false`).
+- Migración `AddMarketingRoulette` con seed de 7 premios cuyas probabilidades suman 100% (3/2/1 meses gratis, 50% OFF primer mes, 30% OFF 3 meses, activación gratis, beneficio especial).
+
+**Frontend:**
+- `/ruleta` (standalone, acepta `?campaign=&fuente=` para atribución tipo QR/Instagram/publicidad) — `RouletteClient.tsx`: formulario de fricción mínima (solo nombre del negocio + WhatsApp, el resto se pide después de mostrar el premio, sin bloquearlo), ruleta animada con `conic-gradient` (3 colores rotando evitando que el primer/último gajo queden pegados en la costura, separadores dorados, pegs en cada límite de gajo, brillo tipo vidrio fijo, aro metálico con sombra, centro con ícono `Gift` de `lucide-react`), animación con easing "overshoot-settle" (rebota al frenar en vez de parar seco) + confetti CSS liviano al ganar, paso opcional de datos adicionales, CTA final a WhatsApp con mensaje precargado (negocio + premio + código).
+- `/platform/roulette` (mismo guard que `/platform/tenants`) — tabs Leads/Premios: tabla de leads con cambio de estado y botón Eliminar (con confirmación), formulario de alta/edición de premios con indicador de suma de probabilidades activas (verde en 100%, ámbar si no cierra).
+- Proxies Next.js (`app/api/marketing/roulette/[...path]`, `app/api/platform/roulette/[...path]`) siguiendo el mismo patrón de reenvío de cookie/token que el resto del sitio.
+
+**Bugs encontrados y corregidos durante la construcción (no eran parte del pedido, aparecieron verificando en navegador real):**
+1. **`SiteChrome.tsx` mostraba el Navbar del negocio (salón) encima de `/ruleta` y de *todo* `/platform/*`** (tenants, login, roulette) — el componente solo excluía la ruta `"/"`. Corregido excluyendo también `/ruleta` y cualquier ruta que empiece con `/platform`.
+2. **La rueda no quedaba centrada respecto al formulario** — al agregar un `<div>` wrapper para el confetti, ese div quedó sin ancho propio (`mx-auto` no tiene nada que centrar en un bloque que ya ocupa el 100% del padre), corriendo la rueda (que sí tiene ancho fijo) a la izquierda. Corregido cambiando el wrapper a `flex justify-center`.
+3. **`/api/platform/auth/me` explotaba con 500** (bug preexistente, no de la ruleta, encontrado en el camino) al recibir un `401` con body vacío del backend justo después de loguearse — `.json()` sobre una respuesta vacía tira `SyntaxError`, el `catch` genérico lo convertía en 500 "Error de conexión". Corregido chequeando `response.status === 401` antes de intentar parsear.
+
+**Verificado en navegador real (Playwright, no mocks) en cada paso:** flujo completo de spin (formulario → giro → resultado con código → datos opcionales → WhatsApp) sin errores de consola; idempotencia con el mismo WhatsApp; login real como PlatformOwner + listado de leads + cambio de estado + eliminar lead + alta/edición de premio, todo contra el backend real corriendo local.
+
+**Explícitamente fuera de alcance de este corte (documentado en la propia spec, no construido):** emails automáticos de seguimiento, CAPTCHA/protección anti-bot más allá del rate limiting por IP, dashboard de KPIs/tasa de conversión, captura completa de UTMs (hoy solo `campaign`/`fuente`).

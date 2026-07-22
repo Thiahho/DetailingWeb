@@ -304,6 +304,25 @@ Precios en pesos argentinos, por mes. Pagando anual: **"Pagá 10 meses y usá 12
 
 *Enterprise es "desde" porque se cotiza según el caso (sucursales, volumen, integraciones a medida) — no es un número cerrado como los otros cuatro planes.*
 
+**Contacto comercial:** WhatsApp +54 11 2269-2061 — es el canal real conectado en la landing (`turneo.app`) y en la Ruleta de Captación (Anexo C). Todo botón de contacto de piezas nuevas de marketing debería apuntar a este mismo número, no inventar un email u otro canal.
+
+---
+
+## Anexo C — Herramienta propia: Ruleta de Captación
+
+Es una herramienta **interna del equipo comercial**, no un feature de Turneo para ofrecerle a un salón — sirve para conseguir leads (dueños de salones interesados), no para vender directamente.
+
+**Qué es:** una landing tipo juego (`turneo.app/ruleta`) donde el visitante gira una ruleta y gana un beneficio real (meses gratis, % de descuento, activación gratis, etc.), a cambio de dejar el nombre de su negocio y su WhatsApp. El sistema genera un código promocional único y lo manda a activar por WhatsApp — de ahí en más es un lead comercial como cualquier otro, a seguir por el equipo.
+
+**Cómo usarla en campañas:** compartir el link con un parámetro de campaña para saber de dónde vino cada lead, por ejemplo:
+- `turneo.app/ruleta?campaign=instagram`
+- `turneo.app/ruleta?campaign=qr` (para flyers, tarjetas, eventos)
+- `turneo.app/ruleta?campaign=publicidad`
+
+**Dónde ver los leads:** panel interno `turneo.app/platform/roulette` — acceso exclusivo del dueño de la plataforma (ningún admin de un negocio cliente puede verlo). Ahí se ve cada lead con su premio, código, WhatsApp, y se le puede ir cambiando el estado a medida que el equipo comercial avanza la conversación (Nuevo → Contactado → Demo → Suscripción, etc.), o eliminarlo si es spam/prueba. Los premios de la ruleta (cuáles hay, con qué probabilidad, si están activos) también se administran ahí, sin tocar código.
+
+**Qué todavía no hace (no prometer, mismo criterio que el resto del manual):** no manda emails de seguimiento automáticos, no tiene protección anti-bot más allá de un límite de intentos por IP, y no tiene un dashboard de tasa de conversión todavía — el seguimiento de cada lead hoy es manual, por el equipo comercial, no automatizado.
+
 ---
 
 ## Guía de tono para producción de contenido
