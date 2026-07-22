@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Content;
+namespace Turneo.Api.Core.Content;
 
 [Table("ContentVideos")]
 public class ContentVideo : ITenantScoped

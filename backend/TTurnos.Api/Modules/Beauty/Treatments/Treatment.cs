@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Modules.Beauty.Treatments;
+namespace Turneo.Api.Modules.Beauty.Treatments;
 
 // Extensión Beauty-specific de un Service genérico de Core (relación 1:1).
 // Core nunca sabe que esto existe — Bookings sigue referenciando solo

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TTurnos.Api.Core.Clients;
+namespace Turneo.Api.Core.Clients;
 
 public class ClientAccessRequest
 {

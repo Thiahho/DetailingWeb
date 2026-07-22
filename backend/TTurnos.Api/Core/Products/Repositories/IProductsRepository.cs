@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Products;
+namespace Turneo.Api.Core.Products;
 
 public interface IProductsRepository
 {

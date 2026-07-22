@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Services;
+namespace Turneo.Api.Core.Services;
 
 public interface IServicesRepository
 {

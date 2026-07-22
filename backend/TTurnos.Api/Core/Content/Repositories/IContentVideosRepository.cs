@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Content;
+namespace Turneo.Api.Core.Content;
 
 public interface IContentVideosRepository
 {

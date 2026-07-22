@@ -1,8 +1,8 @@
-// using TTurnos.Api.Data;
-// using TTurnos.Api.Models;
+// using Turneo.Api.Data;
+// using Turneo.Api.Models;
 // using Microsoft.EntityFrameworkCore;
 
-// namespace TTurnos.Api.Services;
+// namespace Turneo.Api.Services;
 
 // public class DatabaseSeeder
 // {
@@ -13,7 +13,7 @@
 //         {
 //             var admin = new User
 //             {
-//                 Email = "admin@tturnos.com",
+//                 Email = "admin@Turneo.com",
 //                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"), // ← FIX: Hashear correctamente
 //                 Role = "Admin"
 //             };

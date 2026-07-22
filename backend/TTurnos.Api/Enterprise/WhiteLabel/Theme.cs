@@ -1,7 +1,7 @@
-namespace TTurnos.Api.Enterprise.WhiteLabel;
+namespace Turneo.Api.Enterprise.WhiteLabel;
 
 // Personalización visual white-label. Uno por tenant, opcional — sin fila acá
-// el frontend usa los colores/tipografía por defecto de TTurnos.
+// el frontend usa los colores/tipografía por defecto de Turneo.
 public class Theme : ITenantScoped
 {
     public int Id { get; set; }

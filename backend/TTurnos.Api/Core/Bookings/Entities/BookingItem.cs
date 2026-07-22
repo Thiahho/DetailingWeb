@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Bookings;
+namespace Turneo.Api.Core.Bookings;
 
 [Table("BookingItems")]
 public class BookingItem : ITenantScoped

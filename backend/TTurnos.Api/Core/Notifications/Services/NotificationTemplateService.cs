@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace TTurnos.Api.Core.Notifications;
+namespace Turneo.Api.Core.Notifications;
 
 public class NotificationTemplateService
 {

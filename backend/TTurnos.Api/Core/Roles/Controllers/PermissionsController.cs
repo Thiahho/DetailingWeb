@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Core.Roles;
+namespace Turneo.Api.Core.Roles;
 
 [ApiController]
 [Route("api/[controller]")]

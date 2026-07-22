@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Core.Settings;
+namespace Turneo.Api.Core.Settings;
 
 [ApiController]
 [Route("api/siteconfig")]
@@ -24,7 +24,7 @@ public class SiteConfigController : ControllerBase
         // Fail-open (mismo criterio que el resto de PlanLimitsService): un
         // tenant sin plan asignado no muestra el badge — no cambia el
         // comportamiento actual, que nunca lo mostró.
-        var hideBranding = await _planLimits.IsFeatureEnabledAsync("HideTTurnosBranding");
+        var hideBranding = await _planLimits.IsFeatureEnabledAsync("HideTurneoBranding");
 
         return Ok(new
         {

@@ -18,7 +18,7 @@ test.describe("Admin: Calendario", () => {
   test("un admin reserva un turno libre desde el calendario y luego lo libera", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/calendario");
     // El grid del calendario se pinta recién después de que resuelvan los 3
     // fetch en paralelo (timeslots/services/professionals) — sin esperar

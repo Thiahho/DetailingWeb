@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Notifications;
+namespace Turneo.Api.Core.Notifications;
 
 public class CustomerProfileService(ApplicationDbContext db)
 {

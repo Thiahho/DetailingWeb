@@ -9,7 +9,7 @@ test.describe("Admin: CRUD de Profesionales", () => {
   test("un admin crea, edita y borra un profesional", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/profesionales");
 
     const firstName = "Ana";

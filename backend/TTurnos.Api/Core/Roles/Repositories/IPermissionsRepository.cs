@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Roles;
+namespace Turneo.Api.Core.Roles;
 
 public interface IPermissionsRepository
 {

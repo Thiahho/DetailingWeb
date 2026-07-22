@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
-namespace TTurnos.Api.Core.Bookings;
+namespace Turneo.Api.Core.Bookings;
 
 [ApiController]
 [Route("api/[controller]")]

@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Licenses;
+namespace Turneo.Api.SaaS.Licenses;
 
 // Solo aplica al modelo comercial License (compra perpetua del software).
 public class License : ITenantScoped

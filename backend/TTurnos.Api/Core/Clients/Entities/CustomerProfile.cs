@@ -1,7 +1,7 @@
 
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Clients;
+namespace Turneo.Api.Core.Clients;
 
 
 [Table("CustomerProfiles")] 

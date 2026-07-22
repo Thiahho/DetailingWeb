@@ -146,13 +146,13 @@ export default function ConfiguracionPage() {
             <h2 className="text-charcoal font-semibold text-sm uppercase tracking-wider">Identidad</h2>
 
             <div>
-              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">TTurnos APP</label>
+              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Turneo APP</label>
               <input
                 className="form-input mt-1.5"
                 data-testid="config-business-name"
                 value={formData.businessName}
                 onChange={(e) => setFormData((prev) => ({ ...prev, businessName: e.target.value }))}
-                placeholder="TTurnos - Codian"
+                placeholder="Turneo - Codian"
                 required
               />
             </div>

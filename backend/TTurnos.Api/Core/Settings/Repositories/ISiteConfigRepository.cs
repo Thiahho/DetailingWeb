@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Settings;
+namespace Turneo.Api.Core.Settings;
 
 public interface ISiteConfigRepository
 {

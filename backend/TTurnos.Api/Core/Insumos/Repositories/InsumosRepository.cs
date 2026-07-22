@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Insumos;
+namespace Turneo.Api.Core.Insumos;
 
 public class InsumosRepository : IInsumosRepository
 {

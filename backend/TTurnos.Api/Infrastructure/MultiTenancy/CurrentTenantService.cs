@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Infrastructure.MultiTenancy;
+namespace Turneo.Api.Infrastructure.MultiTenancy;
 
 // Instancia scoped (una por request). TenantResolutionMiddleware la completa
 // al principio del pipeline; ApplicationDbContext la lee para el query filter.

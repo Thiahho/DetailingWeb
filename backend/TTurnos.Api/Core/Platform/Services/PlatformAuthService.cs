@@ -3,7 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace TTurnos.Api.Core.Platform;
+namespace Turneo.Api.Core.Platform;
 
 // Login del dueño de la plataforma (Thiago) — no es un User tenant-scoped, la
 // credencial vive en config (PlatformOwner:Email/PasswordHash), no en la base.

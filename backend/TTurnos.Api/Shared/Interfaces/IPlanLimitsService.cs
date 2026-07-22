@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Shared.Interfaces;
+namespace Turneo.Api.Shared.Interfaces;
 
 // Implementada en SaaS/Features/PlanLimitsService. Core depende SOLO de esta
 // abstracción — nunca de SaaS directamente (regla de dependencias: Core no

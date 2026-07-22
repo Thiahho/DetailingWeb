@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Auth;
+namespace Turneo.Api.Core.Auth;
 
 public class LoginResponse
 {

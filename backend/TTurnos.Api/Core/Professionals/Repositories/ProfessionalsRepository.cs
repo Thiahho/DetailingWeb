@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Professionals;
+namespace Turneo.Api.Core.Professionals;
 
 public class ProfessionalsRepository : IProfessionalsRepository
 {

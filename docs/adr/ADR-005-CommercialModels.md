@@ -4,7 +4,7 @@
 
 ## Problema
 
-TTurnos se vende de tres formas distintas: suscripción SaaS, licencia perpetua (el cliente compra el software y lo corre él mismo), y desarrollo a medida. Había que decidir si eso implicaba mantener bases de código separadas (una por modelo comercial) o una sola.
+Turneo se vende de tres formas distintas: suscripción SaaS, licencia perpetua (el cliente compra el software y lo corre él mismo), y desarrollo a medida. Había que decidir si eso implicaba mantener bases de código separadas (una por modelo comercial) o una sola.
 
 ## Opciones consideradas
 

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Core.Settings;
+namespace Turneo.Api.Core.Settings;
 
 [ApiController]
 [Route("api/[controller]")]

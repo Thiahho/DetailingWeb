@@ -3,7 +3,7 @@ using MailKit.Security;
 using MimeKit;
 using Microsoft.Extensions.Options;
 
-namespace TTurnos.Api.Infrastructure.Integrations;
+namespace Turneo.Api.Infrastructure.Integrations;
 
 public class GmailProvider : INotificationProvider
 {

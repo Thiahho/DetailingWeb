@@ -5,7 +5,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 [Collection("Integration")]
 public class SiteConfigEndpointsTests

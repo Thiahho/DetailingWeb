@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Core.Notifications;
+namespace Turneo.Api.Core.Notifications;
 
 // Mismo prefijo que antes (api/reminders/customers) para no romper el proxy
 // del frontend ni clientes existentes — separado de RemindersController

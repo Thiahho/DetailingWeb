@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Usage;
+namespace Turneo.Api.SaaS.Usage;
 
 // Consumo agregado por tenant y período, para hacer cumplir los límites del Plan
 // (ej. Metric = "bookings_created", Period = primer día del mes que agrupa).

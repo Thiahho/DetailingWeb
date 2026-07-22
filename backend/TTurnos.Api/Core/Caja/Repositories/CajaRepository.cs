@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Caja;
+namespace Turneo.Api.Core.Caja;
 
 public class CajaRepository : ICajaRepository
 {

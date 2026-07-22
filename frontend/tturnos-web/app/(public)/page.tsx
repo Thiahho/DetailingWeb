@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-// Home comercial de TTurnos (el producto/SaaS) — a diferencia de /reservar
+// Home comercial de Turneo (el producto/SaaS) — a diferencia de /reservar
 // no depende de ningún tenant ni hace fetch a la API, es contenido estático.
 // SiteChrome.tsx oculta el Navbar del negocio acá a propósito.
 
@@ -85,7 +85,7 @@ const PLANES = [
       "Hasta 2 profesionales",
       "Clientes y turnos ilimitados",
       "CRM e historial completos",
-      "Subdominio propio, sin marca TTurnos",
+      "Subdominio propio, sin marca Turneo",
       "Caja básica y gestión de señas",
     ],
     cta: "Consultar precio",
@@ -123,7 +123,7 @@ const A_MEDIDA = [
   {
     name: "Licencia",
     tagline: "Tu propia instalación",
-    description: "Instancia exclusiva de TTurnos: base de datos, infraestructura y dominio propios, sin marca TTurnos. Pago único, con mantenimiento mensual opcional (hosting, backups, actualizaciones).",
+    description: "Instancia exclusiva de Turneo: base de datos, infraestructura y dominio propios, sin marca Turneo. Pago único, con mantenimiento mensual opcional (hosting, backups, actualizaciones).",
     cta: "Consultar",
   },
   {
@@ -136,7 +136,7 @@ const A_MEDIDA = [
 
 // TODO: reemplazar por el canal de contacto real (email de negocio, WhatsApp
 // Business, etc.) antes de publicar esta página — este buzón todavía no existe.
-const CONTACT_EMAIL = "contacto@tturnos.app";
+const CONTACT_EMAIL = "contacto@Turneo.app";
 
 export default function ComercialHome() {
   return (
@@ -144,7 +144,7 @@ export default function ComercialHome() {
       {/* NAV */}
       <header className="sticky top-0 z-50 border-b border-mauve/10 bg-cream/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-semibold text-charcoal">TTurnos</span>
+          <span className="text-lg font-semibold text-charcoal">Turneo</span>
           <nav className="hidden items-center gap-6 text-sm text-charcoal/70 md:flex">
             <a href="#funciones" className="transition hover:text-charcoal">Funciones</a>
             <a href="#planes" className="transition hover:text-charcoal">Planes</a>
@@ -311,7 +311,7 @@ export default function ComercialHome() {
       </section>
 
       <footer className="border-t border-mauve/10 px-6 py-10 text-center text-xs text-charcoal/50">
-        TTurnos
+        Turneo
       </footer>
     </main>
   );

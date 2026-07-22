@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 [ApiController]
 [Route("api/[controller]")]

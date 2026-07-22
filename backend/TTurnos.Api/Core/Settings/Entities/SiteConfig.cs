@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Settings;
+namespace Turneo.Api.Core.Settings;
 
 [Table("SiteConfigs")] 
 public class SiteConfig : ITenantScoped

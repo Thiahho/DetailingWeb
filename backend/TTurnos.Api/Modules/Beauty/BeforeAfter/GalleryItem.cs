@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Modules.Beauty.BeforeAfter;
+namespace Turneo.Api.Modules.Beauty.BeforeAfter;
 
 public class GalleryItem : ITenantScoped
 {

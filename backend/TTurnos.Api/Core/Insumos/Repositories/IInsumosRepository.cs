@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Insumos;
+namespace Turneo.Api.Core.Insumos;
 
 public interface IInsumosRepository
 {

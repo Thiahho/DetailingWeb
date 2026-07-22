@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Emite JWTs con la misma forma que AuthService.GenerateJwtToken, pero sin
 // pasar por POST /api/auth/login: ese endpoint tiene rate limiting (5/min por

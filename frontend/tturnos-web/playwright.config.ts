@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const backendDir = path.resolve(__dirname, "../../backend/TTurnos.Api");
+const backendDir = path.resolve(__dirname, "../../backend/Turneo.Api");
 
 export default defineConfig({
   testDir: "./e2e",

@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Subscriptions;
+namespace Turneo.Api.SaaS.Subscriptions;
 
 // Solo aplica al modelo comercial SaaS. En License/Custom, el tenant no tiene
 // Subscription — su acceso está gobernado por License en su lugar.

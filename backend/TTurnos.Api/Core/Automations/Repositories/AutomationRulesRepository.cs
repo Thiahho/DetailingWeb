@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 public class AutomationRulesRepository : IAutomationRulesRepository
 {

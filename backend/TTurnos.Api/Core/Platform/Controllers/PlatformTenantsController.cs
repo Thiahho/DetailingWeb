@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Platform;
+namespace Turneo.Api.Core.Platform;
 
 // Alta de tenants — exclusivo del dueño de la plataforma. Ningún Admin de
 // tenant, por más permisos que tenga dentro de su negocio, puede pegarle a

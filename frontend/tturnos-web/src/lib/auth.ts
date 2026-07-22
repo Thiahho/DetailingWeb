@@ -1,4 +1,4 @@
-const SESSION_MARKER = "tturnos_session_active";
+const SESSION_MARKER = "Turneo_session_active";
 
 // sessionStorage se resetea por ventana/pestaña nueva (a diferencia de
 // localStorage, que sobrevive indefinidamente). Lo usamos para detectar

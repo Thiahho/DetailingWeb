@@ -4,7 +4,7 @@ Auditoría realizada sobre el grafo de conocimiento del proyecto (`graphify-out/
 
 ## 🔴 Crítico — Seguridad del webhook de pagos
 
-**Archivo:** `TTurnos.Api/Controllers/PaymentsController.cs:154-156`
+**Archivo:** `Turneo.Api/Controllers/PaymentsController.cs:154-156`
 
 La validación de firma HMAC del webhook de MercadoPago es **condicional**: solo se ejecuta `if (!string.IsNullOrEmpty(webhookSecret))`. En `appsettings.json:73`, `MercadoPago:WebhookSecret` está **vacío**. Resultado: hoy mismo, cualquiera puede pegarle a `/api/payments/webhook/mercadopago` con un payload falso y el sistema lo acepta sin verificar que venga realmente de MercadoPago.
 
@@ -14,7 +14,7 @@ Además, `app/api/payments/webhook/mercadopago/route.ts` es un proxy Next.js que
 
 ## ✅ Resuelto — Inconsistencia de timezone en recordatorios
 
-**Archivo:** `TTurnos.Api/Services/ReminderBackgroundService.cs:23-24,44` (antes de la corrección)
+**Archivo:** `Turneo.Api/Services/ReminderBackgroundService.cs:23-24,44` (antes de la corrección)
 
 `ReminderBackgroundService` definía un método `.NowArgentina()` que **nunca se llamaba**. La lógica real usaba `DateTime.Now` crudo, confiando en que el timezone del servidor coincidiera con el de los slots guardados (comentario del propio código lo reconocía como algo frágil).
 
@@ -24,7 +24,7 @@ En cambio, `TimeSlotsController.cs` sí usa su propio `NowArgentina()` de forma 
 
 ## 🟠 Alto — Dump de base de datos con datos de clientes sin gitignorear
 
-**Archivo:** `TTurnos.Api/bd_turnos.sql` (untracked, 412 líneas)
+**Archivo:** `Turneo.Api/bd_turnos.sql` (untracked, 412 líneas)
 
 Es un dump de PostgreSQL con sentencias `COPY` reales — es decir, **datos de clientes** (nombres, teléfonos según el schema de `Bookings`), no solo el esquema. `.gitignore` no tiene ninguna regla para `*.sql`, así que está a un `git add .` de terminar commiteado con PII real.
 

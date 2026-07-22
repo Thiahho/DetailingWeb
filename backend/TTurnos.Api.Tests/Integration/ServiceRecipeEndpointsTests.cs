@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Cubre la receta de un Service (qué insumos consume y en qué cantidad),
 // usada para auto-agregar esos insumos al detalle de un turno cuando el

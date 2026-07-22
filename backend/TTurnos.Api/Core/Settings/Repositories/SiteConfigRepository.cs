@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Settings;
+namespace Turneo.Api.Core.Settings;
 
 public class SiteConfigRepository : ISiteConfigRepository
 {

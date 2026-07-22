@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Tenants;
+namespace Turneo.Api.SaaS.Tenants;
 
 public enum TenantStatus
 {

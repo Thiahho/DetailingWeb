@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Professionals;
+namespace Turneo.Api.Core.Professionals;
 
 [Table("Professionals")]
 public class Professional : ITenantScoped

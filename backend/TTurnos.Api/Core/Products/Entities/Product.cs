@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Products;
+namespace Turneo.Api.Core.Products;
 
 [Table("Products")]
 public class Product : ITenantScoped

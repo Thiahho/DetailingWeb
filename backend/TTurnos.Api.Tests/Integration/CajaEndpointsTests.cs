@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Cubre la lógica de dinero de mayor riesgo del módulo Caja: no permitir dos
 // sesiones abiertas a la vez, no permitir movimientos sin sesión abierta, y el

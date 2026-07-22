@@ -1,6 +1,6 @@
 # Roadmap y estado del proyecto
 
-> No confundir con [`TTurnosRoadmap.md`](TTurnosRoadmap.md) — ese es el PRD funcional del vertical Belleza (qué pantallas, qué flujos). Este documento es sobre la arquitectura de plataforma (Core/Modules/SaaS/Enterprise).
+> No confundir con [`TurneoRoadmap.md`](TurneoRoadmap.md) — ese es el PRD funcional del vertical Belleza (qué pantallas, qué flujos). Este documento es sobre la arquitectura de plataforma (Core/Modules/SaaS/Enterprise).
 
 ## Estado actual
 
@@ -30,7 +30,7 @@
 
 | # | Fase | Estado |
 |---|---|---|
-| 1 | Renombrar proyecto (DetailingApi → TTurnos.Api) | ✅ |
+| 1 | Renombrar proyecto (DetailingApi → Turneo.Api) | ✅ |
 | 2 | Reordenar repositorio (`/backend`, `/frontend`, `/docs`, `/tools`, `/docker`) | ✅ |
 | 3 | Crear Core/Infrastructure/Shared | ✅ |
 | 4 | Crear Modules vacíos | ✅ |

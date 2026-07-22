@@ -16,12 +16,12 @@ export interface SiteConfig {
   // Viaja solo en la respuesta cruda de GET /api/siteconfig (no pasa por
   // getSiteConfig() de abajo, que solo whitelistea los campos editables del
   // formulario admin) — true si el plan del tenant no incluye ocultar la
-  // marca TTurnos del pie de página público.
+  // marca Turneo del pie de página público.
   hideBranding?: boolean;
 }
 
 export const DEFAULT_SITE_CONFIG: SiteConfig = {
-  businessName: process.env.NEXT_PUBLIC_BUSINESS_NAME || "TTurnos",
+  businessName: process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo",
   whatsAppNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "",
   instagramUrl: process.env.NEXT_PUBLIC_INSTAGRAM_URL || "",
   instagramHandle: process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE || "",

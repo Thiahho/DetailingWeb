@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Features;
+namespace Turneo.Api.SaaS.Features;
 
 // Catálogo de features/límites que un Plan puede otorgar (ej. "CanUseWhatsapp",
 // "CanUseAI", "MaxProfessionals", "MaxBranches", "MaxBookings"). Agregar un

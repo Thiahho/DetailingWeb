@@ -1,5 +1,5 @@
 
-namespace TTurnos.Api.Shared.Interfaces;
+namespace Turneo.Api.Shared.Interfaces;
 
 public class NotificationTemplateData
 {

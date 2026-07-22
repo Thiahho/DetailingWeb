@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Core.Content;
+namespace Turneo.Api.Core.Content;
 
 [ApiController]
 [Route("api/content-videos")]

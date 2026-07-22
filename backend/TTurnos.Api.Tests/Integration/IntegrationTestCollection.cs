@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Un solo contenedor Postgres + un solo host de la app para toda la suite de
 // integración: levantar Testcontainers y correr migraciones + seed de

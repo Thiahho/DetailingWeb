@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Infrastructure.MultiTenancy;
+namespace Turneo.Api.Infrastructure.MultiTenancy;
 
 // Resuelve el tenant de la request, en este orden:
 //   1. Claim "tenant_id" del JWT (usuarios autenticados: Admin/Professional/Client).

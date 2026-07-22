@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 // Log de deduplicación (evita que la misma regla vuelva a disparar para el mismo
 // cliente antes de que pase AutomationRule.CooldownDays) Y de auditoría — vía

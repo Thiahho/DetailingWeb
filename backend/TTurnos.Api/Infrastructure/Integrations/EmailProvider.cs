@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace TTurnos.Api.Infrastructure.Integrations;
+namespace Turneo.Api.Infrastructure.Integrations;
 
 public class EmailProvider : INotificationProvider
 {

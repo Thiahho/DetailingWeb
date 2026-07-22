@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Notifications;
+namespace Turneo.Api.Core.Notifications;
 
 public class NotificationLog : ITenantScoped
 {

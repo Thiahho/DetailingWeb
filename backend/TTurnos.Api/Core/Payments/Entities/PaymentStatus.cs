@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Payments;
+namespace Turneo.Api.Core.Payments;
 
 public static class PaymentStatus
 {

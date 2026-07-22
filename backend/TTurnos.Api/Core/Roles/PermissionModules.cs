@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Roles;
+namespace Turneo.Api.Core.Roles;
 
 // Un módulo por límite real de endpoints, no por página de frontend: Turnos
 // agrupa TimeSlotsController + BookingsController porque Calendario, Turnos y

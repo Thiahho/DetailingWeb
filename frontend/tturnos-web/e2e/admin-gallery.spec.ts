@@ -18,7 +18,7 @@ test.describe("Admin: Galería", () => {
   test("un admin edita y borra un item de la galería", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/galeria");
 
     const card = page.locator(`[data-testid="gallery-card"][data-item-title="${seed.galleryTitle}"]`);

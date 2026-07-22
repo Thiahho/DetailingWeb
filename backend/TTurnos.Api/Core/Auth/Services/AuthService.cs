@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BCrypt.Net;
 
-namespace TTurnos.Api.Core.Auth;
+namespace Turneo.Api.Core.Auth;
 
 public class AuthService
 {

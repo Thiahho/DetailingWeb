@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 // Constantes en vez de enum para poder extender sin migraciones de tipo (mismo
 // criterio que NotificationEventType/BookingStatus/ReminderStatus en este proyecto).

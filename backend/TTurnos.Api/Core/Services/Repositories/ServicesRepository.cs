@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Services;
+namespace Turneo.Api.Core.Services;
 
 public class ServicesRepository : IServicesRepository
 {

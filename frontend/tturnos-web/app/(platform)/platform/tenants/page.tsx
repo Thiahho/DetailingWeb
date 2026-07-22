@@ -7,7 +7,7 @@ import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 
 // Coincide con Tenancy:BaseDomain en appsettings.json del backend — solo para
 // mostrarle a Thiago el subdominio resultante, no afecta la resolución real.
-const BASE_DOMAIN = "tturnos.app";
+const BASE_DOMAIN = "Turneo.app";
 
 const VERTICALS = ["Beauty"];
 
@@ -98,11 +98,11 @@ export default function PlatformTenantsPage() {
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
       <h1 className="text-2xl font-bold">Tenants</h1>
-      <p className="mt-1 text-white/50 text-sm">Alta de negocios nuevos en TTurnos.</p>
+      <p className="mt-1 text-white/50 text-sm">Alta de negocios nuevos en Turneo.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 sm:grid-cols-2">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-white/60">TTurnos APP</label>
+          <label className="text-xs font-medium text-white/60">Turneo APP</label>
           <input
             required
             className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white focus:border-white/30 focus:outline-none"

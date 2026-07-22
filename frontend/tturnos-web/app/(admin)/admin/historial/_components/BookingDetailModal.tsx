@@ -301,7 +301,7 @@ export default function BookingDetailModal({
                   ))}
                 </div>
               )}
-              <CloudinaryUpload value="" onChange={(url) => url && setPhotosBefore((p) => [...p, url])} folder="tturnos/historial" hint="" />
+              <CloudinaryUpload value="" onChange={(url) => url && setPhotosBefore((p) => [...p, url])} folder="Turneo/historial" hint="" />
             </div>
             <div>
               <p className="text-charcoal/30 text-[11px] uppercase tracking-wider mb-2">Fotos después</p>
@@ -321,7 +321,7 @@ export default function BookingDetailModal({
                   ))}
                 </div>
               )}
-              <CloudinaryUpload value="" onChange={(url) => url && setPhotosAfter((p) => [...p, url])} folder="tturnos/historial" hint="" />
+              <CloudinaryUpload value="" onChange={(url) => url && setPhotosAfter((p) => [...p, url])} folder="Turneo/historial" hint="" />
             </div>
           </div>
 

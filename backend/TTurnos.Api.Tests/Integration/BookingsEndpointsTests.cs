@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Los endpoints públicos de este controller comparten la política
 // "public-booking" (20 req/min por IP, IP nula en TestServer → un solo

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace TTurnos.Api.Core.Bookings;
+namespace Turneo.Api.Core.Bookings;
 
 public class BookingsRepository : IBookingsRepository
 {

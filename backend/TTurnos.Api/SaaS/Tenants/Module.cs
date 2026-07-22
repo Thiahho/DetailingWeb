@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Tenants;
+namespace Turneo.Api.SaaS.Tenants;
 
 // Catálogo de rubros/módulos disponibles en el sistema (Beauty, Restaurant, ...).
 // Espeja las carpetas de Modules/ en el código; sirve para habilitar/deshabilitar

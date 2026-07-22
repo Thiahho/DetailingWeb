@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
-namespace TTurnos.Api.Core.Auth;
+namespace Turneo.Api.Core.Auth;
 
 [ApiController]
 [Route("api/[controller]")]

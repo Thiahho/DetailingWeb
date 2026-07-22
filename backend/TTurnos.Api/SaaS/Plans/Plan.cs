@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Plans;
+namespace Turneo.Api.SaaS.Plans;
 
 public class Plan
 {

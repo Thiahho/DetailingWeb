@@ -1,4 +1,4 @@
-📘 PRD — TTURNOS Belleza
+📘 PRD — Turneo Belleza
 1. Introducción
 Objetivo del producto
 Público objetivo
@@ -356,7 +356,7 @@ Comentarios
 
 Este módulo merece un documento entero.
 
-Porque puede ser el diferencial de TTURNOS.
+Porque puede ser el diferencial de Turneo.
 
 Ejemplo.
 

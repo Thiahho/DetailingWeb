@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TTurnos.Api.Core.Notifications;
+namespace Turneo.Api.Core.Notifications;
 
 public record CreateReminderRequest(
     [Range(1, int.MaxValue)] int CustomerProfileId,

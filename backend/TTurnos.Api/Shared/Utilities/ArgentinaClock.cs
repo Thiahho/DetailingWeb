@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Shared.Utilities;
+namespace Turneo.Api.Shared.Utilities;
 
 // Los turnos/slots se guardan en hora de Argentina (ver comentarios en
 // TimeSlotsController y ReminderBackgroundService), independiente de la

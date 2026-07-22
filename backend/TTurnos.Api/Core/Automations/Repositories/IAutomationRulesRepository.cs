@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 public interface IAutomationRulesRepository
 {

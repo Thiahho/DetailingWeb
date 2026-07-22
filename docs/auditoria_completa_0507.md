@@ -33,11 +33,11 @@ Es un sistema de tamaño medio-alto para un proyecto de un solo rubro: 13 domini
 **a) Webhook de MercadoPago sin validación de firma activa — ⏸️ Diferido (sistema en demo)**
 *Decisión del 05/07: el sistema está en etapa de demo, sin procesar pagos reales todavía — este hallazgo queda pendiente a propósito hasta que se active el cobro real con MercadoPago. Retomar antes de salir a producción con pagos habilitados (junto con rate limiting en `PaymentsController`, que tampoco se aplicó aún).*
 
-`TTurnos.Api/Controllers/PaymentsController.cs:154-156` — la validación HMAC es condicional a que `MercadoPago:WebhookSecret` esté configurado, y en `appsettings.json:73` está vacío. Cualquiera puede simular una notificación de pago.
+`Turneo.Api/Controllers/PaymentsController.cs:154-156` — la validación HMAC es condicional a que `MercadoPago:WebhookSecret` esté configurado, y en `appsettings.json:73` está vacío. Cualquiera puede simular una notificación de pago.
 Además, `app/api/payments/webhook/mercadopago/route.ts` (proxy Next.js) no reenvía los headers `x-signature`/`x-request-id`, y devuelve `200` incluso si falla el reenvío al backend (silencia errores frente a MercadoPago).
 
 **b) `CalendarController` sin ninguna autenticación — ✅ Resuelto (05/07)**
-`TTurnos.Api/Controllers/CalendarController.cs` — **ningún endpoint tenía `[Authorize]` ni `[AllowAnonymous]`** explícito, y el proyecto no define una política global de autorización por defecto (`AddAuthorization()` sin fallback policy en `Program.cs:73`), así que ambos endpoints quedaban **públicos sin querer**:
+`Turneo.Api/Controllers/CalendarController.cs` — **ningún endpoint tenía `[Authorize]` ni `[AllowAnonymous]`** explícito, y el proyecto no define una política global de autorización por defecto (`AddAuthorization()` sin fallback policy en `Program.cs:73`), así que ambos endpoints quedaban **públicos sin querer**:
 - `POST /api/calendar/turno` — creaba eventos en Google Calendar sin ninguna validación de origen, sin rate limiting.
 - `GET /api/calendar/test-auth` — endpoint de setup/debug que además devolvía el `stackTrace` completo en el error (information disclosure).
 
@@ -59,7 +59,7 @@ Responde `429` con `Retry-After: 60` al exceder el límite. Se agregó `UseForwa
 **Pendiente:** `PaymentsController` (`create-preference` y el webhook) queda sin política de rate limiting — se abordará junto con el fix de validación de firma de MercadoPago (ver hallazgo a).
 
 **d) Dump de base de datos con datos de clientes sin gitignorear**
-`TTurnos.Api/bd_turnos.sql` (untracked, 412 líneas) — dump real con sentencias `COPY` (datos de clientes: nombre, teléfono, email según schema de `Bookings`). `.gitignore` no cubre `*.sql`. A un `git add .` de terminar commiteado con PII real.
+`Turneo.Api/bd_turnos.sql` (untracked, 412 líneas) — dump real con sentencias `COPY` (datos de clientes: nombre, teléfono, email según schema de `Bookings`). `.gitignore` no cubre `*.sql`. A un `git add .` de terminar commiteado con PII real.
 
 ### 🟡 Medio
 

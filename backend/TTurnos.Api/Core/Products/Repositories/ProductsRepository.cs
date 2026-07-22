@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Products;
+namespace Turneo.Api.Core.Products;
 
 public class ProductsRepository : IProductsRepository
 {

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Payments;
+namespace Turneo.Api.Core.Payments;
 
 public class PaymentsRepository : IPaymentsRepository
 {

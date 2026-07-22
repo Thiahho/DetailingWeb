@@ -9,7 +9,7 @@ test.describe("Admin: Configuración del negocio", () => {
   test("un admin actualiza el nombre del negocio y persiste", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/configuracion");
 
     const businessName = `Studio E2E ${Date.now()}`;

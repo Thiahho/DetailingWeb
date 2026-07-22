@@ -20,7 +20,7 @@ Opción 2. Se implementó en un refactor post-FASE10, reemplazando las columnas 
 **Enforcement — caso de prueba real de la regla de dependencias (ADR-001):** el código que necesita consultar límites vive en `Core` (ej. `ProfessionalsController`), pero `Core → SaaS` está prohibido. Se resolvió con inversión de dependencia:
 - `IPlanLimitsService` (interfaz) vive en `Shared/Interfaces` — `Core` sí puede depender de `Shared`.
 - `PlanLimitsService` (implementación) vive en `SaaS/Features`, registrada en el contenedor de DI desde `Program.cs` (el composition root, que sí conoce todas las capas).
-- `Core` solo conoce la interfaz. Nunca hay un `using TTurnos.Api.SaaS...` dentro de `Core`.
+- `Core` solo conoce la interfaz. Nunca hay un `using Turneo.Api.SaaS...` dentro de `Core`.
 
 Regla para toda funcionalidad nueva, a partir de ahora: **antes de escribir código, decidir si pertenece a `Core`, a un `Module`, es un `Feature` del plan, es `Enterprise`, o es `Custom`** (ver `docs/Architecture.md` para el árbol de decisión completo).
 

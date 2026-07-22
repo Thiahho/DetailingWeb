@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TTurnos.Api.Core.Roles;
+namespace Turneo.Api.Core.Roles;
 
 public class ModulePermissionDto
 {

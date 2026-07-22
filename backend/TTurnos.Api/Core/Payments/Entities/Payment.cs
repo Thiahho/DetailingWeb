@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Payments;
+namespace Turneo.Api.Core.Payments;
 
 [Table("Payments")]
 public class Payment : ITenantScoped

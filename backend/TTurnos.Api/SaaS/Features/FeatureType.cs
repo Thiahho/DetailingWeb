@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Features;
+namespace Turneo.Api.SaaS.Features;
 
 public enum FeatureType
 {

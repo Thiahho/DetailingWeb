@@ -1,4 +1,4 @@
-# Manual Comercial — TTURNOS
+# Manual Comercial — Turneo
 
 **Versión:** 1.0 · **Fecha:** julio 2026
 **Uso:** documento base para todo el equipo comercial y de marketing — guiones de video, anuncios, copy de landing/web, presentaciones a clientes y respuestas a objeciones. Toda pieza de comunicación nueva debería poder trazarse a algo de este documento.
@@ -11,16 +11,16 @@
 
 ### Nombre y origen
 
-**TTURNOS** — de "turnos" (el término que usa cualquier negocio de servicios en Argentina/LatAm para una cita reservada). El nombre es literal a propósito: no hay que explicar qué hace el producto para entender para qué sirve.
+**Turneo** — de "turnos" (el término que usa cualquier negocio de servicios en Argentina/LatAm para una cita reservada). El nombre es literal a propósito: no hay que explicar qué hace el producto para entender para qué sirve.
 
-**La historia real es el mejor argumento de venta:** TTURNOS no nació como una idea de escritorio. Nació como un sistema de gestión de turnos para un **detailing automotriz real**, se reorientó a un **salón de belleza que hoy corre en producción real** (no es una demo ni un mockup), y de esa experiencia concreta con un negocio real se extrajo una plataforma pensada para cualquier rubro con turnos. Es un producto que se construyó resolviendo un problema real antes de intentar generalizarlo — no al revés.
+**La historia real es el mejor argumento de venta:** Turneo no nació como una idea de escritorio. Nació como un sistema de gestión de turnos para un **detailing automotriz real**, se reorientó a un **salón de belleza que hoy corre en producción real** (no es una demo ni un mockup), y de esa experiencia concreta con un negocio real se extrajo una plataforma pensada para cualquier rubro con turnos. Es un producto que se construyó resolviendo un problema real antes de intentar generalizarlo — no al revés.
 
 Esto da pie a un ángulo narrativo fuerte para video/contenido: *"Empezamos resolviendo la agenda de un negocio real. Todavía la resolvemos — para el tuyo también."*
 
 ### Qué es y qué no es
 
 - **Es:** una plataforma de gestión operativa para negocios con turnos — agenda, equipo, clientes, caja y estadísticas en un solo panel.
-- **No es:** un calendario compartido genérico, un link de Calendly con un formulario, ni una planilla con esteroides. La diferencia central de TTURNOS frente a un "turnero" simple es que administra el **negocio completo alrededor del turno** (quién lo atendió, qué se usó, cuánto se cobró, si ese cliente hay que reactivarlo) — no solo la hora.
+- **No es:** un calendario compartido genérico, un link de Calendly con un formulario, ni una planilla con esteroides. La diferencia central de Turneo frente a un "turnero" simple es que administra el **negocio completo alrededor del turno** (quién lo atendió, qué se usó, cuánto se cobró, si ese cliente hay que reactivarlo) — no solo la hora.
 
 ### Personalidad de marca
 
@@ -30,7 +30,7 @@ Esto da pie a un ángulo narrativo fuerte para video/contenido: *"Empezamos reso
 
 ### Territorio visual
 
-La identidad visual de cada negocio que usa TTURNOS es propia de ese negocio (logo, colores de marca) — el sistema es white-label por diseño (cada tenant puede tener su propio branding). La identidad de **TTURNOS como producto/marca comercial** (la que este manual sirve para comunicar) todavía no tiene un sistema visual formal definido — es el primer paso natural después de este manual: paleta, tipografía y logo propios de TTURNOS, separados de cualquier cliente.
+La identidad visual de cada negocio que usa Turneo es propia de ese negocio (logo, colores de marca) — el sistema es white-label por diseño (cada tenant puede tener su propio branding). La identidad de **Turneo como producto/marca comercial** (la que este manual sirve para comunicar) todavía no tiene un sistema visual formal definido — es el primer paso natural después de este manual: paleta, tipografía y logo propios de Turneo, separados de cualquier cliente.
 
 ### Tagline (propuesta, a validar)
 
@@ -44,9 +44,9 @@ Alternativas según pieza de comunicación:
 
 ## 2. Mensaje central
 
-> **TTURNOS es la plataforma de reservas y gestión para negocios con turnos — salones, estudios y equipos de profesionales — que reemplaza el WhatsApp, el Excel y la agenda de papel por un sistema único: el cliente reserva solo las 24 horas, cada profesional tiene su propia agenda, y el dueño ve y controla todo el negocio (equipo, caja, clientes, estadísticas) desde un solo panel, sin depender de un programador para el día a día.**
+> **Turneo es la plataforma de reservas y gestión para negocios con turnos — salones, estudios y equipos de profesionales — que reemplaza el WhatsApp, el Excel y la agenda de papel por un sistema único: el cliente reserva solo las 24 horas, cada profesional tiene su propia agenda, y el dueño ve y controla todo el negocio (equipo, caja, clientes, estadísticas) desde un solo panel, sin depender de un programador para el día a día.**
 
-Versión de 10 segundos (para video/ads): *"¿Seguís confirmando turnos por WhatsApp y cerrando la caja a mano? TTURNOS lo hace todo desde un panel — vos manejás el negocio, no la agenda."*
+Versión de 10 segundos (para video/ads): *"¿Seguís confirmando turnos por WhatsApp y cerrando la caja a mano? Turneo lo hace todo desde un panel — vos manejás el negocio, no la agenda."*
 
 ---
 
@@ -107,7 +107,7 @@ Cualquier rubro fuera de belleza (gimnasios, clínicas/consultorios, veterinaria
 ## 5. Objeciones más comunes y cómo responderlas
 
 **"Ya me arreglo con WhatsApp/Excel, funciona bien."**
-Funciona hasta que dos clientes reservan el mismo horario, o hasta que alguien de tu equipo se olvida de anotar un turno en la planilla compartida. El costo no se ve en la planilla — se ve en el tiempo que perdés confirmando a mano y en los turnos que se pisan o se pierden. TTURNOS hace eso imposible a nivel de sistema: dos reservas para el mismo horario no pueden coexistir, es una regla de la base de datos, no una promesa.
+Funciona hasta que dos clientes reservan el mismo horario, o hasta que alguien de tu equipo se olvida de anotar un turno en la planilla compartida. El costo no se ve en la planilla — se ve en el tiempo que perdés confirmando a mano y en los turnos que se pisan o se pierden. Turneo hace eso imposible a nivel de sistema: dos reservas para el mismo horario no pueden coexistir, es una regla de la base de datos, no una promesa.
 
 **"Es caro" / "¿Cuánto sale?"**
 Los planes se arman según el tamaño real del negocio (desde 1 profesional hasta equipos grandes) — no es un precio único para todos. *(Nota interna: el precio final de cada plan todavía no está definido formalmente — ver Anexo A. No cotizar un número fijo sin confirmarlo antes con el equipo comercial.)*
@@ -119,7 +119,7 @@ Es al revés: sacarles la fricción de tener que llamar o escribir y esperar res
 Los datos de cada negocio están completamente aislados de los demás negocios en la plataforma — ni siquiera a nivel de error un negocio puede ver los datos de otro. Y si el negocio prefiere no depender de que el sistema esté compartido con otros clientes, existe la opción de licencia propia (ver Anexo B) — mismo sistema, corriendo solo para ese negocio.
 
 **"Ya tengo un sistema de turnos."**
-La pregunta correcta es qué hace ese sistema además de mostrar un calendario. TTURNOS además administra el equipo completo con agendas propias, arma la ficha de cada cliente con su historial real, controla la caja del día, y manda recordatorios y campañas de reactivación solo. Si el sistema actual solo agenda, cambiar tiene sentido.
+La pregunta correcta es qué hace ese sistema además de mostrar un calendario. Turneo además administra el equipo completo con agendas propias, arma la ficha de cada cliente con su historial real, controla la caja del día, y manda recordatorios y campañas de reactivación solo. Si el sistema actual solo agenda, cambiar tiene sentido.
 
 **"¿Puedo pasar mis datos actuales (clientes, turnos)?"**
 Hoy no hay un importador automático de otros sistemas — la carga inicial se coordina caso a caso con el equipo. No prometer una migración "automática" que no existe.
@@ -241,7 +241,7 @@ Cada uno de estos está construido y verificado — no es aspiracional. Usar com
 
 ### MAÑANA — Multi-rubro (visión de producto, roadmap, no vender como disponible)
 
-TTURNOS está **construido para expandirse a cualquier rubro con lógica de turnos** sin reescribir el sistema — es una decisión de arquitectura, no una promesa de marketing: el núcleo del sistema (turnos, agenda, profesionales, servicios, pagos) es agnóstico de rubro, y cada rubro se agrega como una extensión sin tocar esa base. Esto es un argumento de venta legítimo para negocios que preguntan por escalabilidad futura, siempre y cuando se comunique como lo que es: **arquitectura lista, módulos sin construir todavía.**
+Turneo está **construido para expandirse a cualquier rubro con lógica de turnos** sin reescribir el sistema — es una decisión de arquitectura, no una promesa de marketing: el núcleo del sistema (turnos, agenda, profesionales, servicios, pagos) es agnóstico de rubro, y cada rubro se agrega como una extensión sin tocar esa base. Esto es un argumento de venta legítimo para negocios que preguntan por escalabilidad futura, siempre y cuando se comunique como lo que es: **arquitectura lista, módulos sin construir todavía.**
 
 | Rubro | Problema típico que resolvería | Estado |
 |---|---|---|
@@ -269,7 +269,7 @@ Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-rese
 - **Personalización visual de marca (colores propios del negocio):** el dato existe en el sistema pero el sitio público todavía no lo aplica automáticamente — hoy la marca del negocio se refleja principalmente vía logo y contenido, no colores propios.
 - **Límites de plan para WhatsApp/IA:** hoy estas banderas no bloquean nada automáticamente aunque el plan no las incluya — el enforcement real de plan solo está activo para la cantidad de profesionales. No usar "tu plan no incluye IA" como argumento técnico de bloqueo todavía.
 - **Cobros reales con Mercado Pago:** el flujo funciona para demo y señas; antes de activar cobros reales de producción hay un pendiente de seguridad conocido (validación de firma del webhook) que el equipo técnico tiene identificado y diferido a propósito, no olvidado. Confirmar con el equipo técnico antes de vender "ya está listo para procesar pagos reales en producción" a un cliente que va a facturar en serio.
-- **Dominio propio por negocio (subdominio, ej. `salon.tturnos.app`):** el mecanismo está construido y probado, pero falta la configuración final de DNS en producción — hoy en producción se resuelve por otro medio (ver equipo técnico antes de prometer un subdominio propio andando el mismo día).
+- **Dominio propio por negocio (subdominio, ej. `salon.Turneo.app`):** el mecanismo está construido y probado, pero falta la configuración final de DNS en producción — hoy en producción se resuelve por otro medio (ver equipo técnico antes de prometer un subdominio propio andando el mismo día).
 - **Permisos por rol (Staff):** el control de acceso granular por módulo está construido y compila/corre — se verificó con llamadas reales (crear cuenta, asignar permisos) que responden correctamente, pero la última verificación (loguearse como esa cuenta y confirmar que el sistema efectivamente bloquea una acción sin permiso) quedó pendiente de cerrar, y todavía no tiene tests automatizados dedicados como el resto del sistema. Se puede mostrar la pantalla de gestión de permisos, pero confirmar con el equipo técnico el estado del enforcement antes de venderlo como cerrado a un cliente que dependa fuerte de ese control (ej. franquicias con varios encargados).
 
 ### ⏳ No prometer — es roadmap, no producto
@@ -283,7 +283,7 @@ Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-rese
 
 ## Anexo B — Modelos comerciales y planes
 
-TTURNOS se vende de tres formas distintas, **sobre exactamente el mismo software** — no hay una versión recortada según cómo se compra:
+Turneo se vende de tres formas distintas, **sobre exactamente el mismo software** — no hay una versión recortada según cómo se compra:
 
 | Modelo | Cómo funciona | Para qué cliente |
 |---|---|---|
@@ -308,7 +308,7 @@ TTURNOS se vende de tres formas distintas, **sobre exactamente el mismo software
 
 Para quien use este manual para escribir un guion de video, un anuncio, una landing o una presentación:
 
-1. **Empezar siempre por el dolor real, no por la lista de funcionalidades.** El gancho es "¿todavía confirmás turnos por WhatsApp a mano?", no "TTURNOS tiene 8 módulos".
+1. **Empezar siempre por el dolor real, no por la lista de funcionalidades.** El gancho es "¿todavía confirmás turnos por WhatsApp a mano?", no "Turneo tiene 8 módulos".
 2. **Un problema, una solución, un resultado por pieza.** Usar la estructura de la sección 7 — no tratar de mostrar todo el sistema en un solo video de 30 segundos.
 3. **Mostrar, no describir, cuando se pueda.** El sistema es visual (agenda con drag&drop, caja, CRM) — screen recordings reales pesan más que texto sobre fondo de color.
 4. **El caso real es el activo más fuerte que hay.** El salón de belleza que corre en producción hoy es prueba de que esto funciona en el mundo real, no en una demo armada — priorizarlo sobre features abstractas.

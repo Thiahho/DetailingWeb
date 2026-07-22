@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Insumos;
+namespace Turneo.Api.Core.Insumos;
 
 [Table("Insumos")]
 public class Insumo : ITenantScoped

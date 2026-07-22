@@ -14,7 +14,7 @@ test.use({ storageState: ADMIN_STORAGE_STATE });
 // y el endpoint real.
 test.describe("Admin: Cuenta", () => {
   test("cambiar contraseña con la actual incorrecta muestra el error real del backend", async ({ page }) => {
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/cuenta");
 
     await page.getByTestId("cuenta-current-password").fill("contraseña-incorrecta-a-proposito");

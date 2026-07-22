@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Reports;
+namespace Turneo.Api.Core.Reports;
 
 public class AnalyticsRepository : IAnalyticsRepository
 {

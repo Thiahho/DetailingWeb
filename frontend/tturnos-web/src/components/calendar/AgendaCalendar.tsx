@@ -124,7 +124,7 @@ function toLocalIsoString(d: Date): string {
 type Density = "compact" | "comfortable" | "spacious";
 const DENSITY_HEIGHTS: Record<Density, number> = { compact: 420, comfortable: 640, spacious: 820 };
 const DENSITY_LABELS: Record<Density, string> = { compact: "S", comfortable: "M", spacious: "L" };
-const DENSITY_STORAGE_KEY = "tturnos-agenda-density";
+const DENSITY_STORAGE_KEY = "Turneo-agenda-density";
 
 function readStoredDensity(): Density | null {
   if (typeof window === "undefined") return null;

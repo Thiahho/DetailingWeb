@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using TTurnos.Api.Infrastructure.Persistence;
+using Turneo.Api.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace TTurnos.Api.Migrations
+namespace Turneo.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260715195142_AddCustomerProfileCrmFields")]
@@ -40,7 +40,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("ProfessionalServices", (string)null);
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Bookings.Booking", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Bookings.Booking", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -119,7 +119,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Bookings");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.ClientAccessCode", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.ClientAccessCode", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -158,7 +158,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("ClientAccessCodes");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.CustomerProfile", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.CustomerProfile", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -208,7 +208,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("CustomerProfiles");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.ReminderLog", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.ReminderLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -248,7 +248,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("ReminderLogs");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.ScheduledReminder", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.ScheduledReminder", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -306,7 +306,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("ScheduledReminders");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Content.ContentVideo", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Content.ContentVideo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -349,7 +349,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("ContentVideos");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Notifications.NotificationLog", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Notifications.NotificationLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -416,7 +416,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("NotificationLogs");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Payments.Payment", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Payments.Payment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -493,7 +493,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Payments");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Professionals.Professional", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Professionals.Professional", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -552,7 +552,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Professionals");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Scheduling.BlockedDate", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Scheduling.BlockedDate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -588,7 +588,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("BlockedDates");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Scheduling.TimeSlot", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Scheduling.TimeSlot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -634,7 +634,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("TimeSlots");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Services.Service", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Services.Service", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -704,7 +704,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Services");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Settings.BusinessSettings", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Settings.BusinessSettings", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -741,7 +741,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("BusinessSettings");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Settings.SiteConfig", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Settings.SiteConfig", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -813,7 +813,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("SiteConfigs");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Users.User", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Users.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -858,7 +858,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Enterprise.Branches.Branch", b =>
+            modelBuilder.Entity("Turneo.Api.Enterprise.Branches.Branch", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -892,7 +892,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Branches");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Enterprise.WhiteLabel.Theme", b =>
+            modelBuilder.Entity("Turneo.Api.Enterprise.WhiteLabel.Theme", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -927,7 +927,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Themes");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Modules.Beauty.BeforeAfter.GalleryItem", b =>
+            modelBuilder.Entity("Turneo.Api.Modules.Beauty.BeforeAfter.GalleryItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -970,7 +970,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("GalleryItems");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Modules.Beauty.Treatments.Treatment", b =>
+            modelBuilder.Entity("Turneo.Api.Modules.Beauty.Treatments.Treatment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1012,7 +1012,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Treatments");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Features.Feature", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Features.Feature", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1042,7 +1042,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Features");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Features.PlanFeature", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Features.PlanFeature", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1070,7 +1070,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("PlanFeatures");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Licenses.License", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Licenses.License", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1101,7 +1101,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Licenses");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Plans.Plan", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Plans.Plan", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1127,7 +1127,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Plans");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Subscriptions.Subscription", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Subscriptions.Subscription", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1162,7 +1162,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Subscriptions");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Tenants.Module", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Tenants.Module", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1189,7 +1189,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Modules");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Tenants.Tenant", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Tenants.Tenant", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1234,7 +1234,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Tenants");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Tenants.TenantModule", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Tenants.TenantModule", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1261,7 +1261,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("TenantModules");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Usage.UsageRecord", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Usage.UsageRecord", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1291,33 +1291,33 @@ namespace TTurnos.Api.Migrations
 
             modelBuilder.Entity("ProfessionalService", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Professionals.Professional", null)
+                    b.HasOne("Turneo.Api.Core.Professionals.Professional", null)
                         .WithMany()
                         .HasForeignKey("ProfessionalId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.Core.Services.Service", null)
+                    b.HasOne("Turneo.Api.Core.Services.Service", null)
                         .WithMany()
                         .HasForeignKey("ServicesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Bookings.Booking", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Bookings.Booking", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Professionals.Professional", "Professional")
+                    b.HasOne("Turneo.Api.Core.Professionals.Professional", "Professional")
                         .WithMany()
                         .HasForeignKey("ProfessionalId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.Core.Scheduling.TimeSlot", "TimeSlot")
+                    b.HasOne("Turneo.Api.Core.Scheduling.TimeSlot", "TimeSlot")
                         .WithMany("Bookings")
                         .HasForeignKey("TimeSlotId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1330,9 +1330,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("TimeSlot");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.ClientAccessCode", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.ClientAccessCode", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1341,14 +1341,14 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.CustomerProfile", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.CustomerProfile", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Professionals.Professional", "FavoriteProfessional")
+                    b.HasOne("Turneo.Api.Core.Professionals.Professional", "FavoriteProfessional")
                         .WithMany()
                         .HasForeignKey("FavoriteProfessionalId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1359,15 +1359,15 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.ReminderLog", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.ReminderLog", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Clients.ScheduledReminder", "ScheduledReminder")
+                    b.HasOne("Turneo.Api.Core.Clients.ScheduledReminder", "ScheduledReminder")
                         .WithMany("Logs")
                         .HasForeignKey("ScheduledReminderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1378,20 +1378,20 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.ScheduledReminder", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.ScheduledReminder", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Bookings.Booking", "Booking")
+                    b.HasOne("Turneo.Api.Core.Bookings.Booking", "Booking")
                         .WithMany()
                         .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("TTurnos.Api.Core.Clients.CustomerProfile", "CustomerProfile")
+                    b.HasOne("Turneo.Api.Core.Clients.CustomerProfile", "CustomerProfile")
                         .WithMany("ScheduledReminders")
                         .HasForeignKey("CustomerProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1404,9 +1404,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Content.ContentVideo", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Content.ContentVideo", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1415,15 +1415,15 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Notifications.NotificationLog", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Notifications.NotificationLog", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Bookings.Booking", "Booking")
+                    b.HasOne("Turneo.Api.Core.Bookings.Booking", "Booking")
                         .WithMany()
                         .HasForeignKey("BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1434,15 +1434,15 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Payments.Payment", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Payments.Payment", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Bookings.Booking", "Booking")
+                    b.HasOne("Turneo.Api.Core.Bookings.Booking", "Booking")
                         .WithOne("Payment")
-                        .HasForeignKey("TTurnos.Api.Core.Payments.Payment", "BookingId")
+                        .HasForeignKey("Turneo.Api.Core.Payments.Payment", "BookingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1453,9 +1453,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Professionals.Professional", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Professionals.Professional", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1464,14 +1464,14 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Scheduling.BlockedDate", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Scheduling.BlockedDate", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Professionals.Professional", "Professional")
+                    b.HasOne("Turneo.Api.Core.Professionals.Professional", "Professional")
                         .WithMany()
                         .HasForeignKey("ProfessionalId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1482,14 +1482,14 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Scheduling.TimeSlot", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Scheduling.TimeSlot", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Professionals.Professional", "Professional")
+                    b.HasOne("Turneo.Api.Core.Professionals.Professional", "Professional")
                         .WithMany()
                         .HasForeignKey("ProfessionalId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1500,9 +1500,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Services.Service", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Services.Service", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1511,9 +1511,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Settings.BusinessSettings", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Settings.BusinessSettings", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1522,9 +1522,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Settings.SiteConfig", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Settings.SiteConfig", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1533,14 +1533,14 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Users.User", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Users.User", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Professionals.Professional", "Professional")
+                    b.HasOne("Turneo.Api.Core.Professionals.Professional", "Professional")
                         .WithMany()
                         .HasForeignKey("ProfessionalId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1551,9 +1551,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Enterprise.Branches.Branch", b =>
+            modelBuilder.Entity("Turneo.Api.Enterprise.Branches.Branch", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1562,9 +1562,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Enterprise.WhiteLabel.Theme", b =>
+            modelBuilder.Entity("Turneo.Api.Enterprise.WhiteLabel.Theme", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1573,9 +1573,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Modules.Beauty.BeforeAfter.GalleryItem", b =>
+            modelBuilder.Entity("Turneo.Api.Modules.Beauty.BeforeAfter.GalleryItem", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1584,15 +1584,15 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Modules.Beauty.Treatments.Treatment", b =>
+            modelBuilder.Entity("Turneo.Api.Modules.Beauty.Treatments.Treatment", b =>
                 {
-                    b.HasOne("TTurnos.Api.Core.Services.Service", "Service")
+                    b.HasOne("Turneo.Api.Core.Services.Service", "Service")
                         .WithMany()
                         .HasForeignKey("ServiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1603,15 +1603,15 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Features.PlanFeature", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Features.PlanFeature", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Features.Feature", "Feature")
+                    b.HasOne("Turneo.Api.SaaS.Features.Feature", "Feature")
                         .WithMany()
                         .HasForeignKey("FeatureId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Plans.Plan", "Plan")
+                    b.HasOne("Turneo.Api.SaaS.Plans.Plan", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1622,9 +1622,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Plan");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Licenses.License", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Licenses.License", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1633,15 +1633,15 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Subscriptions.Subscription", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Subscriptions.Subscription", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Plans.Plan", "Plan")
+                    b.HasOne("Turneo.Api.SaaS.Plans.Plan", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1652,9 +1652,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Tenants.Tenant", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Tenants.Tenant", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Plans.Plan", "Plan")
+                    b.HasOne("Turneo.Api.SaaS.Plans.Plan", "Plan")
                         .WithMany()
                         .HasForeignKey("PlanId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -1662,15 +1662,15 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Plan");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Tenants.TenantModule", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Tenants.TenantModule", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Module", "Module")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Module", "Module")
                         .WithMany()
                         .HasForeignKey("ModuleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1681,9 +1681,9 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.SaaS.Usage.UsageRecord", b =>
+            modelBuilder.Entity("Turneo.Api.SaaS.Usage.UsageRecord", b =>
                 {
-                    b.HasOne("TTurnos.Api.SaaS.Tenants.Tenant", "Tenant")
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1692,22 +1692,22 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Bookings.Booking", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Bookings.Booking", b =>
                 {
                     b.Navigation("Payment");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.CustomerProfile", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.CustomerProfile", b =>
                 {
                     b.Navigation("ScheduledReminders");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Clients.ScheduledReminder", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Clients.ScheduledReminder", b =>
                 {
                     b.Navigation("Logs");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Core.Scheduling.TimeSlot", b =>
+            modelBuilder.Entity("Turneo.Api.Core.Scheduling.TimeSlot", b =>
                 {
                     b.Navigation("Bookings");
                 });

@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
-namespace TTurnos.Api.Infrastructure.Authentication;
+namespace Turneo.Api.Infrastructure.Authentication;
 
 public static class JwtAuthenticationSetup
 {

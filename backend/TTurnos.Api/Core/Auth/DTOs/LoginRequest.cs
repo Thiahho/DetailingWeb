@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TTurnos.Api.Core.Auth;
+namespace Turneo.Api.Core.Auth;
 
 public class LoginRequest
 {

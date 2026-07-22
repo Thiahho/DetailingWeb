@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TTurnos.Api\TTurnos.Api.csproj" />
+    <ProjectReference Include="..\Turneo.Api\Turneo.Api.csproj" />
   </ItemGroup>
 
 </Project>

@@ -84,7 +84,7 @@ export default function LoginPage() {
               type="text"
               data-testid="admin-login-email"
               className="form-input"
-              placeholder="admin@tturnos.com"
+              placeholder="admin@Turneo.com"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })

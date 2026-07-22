@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Features;
+namespace Turneo.Api.SaaS.Features;
 
 // Valor de un Feature para un Plan puntual. Value se interpreta según
 // Feature.Type: "true"/"false" para Boolean, un número (como string) para

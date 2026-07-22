@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Users;
+namespace Turneo.Api.Core.Users;
 
 [Table("Users")] 
 public class User : ITenantScoped

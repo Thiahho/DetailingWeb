@@ -4,7 +4,7 @@
 
 ## Problema
 
-TTurnos empezó como un sistema de detailing automotriz de un solo rubro. Al convertirlo en plataforma multi-rubro (belleza, gastronomía, salud, ...), había que decidir cómo separar lo genérico (aplica a cualquier negocio con turnos) de lo específico de cada rubro, sin terminar reescribiendo `Bookings` cada vez que se agrega un nuevo tipo de negocio.
+Turneo empezó como un sistema de detailing automotriz de un solo rubro. Al convertirlo en plataforma multi-rubro (belleza, gastronomía, salud, ...), había que decidir cómo separar lo genérico (aplica a cualquier negocio con turnos) de lo específico de cada rubro, sin terminar reescribiendo `Bookings` cada vez que se agrega un nuevo tipo de negocio.
 
 ## Opciones consideradas
 

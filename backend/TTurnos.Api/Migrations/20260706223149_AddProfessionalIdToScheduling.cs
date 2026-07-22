@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace TTurnos.Api.Migrations
+namespace Turneo.Api.Migrations
 {
     /// <inheritdoc />
     public partial class AddProfessionalIdToScheduling : Migration

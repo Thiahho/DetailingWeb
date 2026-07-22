@@ -3,7 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace TTurnos.Api.Migrations
+namespace Turneo.Api.Migrations
 {
     /// <inheritdoc />
     public partial class ExtractBeautyModule : Migration

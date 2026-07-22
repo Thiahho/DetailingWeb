@@ -1,6 +1,6 @@
 using Hangfire.Dashboard;
 
-namespace TTurnos.Api.Infrastructure.BackgroundJobs;
+namespace Turneo.Api.Infrastructure.BackgroundJobs;
 // Filters/HangfireAdminAuthFilter.cs
 // Bloquea el dashboard /hangfire a quien no sea admin autenticado
 public class HangfireAdminAuthFilter : IDashboardAuthorizationFilter

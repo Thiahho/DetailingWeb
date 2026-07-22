@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace TTurnos.Api.Migrations
+namespace Turneo.Api.Migrations
 {
     // Reemplaza el catálogo placeholder (Starter/Pro/Premium/Enterprise/License/Custom)
     // por la propuesta comercial real (Free/Starter/Pro/Business/Licencia/Custom).
@@ -26,7 +26,7 @@ namespace TTurnos.Api.Migrations
                 ('CanUseAI', 'Funciones con IA', 0, NULL),
                 ('CanUseMercadoPago', 'Pagos con Mercado Pago', 0, NULL),
                 ('CanUseAutomations', 'Automatizaciones', 0, NULL),
-                ('HideTTurnosBranding', 'Ocultar marca TTurnos', 0, NULL),
+                ('HideTurneoBranding', 'Ocultar marca Turneo', 0, NULL),
                 ('MaxProfessionals', 'Profesionales', 1, '-1 = sin límite'),
                 ('MaxBranches', 'Sucursales', 1, '-1 = sin límite'),
                 ('MaxBookings', 'Reservas por mes', 1, '-1 = sin límite'),
@@ -49,7 +49,7 @@ namespace TTurnos.Api.Migrations
                     ('Free', 'CanUseAI', 'False'),
                     ('Free', 'CanUseMercadoPago', 'False'),
                     ('Free', 'CanUseAutomations', 'False'),
-                    ('Free', 'HideTTurnosBranding', 'False'),
+                    ('Free', 'HideTurneoBranding', 'False'),
                     ('Free', 'MaxProfessionals', '1'),
                     ('Free', 'MaxBranches', '1'),
                     ('Free', 'MaxBookings', '50'),
@@ -61,7 +61,7 @@ namespace TTurnos.Api.Migrations
                     ('Starter', 'CanUseAI', 'False'),
                     ('Starter', 'CanUseMercadoPago', 'False'),
                     ('Starter', 'CanUseAutomations', 'False'),
-                    ('Starter', 'HideTTurnosBranding', 'True'),
+                    ('Starter', 'HideTurneoBranding', 'True'),
                     ('Starter', 'MaxProfessionals', '2'),
                     ('Starter', 'MaxBranches', '1'),
                     ('Starter', 'MaxBookings', '-1'),
@@ -73,7 +73,7 @@ namespace TTurnos.Api.Migrations
                     ('Pro', 'CanUseAI', 'False'),
                     ('Pro', 'CanUseMercadoPago', 'True'),
                     ('Pro', 'CanUseAutomations', 'True'),
-                    ('Pro', 'HideTTurnosBranding', 'True'),
+                    ('Pro', 'HideTurneoBranding', 'True'),
                     ('Pro', 'MaxProfessionals', '10'),
                     ('Pro', 'MaxBranches', '1'),
                     ('Pro', 'MaxBookings', '-1'),
@@ -85,7 +85,7 @@ namespace TTurnos.Api.Migrations
                     ('Business', 'CanUseAI', 'False'),
                     ('Business', 'CanUseMercadoPago', 'True'),
                     ('Business', 'CanUseAutomations', 'True'),
-                    ('Business', 'HideTTurnosBranding', 'True'),
+                    ('Business', 'HideTurneoBranding', 'True'),
                     ('Business', 'MaxProfessionals', '-1'),
                     ('Business', 'MaxBranches', '-1'),
                     ('Business', 'MaxBookings', '-1'),
@@ -97,7 +97,7 @@ namespace TTurnos.Api.Migrations
                     ('Licencia', 'CanUseAI', 'True'),
                     ('Licencia', 'CanUseMercadoPago', 'True'),
                     ('Licencia', 'CanUseAutomations', 'True'),
-                    ('Licencia', 'HideTTurnosBranding', 'True'),
+                    ('Licencia', 'HideTurneoBranding', 'True'),
                     ('Licencia', 'MaxProfessionals', '-1'),
                     ('Licencia', 'MaxBranches', '-1'),
                     ('Licencia', 'MaxBookings', '-1'),
@@ -109,7 +109,7 @@ namespace TTurnos.Api.Migrations
                     ('Custom', 'CanUseAI', 'True'),
                     ('Custom', 'CanUseMercadoPago', 'True'),
                     ('Custom', 'CanUseAutomations', 'True'),
-                    ('Custom', 'HideTTurnosBranding', 'True'),
+                    ('Custom', 'HideTurneoBranding', 'True'),
                     ('Custom', 'MaxProfessionals', '-1'),
                     ('Custom', 'MaxBranches', '-1'),
                     ('Custom', 'MaxBookings', '-1'),

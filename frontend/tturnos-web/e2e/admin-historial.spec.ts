@@ -18,7 +18,7 @@ test.describe("Admin: Historial de reservas", () => {
   test("un admin busca una reserva, ve el detalle y la confirma", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/historial");
 
     await page.getByTestId("historial-search").fill(seed.historialCustomerName);
@@ -43,7 +43,7 @@ test.describe("Admin: Historial de reservas", () => {
   });
 
   test("un admin agrega productos y servicios al detalle de una reserva, y persisten", async ({ page }) => {
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/historial");
 
     await page.getByTestId("historial-search").fill(seed.historialCustomerName);

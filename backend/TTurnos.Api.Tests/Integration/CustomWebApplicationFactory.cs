@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Un Postgres real en Docker (Testcontainers) por corrida de test suite —
 // deliberado en vez de EF InMemory: acá se valida contra el motor real de
@@ -17,7 +17,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 {
     private readonly PostgreSqlContainer _dbContainer = new PostgreSqlBuilder()
         .WithImage("postgres:16-alpine")
-        .WithDatabase("tturnos_test")
+        .WithDatabase("Turneo_test")
         .WithUsername("postgres")
         .WithPassword("postgres")
         .Build();

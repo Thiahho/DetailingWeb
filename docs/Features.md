@@ -33,7 +33,7 @@ SaaS/Features/PlanLimitsService.cs        ← implementación real
 Program.cs                                ← registra IPlanLimitsService → PlanLimitsService en el DI
 ```
 
-`Core` (los Controllers) solo conocen `IPlanLimitsService`. Nunca hay un `using TTurnos.Api.SaaS...` dentro de `Core`.
+`Core` (los Controllers) solo conocen `IPlanLimitsService`. Nunca hay un `using Turneo.Api.SaaS...` dentro de `Core`.
 
 ```csharp
 Task<bool> IsWithinLimitAsync(string featureKey, int currentCount);

@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Cubre la reconciliación de stock de insumos en PUT /api/bookings/{id}/detail:
 // el endpoint reemplaza toda la lista de items en cada guardado, así que el

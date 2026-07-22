@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Tenants;
+namespace Turneo.Api.SaaS.Tenants;
 
 // Tabla puente: qué módulo(s) tiene habilitado cada tenant.
 public class TenantModule : ITenantScoped

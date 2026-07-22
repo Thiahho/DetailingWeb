@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace TTurnos.Api.Migrations
+namespace Turneo.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260113194001_AddEndDateTimeToTimeSlots")]
@@ -24,7 +24,7 @@ namespace TTurnos.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("TTurnos.Api.Models.BlockedDate", b =>
+            modelBuilder.Entity("Turneo.Api.Models.BlockedDate", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -52,7 +52,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("BlockedDates");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Models.Booking", b =>
+            modelBuilder.Entity("Turneo.Api.Models.Booking", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -97,7 +97,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Bookings");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Models.BusinessSettings", b =>
+            modelBuilder.Entity("Turneo.Api.Models.BusinessSettings", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -129,7 +129,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("BusinessSettings");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Models.TimeSlot", b =>
+            modelBuilder.Entity("Turneo.Api.Models.TimeSlot", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -162,7 +162,7 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("TimeSlots");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Models.User", b =>
+            modelBuilder.Entity("Turneo.Api.Models.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -193,9 +193,9 @@ namespace TTurnos.Api.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Models.Booking", b =>
+            modelBuilder.Entity("Turneo.Api.Models.Booking", b =>
                 {
-                    b.HasOne("TTurnos.Api.Models.TimeSlot", "TimeSlot")
+                    b.HasOne("Turneo.Api.Models.TimeSlot", "TimeSlot")
                         .WithMany("Bookings")
                         .HasForeignKey("TimeSlotId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -204,7 +204,7 @@ namespace TTurnos.Api.Migrations
                     b.Navigation("TimeSlot");
                 });
 
-            modelBuilder.Entity("TTurnos.Api.Models.TimeSlot", b =>
+            modelBuilder.Entity("Turneo.Api.Models.TimeSlot", b =>
                 {
                     b.Navigation("Bookings");
                 });

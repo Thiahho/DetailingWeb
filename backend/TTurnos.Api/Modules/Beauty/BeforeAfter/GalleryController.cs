@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Modules.Beauty.BeforeAfter;
+namespace Turneo.Api.Modules.Beauty.BeforeAfter;
 
 [ApiController]
 [Route("api/gallery")]

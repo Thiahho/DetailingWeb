@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Roles;
+namespace Turneo.Api.Core.Roles;
 
 public class PermissionsRepository : IPermissionsRepository
 {

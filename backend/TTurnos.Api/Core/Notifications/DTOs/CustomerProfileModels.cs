@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TTurnos.Api.Core.Notifications;
+namespace Turneo.Api.Core.Notifications;
 
 public record CreateCustomerProfileRequest(
     [Required, StringLength(30, MinimumLength = 6)] string Phone,

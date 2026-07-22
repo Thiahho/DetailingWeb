@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MercadoPago.Resource.Customer;
 
-namespace TTurnos.Api.Infrastructure.Persistence;
+namespace Turneo.Api.Infrastructure.Persistence;
 
 public class ApplicationDbContext : DbContext
 {

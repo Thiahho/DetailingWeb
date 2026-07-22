@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace TTurnos.Api.Core.Roles;
+namespace Turneo.Api.Core.Roles;
 
 // Se combina con [Authorize(Roles = "...")] a nivel de controller/acción: ese
 // atributo ya garantiza autenticación + rol válido — este filtro únicamente

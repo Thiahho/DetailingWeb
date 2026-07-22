@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Caja;
+namespace Turneo.Api.Core.Caja;
 
 public static class CajaSessionStatus
 {

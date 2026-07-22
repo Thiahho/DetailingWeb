@@ -18,7 +18,7 @@ test.describe("Admin: Contenido (videos)", () => {
   test("un admin edita y borra un video de contenido", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/contenido");
 
     const card = page.locator(`[data-testid="video-card"][data-video-title="${seed.videoTitle}"]`);

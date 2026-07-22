@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Professionals;
+namespace Turneo.Api.Core.Professionals;
 
 // Prueba de concepto para reducir el acoplamiento a ApplicationDbContext
 // (auditoría, sección 5: "todos los controllers inyectan ApplicationDbContext

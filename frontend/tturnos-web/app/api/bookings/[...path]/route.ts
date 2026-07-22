@@ -60,7 +60,7 @@ async function notifyRescheduled(booking: RescheduledBooking) {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || user;
-  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "TTurnos";
+  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo";
 
   if (!user || !pass) return;
 
@@ -135,7 +135,7 @@ async function notifyAdminBookingCancelled(booking: {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || user;
-  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "TTurnos";
+  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo";
 
   if (!user || !pass || !adminEmail) return;
 

@@ -10,7 +10,7 @@ const sans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
-const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "TTurnos";
+const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 const metaDescription = process.env.NEXT_PUBLIC_META_DESCRIPTION || "";
 

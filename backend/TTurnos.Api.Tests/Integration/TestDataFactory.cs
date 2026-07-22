@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Helpers para sembrar datos directo contra la base del contenedor de test,
 // evitando pasar por HTTP (y su rate limiting) solo para armar el fixture de

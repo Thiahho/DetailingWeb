@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Infrastructure.Persistence;
+namespace Turneo.Api.Infrastructure.Persistence;
 
 // Semilla el catálogo de Features y los 6 planes comerciales (Free, Starter,
 // Pro, Business, Licencia, Custom — propuesta comercial confirmada 20/07).
@@ -21,7 +21,7 @@ public static class SaaSCatalogSeeder
         var canUseAI = new Feature { Key = "CanUseAI", Name = "Funciones con IA", Type = FeatureType.Boolean };
         var canUseMercadoPago = new Feature { Key = "CanUseMercadoPago", Name = "Pagos con Mercado Pago", Type = FeatureType.Boolean };
         var canUseAutomations = new Feature { Key = "CanUseAutomations", Name = "Automatizaciones", Type = FeatureType.Boolean };
-        var hideBranding = new Feature { Key = "HideTTurnosBranding", Name = "Ocultar marca TTurnos", Type = FeatureType.Boolean };
+        var hideBranding = new Feature { Key = "HideTurneoBranding", Name = "Ocultar marca Turneo", Type = FeatureType.Boolean };
         var maxProfessionals = new Feature { Key = "MaxProfessionals", Name = "Profesionales", Type = FeatureType.Numeric, Description = $"{Unlimited} = sin límite" };
         var maxBranches = new Feature { Key = "MaxBranches", Name = "Sucursales", Type = FeatureType.Numeric, Description = $"{Unlimited} = sin límite" };
         var maxBookings = new Feature { Key = "MaxBookings", Name = "Reservas por mes", Type = FeatureType.Numeric, Description = $"{Unlimited} = sin límite" };

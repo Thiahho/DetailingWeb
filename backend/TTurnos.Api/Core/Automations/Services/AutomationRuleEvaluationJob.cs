@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 // Job diario (Hangfire, ver BackgroundJobsSetup): decide A QUIÉN dispararle cada
 // regla activa y crea los ScheduledReminder correspondientes. El envío en sí lo

@@ -155,7 +155,7 @@ function CustomerForm({
             ))}
           </div>
         )}
-        <CloudinaryUpload value="" onChange={addPhoto} folder="tturnos/clientes" hint="Antes/después, tratamientos, etc." />
+        <CloudinaryUpload value="" onChange={addPhoto} folder="Turneo/clientes" hint="Antes/después, tratamientos, etc." />
       </div>
       <div className="flex gap-2 pt-1">
         <Button type="submit" disabled={saving} data-testid="customer-form-submit" variant="primary" className="flex-1">

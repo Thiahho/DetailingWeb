@@ -9,7 +9,7 @@ test.describe("Admin: Estadísticas", () => {
   test("el dashboard carga los KPIs y las secciones sin errores", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/estadisticas");
 
     await expect(page.getByTestId("estadisticas-page")).toBeVisible();

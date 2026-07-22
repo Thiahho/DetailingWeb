@@ -7,7 +7,7 @@ using MercadoPago.Client.Payment;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace TTurnos.Api.Core.Payments;
+namespace Turneo.Api.Core.Payments;
 
 [ApiController]
 [Route("api/[controller]")]

@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Scheduling;
+namespace Turneo.Api.Core.Scheduling;
 
 public interface IBlockedDatesRepository
 {

@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Reemplaza a GmailProvider/WhatsAppProvider en los tests: nunca debe pegarle
 // a servicios externos reales (SMTP, Meta API) ni depender de credenciales.

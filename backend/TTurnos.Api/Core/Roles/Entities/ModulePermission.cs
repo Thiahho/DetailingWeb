@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Roles;
+namespace Turneo.Api.Core.Roles;
 
 // Permiso de un usuario Staff sobre un módulo del panel admin. Los Admin no
 // tienen filas acá — su acceso es total siempre, sin excepción (ver

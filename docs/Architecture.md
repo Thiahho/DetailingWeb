@@ -99,7 +99,7 @@ Un "servicio" (nombre, precio, duración) existe en cualquier rubro — un corte
 ## Estructura del proyecto
 
 ```
-backend/TTurnos.Api/     Backend ASP.NET Core (+ TTurnos.sln)
+backend/Turneo.Api/     Backend ASP.NET Core (+ Turneo.sln)
   Core/                  Dominio agnóstico de rubro — un folder por dominio, y dentro de
                          cada uno organizado por feature (Entities/, DTOs/, Controllers/,
                          Services/):
@@ -125,7 +125,7 @@ backend/TTurnos.Api/     Backend ASP.NET Core (+ TTurnos.sln)
   Enterprise/               Branches (sucursales), WhiteLabel/Theme (personalización visual)
                          — Audit/, API/ son esqueleto, sin implementar
   Migrations/             Historial de migraciones EF Core
-frontend/tturnos-web/     Frontend Next.js
+frontend/Turneo-web/     Frontend Next.js
   app/                    Next.js App Router, organizado en route groups por audiencia
                          (no afectan la URL pública):
     (public)/               Home, servicios (sitio público de reserva)

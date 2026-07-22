@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Caja;
+namespace Turneo.Api.Core.Caja;
 
 [Table("CajaMovements")]
 public class CajaMovement : ITenantScoped

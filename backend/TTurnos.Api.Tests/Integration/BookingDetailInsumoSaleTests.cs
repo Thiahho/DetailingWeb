@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Cubre la distinción venta vs. uso interno de un insumo (BookingItem.IsSale):
 // un insumo VENDIDO se cobra al cliente (precio real, cuenta como venta) y no

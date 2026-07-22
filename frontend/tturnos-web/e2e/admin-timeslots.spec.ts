@@ -18,7 +18,7 @@ test.describe("Admin: gestión de Turnos", () => {
   test("un admin crea un turno para un profesional y lo elimina", async ({ page }) => {
     // storageState no persiste sessionStorage — sin esto, auth.ts trata la
     // página como "ventana nueva con cookie vieja" y fuerza logout al vuelo.
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/turnos");
 
     // Fecha lejos de la que usan otros specs (booking/professional-agenda), para no pisarse.

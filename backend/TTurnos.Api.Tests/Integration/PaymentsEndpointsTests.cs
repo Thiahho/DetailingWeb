@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // El AccessToken de MercadoPago está vacío en appsettings.json (sistema en
 // demo, ver auditoría hallazgo a) y CustomWebApplicationFactory no lo

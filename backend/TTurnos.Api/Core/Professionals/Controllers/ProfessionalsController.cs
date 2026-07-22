@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
-namespace TTurnos.Api.Core.Professionals;
+namespace Turneo.Api.Core.Professionals;
 
 [ApiController]
 [Route("api/[controller]")]

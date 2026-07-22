@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Content;
+namespace Turneo.Api.Core.Content;
 
 public class ContentVideosRepository : IContentVideosRepository
 {

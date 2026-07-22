@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 // Regla configurable por el admin: trigger (+ condición embebida en InactiveDays
 // cuando aplica) → acción (MessageTemplate) → espera (CooldownDays evita reenviar

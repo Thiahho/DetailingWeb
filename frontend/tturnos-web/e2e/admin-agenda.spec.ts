@@ -26,7 +26,7 @@ function mondayOf(date: Date): Date {
 
 test.describe("Admin: Agenda semanal (multi-profesional)", () => {
   test("un admin crea dos turnos para un profesional, reserva uno desde la agenda semanal y lo reprograma arrastrándolo", async ({ page }) => {
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
 
     // Día lejos del resto de la suite (admin-timeslots usa +40, professional-agenda
     // y booking usan offsets chicos) para no compartir turnos con otros specs.

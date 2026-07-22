@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // El caller nunca controla professionalId "para sí mismo" — CallerProfessionalId()
 // lee el claim del JWT, no el body. Es la única línea de defensa contra que un

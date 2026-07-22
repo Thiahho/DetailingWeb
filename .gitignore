@@ -51,13 +51,13 @@ publish/
 packages/
 
 # Sensitive .NET config
-backend/TTurnos.Api/appsettings.Development.json
-backend/TTurnos.Api/appsettings.Production.json
+backend/Turneo.Api/appsettings.Development.json
+backend/Turneo.Api/appsettings.Production.json
 
 # Google OAuth credentials y tokens — NUNCA subir al repositorio
-backend/TTurnos.Api/credentials.json
-backend/TTurnos.Api/token.json/
-backend/TTurnos.Api/token.json
+backend/Turneo.Api/credentials.json
+backend/Turneo.Api/token.json/
+backend/Turneo.Api/token.json
 
 # =========================
 # IDEs / Editores
@@ -107,8 +107,8 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
-frontend/tturnos-web/e2e/.e2e-seed.json
-frontend/tturnos-web/e2e/.auth-admin.json
+frontend/Turneo-web/e2e/.e2e-seed.json
+frontend/Turneo-web/e2e/.auth-admin.json
 
 # =========================
 # TypeScript build info
@@ -125,7 +125,7 @@ my-mercadopago-app/
 # Dumps de base de datos (pueden contener datos reales de clientes)
 # =========================
 *.sql
-!backend/TTurnos.Api/Scripts/**/*.sql
+!backend/Turneo.Api/Scripts/**/*.sql
 
 # =========================
 # graphify (grafo de conocimiento generado localmente)

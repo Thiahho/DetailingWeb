@@ -1,4 +1,4 @@
-# TTurnos — Plataforma de Reservas y Gestión Multi-Rubro
+# Turneo — Plataforma de Reservas y Gestión Multi-Rubro
 
 **Versión:** 1.0.0-alpha
 
@@ -68,12 +68,12 @@ Detalle de todas las funciones (reserva pública, portal del cliente, panel admi
 
 ```bash
 # Frontend
-cd frontend/tturnos-web
+cd frontend/Turneo-web
 npm install
 npm run dev          # http://localhost:3000
 
 # Backend
-cd backend/TTurnos.Api
+cd backend/Turneo.Api
 dotnet run --urls http://localhost:5048
 ```
 

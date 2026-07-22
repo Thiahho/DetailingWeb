@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace TTurnos.Api.Core.Scheduling;
+namespace Turneo.Api.Core.Scheduling;
 
 public class TimeSlotGeneratorService
 {

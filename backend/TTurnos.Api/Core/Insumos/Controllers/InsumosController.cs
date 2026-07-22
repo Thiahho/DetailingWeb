@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace TTurnos.Api.Core.Insumos;
+namespace Turneo.Api.Core.Insumos;
 
 [ApiController]
 [Route("api/[controller]")]

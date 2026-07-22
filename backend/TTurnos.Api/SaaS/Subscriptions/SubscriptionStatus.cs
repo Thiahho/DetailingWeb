@@ -1,4 +1,4 @@
-namespace TTurnos.Api.SaaS.Subscriptions;
+namespace Turneo.Api.SaaS.Subscriptions;
 
 public enum SubscriptionStatus
 {

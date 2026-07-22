@@ -21,9 +21,9 @@ Cada negocio registrado es un `Tenant` (`SaaS/Tenants/Tenant.cs`, `int Id`). Tod
 
 ## El header `X-Tenant-Host`
 
-El frontend (Vercel) y el backend (Render) corren en hosts distintos. Cuando Next.js hace un `fetch()` server-side hacia la API, el `Host` que ve el backend es el suyo propio, no el subdominio que el usuario realmente visitó (`salon-x.tturnos.app`) — así que hay que reenviarlo explícitamente.
+El frontend (Vercel) y el backend (Render) corren en hosts distintos. Cuando Next.js hace un `fetch()` server-side hacia la API, el `Host` que ve el backend es el suyo propio, no el subdominio que el usuario realmente visitó (`salon-x.Turneo.app`) — así que hay que reenviarlo explícitamente.
 
-- `frontend/tturnos-web/src/lib/tenantHeader.ts` lee `request.headers.get("host")` y lo devuelve como `{ "X-Tenant-Host": host }`.
+- `frontend/Turneo-web/src/lib/tenantHeader.ts` lee `request.headers.get("host")` y lo devuelve como `{ "X-Tenant-Host": host }`.
 - Las 24 rutas proxy en `app/api/**/route.ts` lo incluyen en cada `fetch()` hacia el backend.
 - **No se usa el header estándar `X-Forwarded-Host`** a propósito — el proxy de Render delante de la API también podría escribir ese header con su propia información de la cadena de proxies, generando ambigüedad. Un header dedicado sin significado estándar evita la colisión.
 - La única ruta que **no** lo lleva es el webhook de MercadoPago (`app/api/payments/webhook/mercadopago`) — lo llama MercadoPago directo, no el navegador, así que no hay "host real del usuario" que reenviar. Ver más abajo cómo se resuelve el tenant ahí.
@@ -43,4 +43,4 @@ Probado end-to-end contra la base local:
 
 ## Pendiente
 
-Configurar el DNS wildcard (`*.tturnos.app` o el dominio que se defina) y `Tenancy:BaseDomain` real en producción — hasta entonces no se puede probar el ruteo por subdominio real, aunque el código ya está listo para cuando exista. Esto es responsabilidad del usuario (dashboard externo, no algo que se resuelva desde el código).
+Configurar el DNS wildcard (`*.Turneo.app` o el dominio que se defina) y `Tenancy:BaseDomain` real en producción — hasta entonces no se puede probar el ruteo por subdominio real, aunque el código ya está listo para cuando exista. Esto es responsabilidad del usuario (dashboard externo, no algo que se resuelva desde el código).

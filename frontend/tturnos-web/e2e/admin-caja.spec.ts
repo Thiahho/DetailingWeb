@@ -15,7 +15,7 @@ test.use({ storageState: ADMIN_STORAGE_STATE });
 
 test.describe("Admin: Caja", () => {
   test("un admin abre caja, cobra un turno, registra una devolución y cierra con diferencia", async ({ page }) => {
-    await page.addInitScript(() => sessionStorage.setItem("tturnos_session_active", "true"));
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
     await page.goto("/admin/caja");
 
     // Solo puede haber una caja abierta por tenant a la vez — si quedó una

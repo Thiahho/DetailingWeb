@@ -7,7 +7,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 
 async function sendOtpEmail(email: string, code: string) {
-  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "TTurnos";
+  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo";
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },

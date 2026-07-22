@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Platform;
+namespace Turneo.Api.Core.Platform;
 
 public record PlatformLoginRequest(string Email, string Password);
 

@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Bookings;
+namespace Turneo.Api.Core.Bookings;
 
 public static class BookingStatus
 {

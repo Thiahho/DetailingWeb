@@ -354,7 +354,7 @@ export default function Home() {
         </p>
         {siteConfig && !siteConfig.hideBranding && (
           <a href="/" className="mt-2 inline-block text-charcoal/40 hover:text-charcoal/60 transition">
-            Potenciado por TTurnos
+            Potenciado por Turneo
           </a>
         )}
       </footer>

@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Cubre el pilar más nuevo y riesgoso del sistema (ver ADR-002/003): el query
 // filter global por TenantId en ApplicationDbContext. Antes de esta suite no

@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Enterprise.Branches;
+namespace Turneo.Api.Enterprise.Branches;
 
 // Sucursal física de un tenant. Opcional: un tenant de una sola ubicación
 // simplemente no tiene filas acá — Core no depende de que exista una Branch.

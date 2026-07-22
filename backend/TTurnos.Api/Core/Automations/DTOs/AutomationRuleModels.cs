@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TTurnos.Api.Core.Automations;
+namespace Turneo.Api.Core.Automations;
 
 public record CreateAutomationRuleRequest(
     [Required, StringLength(200, MinimumLength = 1)] string Name,

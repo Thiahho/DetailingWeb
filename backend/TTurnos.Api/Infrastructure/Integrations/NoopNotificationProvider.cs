@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Infrastructure.Integrations;
+namespace Turneo.Api.Infrastructure.Integrations;
 
 // Usado solo en ASPNETCORE_ENVIRONMENT=Testing (ver Program.cs) para que los
 // e2e de Playwright no manden WhatsApp/emails reales — reemplaza a

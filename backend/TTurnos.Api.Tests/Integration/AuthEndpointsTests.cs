@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 
-namespace TTurnos.Api.Tests.Integration;
+namespace Turneo.Api.Tests.Integration;
 
 // Nota: todos los endpoints acá están detrás de la política de rate limiting
 // "auth" (5 req/min por IP, y el TestServer reporta una IP nula → todos los

@@ -1,7 +1,7 @@
 using Hangfire;
 using Hangfire.PostgreSql;
 
-namespace TTurnos.Api.Infrastructure.BackgroundJobs;
+namespace Turneo.Api.Infrastructure.BackgroundJobs;
 
 public static class BackgroundJobsSetup
 {

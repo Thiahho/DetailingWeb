@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace TTurnos.Api.Core.Insumos;
+namespace Turneo.Api.Core.Insumos;
 
 // Receta de un Service: qué insumos consume y en qué cantidad. Se usa para
 // auto-agregar esos insumos (con su cantidad) cuando el servicio se carga

@@ -1,4 +1,4 @@
-namespace TTurnos.Api.Core.Reports;
+namespace Turneo.Api.Core.Reports;
 
 public interface IAnalyticsRepository
 {

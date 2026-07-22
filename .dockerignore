@@ -24,10 +24,10 @@ out/
 LICENSE
 
 # Credenciales sensibles
-backend/TTurnos.Api/credentials.json
-backend/TTurnos.Api/token.json
-backend/TTurnos.Api/appsettings.Development.json
-backend/TTurnos.Api/appsettings.Production.json
+backend/Turneo.Api/credentials.json
+backend/Turneo.Api/token.json
+backend/Turneo.Api/appsettings.Development.json
+backend/Turneo.Api/appsettings.Production.json
 **/.env
 **/.env.*
 
