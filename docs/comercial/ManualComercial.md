@@ -110,7 +110,7 @@ Cualquier rubro fuera de belleza (gimnasios, clínicas/consultorios, veterinaria
 Funciona hasta que dos clientes reservan el mismo horario, o hasta que alguien de tu equipo se olvida de anotar un turno en la planilla compartida. El costo no se ve en la planilla — se ve en el tiempo que perdés confirmando a mano y en los turnos que se pisan o se pierden. Turneo hace eso imposible a nivel de sistema: dos reservas para el mismo horario no pueden coexistir, es una regla de la base de datos, no una promesa.
 
 **"Es caro" / "¿Cuánto sale?"**
-Los planes se arman según el tamaño real del negocio (desde 1 profesional hasta equipos grandes) — no es un precio único para todos. *(Nota interna: el precio final de cada plan todavía no está definido formalmente — ver Anexo A. No cotizar un número fijo sin confirmarlo antes con el equipo comercial.)*
+Los planes se arman según el tamaño real del negocio (desde 1 profesional hasta equipos grandes) — no es un precio único para todos. Arranca en $0 con el plan FREE y escala según cantidad de profesionales y funcionalidades (ver Anexo B). Pagando anual, son 2 meses gratis ("pagá 10, usá 12").
 
 **"Mis clientes son grandes, no van a reservar solos por internet."**
 Es al revés: sacarles la fricción de tener que llamar o escribir y esperar respuesta es lo que más valoran. El sistema está pensado para que reservar lleve menos de un minuto desde el celular, sin registrarse con contraseña.
@@ -276,7 +276,6 @@ Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-rese
 
 - Cualquier rubro que no sea belleza (gimnasios, salud, veterinarias, restaurantes, automotriz) como producto ya disponible — son carpetas vacías en el código, sin una sola funcionalidad construida. Se puede ofrecer como proyecto Custom, nunca como "ya lo tenemos".
 - Membresías y catálogo de productos con stock dentro del módulo Belleza (más allá del catálogo simple ya usado por Caja) — sin definir ni construir.
-- Precio fijo y público por plan — los límites de cada plan (cantidad de profesionales, turnos, etc.) sí están definidos, pero el precio en pesos de cada plan todavía es una decisión de negocio pendiente. No cotizar un número sin confirmarlo antes.
 - Importación automática de datos desde otro sistema (Excel, otro turnero) — se coordina manualmente caso a caso, no hay una herramienta de "subí tu Excel y listo".
 
 ---
@@ -293,14 +292,17 @@ Turneo se vende de tres formas distintas, **sobre exactamente el mismo software*
 
 ### Planes (según cantidad de profesionales y funcionalidades)
 
-| Plan | Profesionales | Turnos/mes | WhatsApp | Automatización/IA |
-|---|---|---|---|---|
-| Starter | 1 | 50 | No | No |
-| Pro | Hasta 5 | 500 | Sí | No |
-| Premium | Hasta 15 | 2.000 | Sí | Sí |
-| Enterprise | Sin límite | Sin límite | Sí | Sí |
+| Plan | Precio/mes | Profesionales | Turnos/mes | WhatsApp | Automatización/IA |
+|---|---|---|---|---|---|
+| FREE | $0 | 1 | 35 | Sí | No |
+| Starter | $12.900 | 1 | 50 | No | No |
+| Pro ⭐ | $24.900 | Hasta 5 | 500 | Sí | No |
+| Premium | $39.900 | Hasta 15 | 2.000 | Sí | Sí |
+| Enterprise | Desde $69.900 | Sin límite | Sin límite | Sí | Sí |
 
-*Los precios de cada plan todavía no están definidos formalmente — se cotizan hoy caso a caso con el equipo comercial. No usar esta tabla para dar un número en una llamada sin confirmarlo antes.*
+Precios en pesos argentinos, por mes. Pagando anual: **"Pagá 10 meses y usá 12"** (equivale a ~15% de descuento) en vez de un simple 15% off — se comunica mejor porque es concreto y fácil de calcular para el dueño del negocio.
+
+*Enterprise es "desde" porque se cotiza según el caso (sucursales, volumen, integraciones a medida) — no es un número cerrado como los otros cuatro planes.*
 
 ---
 
