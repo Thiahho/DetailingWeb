@@ -157,7 +157,7 @@ export default function ComercialHome() {
       {/* NAV */}
       <header className="sticky top-0 z-50 border-b border-mauve/10 bg-cream/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-semibold text-charcoal">Turneo</span>
+          <img src="/img/LogoPortada.png" alt="Turneo" className="h-10 w-auto object-contain" />
           <nav className="hidden items-center gap-6 text-sm text-charcoal/70 md:flex">
             <a href="#funciones" className="transition hover:text-charcoal">Funciones</a>
             <a href="#planes" className="transition hover:text-charcoal">Planes</a>
