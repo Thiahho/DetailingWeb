@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buildWhatsAppUrl } from "@/src/lib/contact";
 
 // Home comercial de Turneo (el producto/SaaS) — a diferencia de /reservar
 // no depende de ningún tenant ni hace fetch a la API, es contenido estático.
@@ -146,10 +147,6 @@ const A_MEDIDA = [
     cta: "Hablar con nosotros",
   },
 ];
-
-const WHATSAPP_NUMBER = "541122692061";
-const buildWhatsAppUrl = (message: string) =>
-  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
 export default function ComercialHome() {
   return (

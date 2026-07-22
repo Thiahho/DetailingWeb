@@ -33,3 +33,4 @@ global using Turneo.Api.Enterprise.Branches;
 global using Turneo.Api.Enterprise.WhiteLabel;
 global using Turneo.Api.Modules.Beauty.BeforeAfter;
 global using Turneo.Api.Modules.Beauty.Treatments;
+global using Turneo.Api.Marketing.Roulette;

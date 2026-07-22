@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
+import Link from "next/link";
 import PasswordInput from "@/src/components/ui/PasswordInput";
 import { Button } from "@/src/components/shared/Button";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
@@ -97,7 +98,12 @@ export default function PlatformTenantsPage() {
     <div className="mx-auto max-w-5xl px-6 py-12 text-white">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-      <h1 className="text-2xl font-bold">Tenants</h1>
+      <div className="flex items-center gap-4 text-sm text-white/50">
+        <span className="font-semibold text-white">Tenants</span>
+        <Link href="/platform/roulette" className="hover:text-white">Ruleta</Link>
+      </div>
+
+      <h1 className="mt-2 text-2xl font-bold">Tenants</h1>
       <p className="mt-1 text-white/50 text-sm">Alta de negocios nuevos en Turneo.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 sm:grid-cols-2">

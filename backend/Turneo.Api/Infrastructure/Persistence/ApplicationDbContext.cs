@@ -85,6 +85,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<AutomationRule> AutomationRules { get; set; }
     public DbSet<AutomationRuleExecution> AutomationRuleExecutions { get; set; }
 
+    // Marketing/Roulette — no son tenant-scoped: es la ruleta de captación de
+    // leads de Turneo (marketing propio), no un dato de un tenant existente.
+    public DbSet<RoulettePrize> RoulettePrizes { get; set; }
+    public DbSet<RouletteLead> RouletteLeads { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -684,6 +689,25 @@ public class ApplicationDbContext : DbContext
              .OnDelete(DeleteBehavior.SetNull);
 
             e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        // ── Marketing/Roulette (no tenant-scoped) ───────────────────────────
+        modelBuilder.Entity<RoulettePrize>(e =>
+        {
+            e.Property(x => x.Probability).HasColumnType("decimal(5,2)");
+            e.Property(x => x.Value).HasColumnType("decimal(10,2)");
+        });
+
+        modelBuilder.Entity<RouletteLead>(e =>
+        {
+            // Un WhatsApp = una participación (sección 18 del PDF).
+            e.HasIndex(x => x.WhatsApp).IsUnique();
+            e.HasIndex(x => x.CodigoPromocional).IsUnique();
+
+            e.HasOne(x => x.Prize)
+                .WithMany()
+                .HasForeignKey(x => x.PrizeId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

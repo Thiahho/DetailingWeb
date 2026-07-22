@@ -69,6 +69,7 @@ builder.Services.AddScoped<ReminderService>();
 builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
 builder.Services.AddScoped<AutomationRuleEvaluationJob>();
+builder.Services.AddScoped<RouletteService>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);
 
@@ -129,6 +130,18 @@ builder.Services.AddRateLimiter(options =>
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Ruleta de captación de leads (docs/RULETA.pdf): endpoint público sin
+    // login, blanco fácil de scripts que giren en loop para juntar códigos.
+    options.AddPolicy("roulette", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
