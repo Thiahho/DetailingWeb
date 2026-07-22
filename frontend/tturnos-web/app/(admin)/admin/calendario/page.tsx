@@ -165,9 +165,6 @@ export default function CalendarioPage() {
     return true;
   });
 
-  const professionalColor = (id?: number | null) =>
-    professionals.find((p) => p.id === id)?.calendarColor || "#7c3aed";
-
   // Agrupar por día
   const slotsByDay = monthSlots.reduce<Record<number, TimeSlot[]>>((acc, s) => {
     const { d } = parseLocalDate(s.startDateTime);
@@ -480,9 +477,7 @@ export default function CalendarioPage() {
                 if (!day) return <div key={`empty-${i}`} />;
                 const dayData = slotsByDay[day] ?? [];
                 const hasBooked = dayData.some((s) => !s.isAvailable);
-                const availableProfessionalIds = Array.from(
-                  new Set(dayData.filter((s) => s.isAvailable).map((s) => s.professionalId ?? 0))
-                ).slice(0, 3);
+                const hasAvailable = dayData.some((s) => s.isAvailable);
                 const isSelected = selectedDay === day;
                 const todayCell = isToday(day);
 
@@ -492,7 +487,7 @@ export default function CalendarioPage() {
                     data-testid="calendario-day-cell"
                     data-day={day}
                     data-today={todayCell}
-                    data-has-available={dayData.some((s) => s.isAvailable)}
+                    data-has-available={hasAvailable}
                     onClick={() => setSelectedDay(isSelected ? null : day)}
                     className={`relative aspect-square flex flex-col items-center justify-center rounded-xl transition-all text-sm font-medium
                       ${isSelected ? "bg-white text-black" : todayCell ? "bg-porcelain/10 text-charcoal ring-1 ring-white/30" : "hover:bg-porcelain/5 text-charcoal/70"}
@@ -502,13 +497,7 @@ export default function CalendarioPage() {
                     {dayData.length > 0 && (
                       <div className="flex gap-0.5 mt-0.5">
                         {hasBooked && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-orange-500" : "bg-orange-400"}`} />}
-                        {availableProfessionalIds.map((pid) => (
-                          <span
-                            key={pid}
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: pid ? professionalColor(pid) : "#22c55e" }}
-                          />
-                        ))}
+                        {hasAvailable && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
                       </div>
                     )}
                   </button>
@@ -531,7 +520,7 @@ export default function CalendarioPage() {
                 </select>
               )}
               <div className="flex gap-4 text-xs text-charcoal/40">
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Disponible (color = profesional)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Disponible</span>
                 <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-400" />Reservado</span>
               </div>
             </div>
