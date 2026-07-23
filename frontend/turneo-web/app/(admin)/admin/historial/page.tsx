@@ -39,30 +39,30 @@ function formatDateFriendly(isoString: string) {
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "Confirmed")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-700"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Confirmado</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Confirmado</span>;
   if (status === "Cancelled")
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-600"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />Cancelado</span>;
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-700"><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />Pendiente</span>;
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-400"><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />Pendiente</span>;
 }
 
 function PaymentBadge({ status, amount, provider }: { status?: string; amount?: number; provider?: string }) {
   if (status === "Approved")
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-700">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400">
         ✓ Pagado{amount ? ` $${amount.toLocaleString("es-AR")}` : ""}{provider ? ` · ${provider}` : ""}
       </span>
     );
   if (status === "Pending")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-700">⏳ Pago pendiente</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400">⏳ Pago pendiente</span>;
   if (status === "Rejected" || status === "Failed")
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-600">✕ Pago rechazado</span>;
   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-porcelain/10 text-charcoal/30">Sin pago</span>;
 }
 
 function NotificationBadge({ status }: { status?: string }) {
-  if (status === "Sent") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700">Enviado</span>;
+  if (status === "Sent") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">Enviado</span>;
   if (status === "Failed") return <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-600">Fallido</span>;
-  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700">Pendiente</span>;
+  return <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">Pendiente</span>;
 }
 
 type FilterType = "todos" | "Reservado" | "Confirmed" | "Cancelled" | "Pagado" | "SinPago";
@@ -275,15 +275,15 @@ export default function HistorialPage() {
             <p className="text-charcoal/40 text-[11px] mt-1">Total</p>
           </div>
           <div className="bg-ivory border border-orange-200 rounded-xl p-3 text-center">
-            <p className="text-xl md:text-2xl font-bold text-orange-700">{counts.Reservado}</p>
+            <p className="text-xl md:text-2xl font-bold text-orange-400">{counts.Reservado}</p>
             <p className="text-charcoal/40 text-[11px] mt-1">Pendientes</p>
           </div>
           <div className="bg-ivory border border-green-200 rounded-xl p-3 text-center">
-            <p className="text-xl md:text-2xl font-bold text-green-700">{counts.Confirmed}</p>
+            <p className="text-xl md:text-2xl font-bold text-green-400">{counts.Confirmed}</p>
             <p className="text-charcoal/40 text-[11px] mt-1">Confirmados</p>
           </div>
           <div className="bg-ivory border border-emerald-900/30 rounded-xl p-3 text-center">
-            <p className="text-xl md:text-2xl font-bold text-emerald-700">{paid}</p>
+            <p className="text-xl md:text-2xl font-bold text-emerald-400">{paid}</p>
             <p className="text-charcoal/40 text-[11px] mt-1">Pagados</p>
           </div>
         </div>
@@ -291,8 +291,8 @@ export default function HistorialPage() {
         {/* Recaudación */}
         {totalRevenue > 0 && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-5 py-3 mb-5 flex items-center justify-between">
-            <span className="text-emerald-700 text-sm font-medium">Total recaudado</span>
-            <span className="text-emerald-700 text-xl font-bold">${totalRevenue.toLocaleString("es-AR")}</span>
+            <span className="text-emerald-400 text-sm font-medium">Total recaudado</span>
+            <span className="text-emerald-400 text-xl font-bold">${totalRevenue.toLocaleString("es-AR")}</span>
           </div>
         )}
 
@@ -417,7 +417,7 @@ export default function HistorialPage() {
                           <button
                             onClick={(e) => { e.stopPropagation(); confirmBooking(b.id, b); }}
                             data-testid="historial-confirm-button"
-                            className="text-xs text-blushdark hover:text-blush font-medium transition"
+                            className="text-xs text-blush hover:text-blushdark font-medium transition"
                           >
                             Confirmar
                           </button>

@@ -87,9 +87,9 @@ export default function CuentaPage() {
                 data-testid="cuenta-message"
                 className={`rounded-lg border p-3 text-sm ${
                   messageType === "success"
-                    ? "bg-green-500/10 border-green-500/20 text-green-700"
+                    ? "bg-green-500/10 border-green-500/20 text-green-400"
                     : messageType === "warning"
-                    ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-700"
+                    ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
                     : "bg-red-500/10 border-red-500/20 text-red-600"
                 }`}
               >

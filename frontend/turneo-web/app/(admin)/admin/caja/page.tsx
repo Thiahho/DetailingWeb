@@ -261,11 +261,11 @@ export default function CajaAdminPage() {
                     <p className="text-charcoal/40 text-[11px] mt-1">Efectivo esperado</p>
                   </div>
                   <div className="bg-ivory border border-mauve/5 rounded-xl p-3 text-center">
-                    <p className="text-lg md:text-xl font-bold text-emerald-700">{formatMoney(session.totals?.chargeTotal ?? 0)}</p>
+                    <p className="text-lg md:text-xl font-bold text-emerald-400">{formatMoney(session.totals?.chargeTotal ?? 0)}</p>
                     <p className="text-charcoal/40 text-[11px] mt-1">Cobros</p>
                   </div>
                   <div className="bg-ivory border border-mauve/5 rounded-xl p-3 text-center">
-                    <p className="text-lg md:text-xl font-bold text-blue-700">{formatMoney(session.totals?.depositTotal ?? 0)}</p>
+                    <p className="text-lg md:text-xl font-bold text-blue-400">{formatMoney(session.totals?.depositTotal ?? 0)}</p>
                     <p className="text-charcoal/40 text-[11px] mt-1">Señas</p>
                   </div>
                   <div className="bg-ivory border border-mauve/5 rounded-xl p-3 text-center">
@@ -346,7 +346,7 @@ export default function CajaAdminPage() {
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             <span className="text-charcoal/40 text-xs">{formatDateTime(m.createdAt)}</span>
-                            <span className={`font-semibold ${m.type === "Refund" || m.type === "ManualOut" ? "text-red-600" : "text-emerald-700"}`}>
+                            <span className={`font-semibold ${m.type === "Refund" || m.type === "ManualOut" ? "text-red-600" : "text-emerald-400"}`}>
                               {m.type === "Refund" || m.type === "ManualOut" ? "-" : "+"}{formatMoney(m.amount)}
                             </span>
                           </div>
@@ -379,7 +379,7 @@ export default function CajaAdminPage() {
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
                   <div className="bg-ivory border border-mauve/5 rounded-xl p-3 text-center">
-                    <p className="text-lg font-bold text-emerald-700">{formatMoney(monthlyReport.totalCharges + monthlyReport.totalDeposits)}</p>
+                    <p className="text-lg font-bold text-emerald-400">{formatMoney(monthlyReport.totalCharges + monthlyReport.totalDeposits)}</p>
                     <p className="text-charcoal/40 text-[11px] mt-1">Cobros + señas (efectivo/transf.)</p>
                   </div>
                   <div className="bg-ivory border border-mauve/5 rounded-xl p-3 text-center">
@@ -415,7 +415,7 @@ export default function CajaAdminPage() {
                             <td className="px-4 py-3 text-charcoal/70 font-mono text-xs">{formatDateTime(s.closedAt)}</td>
                             <td className="px-4 py-3 text-charcoal">{formatMoney(s.expectedCash)}</td>
                             <td className="px-4 py-3 text-charcoal">{formatMoney(s.closingCashCounted ?? 0)}</td>
-                            <td className={`px-4 py-3 font-semibold ${s.difference === 0 ? "text-charcoal/50" : s.difference > 0 ? "text-blue-700" : "text-red-600"}`}>
+                            <td className={`px-4 py-3 font-semibold ${s.difference === 0 ? "text-charcoal/50" : s.difference > 0 ? "text-blue-400" : "text-red-600"}`}>
                               {s.difference > 0 ? "+" : ""}{formatMoney(s.difference)}
                             </td>
                           </tr>

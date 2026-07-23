@@ -316,7 +316,7 @@ function ReminderForm({
           </div>
         )}
         {manualMode && !selectedProfessionalId && (
-          <p className="text-amber-700/70 text-[10px] mt-1">Para crear un turno manual hay que elegir a qué profesional pertenece.</p>
+          <p className="text-amber-400/70 text-[10px] mt-1">Para crear un turno manual hay que elegir a qué profesional pertenece.</p>
         )}
       </div>
 
@@ -403,7 +403,7 @@ function ReminderForm({
               </div>
             )}
             {selectedSlot && (
-              <p className="text-emerald-700/70 text-[11px]">
+              <p className="text-emerald-400/70 text-[11px]">
                 ✓ {slotDateLabel(parseLocalDate(selectedSlot.startDateTime).key)} · {slotTime(selectedSlot.startDateTime)}
               </p>
             )}

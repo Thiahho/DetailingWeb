@@ -245,7 +245,7 @@ export default function PermisosPage() {
         {staff.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay cuentas Staff todavía</p>
-            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blush hover:text-blushdark transition text-sm">
               + Crear la primera
             </button>
           </div>

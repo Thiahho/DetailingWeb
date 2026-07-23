@@ -112,8 +112,8 @@ function toLocalInputValue(iso: string) {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    Pending:   "bg-amber-500/20 text-amber-700",
-    Sent:      "bg-emerald-500/20 text-emerald-700",
+    Pending:   "bg-amber-500/20 text-amber-400",
+    Sent:      "bg-emerald-500/20 text-emerald-400",
     Failed:    "bg-red-500/20 text-red-600",
     Cancelled: "bg-porcelain/10 text-charcoal/30",
   };
@@ -138,10 +138,10 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 function BookingStatusBadge({ status }: { status: string }) {
   if (status === "Confirmed")
-    return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/20 text-emerald-700">Confirmado</span>;
+    return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-emerald-500/20 text-emerald-400">Confirmado</span>;
   if (status === "Cancelled")
     return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-red-500/20 text-red-600">Cancelado</span>;
-  return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-700">Pendiente</span>;
+  return <span className="text-[11px] px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-400">Pendiente</span>;
 }
 
 // ── Main page ─────────────────────────────────────────────────────
@@ -484,13 +484,13 @@ export default function ClientesPage() {
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="shrink-0">
                             {r.status === "Sent" ? (
-                              <Check size={16} className="text-emerald-700" />
+                              <Check size={16} className="text-emerald-400" />
                             ) : r.status === "Cancelled" ? (
                               <BellOff size={16} className="text-charcoal/20" />
                             ) : r.status === "Failed" ? (
                               <X size={16} className="text-red-600" />
                             ) : (
-                              <Clock size={16} className="text-amber-700" />
+                              <Clock size={16} className="text-amber-400" />
                             )}
                           </div>
                           <div className="min-w-0">

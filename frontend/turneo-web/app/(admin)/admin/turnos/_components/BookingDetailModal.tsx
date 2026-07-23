@@ -99,7 +99,7 @@ export default function BookingDetailModal({
         <div className="px-6 py-5 space-y-4">
           <Row label="Cliente" value={booking.customerName} />
           <Row label="Teléfono" value={
-            <a href={`tel:${booking.customerPhone}`} className="text-blue-700 hover:underline">
+            <a href={`tel:${booking.customerPhone}`} className="text-blue-400 hover:underline">
               {booking.customerPhone}
             </a>
           } />
@@ -135,10 +135,10 @@ export default function BookingDetailModal({
               slotExpired
                 ? "bg-porcelain/10 text-charcoal/40"
                 : booking.status === "Confirmed"
-                ? "bg-green-500/20 text-green-700"
+                ? "bg-green-500/20 text-green-400"
                 : booking.status === "Cancelled"
                 ? "bg-red-500/20 text-red-600"
-                : "bg-orange-500/20 text-orange-700"
+                : "bg-orange-500/20 text-orange-400"
             }`}>
               {slotExpired ? "Expirado"
                 : booking.status === "Confirmed" ? "Confirmado"
@@ -148,11 +148,11 @@ export default function BookingDetailModal({
           } />
           <Row label="Pago" value={
             booking.paymentStatus === "Approved"
-              ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-700">
+              ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
                   Pagado{booking.paymentAmount ? ` — $${booking.paymentAmount.toLocaleString("es-AR")}` : ""}
                 </span>
               : booking.paymentStatus === "Pending"
-              ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-700">Pago pendiente</span>
+              ? <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400">Pago pendiente</span>
               : <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-porcelain/10 text-charcoal/40">Sin pago</span>
           } />
         </div>

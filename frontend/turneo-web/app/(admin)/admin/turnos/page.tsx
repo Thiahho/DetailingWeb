@@ -740,7 +740,7 @@ export default function TurnosPage() {
                 <button
                   onClick={bulkRelease}
                   disabled={bulkAction}
-                  className="flex-1 bg-green-600/20 border border-green-600/50 text-green-700 hover:bg-green-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                  className="flex-1 bg-green-600/20 border border-green-600/50 text-green-400 hover:bg-green-600/30 py-2 px-4 rounded-lg text-sm font-medium transition disabled:opacity-50"
                 >
                   {bulkAction ? "Procesando..." : "Habilitar seleccionados"}
                 </button>
@@ -777,10 +777,10 @@ export default function TurnosPage() {
                           : blocked
                           ? "bg-porcelain/10 border-mauve/20"
                           : slot.isAvailable
-                          ? "bg-green-50 border-green-200 hover:border-green-300"
+                          ? "bg-green-500/10 border-green-500/30 hover:border-green-500/50"
                           : slot.booking?.status === "Confirmed"
-                          ? "bg-blue-50 border-blue-200 hover:border-blue-300"
-                          : "bg-orange-50 border-orange-200 hover:border-orange-300"
+                          ? "bg-blue-500/10 border-blue-500/30 hover:border-blue-500/50"
+                          : "bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50"
                       }
                       ${selectedIds.includes(slot.id) ? "ring-2 ring-white/30" : ""}
                     `}
@@ -823,7 +823,7 @@ export default function TurnosPage() {
                                   : slot.isAvailable
                                   ? "text-green-500"
                                   : slot.booking?.status === "Confirmed"
-                                  ? "text-blue-700"
+                                  ? "text-blue-400"
                                   : "text-orange-500"
                               }`}
                             >
@@ -854,7 +854,7 @@ export default function TurnosPage() {
                           <>
                             <button
                               onClick={() => startEditing(slot)}
-                              className="text-blushdark hover:text-blush text-xs font-medium uppercase tracking-wide transition"
+                              className="text-blush hover:text-blushdark text-xs font-medium uppercase tracking-wide transition"
                             >
                               Editar
                             </button>
@@ -862,7 +862,7 @@ export default function TurnosPage() {
                               <button
                                 onClick={() => enableSlot(slot.id)}
                                 data-testid="slot-enable-button"
-                                className="text-green-700 hover:text-green-700 text-xs font-medium uppercase tracking-wide transition"
+                                className="text-green-400 hover:text-green-400 text-xs font-medium uppercase tracking-wide transition"
                               >
                                 Habilitar
                               </button>
@@ -887,13 +887,13 @@ export default function TurnosPage() {
                           <>
                             <button
                               onClick={() => setDetailSlot(slot)}
-                              className="text-blushdark hover:text-blush text-xs font-medium uppercase tracking-wide transition"
+                              className="text-blush hover:text-blushdark text-xs font-medium uppercase tracking-wide transition"
                             >
                               Ver detalle
                             </button>
                             <button
                               onClick={() => habilitarTurno(slot.id)}
-                              className="text-green-700 hover:text-green-700 text-xs font-medium uppercase tracking-wide transition"
+                              className="text-green-400 hover:text-green-400 text-xs font-medium uppercase tracking-wide transition"
                             >
                               Liberar
                             </button>
@@ -923,13 +923,13 @@ export default function TurnosPage() {
                             )}
                           </span>
                           {slot.booking.paymentStatus === "Approved" && (
-                            <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-700 border border-green-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                            <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                               Pagado
                             </span>
                           )}
                           {slot.booking.paymentStatus === "Pending" && (
-                            <span className="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-700 border border-yellow-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                            <span className="inline-flex items-center gap-1 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 text-[10px] font-medium">
                               Pago pendiente
                             </span>
                           )}

@@ -117,7 +117,7 @@ export default function ServiciosAdminPage() {
         {services.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay servicios cargados</p>
-            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blush hover:text-blushdark transition text-sm">
               + Crear el primero
             </button>
           </div>
@@ -156,8 +156,8 @@ export default function ServiciosAdminPage() {
                     <span
                       className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         service.isActive
-                          ? "bg-green-500/20 text-green-700"
-                          : "bg-orange-500/20 text-orange-700"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-orange-500/20 text-orange-400"
                       }`}
                     >
                       {service.isActive ? "ACTIVO" : "INACTIVO"}

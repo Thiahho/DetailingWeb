@@ -48,7 +48,7 @@ export default function CloseCajaModal({
   };
 
   if (result) {
-    const diffColor = result.difference === 0 ? "text-green-700" : result.difference > 0 ? "text-blue-700" : "text-red-600";
+    const diffColor = result.difference === 0 ? "text-green-400" : result.difference > 0 ? "text-blue-400" : "text-red-600";
     return (
       <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 max-w-sm w-full text-center">

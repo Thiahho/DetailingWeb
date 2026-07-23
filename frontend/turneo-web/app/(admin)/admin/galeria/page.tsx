@@ -137,7 +137,7 @@ export default function GaleriaAdminPage() {
         {items.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay imágenes en la galería</p>
-            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blush hover:text-blushdark transition text-sm">
               + Agregar la primera
             </button>
           </div>
@@ -156,7 +156,7 @@ export default function GaleriaAdminPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="text-charcoal font-semibold text-[15px]">{item.title}</h3>
-                    <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${item.isActive ? "bg-green-500/20 text-green-700" : "bg-orange-500/20 text-orange-700"}`}>
+                    <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${item.isActive ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400"}`}>
                       {item.isActive ? "ACTIVO" : "INACTIVO"}
                     </span>
                   </div>

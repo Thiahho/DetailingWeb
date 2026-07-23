@@ -405,7 +405,7 @@ export default function ServiceFormModal({
               <button
                 type="button"
                 onClick={() => setCustomFields((prev) => [...prev, emptyField()])}
-                className="text-blushdark hover:text-blush text-xs transition"
+                className="text-blush hover:text-blushdark text-xs transition"
               >
                 + Agregar campo
               </button>

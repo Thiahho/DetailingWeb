@@ -65,21 +65,21 @@ function formatDateFriendly(isoString: string) {
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "Confirmed")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-700"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Confirmado</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />Confirmado</span>;
   if (status === "Cancelled")
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-600"><span className="w-1.5 h-1.5 rounded-full bg-red-400" />Cancelado</span>;
-  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-700"><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />Pendiente</span>;
+  return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-400"><span className="w-1.5 h-1.5 rounded-full bg-orange-400" />Pendiente</span>;
 }
 
 function PaymentBadge({ status, amount, provider }: { status?: string; amount?: number; provider?: string }) {
   if (status === "Approved")
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-700">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400">
         ✓ Pagado{amount ? ` $${amount.toLocaleString("es-AR")}` : ""}{provider ? ` · ${provider}` : ""}
       </span>
     );
   if (status === "Pending")
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-700">⏳ Pago pendiente</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/20 text-yellow-400">⏳ Pago pendiente</span>;
   if (status === "Rejected" || status === "Failed")
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-600">✕ Pago rechazado</span>;
   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-porcelain/10 text-charcoal/30">Sin pago</span>;
@@ -149,7 +149,7 @@ export default function BookingDetailModal({
 
         <div className="px-6 py-5 space-y-3">
           <Row label="Cliente" value={detail.customerName} />
-          <Row label="Teléfono" value={<a href={`tel:${detail.customerPhone}`} className="text-blue-700 hover:underline">{detail.customerPhone}</a>} />
+          <Row label="Teléfono" value={<a href={`tel:${detail.customerPhone}`} className="text-blue-400 hover:underline">{detail.customerPhone}</a>} />
           {detail.email && <Row label="Email" value={detail.email} />}
           {detail.subject && <Row label="Trabajo" value={detail.subject} />}
           <Row label="Servicio" value={detail.service || "—"} />
@@ -178,7 +178,7 @@ export default function BookingDetailModal({
                     <span className="text-charcoal/70">
                       {item.name} <span className="text-charcoal/30 text-xs">×{item.quantity}</span>
                       {item.itemType === "Insumo" && (
-                        <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.isSale ? "bg-emerald-500/20 text-emerald-700" : "bg-porcelain/30 text-charcoal/40"}`}>
+                        <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.isSale ? "bg-emerald-500/20 text-emerald-400" : "bg-porcelain/30 text-charcoal/40"}`}>
                           {item.isSale ? "VENTA" : "USO INTERNO"}
                         </span>
                       )}

@@ -78,7 +78,7 @@ function StatCard({
       className={`bg-ivory border rounded-xl p-5 ${accent ? "border-green-200" : "border-mauve/5"}`}
     >
       <p className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">{label}</p>
-      <p data-testid="estadisticas-stat-value" className={`text-3xl font-bold mt-2 ${accent ? "text-green-700" : "text-charcoal"}`}>{value}</p>
+      <p data-testid="estadisticas-stat-value" className={`text-3xl font-bold mt-2 ${accent ? "text-green-400" : "text-charcoal"}`}>{value}</p>
       {sub && <p className="text-charcoal/40 text-xs mt-1">{sub}</p>}
     </div>
   );
@@ -206,7 +206,7 @@ export default function EstadisticasPage() {
                           style={{ height: m.count > 0 ? `${Math.max(height, 6)}%` : "3px" }}
                         />
                       </div>
-                      <span className={`text-[9px] ${isCurrent ? "text-green-700 font-semibold" : "text-charcoal/30"}`}>
+                      <span className={`text-[9px] ${isCurrent ? "text-green-400 font-semibold" : "text-charcoal/30"}`}>
                         {MONTH_NAMES[m.month - 1]}
                       </span>
                     </div>
@@ -281,7 +281,7 @@ export default function EstadisticasPage() {
                       </td>
                       <td className="py-3">
                         {p.upcomingAbsences > 0 ? (
-                          <span className="text-orange-700 font-medium">{p.upcomingAbsences}</span>
+                          <span className="text-orange-400 font-medium">{p.upcomingAbsences}</span>
                         ) : (
                           <span className="text-charcoal/30">—</span>
                         )}

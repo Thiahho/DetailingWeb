@@ -155,7 +155,7 @@ export default function AdminSidebar() {
         <div className="px-3 py-4 border-t border-mauve/10">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600/70 hover:text-red-600 hover:bg-red-50 transition-all w-full"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600/70 hover:text-red-600 hover:bg-red-500/10 transition-all w-full"
           >
             <LogOut size={17} />
             Cerrar sesión
@@ -269,7 +269,7 @@ export default function AdminSidebar() {
             <div className="px-3 py-4 border-t border-mauve/10">
               <button
                 onClick={() => { setMenuOpen(false); handleLogout(); }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600/70 hover:text-red-600 hover:bg-red-50 transition-all w-full"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600/70 hover:text-red-600 hover:bg-red-500/10 transition-all w-full"
               >
                 <LogOut size={17} />
                 Cerrar sesión

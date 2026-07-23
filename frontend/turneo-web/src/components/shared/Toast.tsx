@@ -67,8 +67,8 @@ function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => vo
   };
 
   const styles = {
-    success: { accent: "bg-emerald-500", icon: "bg-emerald-50 text-emerald-600", bar: "bg-emerald-500" },
-    error: { accent: "bg-red-500", icon: "bg-red-50 text-red-600", bar: "bg-red-500" },
+    success: { accent: "bg-emerald-500", icon: "bg-emerald-500/15 text-emerald-400", bar: "bg-emerald-500" },
+    error: { accent: "bg-red-500", icon: "bg-red-500/15 text-red-400", bar: "bg-red-500" },
     warning: { accent: "bg-champagne", icon: "bg-champagne/15 text-champagne", bar: "bg-champagne" },
     info: { accent: "bg-lavender", icon: "bg-lavender/20 text-mauve", bar: "bg-lavender" },
   };

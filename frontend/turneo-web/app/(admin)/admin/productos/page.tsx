@@ -154,7 +154,7 @@ export default function ProductosAdminPage() {
         {products.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay productos cargados</p>
-            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blush hover:text-blushdark transition text-sm">
               + Crear el primero
             </button>
           </div>
@@ -175,7 +175,7 @@ export default function ProductosAdminPage() {
                     <td className="px-5 py-4 text-charcoal font-medium">{product.name}</td>
                     <td className="px-5 py-4 text-charcoal/60">${product.price.toLocaleString("es-AR")}</td>
                     <td className="px-5 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${product.isActive ? "bg-green-500/20 text-green-700" : "bg-orange-500/20 text-orange-700"}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${product.isActive ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400"}`}>
                         {product.isActive ? "ACTIVO" : "INACTIVO"}
                       </span>
                     </td>

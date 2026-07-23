@@ -30,20 +30,20 @@ const emptyForm = {
 function StockBadge({ stock, lowStockThreshold }: { stock: number; lowStockThreshold: number }) {
   if (stock <= 0) {
     return (
-      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-700">
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
         SIN STOCK
       </span>
     );
   }
   if (stock <= lowStockThreshold) {
     return (
-      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700">
+      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
         POCO STOCK
       </span>
     );
   }
   return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-700">
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
       OK
     </span>
   );
@@ -182,7 +182,7 @@ export default function InsumosAdminPage() {
         {insumos.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay insumos cargados</p>
-            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blush hover:text-blushdark transition text-sm">
               + Crear el primero
             </button>
           </div>
@@ -210,7 +210,7 @@ export default function InsumosAdminPage() {
                     </td>
                     <td className="px-5 py-4 text-charcoal/60">${insumo.unitCost.toLocaleString("es-AR")}</td>
                     <td className="px-5 py-4">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${insumo.isActive ? "bg-green-500/20 text-green-700" : "bg-orange-500/20 text-orange-700"}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${insumo.isActive ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400"}`}>
                         {insumo.isActive ? "ACTIVO" : "INACTIVO"}
                       </span>
                     </td>

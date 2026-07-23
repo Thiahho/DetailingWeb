@@ -218,7 +218,7 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
                   <button
                     type="button"
                     onClick={() => setSelectedCustomer(null)}
-                    className="text-xs text-blushdark hover:text-blush font-medium transition shrink-0"
+                    className="text-xs text-blush hover:text-blushdark font-medium transition shrink-0"
                   >
                     Cambiar
                   </button>

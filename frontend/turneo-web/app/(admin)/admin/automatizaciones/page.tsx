@@ -264,7 +264,7 @@ export default function AutomatizacionesPage() {
         {rules.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
             <p className="text-charcoal/40 text-lg">No hay reglas de automatización cargadas</p>
-            <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
+            <button onClick={openCreate} className="mt-4 text-blush hover:text-blushdark transition text-sm">
               + Crear la primera
             </button>
           </div>
@@ -283,7 +283,7 @@ export default function AutomatizacionesPage() {
                   <h3 className="text-charcoal font-semibold text-[15px] leading-tight">{rule.name}</h3>
                   <span
                     className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      rule.isActive ? "bg-green-500/20 text-green-700" : "bg-orange-500/20 text-orange-700"
+                      rule.isActive ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400"
                     }`}
                   >
                     {rule.isActive ? "ACTIVA" : "INACTIVA"}
@@ -559,11 +559,11 @@ export default function AutomatizacionesPage() {
                           <span
                             className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                               ex.reminderStatus === "Sent"
-                                ? "bg-green-500/20 text-green-700"
+                                ? "bg-green-500/20 text-green-400"
                                 : ex.reminderStatus === "Failed"
                                 ? "bg-red-500/20 text-red-600"
                                 : ex.reminderStatus === "Pending"
-                                ? "bg-orange-500/20 text-orange-700"
+                                ? "bg-orange-500/20 text-orange-400"
                                 : "bg-porcelain/10 text-charcoal/40"
                             }`}
                           >

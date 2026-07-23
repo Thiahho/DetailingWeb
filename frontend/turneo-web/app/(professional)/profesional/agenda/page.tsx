@@ -237,10 +237,10 @@ function ProfessionalAgendaContent() {
                       isHighlighted
                         ? "border-champagne ring-2 ring-champagne/50 bg-champagne/10"
                         : slot.isAvailable
-                        ? "border-green-200 bg-green-50"
+                        ? "border-green-500/30 bg-green-500/10"
                         : slot.booking?.status === "Confirmed"
-                        ? "border-blue-200 bg-blue-50"
-                        : "border-orange-200 bg-orange-50"
+                        ? "border-blue-500/30 bg-blue-500/10"
+                        : "border-orange-500/30 bg-orange-500/10"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -261,10 +261,10 @@ function ProfessionalAgendaContent() {
                       <div className="flex items-center gap-3 shrink-0">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                           slot.isAvailable
-                            ? "bg-green-500/20 text-green-700"
+                            ? "bg-green-500/20 text-green-400"
                             : slot.booking?.status === "Confirmed"
-                            ? "bg-blue-500/20 text-blue-700"
-                            : "bg-orange-500/20 text-orange-700"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-orange-500/20 text-orange-400"
                         }`}>
                           {slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
                         </span>
@@ -272,7 +272,7 @@ function ProfessionalAgendaContent() {
                           <button
                             onClick={() => deleteSlot(slot.id)}
                             data-testid="agenda-slot-delete"
-                            className="text-red-600 hover:text-red-700 text-xs font-medium uppercase tracking-wide transition"
+                            className="text-red-600 hover:text-red-400 text-xs font-medium uppercase tracking-wide transition"
                           >
                             Eliminar
                           </button>
@@ -280,7 +280,7 @@ function ProfessionalAgendaContent() {
                           <button
                             onClick={(e) => { e.stopPropagation(); releaseSlot(slot.id); }}
                             data-testid="agenda-slot-release"
-                            className="text-green-700 hover:text-green-800 text-xs font-medium uppercase tracking-wide transition"
+                            className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
                           >
                             Liberar
                           </button>
@@ -310,7 +310,7 @@ function ProfessionalAgendaContent() {
             <div className="px-6 py-5 space-y-3">
               <Row label="Cliente" value={detailSlot.booking.customerName} />
               <Row label="Teléfono" value={
-                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-700 hover:underline">
+                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-400 hover:underline">
                   {detailSlot.booking.customerPhone}
                 </a>
               } />

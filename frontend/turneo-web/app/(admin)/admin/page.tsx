@@ -213,14 +213,14 @@ export default function AdminDashboard() {
                         href={buildWhatsAppUrl(r)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-green-500/10 text-green-700 hover:bg-green-500/20 transition"
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-green-500/10 text-green-400 hover:bg-green-500/20 transition"
                       >
                         WhatsApp
                       </a>
                       {r.customerEmail && (
                         <a
                           href={buildMailtoUrl(r)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 transition"
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition"
                         >
                           Email
                         </a>
@@ -247,15 +247,15 @@ export default function AdminDashboard() {
             <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Próximos</p>
           </div>
           <div className="bg-ivory border border-orange-200 rounded-xl p-3 md:p-4 text-center">
-            <p className="text-2xl md:text-3xl font-bold text-orange-700">{totalReservados}</p>
+            <p className="text-2xl md:text-3xl font-bold text-orange-400">{totalReservados}</p>
             <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Reservados</p>
           </div>
           <div className="bg-ivory border border-blue-200 rounded-xl p-3 md:p-4 text-center">
-            <p className="text-2xl md:text-3xl font-bold text-blue-700">{totalConfirmados}</p>
+            <p className="text-2xl md:text-3xl font-bold text-blue-400">{totalConfirmados}</p>
             <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Confirmados</p>
           </div>
           <div className="bg-ivory border border-green-200 rounded-xl p-3 md:p-4 text-center">
-            <p className="text-2xl md:text-3xl font-bold text-green-700">{totalLibres}</p>
+            <p className="text-2xl md:text-3xl font-bold text-green-400">{totalLibres}</p>
             <p className="text-charcoal/40 text-[11px] md:text-xs mt-1">Disponibles</p>
           </div>
         </div>
@@ -309,10 +309,10 @@ export default function AdminDashboard() {
                         {/* Estado */}
                         <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                           slot.isAvailable
-                            ? "bg-green-500/10 text-green-700"
+                            ? "bg-green-500/10 text-green-400"
                             : slot.booking?.status === "Confirmed"
-                            ? "bg-blue-500/10 text-blue-700"
-                            : "bg-orange-500/10 text-orange-700"
+                            ? "bg-blue-500/10 text-blue-400"
+                            : "bg-orange-500/10 text-orange-400"
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
                             slot.isAvailable ? "bg-green-400"
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
                       {slot.isAvailable ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); setReserveSlot(slot); }}
-                          className="text-xs text-blushdark hover:text-blush transition font-medium shrink-0"
+                          className="text-xs text-blush hover:text-blushdark transition font-medium shrink-0"
                         >
                           + Reservar
                         </button>
@@ -397,10 +397,10 @@ export default function AdminDashboard() {
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
                             slot.isAvailable
-                              ? "bg-green-500/10 text-green-700"
+                              ? "bg-green-500/10 text-green-400"
                               : slot.booking?.status === "Confirmed"
-                              ? "bg-blue-500/10 text-blue-700"
-                              : "bg-orange-500/10 text-orange-700"
+                              ? "bg-blue-500/10 text-blue-400"
+                              : "bg-orange-500/10 text-orange-400"
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${
                               slot.isAvailable ? "bg-green-400"
@@ -433,7 +433,7 @@ export default function AdminDashboard() {
                           {slot.isAvailable ? (
                             <button
                               onClick={(e) => { e.stopPropagation(); setReserveSlot(slot); }}
-                              className="text-xs text-blushdark hover:text-blush transition font-medium"
+                              className="text-xs text-blush hover:text-blushdark transition font-medium"
                             >
                               + Reservar
                             </button>
@@ -481,7 +481,7 @@ export default function AdminDashboard() {
               } />
               <Row label="Cliente" value={detailSlot.booking.customerName} />
               <Row label="Teléfono" value={
-                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-700 hover:underline">
+                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-400 hover:underline">
                   {detailSlot.booking.customerPhone}
                 </a>
               } />

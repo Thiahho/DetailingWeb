@@ -557,20 +557,20 @@ export default function CalendarioPage() {
                             onClick={() => !slot.isAvailable && slot.booking && setDetailBooking({ slot })}
                             className={`p-3 rounded-xl border transition ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
                               slot.isAvailable
-                                ? "border-green-200 bg-green-50"
+                                ? "border-green-500/30 bg-green-500/10"
                                 : slot.booking?.status === "Confirmed"
-                                ? "border-blue-200 bg-blue-50"
-                                : "border-orange-200 bg-orange-50"
+                                ? "border-blue-500/30 bg-blue-500/10"
+                                : "border-orange-500/30 bg-orange-500/10"
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-charcoal font-medium text-sm">{time}</span>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                 slot.isAvailable
-                                  ? "bg-green-500/20 text-green-700"
+                                  ? "bg-green-500/20 text-green-400"
                                   : slot.booking?.status === "Confirmed"
-                                  ? "bg-blue-500/20 text-blue-700"
-                                  : "bg-orange-500/20 text-orange-700"
+                                  ? "bg-blue-500/20 text-blue-400"
+                                  : "bg-orange-500/20 text-orange-400"
                               }`}>
                                 {slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
                               </span>
@@ -589,7 +589,7 @@ export default function CalendarioPage() {
                                 <button
                                   data-testid="calendario-slot-reserve-button"
                                   onClick={() => setReserveSlot(slot)}
-                                  className="text-xs text-blushdark hover:text-blush font-medium transition"
+                                  className="text-xs text-blush hover:text-blushdark font-medium transition"
                                 >
                                   + Reservar
                                 </button>
@@ -597,7 +597,7 @@ export default function CalendarioPage() {
                                 <button
                                   data-testid="calendario-slot-detail-button"
                                   onClick={() => slot.booking && setDetailBooking({ slot })}
-                                  className="text-xs text-blushdark hover:text-blush font-medium transition"
+                                  className="text-xs text-blush hover:text-blushdark font-medium transition"
                                 >
                                   Ver detalle
                                 </button>
@@ -639,7 +639,7 @@ export default function CalendarioPage() {
                 <button
                   onClick={() => openEdit(detailBooking.slot)}
                   data-testid="calendario-edit-button"
-                  className="text-blushdark hover:text-blush transition text-xs font-semibold"
+                  className="text-blush hover:text-blushdark transition text-xs font-semibold"
                 >
                   Editar
                 </button>
@@ -649,7 +649,7 @@ export default function CalendarioPage() {
             <div className="px-6 py-5 space-y-4">
               <Row label="Cliente" value={detailBooking.slot.booking!.customerName} />
               <Row label="Teléfono" value={
-                <a href={`tel:${detailBooking.slot.booking!.customerPhone}`} className="text-blue-700 hover:underline">
+                <a href={`tel:${detailBooking.slot.booking!.customerPhone}`} className="text-blue-400 hover:underline">
                   {detailBooking.slot.booking!.customerPhone}
                 </a>
               } />
@@ -672,7 +672,7 @@ export default function CalendarioPage() {
                         <span className="text-charcoal/70">
                           {item.name} <span className="text-charcoal/30 text-xs">×{item.quantity}</span>
                           {item.itemType === "Insumo" && (
-                            <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.isSale ? "bg-emerald-500/20 text-emerald-700" : "bg-porcelain/30 text-charcoal/40"}`}>
+                            <span className={`ml-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${item.isSale ? "bg-emerald-500/20 text-emerald-400" : "bg-porcelain/30 text-charcoal/40"}`}>
                               {item.isSale ? "VENTA" : "USO INTERNO"}
                             </span>
                           )}

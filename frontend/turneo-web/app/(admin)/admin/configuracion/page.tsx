@@ -133,7 +133,7 @@ export default function ConfiguracionPage() {
               data-testid="config-message"
               className={`rounded-lg border p-3 text-sm ${
                 messageType === "success"
-                  ? "bg-green-500/10 border-green-500/20 text-green-700"
+                  ? "bg-green-500/10 border-green-500/20 text-green-400"
                   : "bg-red-500/10 border-red-500/20 text-red-600"
               }`}
             >
