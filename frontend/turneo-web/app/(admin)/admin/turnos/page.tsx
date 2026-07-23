@@ -708,7 +708,7 @@ export default function TurnosPage() {
                   onClick={() => handleFilterChange(key)}
                   className={`px-3 py-1 rounded-full text-xs font-semibold transition ${
                     statusFilter === key
-                      ? "bg-white text-black"
+                      ? "bg-blush text-cream"
                       : "bg-porcelain/10 text-charcoal/50 hover:bg-porcelain/20 hover:text-charcoal"
                   }`}
                 >
@@ -806,7 +806,7 @@ export default function TurnosPage() {
                                 expired
                                   ? "bg-porcelain/30"
                                   : blocked
-                                  ? "bg-charcoal/30"
+                                  ? "bg-mauve/60"
                                   : slot.isAvailable
                                   ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                                   : slot.booking?.status === "Confirmed"
@@ -990,7 +990,7 @@ export default function TurnosPage() {
                         w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all
                         ${
                           currentPage === page
-                            ? "bg-white text-black scale-110 shadow-lg"
+                            ? "bg-blush text-cream scale-110 shadow-lg"
                             : "bg-porcelain/10 text-charcoal hover:bg-porcelain/20"
                         }
                       `}

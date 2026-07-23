@@ -215,7 +215,7 @@ function AgendaToolbar({ view, date, density, onDensityChange, onPrev, onNext, o
             onClick={() => onDensityChange(d)}
             title={d === "compact" ? "Vista compacta" : d === "comfortable" ? "Vista media" : "Vista amplia"}
             className={`w-6 h-6 rounded-md text-[11px] font-bold transition ${
-              density === d ? "bg-blush text-white" : "text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
+              density === d ? "bg-blush text-cream" : "text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
             }`}
           >
             {DENSITY_LABELS[d]}

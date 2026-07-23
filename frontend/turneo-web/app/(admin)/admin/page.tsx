@@ -268,7 +268,7 @@ export default function AdminDashboard() {
               onClick={() => setFilter(f)}
               className={`px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition capitalize ${
                 filter === f
-                  ? "bg-white text-black"
+                  ? "bg-blush text-cream"
                   : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
               }`}
             >

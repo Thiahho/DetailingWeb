@@ -12,5 +12,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${siteUrl}/reservar`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${siteUrl}/servicios`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${siteUrl}/mis-turnos`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${siteUrl}/beneficios`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
   ];
 }

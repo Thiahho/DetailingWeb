@@ -75,8 +75,8 @@ export default function ProfessionalLoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4" data-testid="professional-login-error">
-              <p className="text-sm text-red-600 text-center">{error}</p>
+            <div className="rounded-lg bg-champagne/10 border border-champagne/30 p-4" data-testid="professional-login-error">
+              <p className="text-sm text-champagne text-center">{error}</p>
             </div>
           )}
 
@@ -85,7 +85,7 @@ export default function ProfessionalLoginPage() {
             <input
               type="text"
               data-testid="professional-login-email"
-              className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
+              className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal focus:border-blush outline-none transition"
               placeholder="vos@studionails.com o tu usuario"
               value={formData.email}
               onChange={(e) =>
@@ -100,7 +100,7 @@ export default function ProfessionalLoginPage() {
               Contraseña
             </label>
             <PasswordInput
-              className="w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-charcoal focus:border-blush outline-none transition"
+              className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal focus:border-blush outline-none transition"
               data-testid="professional-login-password"
               placeholder="••••••••"
               value={formData.password}
@@ -115,7 +115,7 @@ export default function ProfessionalLoginPage() {
             type="submit"
             disabled={loading}
             data-testid="professional-login-submit"
-            className="w-full rounded-full bg-blush px-6 py-4 font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
+            className="w-full rounded-full bg-blush px-6 py-4 font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>

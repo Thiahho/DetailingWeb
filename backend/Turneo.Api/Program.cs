@@ -70,6 +70,7 @@ builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
 builder.Services.AddScoped<AutomationRuleEvaluationJob>();
 builder.Services.AddScoped<RouletteService>();
+builder.Services.AddScoped<LoyaltyRouletteService>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);
 

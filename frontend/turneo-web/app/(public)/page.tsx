@@ -65,21 +65,19 @@ const BENEFICIOS = [
 const PLANES = [
   {
     name: "Free",
-    price: "$0 / mes",
     tagline: "Para empezar",
     items: [
       "1 profesional",
-      "Hasta 35 turnos por mes",
+      "Hasta x turnos por mes",
       "Notificaciones por WhatsApp",
       "Agenda y página de reservas online",
       "CRM e historial básico",
     ],
     note: "Podés quedarte en este plan el tiempo que quieras.",
-    cta: "Crear cuenta",
+    cta: "Consultar",
   },
   {
     name: "Starter",
-    price: "$12.900 / mes",
     tagline: "Para profesionales independientes",
     items: [
       "1 profesional",
@@ -88,11 +86,10 @@ const PLANES = [
       "Subdominio propio, sin marca Turneo",
       "Caja básica y gestión de señas",
     ],
-    cta: "Elegir plan",
+    cta: "Consultar",
   },
   {
     name: "Pro",
-    price: "$24.900 / mes",
     tagline: "El más elegido",
     items: [
       "Hasta 5 profesionales",
@@ -102,11 +99,10 @@ const PLANES = [
       "Estadísticas por profesional",
     ],
     highlighted: true,
-    cta: "Elegir plan",
+    cta: "Consultar",
   },
   {
     name: "Premium",
-    price: "$39.900 / mes",
     tagline: "Para equipos grandes",
     items: [
       "Hasta 15 profesionales",
@@ -115,11 +111,10 @@ const PLANES = [
       "Automatizaciones y recordatorios con IA",
       "Estadísticas avanzadas",
     ],
-    cta: "Elegir plan",
+    cta: "Consultar",
   },
   {
     name: "Enterprise",
-    price: "Desde $69.900 / mes",
     tagline: "A tu medida",
     items: [
       "Profesionales y turnos sin límite",
@@ -127,7 +122,7 @@ const PLANES = [
       "Infraestructura de mayor capacidad",
       "Soporte prioritario",
     ],
-    cta: "Hablar con nosotros",
+    cta: "Consultar",
   },
 ];
 
@@ -152,7 +147,7 @@ export default function ComercialHome() {
   return (
     <main className="min-h-screen bg-cream text-charcoal">
       {/* NAV */}
-      <header className="sticky top-0 z-50 border-b border-mauve/10 bg-cream/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-mauve/40 bg-cream/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <img src="/img/LogoPortada.png" alt="Turneo" className="h-10 w-auto object-contain" />
           <nav className="hidden items-center gap-6 text-sm text-charcoal/70 md:flex">
@@ -162,7 +157,7 @@ export default function ComercialHome() {
           </nav>
           <Link
             href="/reservar"
-            className="rounded-full bg-blush px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+            className="rounded-full bg-blush px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
           >
             Ver la web en vivo
           </Link>
@@ -172,8 +167,8 @@ export default function ComercialHome() {
       {/* HERO */}
       <div className="hero-grid">
         <section className="mx-auto max-w-4xl space-y-6 px-6 py-24 text-center">
-          <span className="badge mx-auto">Sistema de turnos para salones y estudios de belleza</span>
-          <h1 className="text-4xl font-semibold leading-tight tracking-tight text-charcoal md:text-5xl">
+          <span className="badge mx-auto">Sistema de turnos para barberías y estudios de corte</span>
+          <h1 className="font-display text-4xl font-semibold uppercase leading-[1.05] tracking-tight text-charcoal md:text-6xl">
             El sistema de turnos que administra tu negocio, no al revés
           </h1>
           <p className="mx-auto max-w-2xl text-base text-charcoal/70 md:text-lg">
@@ -183,7 +178,7 @@ export default function ComercialHome() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/reservar"
-              className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+              className="rounded-full bg-blush px-6 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
             >
               Ver la web en vivo
             </Link>
@@ -203,7 +198,7 @@ export default function ComercialHome() {
       <section id="funciones" className="mx-auto max-w-6xl space-y-10 px-6 py-20">
         <div className="space-y-3 text-center">
           <span className="badge mx-auto">Qué ofrece</span>
-          <h2 className="text-3xl font-semibold text-charcoal">Todo lo que necesita tu negocio, ya construido</h2>
+          <h2 className="font-display text-3xl font-semibold uppercase tracking-tight text-charcoal">Todo lo que necesita tu negocio, ya construido</h2>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {FUNCIONES.map((f) => (
@@ -219,7 +214,7 @@ export default function ComercialHome() {
       <section className="mx-auto max-w-6xl space-y-10 px-6 py-20">
         <div className="space-y-3 text-center">
           <span className="badge mx-auto">Garantías</span>
-          <h2 className="text-3xl font-semibold text-charcoal">Construido para que funcione bien</h2>
+          <h2 className="font-display text-3xl font-semibold uppercase tracking-tight text-charcoal">Construido para que funcione bien</h2>
         </div>
         <div className="grid gap-6 sm:grid-cols-2">
           {VALIDACIONES.map((v) => (
@@ -239,7 +234,7 @@ export default function ComercialHome() {
         <div className="mx-auto max-w-4xl space-y-8 px-6 py-20 text-center">
           <div className="space-y-3">
             <span className="badge mx-auto">Beneficios</span>
-            <h2 className="text-3xl font-semibold text-charcoal">Lo que cambia en tu día a día</h2>
+            <h2 className="font-display text-3xl font-semibold uppercase tracking-tight text-charcoal">Lo que cambia en tu día a día</h2>
           </div>
           <ul className="mx-auto max-w-2xl space-y-3 text-left">
             {BENEFICIOS.map((b) => (
@@ -256,7 +251,7 @@ export default function ComercialHome() {
       <section id="planes" className="mx-auto max-w-6xl space-y-10 px-6 py-20">
         <div className="space-y-3 text-center">
           <span className="badge mx-auto">Planes</span>
-          <h2 className="text-3xl font-semibold text-charcoal">Un plan para cada etapa de tu negocio</h2>
+          <h2 className="font-display text-3xl font-semibold uppercase tracking-tight text-charcoal">Un plan para cada etapa de tu negocio</h2>
           <p className="text-sm text-charcoal/60">{NOTA_ANUAL}</p>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -268,7 +263,6 @@ export default function ComercialHome() {
               <div>
                 <h3 className="text-xl font-semibold text-charcoal">{plan.name}</h3>
                 <p className="text-xs uppercase tracking-widest text-charcoal/40">{plan.tagline}</p>
-                <p className="mt-1 text-sm font-medium text-blushdark">{plan.price}</p>
               </div>
               <ul className="flex-1 space-y-2 text-sm text-charcoal/60">
                 {plan.items.map((item) => (
@@ -315,7 +309,7 @@ export default function ComercialHome() {
       {/* CONTACTO */}
       <section id="contacto" className="mx-auto max-w-3xl space-y-6 px-6 py-24 text-center">
         <span className="badge mx-auto">Sumate</span>
-        <h2 className="text-3xl font-semibold text-charcoal">¿Le damos turnos a tu negocio?</h2>
+        <h2 className="font-display text-3xl font-semibold uppercase tracking-tight text-charcoal">¿Le damos turnos a tu negocio?</h2>
         <p className="text-charcoal/70">
           Escribinos contándonos de tu negocio y coordinamos el alta de tu cuenta.
         </p>
@@ -323,13 +317,13 @@ export default function ComercialHome() {
           href={buildWhatsAppUrl("Hola! Quiero más información sobre Turneo.")}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+          className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
         >
           Escribinos por WhatsApp
         </a>
       </section>
 
-      <footer className="border-t border-mauve/10 px-6 py-10 text-center text-xs text-charcoal/50">
+      <footer className="border-t border-mauve/40 px-6 py-10 text-center text-xs text-charcoal/50">
         Turneo
       </footer>
     </main>

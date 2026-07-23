@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Gift, PartyPopper, Sparkles } from "lucide-react";
-import { buildWhatsAppUrl } from "@/src/lib/contact";
+import { PartyPopper, Scissors, Sparkles } from "lucide-react";
+import { type SiteConfig, getSiteConfig, getWhatsAppLink } from "@/src/lib/siteConfig";
 
 interface Prize {
   id: number;
@@ -11,20 +11,19 @@ interface Prize {
 }
 
 interface SpinResult {
-  leadId: number;
-  premioNombre: string;
-  premioDescripcion: string | null;
-  codigo: string;
-  venceHasta: string;
-  yaHabiaParticipado: boolean;
+  spinId: number;
+  prizeName: string;
+  prizeDescription: string | null;
+  code: string;
+  expiresAt: string;
+  alreadyParticipated: boolean;
 }
 
-type Step = "form" | "spinning" | "result" | "additional" | "done";
+type Step = "form" | "spinning" | "result";
 
-// blush / graphite / blushdark — evita que el primer y último gajo (que se
-// tocan en la costura de 360°) queden pegados del mismo color, ver abajo.
+// Mismo lenguaje visual que /ruleta (bronce/grafito) — ver RouletteClient.tsx.
 const SEGMENT_PALETTE = ["#B9853B", "#232326", "#8F6427"];
-const DIVIDER_COLOR = "#EDEAE3"; // bone — separador tipo filo cromado entre gajos
+const DIVIDER_COLOR = "#EDEAE3";
 
 function getSegmentColors(count: number) {
   const colors = Array.from({ length: count }, (_, i) => SEGMENT_PALETTE[i % SEGMENT_PALETTE.length]);
@@ -101,47 +100,41 @@ function formatFecha(iso: string) {
   return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-export default function RouletteClient({
-  campaign,
-  fuente,
-}: {
-  campaign?: string;
-  fuente?: string;
-}) {
+export default function BeneficiosClient() {
+  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [step, setStep] = useState<Step>("form");
   const [rotation, setRotation] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<SpinResult | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [result, setResult] = useState<SpinResult | null>(null);
   const wheelRef = useRef<HTMLDivElement>(null);
 
-  const [form, setForm] = useState({ nombreNegocio: "", whatsApp: "", nombreResponsable: "" });
-  const [extra, setExtra] = useState({
-    email: "",
-    instagram: "",
-    tipoNegocio: "",
-    cantidadProfesionales: "",
-    problemaPrincipal: "",
-  });
+  const [form, setForm] = useState({ nombre: "", whatsApp: "" });
 
   useEffect(() => {
-    fetch("/api/marketing/roulette/prizes")
+    getSiteConfig()
+      .then(setSiteConfig)
+      .catch(() => {});
+
+    fetch("/api/loyalty-roulette/prizes")
       .then((r) => r.json())
       .then((data) => setPrizes(Array.isArray(data) ? data : []))
       .catch(() => setPrizes([]));
   }, []);
 
+  const businessName = siteConfig?.businessName || "el negocio";
+
   const handleSpin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    const nombreNegocio = form.nombreNegocio.trim();
+    const nombre = form.nombre.trim();
     const whatsAppDigits = form.whatsApp.replace(/\D/g, "");
 
-    if (!nombreNegocio) {
-      setError("Contanos el nombre de tu negocio.");
+    if (!nombre) {
+      setError("Contanos tu nombre.");
       return;
     }
     if (whatsAppDigits.length < 8) {
@@ -151,16 +144,10 @@ export default function RouletteClient({
 
     setLoading(true);
     try {
-      const response = await fetch("/api/marketing/roulette/spin", {
+      const response = await fetch("/api/loyalty-roulette/spin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombreNegocio,
-          whatsApp: whatsAppDigits,
-          nombreResponsable: form.nombreResponsable.trim() || undefined,
-          fuente: fuente || "Landing",
-          campaign,
-        }),
+        body: JSON.stringify({ customerName: nombre, whatsApp: whatsAppDigits }),
       });
       const data = await response.json();
 
@@ -171,17 +158,16 @@ export default function RouletteClient({
       const spin = data as SpinResult;
       setResult(spin);
 
-      if (spin.yaHabiaParticipado || prizes.length === 0) {
+      if (spin.alreadyParticipated || prizes.length === 0) {
         revealResult();
         return;
       }
 
-      const index = prizes.findIndex((p) => p.name === spin.premioNombre);
+      const index = prizes.findIndex((p) => p.name === spin.prizeName);
       const safeIndex = index >= 0 ? index : 0;
       const segmentAngle = 360 / prizes.length;
       const jitter = (Math.random() - 0.5) * segmentAngle * 0.5;
-      const target =
-        360 * 6 + (360 - (safeIndex * segmentAngle + segmentAngle / 2)) + jitter;
+      const target = 360 * 6 + (360 - (safeIndex * segmentAngle + segmentAngle / 2)) + jitter;
 
       setRotation(target);
       setStep("spinning");
@@ -204,52 +190,34 @@ export default function RouletteClient({
     }
   };
 
-  const handleContinueExtra = async () => {
-    if (result) {
-      const hasAny = Object.values(extra).some((v) => v.trim().length > 0);
-      if (hasAny) {
-        await fetch(`/api/marketing/roulette/leads/${result.leadId}/additional-data`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: extra.email.trim() || undefined,
-            instagram: extra.instagram.trim() || undefined,
-            tipoNegocio: extra.tipoNegocio || undefined,
-            cantidadProfesionales: extra.cantidadProfesionales || undefined,
-            problemaPrincipal: extra.problemaPrincipal || undefined,
-          }),
-        }).catch(() => {});
-      }
-    }
-    setStep("done");
-  };
-
-  const whatsAppCtaUrl = result
-    ? buildWhatsAppUrl(
-        `Hola, participé en la Ruleta Turneo 🎰\n\nMi negocio es: ${form.nombreNegocio}\nMi beneficio es: ${result.premioNombre}\nMi código es: ${result.codigo}\n\nQuiero activar mi beneficio y conocer Turneo.`
-      )
-    : buildWhatsAppUrl("Hola! Quiero más información sobre Turneo.");
+  const whatsAppCtaUrl =
+    result && siteConfig?.whatsAppNumber
+      ? getWhatsAppLink(
+          siteConfig.whatsAppNumber,
+          `Hola! Gané "${result.prizeName}" en la ruleta de beneficios de ${businessName} 🎉\n\nMi nombre es: ${form.nombre}\nMi código es: ${result.code}\n\nQuiero coordinar mi próximo turno con este beneficio.`
+        )
+      : undefined;
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-cream px-6 py-16 text-charcoal">
       <div className="w-full max-w-xl space-y-8 text-center">
         <div className="space-y-3">
-          <Link href="/" className="text-sm font-semibold text-charcoal/60 hover:text-charcoal">
-            Turneo
+          <Link href="/reservar" className="text-sm font-semibold text-charcoal/60 hover:text-charcoal">
+            {businessName}
           </Link>
           <div className="flex items-center justify-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blush to-champagne shadow-gold">
-              <Gift className="h-5 w-5 text-white" strokeWidth={2} />
+              <Scissors className="h-5 w-5 text-cream" strokeWidth={2} />
             </span>
-            <h1 className="text-3xl font-bold leading-tight tracking-tight md:text-4xl">
-              Girá la Ruleta{" "}
+            <h1 className="font-display text-3xl font-semibold uppercase tracking-tight md:text-4xl">
+              Girá y ganá{" "}
               <span className="bg-gradient-to-r from-blush to-[#d9a954] bg-clip-text text-transparent">
-                Turneo
+                un beneficio
               </span>
             </h1>
           </div>
           <p className="text-charcoal/70">
-            Descubrí tu beneficio exclusivo para empezar a digitalizar tu salón.
+            Un premio exclusivo para tu próxima visita. ¡Un giro por persona!
           </p>
         </div>
 
@@ -313,7 +281,7 @@ export default function RouletteClient({
 
             {/* Centro */}
             <div className="absolute left-1/2 top-1/2 z-10 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-blushdark bg-gradient-to-br from-blush/25 to-cream shadow-soft">
-              <Gift className="h-5 w-5 text-blush" strokeWidth={2.25} />
+              <Scissors className="h-5 w-5 text-blush" strokeWidth={2.25} />
             </div>
           </div>
 
@@ -323,14 +291,14 @@ export default function RouletteClient({
         {step === "form" && (
           <form onSubmit={handleSpin} className="glass-card mx-auto max-w-sm space-y-4 p-6 text-left">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-charcoal/70">Nombre de tu negocio</label>
+              <label className="text-sm font-medium text-charcoal/70">Tu nombre</label>
               <input
                 type="text"
                 required
                 className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal outline-none transition focus:border-blush"
-                placeholder="Ej: Estudio Bella"
-                value={form.nombreNegocio}
-                onChange={(e) => setForm({ ...form, nombreNegocio: e.target.value })}
+                placeholder="¿Quién sos?"
+                value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
               />
             </div>
             <div className="space-y-2">
@@ -344,22 +312,12 @@ export default function RouletteClient({
                 onChange={(e) => setForm({ ...form, whatsApp: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-charcoal/70">Tu nombre (opcional)</label>
-              <input
-                type="text"
-                className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal outline-none transition focus:border-blush"
-                placeholder="¿Quién sos?"
-                value={form.nombreResponsable}
-                onChange={(e) => setForm({ ...form, nombreResponsable: e.target.value })}
-              />
-            </div>
 
             {error && <p className="text-sm text-champagne">{error}</p>}
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || prizes.length === 0}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blush px-6 py-3.5 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
             >
               {loading ? (
@@ -367,12 +325,17 @@ export default function RouletteClient({
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-                  GIRAR LA RULETA
+                  GIRAR Y GANAR
                 </>
               )}
             </button>
+            {prizes.length === 0 && !loading && (
+              <p className="text-center text-[11px] text-charcoal/40">
+                Todavía no hay beneficios cargados. Volvé a intentarlo más tarde.
+              </p>
+            )}
             <p className="text-center text-[11px] text-charcoal/40">
-              Una participación por WhatsApp. El premio tiene vigencia limitada desde que lo ganás.
+              Un giro por persona. El beneficio tiene vigencia limitada desde que lo ganás.
             </p>
           </form>
         )}
@@ -383,133 +346,45 @@ export default function RouletteClient({
 
         {step === "result" && result && (
           <div className="glass-card animate-pop-in mx-auto max-w-sm space-y-4 p-6">
-            {result.yaHabiaParticipado && (
+            {result.alreadyParticipated && (
               <p className="text-xs text-charcoal/50">Ya habías participado con este WhatsApp — este es tu premio.</p>
             )}
             <div className="flex flex-col items-center gap-2">
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blush to-champagne shadow-gold">
-                <PartyPopper className="h-7 w-7 text-white" strokeWidth={2} />
+                <PartyPopper className="h-7 w-7 text-cream" strokeWidth={2} />
               </span>
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-blush">¡Ganaste!</p>
             </div>
-            <h2 className="text-xl font-semibold text-charcoal">{result.premioNombre.toUpperCase()}</h2>
-            {result.premioDescripcion && (
-              <p className="text-sm text-charcoal/60">{result.premioDescripcion}</p>
+            <h2 className="text-xl font-semibold text-charcoal">{result.prizeName}</h2>
+            {result.prizeDescription && (
+              <p className="text-sm text-charcoal/60">{result.prizeDescription}</p>
             )}
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-widest text-charcoal/40">Código</p>
               <p className="rounded-lg bg-porcelain px-4 py-2 font-mono text-lg font-semibold text-blush">
-                {result.codigo}
+                {result.code}
               </p>
             </div>
-            <p className="text-xs text-charcoal/50">Válido hasta: {formatFecha(result.venceHasta)}</p>
-            <button
-              onClick={() => setStep("additional")}
-              className="w-full rounded-full bg-blush px-6 py-3.5 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
-            >
-              ACTIVAR MI BENEFICIO
-            </button>
-          </div>
-        )}
-
-        {step === "additional" && (
-          <div className="glass-card mx-auto max-w-sm space-y-4 p-6 text-left">
-            <p className="text-sm text-charcoal/70">
-              ¡Tu beneficio está reservado! Contanos un poco más de tu negocio (opcional).
-            </p>
-            <input
-              type="email"
-              className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal outline-none transition focus:border-blush"
-              placeholder="Email (opcional)"
-              value={extra.email}
-              onChange={(e) => setExtra({ ...extra, email: e.target.value })}
-            />
-            <input
-              type="text"
-              className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal outline-none transition focus:border-blush"
-              placeholder="Instagram (opcional)"
-              value={extra.instagram}
-              onChange={(e) => setExtra({ ...extra, instagram: e.target.value })}
-            />
-            <select
-              className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal outline-none transition focus:border-blush"
-              value={extra.tipoNegocio}
-              onChange={(e) => setExtra({ ...extra, tipoNegocio: e.target.value })}
-            >
-              <option value="">Tipo de negocio (opcional)</option>
-              <option>Salón de belleza</option>
-              <option>Peluquería</option>
-              <option>Barbería</option>
-              <option>Uñas</option>
-              <option>Cejas y pestañas</option>
-              <option>Estética</option>
-              <option>Spa</option>
-              <option>Profesional independiente</option>
-              <option>Otro</option>
-            </select>
-            <select
-              className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal outline-none transition focus:border-blush"
-              value={extra.cantidadProfesionales}
-              onChange={(e) => setExtra({ ...extra, cantidadProfesionales: e.target.value })}
-            >
-              <option value="">¿Cuántas personas trabajan en tu negocio? (opcional)</option>
-              <option>Solo yo</option>
-              <option>2 a 3 personas</option>
-              <option>4 a 10 personas</option>
-              <option>Más de 10 personas</option>
-            </select>
-            <select
-              className="w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-charcoal outline-none transition focus:border-blush"
-              value={extra.problemaPrincipal}
-              onChange={(e) => setExtra({ ...extra, problemaPrincipal: e.target.value })}
-            >
-              <option value="">¿Qué es lo que más te cuesta gestionar? (opcional)</option>
-              <option>Organizar turnos</option>
-              <option>Responder WhatsApp</option>
-              <option>Evitar cancelaciones</option>
-              <option>Gestionar profesionales</option>
-              <option>Conseguir clientes</option>
-              <option>Organizar el negocio</option>
-              <option>Saber cuánto factura</option>
-              <option>Todo lo anterior</option>
-            </select>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setStep("done")}
-                className="flex-1 rounded-full border border-mauve/20 px-4 py-3 text-sm font-semibold text-charcoal/70 transition hover:border-blush hover:text-charcoal"
+            <p className="text-xs text-charcoal/50">Válido hasta: {formatFecha(result.expiresAt)}</p>
+            {whatsAppCtaUrl ? (
+              <a
+                href={whatsAppCtaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-full bg-blush px-6 py-3.5 text-center text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
               >
-                Saltar
-              </button>
-              <button
-                onClick={handleContinueExtra}
-                className="flex-1 rounded-full bg-blush px-4 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
-              >
-                Continuar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === "done" && (
-          <div className="glass-card mx-auto max-w-sm space-y-4 p-6">
-            <p className="text-lg font-semibold text-charcoal">¿Listo para llevar tu negocio al siguiente nivel?</p>
-            <p className="text-sm text-charcoal/60">
-              Escribinos por WhatsApp con tu código y coordinamos la activación de tu beneficio.
-            </p>
-            <a
-              href={whatsAppCtaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-full bg-blush px-6 py-3.5 text-center text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
-            >
-              ACTIVAR MI BENEFICIO POR WHATSAPP
-            </a>
+                Reclamar por WhatsApp
+              </a>
+            ) : (
+              <p className="text-xs text-charcoal/50">
+                Mostrá este código en tu próxima visita para canjear el beneficio.
+              </p>
+            )}
             <Link
-              href="/"
+              href="/reservar"
               className="block text-center text-xs text-charcoal/50 hover:text-charcoal"
             >
-              Ver Turneo en vivo
+              Reservar mi turno
             </Link>
           </div>
         )}

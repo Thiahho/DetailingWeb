@@ -208,7 +208,7 @@ function ProfessionalAgendaContent() {
                 type="submit"
                 disabled={creating}
                 data-testid="agenda-form-submit"
-                className="w-full bg-blush hover:bg-blushdark text-white py-3 rounded-lg font-semibold shadow-glow transition disabled:opacity-50"
+                className="w-full bg-blush hover:bg-blushdark text-cream py-3 rounded-lg font-semibold uppercase tracking-wide shadow-glow transition disabled:opacity-50"
               >
                 {creating ? "Creando..." : "Crear turno"}
               </button>

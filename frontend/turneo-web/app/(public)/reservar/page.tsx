@@ -118,7 +118,7 @@ export default function Home() {
             )}
             <div className="flex flex-wrap gap-3">
               <a
-                className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+                className="rounded-full bg-blush px-6 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -199,7 +199,7 @@ export default function Home() {
           <div className="text-center pt-8">
             <button
               onClick={() => setVisiblePacks((p) => p + 3)}
-              className="rounded-full border border-mauve/15 bg-white px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-mauve/30 hover:text-charcoal"
+              className="rounded-full border border-mauve/40 bg-porcelain px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-blush/50 hover:text-charcoal"
             >
               Ver más servicios ({services.length - visiblePacks} restantes)
             </button>
@@ -241,7 +241,7 @@ export default function Home() {
             <div className="text-center pt-8">
               <button
                 onClick={() => setVisibleGallery((p) => p + 3)}
-                className="rounded-full border border-mauve/15 bg-white px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-mauve/30 hover:text-charcoal"
+                className="rounded-full border border-mauve/40 bg-porcelain px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-blush/50 hover:text-charcoal"
               >
                 Ver más trabajos ({gallery.length - visibleGallery} restantes)
               </button>
@@ -401,7 +401,7 @@ export default function Home() {
               )}
               <button
                 onClick={() => { setSelectedService(null); handlePresupuestar(selectedService.slug); }}
-                className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+                className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
               >
                 Presupuestar
               </button>

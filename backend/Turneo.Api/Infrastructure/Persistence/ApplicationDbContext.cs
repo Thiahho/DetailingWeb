@@ -90,6 +90,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<RoulettePrize> RoulettePrizes { get; set; }
     public DbSet<RouletteLead> RouletteLeads { get; set; }
 
+    // Core/Loyalty — sí tenant-scoped: la ruleta de fidelización que cada
+    // negocio arma para SUS clientes.
+    public DbSet<LoyaltyPrize> LoyaltyPrizes { get; set; }
+    public DbSet<LoyaltySpin> LoyaltySpins { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -708,6 +713,40 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.PrizeId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ── Core/Loyalty (tenant-scoped) ─────────────────────────────────────
+        modelBuilder.Entity<LoyaltyPrize>(e =>
+        {
+            e.Property(x => x.Probability).HasColumnType("decimal(5,2)");
+            e.Property(x => x.Value).HasColumnType("decimal(10,2)");
+
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<LoyaltySpin>(e =>
+        {
+            // Un WhatsApp = una participación por negocio (no global, a
+            // diferencia de RouletteLead: distintos tenants comparten la tabla).
+            e.HasIndex(x => new { x.TenantId, x.WhatsApp }).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.Prize)
+                .WithMany()
+                .HasForeignKey(x => x.PrizeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
         });
     }
 }

@@ -188,7 +188,7 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
                 data-testid="reserve-mode-existing"
                 onClick={() => setMode("existing")}
                 className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                  mode === "existing" ? "bg-blush text-white shadow-glow" : "text-charcoal/60 hover:text-charcoal"
+                  mode === "existing" ? "bg-blush text-cream shadow-glow" : "text-charcoal/60 hover:text-charcoal"
                 }`}
               >
                 Cliente registrado
@@ -198,7 +198,7 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
                 data-testid="reserve-mode-new"
                 onClick={() => setMode("new")}
                 className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                  mode === "new" ? "bg-blush text-white shadow-glow" : "text-charcoal/60 hover:text-charcoal"
+                  mode === "new" ? "bg-blush text-cream shadow-glow" : "text-charcoal/60 hover:text-charcoal"
                 }`}
               >
                 Cliente nuevo

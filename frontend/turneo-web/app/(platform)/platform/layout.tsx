@@ -28,11 +28,11 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
 
   if (!checked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-charcoal">
+      <div className="flex min-h-screen items-center justify-center bg-cream">
         <div className="text-white/60">Verificando sesión...</div>
       </div>
     );
   }
 
-  return <div className="min-h-screen bg-charcoal">{children}</div>;
+  return <div className="min-h-screen bg-cream">{children}</div>;
 }

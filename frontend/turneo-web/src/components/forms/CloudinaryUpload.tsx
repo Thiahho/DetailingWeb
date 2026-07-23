@@ -137,11 +137,11 @@ export default function CloudinaryUpload({
 
       {hint && <p className="text-charcoal/40 text-xs">{hint}</p>}
 
-      {error && <p className="text-red-600 text-xs">{error}</p>}
+      {error && <p className="text-champagne text-xs">{error}</p>}
 
       {value && (
         <input
-          className="w-full bg-white border border-mauve/15 rounded-lg p-2 text-charcoal/50 text-xs focus:outline-none"
+          className="w-full bg-porcelain border border-mauve/40 rounded-lg p-2 text-charcoal/50 text-xs focus:outline-none"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="O pegá una URL directamente"

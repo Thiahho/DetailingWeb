@@ -216,14 +216,14 @@ export default function CajaAdminPage() {
           <button
             onClick={() => setTab("diaria")}
             data-testid="caja-tab-diaria"
-            className={`px-4 py-2 rounded-full text-sm font-medium transition ${tab === "diaria" ? "bg-white text-black" : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal"}`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${tab === "diaria" ? "bg-blush text-cream" : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal"}`}
           >
             Caja diaria
           </button>
           <button
             onClick={() => setTab("mensual")}
             data-testid="caja-tab-mensual"
-            className={`px-4 py-2 rounded-full text-sm font-medium transition ${tab === "mensual" ? "bg-white text-black" : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal"}`}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition ${tab === "mensual" ? "bg-blush text-cream" : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal"}`}
           >
             Caja mensual
           </button>

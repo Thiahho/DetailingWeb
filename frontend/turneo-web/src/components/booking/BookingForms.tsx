@@ -530,7 +530,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
           Seleccioná el servicio
         </label>
-        <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
+        <div className="grid gap-2 rounded-xl border border-mauve/40 bg-porcelain p-4 md:grid-cols-2">
           {services.map((pack) => (
             <button
               key={pack.slug}
@@ -611,7 +611,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
               No hay especialistas asignados a este servicio todavía, se te asignará uno automáticamente.
             </p>
           ) : (
-            <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
+            <div className="grid gap-2 rounded-xl border border-mauve/40 bg-porcelain p-4 md:grid-cols-2">
               <button
                 type="button"
                 onClick={() =>
@@ -678,7 +678,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
           Seleccioná tu turno
         </label>
-        <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
+        <div className="grid gap-2 rounded-xl border border-mauve/40 bg-porcelain p-4 md:grid-cols-2">
           {currentSlots.map((slot) => (
             <button
               key={slot.id}
@@ -689,7 +689,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
               }
               className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
                 formData.selectedSlotId === slot.id
-                  ? "border-lavender bg-lavender/25 text-mauve"
+                  ? "border-blush bg-blush/15 text-charcoal"
                   : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-porcelain/60"
               }`}
             >
@@ -735,7 +735,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
                     onClick={() => setCurrentPage(page)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       currentPage === page
-                        ? "bg-blush text-white"
+                        ? "bg-blush text-cream"
                         : "bg-porcelain text-charcoal/40"
                     }`}
                   >
@@ -787,7 +787,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       </div>
 
       <button
-        className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
+        className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
         type="submit"
         data-testid="booking-submit"
         disabled={

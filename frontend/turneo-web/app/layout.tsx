@@ -2,12 +2,19 @@
 import "./globals.css";
 import SiteChrome from "@/src/components/shared/SiteChrome";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Archivo, Oswald } from "next/font/google";
 
-const sans = Plus_Jakarta_Sans({
+const sans = Archivo({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+});
+
+const display = Oswald({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["500", "600", "700"],
 });
 
 const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo";
@@ -70,7 +77,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`scroll-smooth ${sans.variable}`}>
+    <html lang="es" className={`scroll-smooth ${sans.variable} ${display.variable}`}>
       <body className="bg-cream font-sans antialiased text-charcoal">
         <SiteChrome>{children}</SiteChrome>
       </body>

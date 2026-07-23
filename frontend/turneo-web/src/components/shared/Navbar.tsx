@@ -74,6 +74,12 @@ export default function Navbar() {
               Mis turnos
             </Link>
             <Link
+              href="/beneficios"
+              className="transition hover:text-charcoal"
+            >
+              Beneficios
+            </Link>
+            <Link
               href="/reservar#contacto"
               onClick={(e) => handleNavClick(e, "contacto")}
               className="rounded-full border border-mauve/20 px-4 py-2 transition hover:border-blush hover:text-charcoal"
@@ -125,28 +131,35 @@ export default function Navbar() {
               <Link
                 href="/reservar#servicios"
                 onClick={(e) => handleNavClick(e, "servicios")}
-                className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+                className="flex items-center px-4 py-3.5 rounded-xl bg-porcelain border border-mauve/40 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >
                 Servicios
               </Link>
               <Link
                 href="/reservar#trabajos"
                 onClick={(e) => handleNavClick(e, "trabajos")}
-                className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+                className="flex items-center px-4 py-3.5 rounded-xl bg-porcelain border border-mauve/40 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >
                 Trabajos
               </Link>
               <Link
                 href="/mis-turnos"
                 onClick={close}
-                className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+                className="flex items-center px-4 py-3.5 rounded-xl bg-porcelain border border-mauve/40 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >
                 Mis turnos
               </Link>
               <Link
+                href="/beneficios"
+                onClick={close}
+                className="flex items-center px-4 py-3.5 rounded-xl bg-porcelain border border-mauve/40 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+              >
+                Beneficios
+              </Link>
+              <Link
                 href="/reservar#contacto"
                 onClick={(e) => handleNavClick(e, "contacto")}
-                className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+                className="flex items-center px-4 py-3.5 rounded-xl bg-porcelain border border-mauve/40 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >
                 Contacto
               </Link>
@@ -154,7 +167,7 @@ export default function Navbar() {
               {isLoggedIn ? (
                 <button
                   onClick={() => { close(); router.push("/admin"); }}
-                  className="w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 transition text-sm font-medium"
+                  className="w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-porcelain border border-mauve/40 text-charcoal hover:bg-blush/10 transition text-sm font-medium"
                 >
                   <LayoutDashboard size={17} />
                   Panel Admin

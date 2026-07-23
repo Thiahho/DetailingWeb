@@ -50,14 +50,14 @@ export default function PlatformLoginPage() {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-charcoal">
+      <div className="flex min-h-screen items-center justify-center bg-cream">
         <div className="text-white/60">Verificando sesión...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-charcoal px-6">
+    <div className="flex min-h-screen items-center justify-center bg-cream px-6">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur">
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-white">Panel interno</h1>

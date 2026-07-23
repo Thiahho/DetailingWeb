@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
@@ -11,25 +11,25 @@ body {
 }
 
 .section-divider {
-  background: linear-gradient(90deg, rgba(214, 154, 166, 0.18), rgba(201, 191, 224, 0.2), rgba(198, 162, 110, 0.18));
+  background: linear-gradient(90deg, rgba(185, 133, 59, 0.18), rgba(110, 110, 115, 0.2), rgba(156, 43, 43, 0.18));
 }
 
 .glass-card {
-  @apply rounded-2xl border border-mauve/20 bg-ivory shadow-soft;
+  @apply rounded-2xl border border-mauve/40 bg-ivory shadow-soft;
 }
 
 .hero-grid {
-  background-image: radial-gradient(circle at 20% 20%, rgba(214, 154, 166, 0.16), transparent 45%),
-    radial-gradient(circle at 80% 20%, rgba(198, 162, 110, 0.14), transparent 50%),
-    radial-gradient(circle at 50% 80%, rgba(201, 191, 224, 0.16), transparent 45%);
+  background-image: radial-gradient(circle at 20% 20%, rgba(185, 133, 59, 0.16), transparent 45%),
+    radial-gradient(circle at 80% 20%, rgba(156, 43, 43, 0.12), transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(110, 110, 115, 0.14), transparent 45%);
 }
 
 .badge {
-  @apply inline-flex items-center gap-2 rounded-full border border-mauve/15 bg-white px-3 py-1 text-xs uppercase tracking-[0.2em] text-mauve;
+  @apply inline-flex items-center gap-2 rounded-full border border-blush/30 bg-porcelain px-3 py-1 text-xs uppercase tracking-[0.2em] text-blush;
 }
 
 .form-input {
-  @apply w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40;
+  @apply w-full rounded-xl border border-mauve/40 bg-porcelain px-4 py-3 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40;
 }
 
 /* Ruleta de captación (/ruleta) — puntero, brillo y confetti al ganar */
@@ -51,8 +51,8 @@ body {
 }
 
 @keyframes wheel-spin-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(198, 162, 110, 0); }
-  50% { box-shadow: 0 0 45px 8px rgba(198, 162, 110, 0.45); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(185, 133, 59, 0); }
+  50% { box-shadow: 0 0 45px 8px rgba(185, 133, 59, 0.45); }
 }
 .wheel-spinning-glow {
   animation: wheel-spin-glow 0.7s ease-in-out infinite;

@@ -15,6 +15,7 @@ global using Turneo.Api.Core.Automations;
 global using Turneo.Api.Core.Reports;
 global using Turneo.Api.Core.Settings;
 global using Turneo.Api.Core.Content;
+global using Turneo.Api.Core.Loyalty;
 global using Turneo.Api.Core.Platform;
 global using Turneo.Api.Infrastructure.Persistence;
 global using Turneo.Api.Infrastructure.Integrations;

@@ -172,7 +172,7 @@ export default function WhatsAppFloat({
                 onChange={(e) =>
                   setFormData({ ...formData, nombre: e.target.value })
                 }
-                className="w-full rounded-lg border border-mauve/20 bg-white px-3 py-2 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40"
+                className="w-full rounded-lg border border-mauve/40 bg-porcelain px-3 py-2 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40"
                 placeholder="Tu nombre"
               />
             </div>
@@ -187,7 +187,7 @@ export default function WhatsAppFloat({
                   onClick={() => setFormData({ ...formData, tipo: "Turnos" })}
                   className={`flex-1 rounded-lg border px-2 py-2 text-xs transition-colors ${
                     formData.tipo === "Turnos"
-                      ? "border-lavender bg-lavender/25 text-mauve"
+                      ? "border-blush bg-blush/15 text-charcoal"
                       : "border-mauve/20 text-charcoal/70 hover:border-mauve/40"
                   }`}
                 >
@@ -233,7 +233,7 @@ export default function WhatsAppFloat({
                 onChange={(e) =>
                   setFormData({ ...formData, motivo: e.target.value })
                 }
-                className="w-full resize-none rounded-lg border border-mauve/20 bg-white px-3 py-2 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40"
+                className="w-full resize-none rounded-lg border border-mauve/40 bg-porcelain px-3 py-2 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40"
                 placeholder="Describe brevemente tu situación..."
               />
             </div>

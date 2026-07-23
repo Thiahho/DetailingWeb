@@ -321,7 +321,7 @@ export default function HistorialPage() {
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-                  filter === f ? "bg-white text-black" : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
+                  filter === f ? "bg-blush text-cream" : "bg-porcelain/5 text-charcoal/50 hover:text-charcoal hover:bg-porcelain/10"
                 }`}
               >
                 {filterLabels[f]}
@@ -443,7 +443,7 @@ export default function HistorialPage() {
                     return null;
                   }
                   return (
-                    <button key={p} onClick={() => setPage(p)} className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${isActive ? "bg-white text-black scale-110" : "bg-porcelain/10 text-charcoal hover:bg-porcelain/20"}`}>{p}</button>
+                    <button key={p} onClick={() => setPage(p)} className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${isActive ? "bg-blush text-cream scale-110" : "bg-porcelain/10 text-charcoal hover:bg-porcelain/20"}`}>{p}</button>
                   );
                 })}
                 <button onClick={() => setPage((p) => p + 1)} disabled={page === totalPages} className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20 disabled:cursor-not-allowed transition">

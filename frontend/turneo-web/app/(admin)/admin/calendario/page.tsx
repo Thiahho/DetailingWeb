@@ -398,7 +398,7 @@ export default function CalendarioPage() {
                 data-testid={`calendario-view-${v}`}
                 onClick={() => setViewMode(v)}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                  viewMode === v ? "bg-blush text-white shadow-glow" : "text-charcoal/60 hover:text-charcoal"
+                  viewMode === v ? "bg-blush text-cream shadow-glow" : "text-charcoal/60 hover:text-charcoal"
                 }`}
               >
                 {v === "month" ? "Mes" : v === "week" ? "Semana" : "Día"}
@@ -490,7 +490,7 @@ export default function CalendarioPage() {
                     data-has-available={hasAvailable}
                     onClick={() => setSelectedDay(isSelected ? null : day)}
                     className={`relative aspect-square flex flex-col items-center justify-center rounded-xl transition-all text-sm font-medium
-                      ${isSelected ? "bg-white text-black" : todayCell ? "bg-porcelain/10 text-charcoal ring-1 ring-white/30" : "hover:bg-porcelain/5 text-charcoal/70"}
+                      ${isSelected ? "bg-blush text-cream" : todayCell ? "bg-porcelain/10 text-charcoal ring-1 ring-blush/40" : "hover:bg-porcelain/5 text-charcoal/70"}
                     `}
                   >
                     {day}

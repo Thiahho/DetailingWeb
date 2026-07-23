@@ -73,8 +73,8 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4" data-testid="admin-login-error">
-              <p className="text-sm text-red-600 text-center">{error}</p>
+            <div className="rounded-lg bg-champagne/10 border border-champagne/30 p-4" data-testid="admin-login-error">
+              <p className="text-sm text-champagne text-center">{error}</p>
             </div>
           )}
 
@@ -84,7 +84,7 @@ export default function LoginPage() {
               type="text"
               data-testid="admin-login-email"
               className="form-input"
-              placeholder="admin@Turneo.com"
+              placeholder="admin@turneo.com"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
