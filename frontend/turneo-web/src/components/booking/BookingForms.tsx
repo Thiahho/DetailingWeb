@@ -42,6 +42,12 @@ interface CustomFieldDef {
 
 interface BookingFormProps {
   preselectedService?: string;
+  // Presentes cuando el form se embebe en el flujo público de Smart Tag
+  // (docs/NFC.md): la página vive en el dominio compartido turneo.app/s/{token},
+  // no en el subdominio propio del tenant, así que hay que pasarle el tenant
+  // explícito a cada fetch en vez de confiar en el Host real (ver tenantHeader.ts).
+  tenantSlugOverride?: string;
+  smartTagToken?: string;
 }
 
 // --- Toast Types ---
@@ -202,7 +208,16 @@ function ClientToast({ toast, onClose }: { toast: Toast; onClose: () => void }) 
   );
 }
 
-export default function BookingForm({ preselectedService }: BookingFormProps) {
+export default function BookingForm({ preselectedService, tenantSlugOverride, smartTagToken }: BookingFormProps) {
+  const withTenant = useCallback(
+    (path: string) => {
+      if (!tenantSlugOverride) return path;
+      const separator = path.includes("?") ? "&" : "?";
+      return `${path}${separator}tenantSlug=${encodeURIComponent(tenantSlugOverride)}`;
+    },
+    [tenantSlugOverride]
+  );
+
   const [formData, setFormData] = useState({
     name: "",
     subject: "",
@@ -284,7 +299,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
   const loadProfessionals = async () => {
     try {
-      const response = await fetch("/api/professionals");
+      const response = await fetch(withTenant("/api/professionals"));
       if (response.ok) {
         setProfessionals(await response.json());
       }
@@ -298,7 +313,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const loadAvailableSlots = async (professionalId?: number | null) => {
     try {
       const query = professionalId ? `?professionalId=${professionalId}` : "";
-      const response = await fetch(`/api/timeslots/available${query}`);
+      const response = await fetch(withTenant(`/api/timeslots/available${query}`));
       if (response.ok) {
         const data = await response.json();
         setTimeSlots(data);
@@ -312,7 +327,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
   const loadServices = async () => {
     try {
-      const response = await fetch("/api/services");
+      const response = await fetch(withTenant("/api/services"));
       if (response.ok) {
         setServices(await response.json());
       }
@@ -345,7 +360,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/api/bookings`, {
+      const response = await fetch(withTenant(`/api/bookings`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -358,6 +373,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           professionalId: formData.selectedProfessionalId,
           message: formData.message,
           customFieldsJson: customFieldDefs.length > 0 ? JSON.stringify(customFieldValues) : null,
+          smartTagToken: smartTagToken ?? null,
         }),
       });
 

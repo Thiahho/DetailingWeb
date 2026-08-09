@@ -85,6 +85,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<AutomationRule> AutomationRules { get; set; }
     public DbSet<AutomationRuleExecution> AutomationRuleExecutions { get; set; }
 
+    //Smart Tags
+    public DbSet<SmartTag> SmartTags { get; set; }
+    public DbSet<SmartTagEvent> SmartTagEvents { get; set; }
+
     // Marketing/Roulette — no son tenant-scoped: es la ruleta de captación de
     // leads de Turneo (marketing propio), no un dato de un tenant existente.
     public DbSet<RoulettePrize> RoulettePrizes { get; set; }
@@ -687,6 +691,41 @@ public class ApplicationDbContext : DbContext
              .WithMany()
              .HasForeignKey(x => x.ScheduledReminderId)
              .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        // ── Smart Tags ───────────────────────────────────────────────────
+        modelBuilder.Entity<SmartTag>(e =>
+        {
+            // Único global (no compuesto con TenantId): el espacio de tokens es
+            // único cross-tenant, es la clave de la resolución del Smart Link
+            // público (ver SmartLinkController).
+            e.HasIndex(x => x.Token).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.IsActive });
+
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<SmartTagEvent>(e =>
+        {
+            e.HasIndex(x => x.SmartTagId);
+            e.HasIndex(x => new { x.TenantId, x.CreatedAt });
+
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.SmartTag)
+                .WithMany()
+                .HasForeignKey(x => x.SmartTagId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
         });

@@ -18,6 +18,7 @@ const emptyForm = {
   location: "",
   locationShort: "",
   mapEmbedUrl: "",
+  googleReviewUrl: "",
   siteUrl: "",
   logoUrl: "",
   heroTitle: "",
@@ -59,6 +60,7 @@ export default function ConfiguracionPage() {
               location: data.location || "",
               locationShort: data.locationShort || "",
               mapEmbedUrl: data.mapEmbedUrl || "",
+              googleReviewUrl: data.googleReviewUrl || "",
               siteUrl: data.siteUrl || "",
               logoUrl: data.logoUrl || "",
               heroTitle: data.heroTitle || "",
@@ -237,6 +239,25 @@ export default function ConfiguracionPage() {
                   placeholder="@mistudio"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Reseñas */}
+          <div className="bg-ivory border border-mauve/5 rounded-2xl p-5 md:p-6 space-y-4">
+            <h2 className="text-charcoal font-semibold text-sm uppercase tracking-wider">Reseñas</h2>
+            <div>
+              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
+                Link de Google Reviews
+              </label>
+              <input
+                className="form-input mt-1.5"
+                value={formData.googleReviewUrl}
+                onChange={(e) => setFormData((prev) => ({ ...prev, googleReviewUrl: e.target.value }))}
+                placeholder="https://g.page/r/tu-negocio/review"
+              />
+              <p className="text-charcoal/40 text-xs mt-1.5">
+                Cuando alguien deja una valoración alta desde una Smart Tag de tipo "Dejar reseña", se lo redirige acá.
+              </p>
             </div>
           </div>
 

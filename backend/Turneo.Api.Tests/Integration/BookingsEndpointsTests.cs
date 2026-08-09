@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Turneo.Api.Tests.Integration;
 
@@ -138,5 +140,69 @@ public class BookingsEndpointsTests
         var response = await client.GetAsync("/api/bookings");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateBooking_WithSmartTagTokenFromSameTenant_RecordsBookingCompletedEvent()
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(9), DateTime.UtcNow.AddDays(9).AddHours(1));
+        var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Recepción", action: "BOOKING");
+
+        var payload = new
+        {
+            timeSlotId = slot.Id,
+            customerName = "Cliente Smart Tag",
+            customerPhone = "1122334455",
+            email = $"smarttag-{Guid.NewGuid():N}@test.com",
+            subject = "Corte de pelo",
+            smartTagToken = tag.Token,
+        };
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/bookings", payload);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var events = await db.SmartTagEvents.IgnoreQueryFilters()
+            .Where(e => e.SmartTagId == tag.Id).ToListAsync();
+
+        Assert.Single(events);
+        Assert.Equal(SmartTagEventType.BookingCompleted, events[0].EventType);
+        Assert.Equal(tenantId, events[0].TenantId);
+    }
+
+    [Fact]
+    public async Task CreateBooking_WithSmartTagTokenFromAnotherTenant_CreatesBookingButRecordsNoEvent()
+    {
+        var tenantA = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var tenantB = (await TestDataFactory.CreateTenantAsync(_factory, $"tenant-b-{Guid.NewGuid():N}", "Salón B")).Id;
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantA, DateTime.UtcNow.AddDays(9), DateTime.UtcNow.AddDays(9).AddHours(1));
+        // El tag pertenece a OTRO tenant (B) que el de la reserva que se va a crear (A).
+        var foreignTag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantB, "Recepción B", action: "BOOKING");
+
+        var payload = new
+        {
+            timeSlotId = slot.Id,
+            customerName = "Cliente Smart Tag",
+            customerPhone = "1122334455",
+            email = $"smarttag-cross-{Guid.NewGuid():N}@test.com",
+            subject = "Corte de pelo",
+            smartTagToken = foreignTag.Token,
+        };
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/bookings", payload);
+
+        // La reserva se crea igual — el token de otro tenant nunca bloquea la reserva.
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var eventCount = await db.SmartTagEvents.IgnoreQueryFilters()
+            .CountAsync(e => e.SmartTagId == foreignTag.Id);
+
+        Assert.Equal(0, eventCount);
     }
 }

@@ -32,6 +32,7 @@ builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
 builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository>();
 builder.Services.AddScoped<IPermissionsRepository, PermissionsRepository>();
+builder.Services.AddScoped<ISmartTagsRepository, SmartTagsRepository>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -157,6 +158,20 @@ builder.Services.AddRateLimiter(options =>
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Smart Link (/api/smart/{token}): público, sin login. Más permisivo que
+    // "roulette" porque taps NFC legítimos repetidos desde la misma
+    // ubicación/NAT son esperables, pero acotado para frenar scraping/
+    // generación masiva de eventos (docs/NFC.md sección 11).
+    options.AddPolicy("smart-tag", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));

@@ -16,8 +16,9 @@ public class BookingsController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IInsumosRepository _insumosRepository;
     private readonly IPlanLimitsService _planLimits;
+    private readonly ISmartTagsRepository _smartTagsRepository;
 
-    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits)
+    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository)
     {
         _repository = repository;
         _notificationService = notificationService;
@@ -25,6 +26,7 @@ public class BookingsController : ControllerBase
         _configuration = configuration;
         _insumosRepository = insumosRepository;
         _planLimits = planLimits;
+        _smartTagsRepository = smartTagsRepository;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -97,6 +99,19 @@ public class BookingsController : ControllerBase
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
         await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCreated);
+
+        if (!string.IsNullOrWhiteSpace(request.SmartTagToken))
+        {
+            var smartTag = await _smartTagsRepository.FindActiveByTokenIgnoringTenantAsync(request.SmartTagToken);
+            // Solo si el tag sigue activo y pertenece al MISMO tenant que la reserva —
+            // descarta en silencio un token ajeno (no debe inflar métricas de otro
+            // tenant) ni bloquea la reserva en ningún caso.
+            if (smartTag is not null && smartTag.TenantId == booking.TenantId)
+            {
+                await _smartTagsRepository.RecordEventAsync(
+                    smartTag.Id, smartTag.TenantId, smartTag.Action, SmartTagEventType.BookingCompleted);
+            }
+        }
 
         return Ok(new
         {
@@ -513,6 +528,12 @@ public class CreateBookingRequest
 
     [StringLength(2000)]
     public string? Message { get; set; }
+
+    // Presente cuando la reserva se originó en un Smart Tag (docs/NFC.md) —
+    // se usa solo para registrar el evento BOOKING_COMPLETED, nunca para
+    // resolver el tenant de la reserva en sí.
+    [StringLength(16)]
+    public string? SmartTagToken { get; set; }
 }
 
 public class UpdateBookingDetailRequest

@@ -11,6 +11,7 @@ export async function GET(
 ) {
   const path = params.path?.join("/") || "";
   const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
+  const tenantSlug = request.nextUrl.searchParams.get("tenantSlug");
 
   try {
     const url = path
@@ -20,10 +21,11 @@ export async function GET(
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        ...tenantHeader(request),
+        ...tenantHeader(request, tenantSlug),
         Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
       },
+      ...(tenantSlug ? { cache: "no-store" as const } : {}),
     });
 
     const data = await response.json();

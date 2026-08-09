@@ -1151,6 +1151,9 @@ namespace Turneo.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("GoogleReviewUrl")
+                        .HasColumnType("text");
+
                     b.Property<string>("HeroBadge")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1209,6 +1212,88 @@ namespace Turneo.Api.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("SiteConfigs");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "IsActive");
+
+                    b.ToTable("SmartTags");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTagEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SmartTagId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SmartTagId");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.ToTable("SmartTagEvents");
                 });
 
             modelBuilder.Entity("Turneo.Api.Core.Users.User", b =>
@@ -2247,6 +2332,36 @@ namespace Turneo.Api.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTag", b =>
+                {
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTagEvent", b =>
+                {
+                    b.HasOne("Turneo.Api.Core.SmartTags.SmartTag", "SmartTag")
+                        .WithMany()
+                        .HasForeignKey("SmartTagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SmartTag");
 
                     b.Navigation("Tenant");
                 });
