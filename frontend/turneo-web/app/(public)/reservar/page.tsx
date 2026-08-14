@@ -95,7 +95,10 @@ export default function Home() {
       {jsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          // siteConfig es editable por el admin del tenant — JSON.stringify no
+          // escapa "</script>", así que un valor con esa secuencia podría
+          // cerrar el tag y ejecutar HTML/JS arbitrario en la página pública.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
       )}
 
@@ -351,6 +354,19 @@ export default function Home() {
         <p>
           {siteConfig?.businessName || ""}
           {siteConfig?.locationShort ? ` · ${siteConfig.locationShort}` : ""}
+        </p>
+        <p className="mt-3 space-x-3">
+          <a href="/terminos" className="text-charcoal/40 hover:text-charcoal/60 transition">
+            Términos y Condiciones
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href="/privacidad" className="text-charcoal/40 hover:text-charcoal/60 transition">
+            Política de Privacidad
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href="/derechos-de-autor" className="text-charcoal/40 hover:text-charcoal/60 transition">
+            Derechos de Autor
+          </a>
         </p>
         {siteConfig && !siteConfig.hideBranding && (
           <a href="/" className="mt-2 inline-block text-charcoal/40 hover:text-charcoal/60 transition">

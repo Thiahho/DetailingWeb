@@ -125,7 +125,8 @@ public class MultiTenancyIsolationTests
                 customerName = "Cliente Via Host",
                 customerPhone = "1122334455",
                 email = $"via-host-{Guid.NewGuid():N}@test.com",
-                subject = "Corte de pelo"
+                subject = "Corte de pelo",
+                acceptedTerms = true
             })
         };
         request.Headers.Add("X-Tenant-Host", $"{slug}.{baseDomain}");

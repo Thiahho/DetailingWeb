@@ -34,10 +34,15 @@ builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository
 builder.Services.AddScoped<IPermissionsRepository, PermissionsRepository>();
 builder.Services.AddScoped<ISmartTagsRepository, SmartTagsRepository>();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddScoped<TenantSessionInterceptor>();
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    // Propaga el tenant actual a la sesión de Postgres para Row Level Security
+    // (ver migración EnableRowLevelSecurity) — resuelto vía sp porque el
+    // interceptor necesita ICurrentTenant, scoped por request.
+    options.AddInterceptors(sp.GetRequiredService<TenantSessionInterceptor>());
 });
 
 builder.Services.AddJwtAuthentication(builder.Configuration, builder.Environment);
@@ -71,6 +76,8 @@ builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
 builder.Services.AddScoped<AutomationRuleEvaluationJob>();
 builder.Services.AddScoped<RouletteService>();
+builder.Services.AddHttpClient<CloudinaryAdminService>();
+builder.Services.AddScoped<ContentTakedownService>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);
 
@@ -175,11 +182,38 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    // Lecturas públicas y anónimas sin dato sensible (horarios disponibles,
+    // config del sitio, galería, catálogo de premios de la ruleta): sin
+    // límite hoy, blanco de scraping/DoS barato. Más generoso que
+    // "public-booking" porque un visitante real puede disparar varias de
+    // estas por segundo solo navegando la página (cambiar de profesional,
+    // scrollear la galería).
+    options.AddPolicy("public-read", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Headers de seguridad básicos — la API solo devuelve JSON (sin CSP acá, no
+// hay HTML que restringir), pero estos evitan que un navegador la trate
+// como algo distinta a lo que declara o la deje embeber en un iframe ajeno.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
 
 // ✅ PRODUCCIÓN: Aplicar migraciones automáticamente
 using (var scope = app.Services.CreateScope())
@@ -191,6 +225,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ✅ PRODUCCIÓN: Configuración del pipeline
+// Explícito (antes era implícito): TenantResolutionMiddleware ahora necesita
+// context.GetEndpoint() resuelto para leer [TenantContextBypass] — sin
+// UseRouting() acá no hay garantía de que el endpoint ya esté matcheado.
+app.UseRouting();
 app.UseCors("ProductionPolicy");
 app.UseAuthentication();
 // Después de Authentication (necesita leer el claim tenant_id del JWT) y antes

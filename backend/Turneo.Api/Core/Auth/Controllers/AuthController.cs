@@ -20,6 +20,7 @@ public class AuthController : ControllerBase
 
     [HttpGet("client/identity-strategy")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public IActionResult GetClientIdentityStrategy()
     {
         var mode = _configuration["ClientIdentity:Mode"] ?? "MagicLinkOtp";
@@ -223,6 +224,7 @@ public class AuthController : ControllerBase
     // POST: api/auth/change-password
     [Authorize]
     [HttpPost("change-password")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         var email = User.FindFirst(ClaimTypes.Email)?.Value;

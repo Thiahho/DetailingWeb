@@ -26,7 +26,8 @@ public class BookingsEndpointsTests
         customerName = "Cliente de Prueba",
         customerPhone = "1122334455",
         email = email ?? $"cliente-{Guid.NewGuid():N}@test.com",
-        subject = "Corte de pelo"
+        subject = "Corte de pelo",
+        acceptedTerms = true
     };
 
     [Fact]
@@ -157,6 +158,7 @@ public class BookingsEndpointsTests
             email = $"smarttag-{Guid.NewGuid():N}@test.com",
             subject = "Corte de pelo",
             smartTagToken = tag.Token,
+            acceptedTerms = true,
         };
 
         var client = _factory.CreateClient();
@@ -190,6 +192,7 @@ public class BookingsEndpointsTests
             email = $"smarttag-cross-{Guid.NewGuid():N}@test.com",
             subject = "Corte de pelo",
             smartTagToken = foreignTag.Token,
+            acceptedTerms = true,
         };
 
         var client = _factory.CreateClient();

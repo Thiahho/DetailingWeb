@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Platform;
 
@@ -55,6 +56,9 @@ public class PlatformTenantsController : ControllerBase
         if (request.AdminPassword.Length < 6)
             return BadRequest(new { message = "La contraseña debe tener al menos 6 caracteres" });
 
+        if (!request.AcceptedTerms)
+            return BadRequest(new { message = "El titular del negocio debe aceptar los Términos del Servicio antes de dar de alta el tenant" });
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         var tenant = new Tenant
@@ -64,7 +68,9 @@ public class PlatformTenantsController : ControllerBase
             Vertical = request.Vertical.Trim(),
             CommercialModel = request.CommercialModel,
             Status = TenantStatus.Active,
-            PlanId = request.PlanId
+            PlanId = request.PlanId,
+            TermsAcceptedAt = DateTime.UtcNow,
+            TermsVersion = LegalTermsVersions.Saas
         };
         _context.Tenants.Add(tenant);
         await _context.SaveChangesAsync();

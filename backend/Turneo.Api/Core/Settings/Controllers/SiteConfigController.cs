@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Turneo.Api.Core.Settings;
 
@@ -18,6 +19,7 @@ public class SiteConfigController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> Get()
     {
         var config = await _repository.GetAsync() ?? new SiteConfig();

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Bookings;
 
@@ -37,6 +38,9 @@ public class BookingsController : ControllerBase
     {
         if (!string.IsNullOrWhiteSpace(request.Email) && !new EmailAddressAttribute().IsValid(request.Email))
             return BadRequest(new { success = false, message = "El email no es válido" });
+
+        if (!request.AcceptedTerms)
+            return BadRequest(new { success = false, message = "Debés aceptar los Términos y Condiciones para reservar un turno" });
 
         if (request.ProfessionalId.HasValue)
         {
@@ -91,7 +95,9 @@ public class BookingsController : ControllerBase
             Service = request.Service,
             CustomFieldsJson = request.CustomFieldsJson,
             Message = request.Message,
-            Status = BookingStatus.Pending
+            Status = BookingStatus.Pending,
+            TermsAcceptedAt = DateTime.UtcNow,
+            TermsVersion = LegalTermsVersions.Customer
         };
 
         _repository.Add(booking);
@@ -534,6 +540,11 @@ public class CreateBookingRequest
     // resolver el tenant de la reserva en sí.
     [StringLength(16)]
     public string? SmartTagToken { get; set; }
+
+    // Sin [Required]: en un bool no-nullable, RequiredAttribute solo rechaza
+    // null, nunca false (el default del tipo) — la validación real de que
+    // sea explícitamente true se hace a mano en CreateBooking.
+    public bool AcceptedTerms { get; set; }
 }
 
 public class UpdateBookingDetailRequest

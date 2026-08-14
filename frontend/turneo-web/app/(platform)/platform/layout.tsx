@@ -11,10 +11,14 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const isLogin = pathname === "/platform/login";
-  const [checked, setChecked] = useState(isLogin);
+  // Página legal pública: un prospecto de tenant tiene que poder leerla antes
+  // de tener cuenta (Thiago la comparte por link al dar de alta el negocio).
+  const isPublicLegal = pathname === "/platform/terminos-saas";
+  const skipAuth = isLogin || isPublicLegal;
+  const [checked, setChecked] = useState(skipAuth);
 
   useEffect(() => {
-    if (isLogin) return;
+    if (skipAuth) return;
 
     fetch("/api/platform/auth/me", { credentials: "include" })
       .then((res) => {
@@ -22,9 +26,9 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
         else router.push("/platform/login");
       })
       .catch(() => router.push("/platform/login"));
-  }, [isLogin, router]);
+  }, [skipAuth, router]);
 
-  if (isLogin) return <>{children}</>;
+  if (skipAuth) return <>{children}</>;
 
   if (!checked) {
     return (

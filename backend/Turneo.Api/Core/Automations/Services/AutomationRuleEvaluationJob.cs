@@ -8,20 +8,27 @@ public class AutomationRuleEvaluationJob
 {
     private readonly IAutomationRulesRepository _repository;
     private readonly ApplicationDbContext _context;
+    private readonly ICurrentTenant _currentTenant;
     private readonly ILogger<AutomationRuleEvaluationJob> _logger;
 
     public AutomationRuleEvaluationJob(
         IAutomationRulesRepository repository,
         ApplicationDbContext context,
+        ICurrentTenant currentTenant,
         ILogger<AutomationRuleEvaluationJob> logger)
     {
         _repository = repository;
         _context = context;
+        _currentTenant = currentTenant;
         _logger = logger;
     }
 
     public async Task EvaluateAllActiveRulesAsync()
     {
+        // Cross-tenant a propósito (evalúa reglas de todos los tenants) — sin
+        // esto, RLS filtraría todas las queries de este job.
+        _currentTenant.SetBypass();
+
         var rules = await _repository.GetActiveRulesCrossTenantAsync();
         if (rules.Count == 0) return;
 

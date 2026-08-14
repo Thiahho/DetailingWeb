@@ -244,7 +244,6 @@ public class AuthService
             ExpiresAt = DateTime.UtcNow.AddMinutes(15)
         });
         await _context.SaveChangesAsync();
-        Console.WriteLine($"[ClientAccessOTP] {email}: {code}");
 
         return new LoginResponse
         {

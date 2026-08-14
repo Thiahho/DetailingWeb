@@ -227,6 +227,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
     selectedService: "",
     selectedProfessionalId: null as number | null,
     message: "",
+    acceptedTerms: false,
   });
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -357,6 +358,11 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
       }
     }
 
+    if (!formData.acceptedTerms) {
+      showToast("warning", "Términos y Condiciones", "Tenés que aceptar los Términos y Condiciones para reservar");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -374,6 +380,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
           message: formData.message,
           customFieldsJson: customFieldDefs.length > 0 ? JSON.stringify(customFieldValues) : null,
           smartTagToken: smartTagToken ?? null,
+          acceptedTerms: formData.acceptedTerms,
         }),
       });
 
@@ -405,6 +412,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
           selectedService: "",
           selectedProfessionalId: null,
           message: "",
+          acceptedTerms: false,
         });
         setCustomFieldValues({});
 
@@ -802,12 +810,47 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
         />
       </div>
 
+      <label className="flex items-start gap-2 text-xs text-charcoal/70">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          data-testid="booking-accept-terms"
+          checked={formData.acceptedTerms}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, acceptedTerms: e.target.checked }))
+          }
+        />
+        <span>
+          Leí y acepto los{" "}
+          <a
+            href="/terminos"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-blush hover:underline"
+          >
+            Términos y Condiciones
+          </a>{" "}
+          y la{" "}
+          <a
+            href="/privacidad"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-blush hover:underline"
+          >
+            Política de Privacidad
+          </a>
+        </span>
+      </label>
+
       <button
         className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
         type="submit"
         data-testid="booking-submit"
         disabled={
-          submitting || !formData.selectedSlotId || !formData.selectedService
+          submitting ||
+          !formData.selectedSlotId ||
+          !formData.selectedService ||
+          !formData.acceptedTerms
         }
       >
         {submitting ? "Agendando..." : "Agendar turno"}

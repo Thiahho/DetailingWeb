@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Turneo.Api.Core.Services;
 
@@ -21,6 +22,8 @@ public class ServicesController : ControllerBase
 
     // GET: api/services  (público)
     [HttpGet]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetAll()
     {
         var services = await _repository.GetActiveAsync();
@@ -258,13 +261,27 @@ public class ServicesController : ControllerBase
 
 public class ServiceRequest
 {
+    [Required, StringLength(200, MinimumLength = 1)]
     public string Title { get; set; } = string.Empty;
+
+    [Required, StringLength(200, MinimumLength = 1)]
     public string Slug { get; set; } = string.Empty;
+
+    [Required, StringLength(50, MinimumLength = 1)]
     public string Price { get; set; } = string.Empty;
+
+    [StringLength(50)]
     public string? Duration { get; set; } = string.Empty;
+
+    [StringLength(1000)]
     public string ImageUrl { get; set; } = string.Empty;
+
+    [StringLength(2000)]
     public string Description { get; set; } = string.Empty;
+
     public List<string> Details { get; set; } = new();
+
+    [StringLength(4000)]
     public string? CustomFieldsSchema { get; set; }
 
     [StringLength(100)]

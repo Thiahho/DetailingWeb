@@ -38,13 +38,29 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
 
 // El admin puede pegar el <iframe> completo que da Google Maps ("Insertar un
 // mapa") o directamente una URL. Si no cargó nada, se arma un mapa de mínima
-// a partir de la dirección para no dejar la sección vacía.
+// a partir de la dirección para no dejar la sección vacía. Se valida el host
+// contra un allowlist: sin esto, un admin (comprometido o malicioso) podría
+// pegar cualquier URL y quedaría embebida en un <iframe> en su propio sitio
+// público — además, la CSP (frame-src) solo permite google.com, así que una
+// URL de otro origen no cargaría igual, pero validar acá evita que ni
+// siquiera se intente.
+const ALLOWED_EMBED_HOSTS = ["www.google.com", "google.com"];
+
+function isAllowedEmbedUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return protocol === "https:" && ALLOWED_EMBED_HOSTS.includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function extractMapEmbedSrc(mapEmbedUrl?: string, location?: string): string {
   const raw = mapEmbedUrl?.trim();
   if (raw) {
     const match = raw.match(/src=["']([^"']+)["']/i);
-    if (match) return match[1];
-    if (/^https?:\/\//i.test(raw)) return raw;
+    const candidate = match ? match[1] : (/^https?:\/\//i.test(raw) ? raw : null);
+    if (candidate && isAllowedEmbedUrl(candidate)) return candidate;
   }
   if (location?.trim()) {
     return `https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed`;

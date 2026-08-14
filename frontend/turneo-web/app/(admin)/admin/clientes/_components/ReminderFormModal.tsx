@@ -219,6 +219,9 @@ function ReminderForm({
           service:        serviceLabel,
           professionalId: selectedProfessionalId,
           message:        message || undefined,
+          // Reserva creada por el staff a nombre del cliente — no hay checkbox
+          // online que tildar, mismo criterio que ReserveSlotModal.
+          acceptedTerms:  true,
         }),
       });
       if (!bookingRes.ok) {

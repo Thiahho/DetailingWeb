@@ -10,6 +10,7 @@ namespace Turneo.Api.Core.SmartTags;
 [ApiController]
 [Route("api/smart")]
 [AllowAnonymous]
+[TenantContextBypass]
 public class SmartLinkController : ControllerBase
 {
     private readonly ISmartTagsRepository _repository;
