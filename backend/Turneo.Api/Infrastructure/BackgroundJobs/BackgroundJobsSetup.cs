@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using Npgsql;
 
 namespace Turneo.Api.Infrastructure.BackgroundJobs;
 
@@ -22,18 +23,46 @@ public static class BackgroundJobsSetup
             Authorization = [new HangfireAdminAuthFilter()]
         });
 
-        RecurringJob.AddOrUpdate<HangfireReminderJob>(
-            "process-pending-reminders",
-            job => job.ProcessPendingRemindersAsync(),
-            "*/5 * * * *" // cada 5 minutos
-        );
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("BackgroundJobsSetup");
 
-        RecurringJob.AddOrUpdate<AutomationRuleEvaluationJob>(
-            "evaluate-automation-rules",
-            job => job.EvaluateAllActiveRulesAsync(),
-            "0 12 * * *" // 12:00 UTC ≈ 09:00 Argentina (sin horario de verano)
-        );
+        AddOrUpdateSafely(logger, "process-pending-reminders", () =>
+            RecurringJob.AddOrUpdate<HangfireReminderJob>(
+                "process-pending-reminders",
+                job => job.ProcessPendingRemindersAsync(),
+                "*/5 * * * *" // cada 5 minutos
+            ));
+
+        AddOrUpdateSafely(logger, "evaluate-automation-rules", () =>
+            RecurringJob.AddOrUpdate<AutomationRuleEvaluationJob>(
+                "evaluate-automation-rules",
+                job => job.EvaluateAllActiveRulesAsync(),
+                "0 12 * * *" // 12:00 UTC ≈ 09:00 Argentina (sin horario de verano)
+            ));
 
         return app;
     }
+
+    // Hangfire.PostgreSql puede lanzar "duplicate key value violates unique
+    // constraint jobparameter_pkey" (SqlState 23505) cuando dos instancias
+    // registran el mismo recurring job casi al mismo tiempo (p. ej. durante
+    // un rolling deploy en Render, donde la instancia vieja y la nueva
+    // conviven unos segundos). El registro es idempotente, así que si el
+    // conflicto es por esa causa lo ignoramos en vez de tumbar el arranque.
+    private static void AddOrUpdateSafely(ILogger logger, string jobId, Action register)
+    {
+        try
+        {
+            register();
+        }
+        catch (Exception ex) when (IsDuplicateKeyRace(ex))
+        {
+            logger.LogWarning(ex,
+                "Recurring job '{JobId}' ya fue registrado por otra instancia concurrente; se ignora la violación de constraint.",
+                jobId);
+        }
+    }
+
+    private static bool IsDuplicateKeyRace(Exception ex) =>
+        ex is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } ||
+        (ex.InnerException is not null && IsDuplicateKeyRace(ex.InnerException));
 }
