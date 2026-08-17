@@ -13,7 +13,7 @@
 //         {
 //             var admin = new User
 //             {
-//                 Email = "admin@turneo.com",
+//                 Email = "admin@Turneo.com",
 //                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"), // ← FIX: Hashear correctamente
 //                 Role = "Admin"
 //             };

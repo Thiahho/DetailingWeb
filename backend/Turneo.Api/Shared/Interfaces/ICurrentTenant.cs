@@ -6,4 +6,7 @@ public interface ICurrentTenant
 {
     int TenantId { get; }
     bool IsResolved { get; }
+    bool IsBypassed { get; }
+    void SetTenant(int tenantId);
+    void SetBypass();
 }

@@ -12,6 +12,7 @@ global using Turneo.Api.Core.Payments;
 global using Turneo.Api.Core.Caja;
 global using Turneo.Api.Core.Notifications;
 global using Turneo.Api.Core.Automations;
+global using Turneo.Api.Core.SmartTags;
 global using Turneo.Api.Core.Reports;
 global using Turneo.Api.Core.Settings;
 global using Turneo.Api.Core.Content;

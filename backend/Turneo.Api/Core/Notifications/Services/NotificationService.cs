@@ -101,18 +101,29 @@ public class NotificationService
         if (!booking.ProfessionalId.HasValue) return;
         if (!(_configuration.GetValue<bool?>("Notifications:NotifyProfessional") ?? true)) return;
 
+        var account = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.Role == "Professional" && u.ProfessionalId == booking.ProfessionalId && u.TenantId == booking.TenantId)
+            .Select(u => new { u.Email, u.TelegramChatId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (account == null) return;
+
+        // Cada canal es independiente: si el profesional tiene email Y Telegram cargados,
+        // recibe el aviso por los dos. Uno fallando no afecta al otro.
+        if (!string.IsNullOrWhiteSpace(account.Email))
+            await SendProfessionalNotificationAsync(booking, "Email", account.Email, cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(account.TelegramChatId))
+            await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, cancellationToken);
+    }
+
+    private async Task SendProfessionalNotificationAsync(Booking booking, string channel, string destination, CancellationToken cancellationToken)
+    {
         try
         {
-            var professionalEmail = await _context.Users
-                .IgnoreQueryFilters()
-                .Where(u => u.Role == "Professional" && u.ProfessionalId == booking.ProfessionalId && u.TenantId == booking.TenantId)
-                .Select(u => u.Email)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(professionalEmail)) return;
-
-            var emailProvider = _providers.FirstOrDefault(p => p.Channel == "Email");
-            if (emailProvider == null) return;
+            var provider = _providers.FirstOrDefault(p => p.Channel == channel);
+            if (provider == null) return;
 
             var agendaBaseUrl = _configuration["Notifications:ProfessionalAgendaBaseUrl"]
                 ?? "https://detailing-web-five.vercel.app/profesional/agenda";
@@ -141,8 +152,8 @@ public class NotificationService
                 TenantId  = booking.TenantId,
                 BookingId = booking.Id,
                 EventType = NotificationEventType.ProfessionalBookingCreated,
-                Channel   = "Email",
-                Provider  = emailProvider.ProviderName,
+                Channel   = channel,
+                Provider  = provider.ProviderName,
                 Status    = NotificationDeliveryStatus.Pending,
                 // No se reintenta con RetryPendingAsync: ese job reconstruye datos
                 // orientados al cliente y no sabe nada de profesionales/agenda.
@@ -151,7 +162,7 @@ public class NotificationService
             _context.NotificationLogs.Add(log);
             await _context.SaveChangesAsync(cancellationToken);
 
-            var result = await emailProvider.SendToAddressAsync(professionalEmail, message, cancellationToken);
+            var result = await provider.SendToAddressAsync(destination, message, cancellationToken);
 
             log.LastAttemptAt = DateTime.Now;
             log.RetryCount = 1;
@@ -161,20 +172,20 @@ public class NotificationService
                 log.Status = NotificationDeliveryStatus.Sent;
                 log.ProviderMessageId = result.ProviderMessageId;
                 log.SentAt = DateTime.Now;
-                _logger.LogInformation("[Notification] Email a profesional enviado OK para booking {BookingId}", booking.Id);
+                _logger.LogInformation("[Notification] {Channel} a profesional enviado OK para booking {BookingId}", channel, booking.Id);
             }
             else
             {
                 log.Status = NotificationDeliveryStatus.Failed;
                 log.ErrorMessage = result.Error;
-                _logger.LogWarning("[Notification] Email a profesional falló para booking {BookingId}: {Error}", booking.Id, result.Error);
+                _logger.LogWarning("[Notification] {Channel} a profesional falló para booking {BookingId}: {Error}", channel, booking.Id, result.Error);
             }
 
             await _context.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[Notification] Error notificando al profesional del booking {BookingId}", booking.Id);
+            _logger.LogError(ex, "[Notification] Error notificando al profesional ({Channel}) del booking {BookingId}", channel, booking.Id);
         }
     }
 

@@ -23,7 +23,14 @@ public class NotificationTemplateService
 
         if (eventType == NotificationEventType.BookingReminder24h && IsOpenAiEnabled())
         {
-            body = await GenerateReminderBodyAsync(data, cancellationToken) ?? BuildBody(eventType, data);
+            var generated = await GenerateReminderBodyAsync(data, cancellationToken);
+            // Disclosure obligatorio (FTC / Ley 24.240 art. 4 deber de información):
+            // el cliente tiene que poder distinguir un mensaje redactado por IA de uno
+            // humano. Va pegado acá, no en el prompt, para que sea imposible que el
+            // modelo lo omita o lo reformule.
+            body = generated is not null
+                ? $"{generated}\n\n(Mensaje generado con asistencia de inteligencia artificial.)"
+                : BuildBody(eventType, data);
         }
         else
         {

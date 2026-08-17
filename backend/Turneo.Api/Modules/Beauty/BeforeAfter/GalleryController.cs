@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Turneo.Api.Modules.Beauty.BeforeAfter;
 
@@ -8,14 +9,19 @@ namespace Turneo.Api.Modules.Beauty.BeforeAfter;
 public class GalleryController : ControllerBase
 {
     private readonly IGalleryRepository _repository;
+    private readonly CloudinaryAdminService _cloudinary;
+    private readonly ILogger<GalleryController> _logger;
 
-    public GalleryController(IGalleryRepository repository)
+    public GalleryController(IGalleryRepository repository, CloudinaryAdminService cloudinary, ILogger<GalleryController> logger)
     {
         _repository = repository;
+        _cloudinary = cloudinary;
+        _logger = logger;
     }
 
     [HttpGet]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetActive()
     {
         var items = await _repository.GetActiveAsync();
@@ -77,6 +83,14 @@ public class GalleryController : ControllerBase
         if (item == null) return NotFound();
         _repository.Remove(item);
         await _repository.SaveChangesAsync();
+
+        // Best-effort: si Cloudinary falla no revertimos el borrado del
+        // registro, pero lo logueamos para poder intervenir a mano (ver
+        // también /platform/takedown, que reintenta por URL).
+        var (deleted, error) = await _cloudinary.TryDestroyAsync(item.ImageUrl);
+        if (!deleted)
+            _logger.LogWarning("[Gallery] No se pudo borrar {ImageUrl} de Cloudinary tras eliminar item {Id}: {Error}", item.ImageUrl, id, error);
+
         return NoContent();
     }
 }

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -124,7 +125,8 @@ public class MultiTenancyIsolationTests
                 customerName = "Cliente Via Host",
                 customerPhone = "1122334455",
                 email = $"via-host-{Guid.NewGuid():N}@test.com",
-                subject = "Corte de pelo"
+                subject = "Corte de pelo",
+                acceptedTerms = true
             })
         };
         request.Headers.Add("X-Tenant-Host", $"{slug}.{baseDomain}");
@@ -138,5 +140,41 @@ public class MultiTenancyIsolationTests
         var reloadedSlot = await TestDataFactory.GetTimeSlotIgnoringTenantAsync(_factory, slot.Id);
         Assert.False(reloadedSlot!.IsAvailable);
         Assert.Equal(tenantB, reloadedSlot.TenantId);
+    }
+
+    [Fact]
+    public async Task SmartLink_ResolvesOwningTenant_IgnoringXTenantHostOfAnotherTenant()
+    {
+        // Valida la decisión de diseño de SmartLinkController: el token identifica
+        // al tenant sin ambigüedad, y el endpoint público no debe dejarse
+        // gobernar por ningún tenant que TenantResolutionMiddleware haya
+        // preresuelto a partir del header/host (mismo patrón que el webhook de
+        // MercadoPago en PaymentsController).
+        var tenantA = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var tenantB = await TestDataFactory.CreateTenantAsync(_factory, $"tenant-b-{Guid.NewGuid():N}", "Salón B");
+        var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantA, "Recepción Tenant A");
+
+        var configuration = _factory.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var baseDomain = configuration["Tenancy:BaseDomain"]!;
+
+        var client = _factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/smart/{tag.Token}");
+        // Header de un tenant completamente distinto al dueño del SmartTag.
+        request.Headers.Add("X-Tenant-Host", $"{tenantB.Slug}.{baseDomain}");
+
+        var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var recordedEvent = await db.SmartTagEvents.IgnoreQueryFilters()
+            .Where(e => e.SmartTagId == tag.Id)
+            .OrderByDescending(e => e.Id)
+            .FirstAsync();
+
+        // El evento quedó grabado con el TenantId dueño del token (A), no con el
+        // tenant B implicado por el header.
+        Assert.Equal(tenantA, recordedEvent.TenantId);
+        Assert.NotEqual(tenantB.Id, recordedEvent.TenantId);
     }
 }

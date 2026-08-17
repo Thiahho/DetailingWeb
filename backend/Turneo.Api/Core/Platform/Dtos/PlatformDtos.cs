@@ -11,7 +11,8 @@ public record CreateTenantRequest(
     CommercialModel CommercialModel,
     int? PlanId,
     string AdminEmail,
-    string AdminPassword);
+    string AdminPassword,
+    bool AcceptedTerms);
 
 public record TenantSummary(
     int Id,

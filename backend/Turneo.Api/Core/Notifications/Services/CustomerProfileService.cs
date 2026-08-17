@@ -1,8 +1,9 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace Turneo.Api.Core.Notifications;
 
-public class CustomerProfileService(ApplicationDbContext db)
+public class CustomerProfileService(ApplicationDbContext db, CloudinaryAdminService cloudinary, ILogger<CustomerProfileService> logger)
 {
     public async Task<List<CustomerProfileResponse>> GetProfilesAsync() =>
         await db.CustomerProfiles
@@ -116,6 +117,21 @@ public class CustomerProfileService(ApplicationDbContext db)
 
         db.CustomerProfiles.Remove(profile);
         await db.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(profile.PhotoUrls))
+        {
+            List<string> photoUrls;
+            try { photoUrls = JsonSerializer.Deserialize<List<string>>(profile.PhotoUrls) ?? new(); }
+            catch { photoUrls = new(); }
+
+            foreach (var url in photoUrls)
+            {
+                var (deleted, error) = await cloudinary.TryDestroyAsync(url);
+                if (!deleted)
+                    logger.LogWarning("[CustomerProfiles] No se pudo borrar {Url} de Cloudinary tras eliminar cliente {Id}: {Error}", url, id, error);
+            }
+        }
+
         return true;
     }
 

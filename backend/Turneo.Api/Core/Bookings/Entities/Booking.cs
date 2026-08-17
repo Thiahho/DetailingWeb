@@ -23,6 +23,8 @@ public class Booking : ITenantScoped
     public string? GoogleEventId { get; set; }
     public string? Email { get; set; }
     public string Status { get; set; } = BookingStatus.Pending;
+    public DateTime TermsAcceptedAt { get; set; }
+    public string TermsVersion { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CancelledAt { get; set; }
     public Payment? Payment { get; set; }

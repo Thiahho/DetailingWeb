@@ -25,6 +25,7 @@ public class RouletteController : ControllerBase
     // gajos de la ruleta visual con esto (no expone probabilidad ni valor).
     [HttpGet("prizes")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetPrizes()
     {
         var prizes = await _context.RoulettePrizes

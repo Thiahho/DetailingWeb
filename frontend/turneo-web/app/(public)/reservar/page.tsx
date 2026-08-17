@@ -96,7 +96,11 @@ export default function Home() {
       {jsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          // JSON.stringify no escapa "<" — sin esto, un SiteConfig (businessName,
+          // metaDescription, location: todos editables por Admin) con
+          // "</script><script>..." rompe el tag y ejecuta JS para cualquier
+          // visitante público de /reservar (stored XSS vía JSON-LD).
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
       )}
 

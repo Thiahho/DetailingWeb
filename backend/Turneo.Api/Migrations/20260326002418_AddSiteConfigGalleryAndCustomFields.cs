@@ -100,13 +100,13 @@ namespace Turneo.Api.Migrations
                 ""Location"", ""LocationShort"", ""SiteUrl"", ""LogoUrl"",
                 ""HeroTitle"", ""HeroSubtitle"", ""HeroBadge"", ""MetaDescription"", ""UpdatedAt""
             ) SELECT
-                'Barber & Shop', '5491126920618', 'https://www.instagram.com/barber', '@barber',
+                'Studio Nails & Beauty', '5491126920618', 'https://www.instagram.com/studionails', '@studionails',
                 'Moreno, Zona Oeste, Buenos Aires', 'Moreno, Zona Oeste',
                 'https://tu-sitio-nails.vercel.app', '/img/logo.png',
-                'Turnos online para cortes de pelo',
-                'Cortes, Color, Claritos y más.',
-                'Cuidado Personal',
-                'Reservá tu turno online en nuestro estudio en Moreno.',
+                'Turnos online para uñas y belleza',
+                'Manicuría, esmaltado semipermanente, nail art y más.',
+                'Belleza & Cuidado Personal',
+                'Reservá tu turno online en nuestro estudio de uñas en Moreno.',
                 NOW()
                 WHERE NOT EXISTS (SELECT 1 FROM ""SiteConfigs"");
             ");

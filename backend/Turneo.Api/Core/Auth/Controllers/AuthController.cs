@@ -20,6 +20,7 @@ public class AuthController : ControllerBase
 
     [HttpGet("client/identity-strategy")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public IActionResult GetClientIdentityStrategy()
     {
         var mode = _configuration["ClientIdentity:Mode"] ?? "MagicLinkOtp";
@@ -112,8 +113,30 @@ public class AuthController : ControllerBase
         {
             id = user.Id,
             email = user.Email,
-            role = user.Role
+            role = user.Role,
+            telegramChatId = user.TelegramChatId
         });
+    }
+
+    // POST: api/auth/telegram-chat-id (el propio usuario carga/borra su chat_id de Telegram)
+    [Authorize]
+    [HttpPost("telegram-chat-id")]
+    public async Task<IActionResult> SetTelegramChatId([FromBody] SetTelegramChatIdRequest request)
+    {
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+        if (email == null)
+            return Unauthorized();
+
+        try
+        {
+            await _authService.SetTelegramChatIdAsync(email, request.TelegramChatId);
+            return Ok(new { message = "Chat ID de Telegram actualizado" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
     }
 
     [HttpPost("logout")]
@@ -223,6 +246,7 @@ public class AuthController : ControllerBase
     // POST: api/auth/change-password
     [Authorize]
     [HttpPost("change-password")]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -247,3 +271,4 @@ public class AuthController : ControllerBase
 }
 
 public record CreateProfessionalAccountRequest(int ProfessionalId, string Email, string Password, string? Username = null);
+public record SetTelegramChatIdRequest(string? TelegramChatId);

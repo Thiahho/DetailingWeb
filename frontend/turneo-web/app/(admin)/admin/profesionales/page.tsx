@@ -7,6 +7,7 @@ import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import PasswordInput from "@/src/components/ui/PasswordInput";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
@@ -71,9 +72,12 @@ export default function ProfesionalesAdminPage() {
   const [formData, setFormData] = useState(emptyForm);
   const [schedule, setSchedule] = useState<WeeklyScheduleDay[]>(defaultSchedule());
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [accessForm, setAccessForm] = useState({ email: "", username: "", password: "" });
   const [savingAccess, setSavingAccess] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -235,6 +239,46 @@ export default function ProfesionalesAdminPage() {
     }
   };
 
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => (prev.length === professionals.length ? [] : professionals.map((p) => p.id)));
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!(await confirm({ message: `¿Eliminar ${selectedIds.length} profesional(es)? Esta acción no se puede deshacer.`, confirmLabel: "Eliminar" }))) return;
+
+    setBulkDeleting(true);
+    try {
+      const results = await Promise.all(
+        selectedIds.map((id) => fetch(`/api/professionals/${id}`, { method: "DELETE" }).then((r) => r.ok))
+      );
+      const okCount = results.filter(Boolean).length;
+      const failCount = results.length - okCount;
+
+      if (okCount > 0) {
+        showToast(
+          "warning",
+          "Profesionales eliminados",
+          failCount > 0 ? `${okCount} eliminado(s), ${failCount} no se pudieron eliminar` : `${okCount} profesional(es) eliminado(s) correctamente`,
+          4000
+        );
+        setSelectedIds([]);
+        loadProfessionals();
+      } else {
+        showToast("error", "Error", "No se pudo eliminar ningún profesional");
+      }
+    } catch (error) {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      logError(error);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
@@ -246,21 +290,45 @@ export default function ProfesionalesAdminPage() {
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-6xl">
         {/* Header */}
-        <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
+        <div className="mb-6 md:mb-8 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Gestión de Profesionales</h1>
             <p className="text-charcoal/50 text-sm mt-1">
               Administrá el equipo del salón y qué servicios ofrece cada uno
             </p>
           </div>
-          <Button onClick={openCreate} data-testid="professional-create-button" variant="primary" className="shrink-0 flex items-center gap-2">
-            <span className="text-xl leading-none">+</span>
-            <span className="hidden sm:inline">Nuevo Profesional</span>
-            <span className="sm:hidden">Nuevo</span>
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {professionals.length > 0 && (
+              <button
+                type="button"
+                data-testid="professional-select-all"
+                onClick={toggleSelectAll}
+                className="text-xs text-charcoal/50 hover:text-charcoal font-medium transition px-2"
+              >
+                {selectedIds.length === professionals.length ? "Deseleccionar todos" : "Seleccionar todos"}
+              </button>
+            )}
+            {selectedIds.length > 0 && (
+              <Button
+                onClick={bulkDelete}
+                disabled={bulkDeleting}
+                data-testid="professional-bulk-delete-button"
+                variant="danger"
+                className="shrink-0"
+              >
+                {bulkDeleting ? "Eliminando..." : `Eliminar seleccionados (${selectedIds.length})`}
+              </Button>
+            )}
+            <Button onClick={openCreate} data-testid="professional-create-button" variant="primary" className="shrink-0 flex items-center gap-2">
+              <span className="text-xl leading-none">+</span>
+              <span className="hidden sm:inline">Nuevo Profesional</span>
+              <span className="sm:hidden">Nuevo</span>
+            </Button>
+          </div>
         </div>
 
         {/* Grid de profesionales */}
@@ -278,10 +346,25 @@ export default function ProfesionalesAdminPage() {
                 key={professional.id}
                 data-testid="professional-card"
                 data-professional-name={`${professional.firstName} ${professional.lastName}`}
-                className={`bg-ivory border rounded-xl overflow-hidden transition ${
-                  professional.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"
-                }`}
+                onClick={() => toggleSelect(professional.id)}
+                className={`relative bg-ivory border rounded-xl overflow-hidden transition cursor-pointer ${
+                  selectedIds.includes(professional.id) ? "ring-2 ring-blush/60" : ""
+                } ${professional.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"}`}
               >
+                <label
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2 left-2 z-10 flex items-center justify-center w-6 h-6 rounded-md bg-cream/80 backdrop-blur-sm cursor-pointer"
+                  title="Seleccionar"
+                >
+                  <input
+                    type="checkbox"
+                    data-testid="professional-select-checkbox"
+                    checked={selectedIds.includes(professional.id)}
+                    onChange={() => toggleSelect(professional.id)}
+                    className="accent-blush w-4 h-4 cursor-pointer"
+                  />
+                </label>
+
                 {/* Imagen */}
                 {professional.photoUrl && (
                   <div className="h-36 overflow-hidden">
@@ -330,7 +413,7 @@ export default function ProfesionalesAdminPage() {
                     </ul>
                   )}
 
-                  <div className="mt-4 flex gap-2">
+                  <div className="mt-4 flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button
                       onClick={() => openEdit(professional)}
                       data-testid="professional-edit-button"
