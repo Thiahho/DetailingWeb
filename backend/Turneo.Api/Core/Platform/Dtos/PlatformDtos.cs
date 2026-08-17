@@ -14,6 +14,10 @@ public record CreateTenantRequest(
     string AdminPassword,
     bool AcceptedTerms);
 
+// Vista temporal para altas manuales de Admin en un tenant ya existente
+// (ver /platform/admins) — cuando no corresponde dar de alta un tenant nuevo.
+public record CreateAdminRequest(string Email, string Password);
+
 public record TenantSummary(
     int Id,
     string Name,
