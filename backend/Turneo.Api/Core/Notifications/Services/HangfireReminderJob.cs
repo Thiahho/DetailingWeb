@@ -4,6 +4,7 @@ namespace Turneo.Api.Core.Notifications;
 
 public class HangfireReminderJob(
     ApplicationDbContext db,
+    ICurrentTenant currentTenant,
     IEnumerable<INotificationProvider> notificationProviders,
     NotificationService notificationService,
     IConfiguration configuration,
@@ -24,6 +25,10 @@ public class HangfireReminderJob(
 
     public async Task ProcessPendingRemindersAsync()
     {
+        // Cross-tenant a propósito (procesa recordatorios de todos los tenants) —
+        // sin esto, RLS filtraría todas las queries de este job.
+        currentTenant.SetBypass();
+
         // Cuántos minutos antes del turno se envía el aviso.
         // Dev/test: 5 | Prod: 1440 (24h)
         var notifyBeforeMinutes = configuration.GetValue<int?>("Notifications:ReminderNotifyBeforeMinutes") ?? (24 * 60);

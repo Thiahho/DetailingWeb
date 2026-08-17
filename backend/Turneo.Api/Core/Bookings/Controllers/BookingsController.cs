@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Bookings;
 
@@ -16,8 +17,9 @@ public class BookingsController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly IInsumosRepository _insumosRepository;
     private readonly IPlanLimitsService _planLimits;
+    private readonly ISmartTagsRepository _smartTagsRepository;
 
-    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits)
+    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository)
     {
         _repository = repository;
         _notificationService = notificationService;
@@ -25,6 +27,7 @@ public class BookingsController : ControllerBase
         _configuration = configuration;
         _insumosRepository = insumosRepository;
         _planLimits = planLimits;
+        _smartTagsRepository = smartTagsRepository;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -35,6 +38,9 @@ public class BookingsController : ControllerBase
     {
         if (!string.IsNullOrWhiteSpace(request.Email) && !new EmailAddressAttribute().IsValid(request.Email))
             return BadRequest(new { success = false, message = "El email no es válido" });
+
+        if (!request.AcceptedTerms)
+            return BadRequest(new { success = false, message = "Debés aceptar los Términos y Condiciones para reservar un turno" });
 
         if (request.ProfessionalId.HasValue)
         {
@@ -89,7 +95,9 @@ public class BookingsController : ControllerBase
             Service = request.Service,
             CustomFieldsJson = request.CustomFieldsJson,
             Message = request.Message,
-            Status = BookingStatus.Pending
+            Status = BookingStatus.Pending,
+            TermsAcceptedAt = DateTime.UtcNow,
+            TermsVersion = LegalTermsVersions.Customer
         };
 
         _repository.Add(booking);
@@ -97,6 +105,19 @@ public class BookingsController : ControllerBase
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
         await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCreated);
+
+        if (!string.IsNullOrWhiteSpace(request.SmartTagToken))
+        {
+            var smartTag = await _smartTagsRepository.FindActiveByTokenIgnoringTenantAsync(request.SmartTagToken);
+            // Solo si el tag sigue activo y pertenece al MISMO tenant que la reserva —
+            // descarta en silencio un token ajeno (no debe inflar métricas de otro
+            // tenant) ni bloquea la reserva en ningún caso.
+            if (smartTag is not null && smartTag.TenantId == booking.TenantId)
+            {
+                await _smartTagsRepository.RecordEventAsync(
+                    smartTag.Id, smartTag.TenantId, smartTag.Action, SmartTagEventType.BookingCompleted);
+            }
+        }
 
         return Ok(new
         {
@@ -500,7 +521,9 @@ public class CreateBookingRequest
     [StringLength(256)]
     public string? Email { get; set; }
 
-    [Required, StringLength(200, MinimumLength = 1)]
+    // Sin [Required]: el campo es opcional en ambos formularios del cliente
+    // (BookingForms.tsx y ReserveSlotModal.tsx lo marcan "(opcional)" en la UI).
+    [StringLength(200)]
     public string Subject { get; set; } = string.Empty;
 
     [StringLength(200)]
@@ -513,6 +536,17 @@ public class CreateBookingRequest
 
     [StringLength(2000)]
     public string? Message { get; set; }
+
+    // Presente cuando la reserva se originó en un Smart Tag (docs/NFC.md) —
+    // se usa solo para registrar el evento BOOKING_COMPLETED, nunca para
+    // resolver el tenant de la reserva en sí.
+    [StringLength(16)]
+    public string? SmartTagToken { get; set; }
+
+    // Sin [Required]: en un bool no-nullable, RequiredAttribute solo rechaza
+    // null, nunca false (el default del tipo) — la validación real de que
+    // sea explícitamente true se hace a mano en CreateBooking.
+    public bool AcceptedTerms { get; set; }
 }
 
 public class UpdateBookingDetailRequest

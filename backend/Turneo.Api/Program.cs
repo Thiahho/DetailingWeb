@@ -32,11 +32,17 @@ builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
 builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository>();
 builder.Services.AddScoped<IPermissionsRepository, PermissionsRepository>();
+builder.Services.AddScoped<ISmartTagsRepository, SmartTagsRepository>();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddScoped<TenantSessionInterceptor>();
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    // Propaga el tenant actual a la sesión de Postgres para Row Level Security
+    // (ver migración EnableRowLevelSecurity) — resuelto vía sp porque el
+    // interceptor necesita ICurrentTenant, scoped por request.
+    options.AddInterceptors(sp.GetRequiredService<TenantSessionInterceptor>());
 });
 
 builder.Services.AddJwtAuthentication(builder.Configuration, builder.Environment);
@@ -60,8 +66,10 @@ if (builder.Environment.IsEnvironment("Testing"))
 else
 {
     builder.Services.AddHttpClient<WhatsAppProvider>();
+    builder.Services.AddHttpClient<TelegramProvider>();
     builder.Services.AddScoped<INotificationProvider, GmailProvider>();
     builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
+    builder.Services.AddScoped<INotificationProvider, TelegramProvider>();
 }
 builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 builder.Services.AddHostedService<ReminderBackgroundService>();
@@ -71,6 +79,9 @@ builder.Services.AddScoped<HangfireReminderJob>();
 builder.Services.AddScoped<AutomationRuleEvaluationJob>();
 builder.Services.AddScoped<RouletteService>();
 builder.Services.AddScoped<LoyaltyRouletteService>();
+builder.Services.AddHttpClient<CloudinaryAdminService>();
+builder.Services.AddScoped<ContentTakedownService>();
+builder.Services.AddScoped<DataDeletionService>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);
 
@@ -97,6 +108,13 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
+    // Dos saltos hasta acá, no uno: navegador → proxy de Next.js/Vercel (que
+    // ahora reenvía la IP real en X-Forwarded-For, ver tenantHeader.ts) →
+    // borde de Render (que agrega su propia IP de conexión al final de la
+    // cadena). Con el default (ForwardLimit=1) ASP.NET Core se queda con el
+    // último valor — la IP de Vercel, no la del usuario. Con 2, retrocede
+    // los dos saltos y llega a la IP real.
+    options.ForwardLimit = 2;
 });
 
 // Rate limiting: solo en los endpoints públicos/anónimos identificados en la
@@ -161,11 +179,52 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    // Smart Link (/api/smart/{token}): público, sin login. Más permisivo que
+    // "roulette" porque taps NFC legítimos repetidos desde la misma
+    // ubicación/NAT son esperables, pero acotado para frenar scraping/
+    // generación masiva de eventos (docs/NFC.md sección 11).
+    options.AddPolicy("smart-tag", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Lecturas públicas y anónimas sin dato sensible (horarios disponibles,
+    // config del sitio, galería, catálogo de premios de la ruleta): sin
+    // límite hoy, blanco de scraping/DoS barato. Más generoso que
+    // "public-booking" porque un visitante real puede disparar varias de
+    // estas por segundo solo navegando la página (cambiar de profesional,
+    // scrollear la galería).
+    options.AddPolicy("public-read", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Headers de seguridad básicos — la API solo devuelve JSON (sin CSP acá, no
+// hay HTML que restringir), pero estos evitan que un navegador la trate
+// como algo distinta a lo que declara o la deje embeber en un iframe ajeno.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
 
 // ✅ PRODUCCIÓN: Aplicar migraciones automáticamente
 using (var scope = app.Services.CreateScope())
@@ -177,6 +236,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ✅ PRODUCCIÓN: Configuración del pipeline
+// Explícito (antes era implícito): TenantResolutionMiddleware ahora necesita
+// context.GetEndpoint() resuelto para leer [TenantContextBypass] — sin
+// UseRouting() acá no hay garantía de que el endpoint ya esté matcheado.
+app.UseRouting();
 app.UseCors("ProductionPolicy");
 app.UseAuthentication();
 // Después de Authentication (necesita leer el claim tenant_id del JWT) y antes

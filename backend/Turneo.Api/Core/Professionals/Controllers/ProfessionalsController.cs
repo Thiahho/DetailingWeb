@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -15,16 +16,22 @@ public class ProfessionalsController : ControllerBase
     // Solo para GetAvailable: la búsqueda de TimeSlot es una consulta de
     // Scheduling, no de Professionals — ver nota en IProfessionalsRepository.
     private readonly ApplicationDbContext _context;
+    private readonly CloudinaryAdminService _cloudinary;
+    private readonly ILogger<ProfessionalsController> _logger;
 
-    public ProfessionalsController(IProfessionalsRepository repository, IPlanLimitsService planLimits, ApplicationDbContext context)
+    public ProfessionalsController(IProfessionalsRepository repository, IPlanLimitsService planLimits, ApplicationDbContext context, CloudinaryAdminService cloudinary, ILogger<ProfessionalsController> logger)
     {
         _repository = repository;
         _planLimits = planLimits;
         _context = context;
+        _cloudinary = cloudinary;
+        _logger = logger;
     }
 
     // GET: api/professionals (público) — sin Commission, es dato interno
     [HttpGet]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetAll()
     {
         var professionals = await _repository.GetActiveWithServicesAsync();
@@ -81,6 +88,8 @@ public class ProfessionalsController : ControllerBase
     // Profesionales activos que ofrecen el servicio y, según su horario semanal (si lo tienen cargado),
     // están trabajando en el día/franja horaria del turno elegido.
     [HttpGet("available")]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetAvailable([FromQuery] int serviceId, [FromQuery] int timeSlotId)
     {
         if (serviceId <= 0 || timeSlotId <= 0)
@@ -265,6 +274,13 @@ public class ProfessionalsController : ControllerBase
 
         _repository.Remove(professional);
         await _repository.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(professional.PhotoUrl))
+        {
+            var (deleted, error) = await _cloudinary.TryDestroyAsync(professional.PhotoUrl);
+            if (!deleted)
+                _logger.LogWarning("[Professionals] No se pudo borrar {PhotoUrl} de Cloudinary tras eliminar profesional {Id}: {Error}", professional.PhotoUrl, id, error);
+        }
 
         return Ok(new { message = "Profesional eliminado correctamente" });
     }

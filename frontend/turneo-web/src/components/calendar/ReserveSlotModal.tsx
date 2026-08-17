@@ -114,10 +114,6 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
       setError("Seleccioná un servicio.");
       return;
     }
-    if (!subject.trim()) {
-      setError("Completá el detalle del turno.");
-      return;
-    }
 
     setReserving(true);
     try {
@@ -306,14 +302,13 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
               </select>
             </div>
             <div>
-              <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno *</label>
+              <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno (opcional)</label>
               <input
                 data-testid="calendario-reserve-subject"
                 className="form-input mt-1.5"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Ej: lavado completo, corte y color..."
-                required
               />
             </div>
             <div>

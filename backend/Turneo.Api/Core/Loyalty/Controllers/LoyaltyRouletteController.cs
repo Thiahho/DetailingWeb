@@ -28,6 +28,7 @@ public class LoyaltyRouletteController : ControllerBase
     // GET: api/loyalty-roulette/prizes (público — arma los gajos de la rueda)
     [HttpGet("prizes")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetPrizes()
     {
         var prizes = await _context.LoyaltyPrizes

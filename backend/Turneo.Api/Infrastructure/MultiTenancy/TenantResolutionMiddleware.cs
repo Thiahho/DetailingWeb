@@ -25,6 +25,21 @@ public class TenantResolutionMiddleware(RequestDelegate next)
         ApplicationDbContext db,
         IConfiguration configuration)
     {
+        // PlatformOwner opera cruzando todos los tenants (alta de tenants,
+        // takedown de contenido) — sin esto caería al DefaultTenantSlug por
+        // fallback, que ya era semánticamente incorrecto a nivel EF (por eso
+        // esos controllers usan IgnoreQueryFilters()) y rompería RLS directo
+        // (la policy filtraría todo a un tenant que no es el que se quiere tocar).
+        var isPlatformOwner = context.User?.IsInRole("PlatformOwner") ?? false;
+        var hasExplicitBypass = context.GetEndpoint()?.Metadata.GetMetadata<TenantContextBypassAttribute>() is not null;
+
+        if (isPlatformOwner || hasExplicitBypass)
+        {
+            currentTenant.SetBypass();
+            await next(context);
+            return;
+        }
+
         var tenantClaim = context.User?.FindFirst("tenant_id")?.Value;
 
         if (tenantClaim is not null && int.TryParse(tenantClaim, out var tenantIdFromClaim))

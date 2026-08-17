@@ -181,6 +181,17 @@ public class AuthService
         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
+    // El propio usuario logueado carga/borra su chat_id de Telegram (aviso de turno nuevo
+    // para profesionales, ver NotificationService.TryNotifyProfessionalAsync).
+    public async Task SetTelegramChatIdAsync(string email, string? telegramChatId)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email)
+            ?? throw new UnauthorizedAccessException("Usuario no autorizado");
+
+        user.TelegramChatId = string.IsNullOrWhiteSpace(telegramChatId) ? null : telegramChatId.Trim();
+        await _context.SaveChangesAsync();
+    }
+
     public async Task ChangePasswordAsync(string email, ChangePasswordRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -244,7 +255,6 @@ public class AuthService
             ExpiresAt = DateTime.UtcNow.AddMinutes(15)
         });
         await _context.SaveChangesAsync();
-        Console.WriteLine($"[ClientAccessOTP] {email}: {code}");
 
         return new LoginResponse
         {

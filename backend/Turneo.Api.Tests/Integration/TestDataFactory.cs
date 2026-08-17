@@ -184,6 +184,53 @@ public static class TestDataFactory
         return await db.Insumos.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == insumoId);
     }
 
+    public static async Task<SmartTag> CreateSmartTagAsync(CustomWebApplicationFactory factory, int tenantId, string name, string action = "BOOKING", bool isActive = true, string? token = null)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var tag = new SmartTag
+        {
+            TenantId = tenantId,
+            Name = name,
+            Action = action,
+            IsActive = isActive,
+            Token = token ?? $"TEST{Guid.NewGuid():N}".Substring(0, 12).ToUpperInvariant(),
+        };
+        db.SmartTags.Add(tag);
+        await db.SaveChangesAsync();
+        return tag;
+    }
+
+    public static async Task RecordSmartTagEventAsync(CustomWebApplicationFactory factory, int smartTagId, int tenantId, string action, string eventType)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.SmartTagEvents.Add(new SmartTagEvent
+        {
+            TenantId = tenantId,
+            SmartTagId = smartTagId,
+            Action = action,
+            EventType = eventType,
+        });
+        await db.SaveChangesAsync();
+    }
+
+    // Upsert: crea SiteConfig para el tenant si todavía no existe (mismo criterio
+    // que SiteConfigController.Update, que hace GetAsync ?? new SiteConfig()).
+    public static async Task SetGoogleReviewUrlAsync(CustomWebApplicationFactory factory, int tenantId, string url)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var config = await db.SiteConfigs.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.TenantId == tenantId);
+        if (config is null)
+        {
+            config = new SiteConfig { TenantId = tenantId };
+            db.SiteConfigs.Add(config);
+        }
+        config.GoogleReviewUrl = url;
+        await db.SaveChangesAsync();
+    }
+
     public static async Task<CustomerProfile> CreateCustomerProfileAsync(CustomWebApplicationFactory factory, int tenantId, string phone, string name)
     {
         using var scope = factory.Services.CreateScope();

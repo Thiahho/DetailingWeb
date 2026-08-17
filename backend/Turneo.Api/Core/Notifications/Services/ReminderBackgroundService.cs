@@ -27,6 +27,10 @@ public class ReminderBackgroundService : BackgroundService
             try
             {
                 using var scope = _scopeFactory.CreateScope();
+                // Cross-tenant a propósito (revisa turnos de todos los tenants) — sin
+                // esto, RLS filtraría todas las queries de este job al tenant "vacío"
+                // por default de una CurrentTenantService recién creada.
+                scope.ServiceProvider.GetRequiredService<ICurrentTenant>().SetBypass();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 

@@ -4,6 +4,18 @@ import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { logError } from "@/src/lib/logger";
 import PaymentButton from "@/src/components/payments/PaymentButton";
 
+// El admin elige calendarColor libremente (color picker sin restricciones) —
+// con un color claro, iniciales en texto blanco fijo quedan invisibles.
+function contrastTextColor(hex: string): string {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) return "#ffffff";
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 150 ? "#1f2937" : "#ffffff";
+}
+
 interface TimeSlot {
   id: number;
   startDateTime: string;
@@ -42,6 +54,12 @@ interface CustomFieldDef {
 
 interface BookingFormProps {
   preselectedService?: string;
+  // Presentes cuando el form se embebe en el flujo público de Smart Tag
+  // (docs/NFC.md): la página vive en el dominio compartido turneo.app/s/{token},
+  // no en el subdominio propio del tenant, así que hay que pasarle el tenant
+  // explícito a cada fetch en vez de confiar en el Host real (ver tenantHeader.ts).
+  tenantSlugOverride?: string;
+  smartTagToken?: string;
 }
 
 // --- Toast Types ---
@@ -202,7 +220,16 @@ function ClientToast({ toast, onClose }: { toast: Toast; onClose: () => void }) 
   );
 }
 
-export default function BookingForm({ preselectedService }: BookingFormProps) {
+export default function BookingForm({ preselectedService, tenantSlugOverride, smartTagToken }: BookingFormProps) {
+  const withTenant = useCallback(
+    (path: string) => {
+      if (!tenantSlugOverride) return path;
+      const separator = path.includes("?") ? "&" : "?";
+      return `${path}${separator}tenantSlug=${encodeURIComponent(tenantSlugOverride)}`;
+    },
+    [tenantSlugOverride]
+  );
+
   const [formData, setFormData] = useState({
     name: "",
     subject: "",
@@ -212,6 +239,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
     selectedService: "",
     selectedProfessionalId: null as number | null,
     message: "",
+    acceptedTerms: false,
   });
 
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -254,6 +282,13 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentSlots = timeSlots.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
+  // Paginación de especialistas (con muchos profesionales, la grilla crecía sin límite)
+  const [currentProPage, setCurrentProPage] = useState(1);
+  const PROS_PER_PAGE = 10;
+  const totalProPages = Math.ceil(availableProfessionals.length / PROS_PER_PAGE);
+  const proStartIndex = (currentProPage - 1) * PROS_PER_PAGE;
+  const currentProfessionals = availableProfessionals.slice(proStartIndex, proStartIndex + PROS_PER_PAGE);
+
   // Cargar servicios y profesionales (una sola vez)
   useEffect(() => {
     loadServices();
@@ -273,6 +308,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   // Cambiar de servicio invalida la elección de especialista (puede no ofrecer el nuevo servicio)
   useEffect(() => {
     setFormData((prev) => ({ ...prev, selectedProfessionalId: null }));
+    setCurrentProPage(1);
   }, [formData.selectedService]);
 
   // Cargar turnos disponibles: de todos los profesionales, o solo del elegido ("sin preferencia" = null)
@@ -284,7 +320,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
   const loadProfessionals = async () => {
     try {
-      const response = await fetch("/api/professionals");
+      const response = await fetch(withTenant("/api/professionals"));
       if (response.ok) {
         setProfessionals(await response.json());
       }
@@ -298,7 +334,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
   const loadAvailableSlots = async (professionalId?: number | null) => {
     try {
       const query = professionalId ? `?professionalId=${professionalId}` : "";
-      const response = await fetch(`/api/timeslots/available${query}`);
+      const response = await fetch(withTenant(`/api/timeslots/available${query}`));
       if (response.ok) {
         const data = await response.json();
         setTimeSlots(data);
@@ -312,7 +348,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
   const loadServices = async () => {
     try {
-      const response = await fetch("/api/services");
+      const response = await fetch(withTenant("/api/services"));
       if (response.ok) {
         setServices(await response.json());
       }
@@ -342,10 +378,15 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
       }
     }
 
+    if (!formData.acceptedTerms) {
+      showToast("warning", "Términos y Condiciones", "Tenés que aceptar los Términos y Condiciones para reservar");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/api/bookings`, {
+      const response = await fetch(withTenant(`/api/bookings`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -358,6 +399,8 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           professionalId: formData.selectedProfessionalId,
           message: formData.message,
           customFieldsJson: customFieldDefs.length > 0 ? JSON.stringify(customFieldValues) : null,
+          smartTagToken: smartTagToken ?? null,
+          acceptedTerms: formData.acceptedTerms,
         }),
       });
 
@@ -389,6 +432,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
           selectedService: "",
           selectedProfessionalId: null,
           message: "",
+          acceptedTerms: false,
         });
         setCustomFieldValues({});
 
@@ -480,7 +524,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
 
       <div>
         <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
-          {subjectLabel}
+          {subjectLabel} <span className="normal-case text-charcoal/30">(opcional)</span>
         </label>
         <input
           className="form-input mt-2"
@@ -489,7 +533,6 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
             setFormData((prev) => ({ ...prev, subject: e.target.value }))
           }
           placeholder={subjectPlaceholder}
-          required
           value={formData.subject}
         />
       </div>
@@ -629,7 +672,7 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
                 </span>
               </button>
 
-              {availableProfessionals.map((pro) => (
+              {currentProfessionals.map((pro) => (
                 <button
                   key={pro.id}
                   type="button"
@@ -650,8 +693,11 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
                     />
                   ) : (
                     <span
-                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: pro.calendarColor || "#6366f1" }}
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                      style={{
+                        backgroundColor: pro.calendarColor || "#6366f1",
+                        color: contrastTextColor(pro.calendarColor || "#6366f1"),
+                      }}
                     >
                       {pro.firstName?.[0]}
                       {pro.lastName?.[0]}
@@ -667,6 +713,62 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
                   </span>
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* CONTROLES DE PAGINACIÓN DE ESPECIALISTAS */}
+          {totalProPages > 1 && (
+            <div className="mt-4 flex justify-center items-center gap-4">
+              <button
+                type="button"
+                disabled={currentProPage === 1}
+                onClick={() => setCurrentProPage((prev) => prev - 1)}
+                className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <div className="flex gap-2">
+                {Array.from({ length: totalProPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentProPage(page)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      currentProPage === page
+                        ? "bg-blush text-cream"
+                        : "bg-porcelain text-charcoal/40"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentProPage === totalProPages}
+                onClick={() => setCurrentProPage((prev) => prev + 1)}
+                className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           )}
         </div>
@@ -786,12 +888,47 @@ export default function BookingForm({ preselectedService }: BookingFormProps) {
         />
       </div>
 
+      <label className="flex items-start gap-2 text-xs text-charcoal/70">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          data-testid="booking-accept-terms"
+          checked={formData.acceptedTerms}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, acceptedTerms: e.target.checked }))
+          }
+        />
+        <span>
+          Leí y acepto los{" "}
+          <a
+            href="/terminos"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-blush hover:underline"
+          >
+            Términos y Condiciones
+          </a>{" "}
+          y la{" "}
+          <a
+            href="/privacidad"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-blush hover:underline"
+          >
+            Política de Privacidad
+          </a>
+        </span>
+      </label>
+
       <button
         className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
         type="submit"
         data-testid="booking-submit"
         disabled={
-          submitting || !formData.selectedSlotId || !formData.selectedService
+          submitting ||
+          !formData.selectedSlotId ||
+          !formData.selectedService ||
+          !formData.acceptedTerms
         }
       >
         {submitting ? "Agendando..." : "Agendar turno"}

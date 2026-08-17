@@ -12,6 +12,7 @@ global using Turneo.Api.Core.Content;
 global using Turneo.Api.Core.Settings;
 global using Turneo.Api.Core.Reports;
 global using Turneo.Api.Modules.Beauty.BeforeAfter;
+global using Turneo.Api.Core.SmartTags;
 global using Turneo.Api.Infrastructure.Persistence;
 global using Turneo.Api.Infrastructure.MultiTenancy;
 global using Turneo.Api.Shared.Interfaces;

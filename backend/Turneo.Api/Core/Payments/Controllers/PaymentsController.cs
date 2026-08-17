@@ -143,6 +143,7 @@ public class PaymentsController : ControllerBase
     [HttpPost("webhook/mercadopago")]
     [AllowAnonymous]
     [EnableRateLimiting("payments-webhook")]
+    [TenantContextBypass]
     public async Task<IActionResult> MercadoPagoWebhook()
     {
         var accessToken = _configuration["MP_ACCESS_TOKEN:AccessToken"];
