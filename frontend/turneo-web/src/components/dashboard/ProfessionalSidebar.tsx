@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, LogOut } from "lucide-react";
+import { CalendarDays, LogOut, UserCog } from "lucide-react";
 import { getSiteConfig } from "@/src/lib/siteConfig";
 
 const navItems = [
   { href: "/profesional/agenda", label: "Mi Agenda", icon: CalendarDays },
+  { href: "/profesional/cuenta", label: "Mi cuenta", icon: UserCog },
 ];
 
 export default function ProfessionalSidebar() {
