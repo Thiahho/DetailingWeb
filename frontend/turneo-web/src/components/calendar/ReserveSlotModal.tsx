@@ -149,6 +149,8 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
           subject: subject.trim(),
           professionalId: slot.professionalId ?? (professionalId ? Number(professionalId) : null),
           message: message || undefined,
+          // Carga interna del admin, no un flujo de consentimiento del cliente.
+          acceptedTerms: true,
         }),
       });
       const data = await bookingRes.json().catch(() => ({}));

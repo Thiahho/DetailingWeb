@@ -219,6 +219,8 @@ function ReminderForm({
           service:        serviceLabel,
           professionalId: selectedProfessionalId,
           message:        message || undefined,
+          // Carga interna del admin, no un flujo de consentimiento del cliente.
+          acceptedTerms:  true,
         }),
       });
       if (!bookingRes.ok) {
