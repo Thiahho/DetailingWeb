@@ -36,7 +36,7 @@ function ProfessionalAgendaContent() {
   const searchParams = useSearchParams();
   // Viene del link del email "nuevo turno agendado" — resalta y hace scroll a ese turno.
   const highlightedBookingId = searchParams.get("bookingId") ? Number(searchParams.get("bookingId")) : null;
-  const highlightedRef = useRef<HTMLDivElement | null>(null);
+  const highlightedRef = useRef<HTMLTableRowElement | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -45,6 +45,9 @@ function ProfessionalAgendaContent() {
   const { confirm, ConfirmDialog } = useConfirm();
   const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
   useModalHotkeys(!!detailSlot, { onClose: () => setDetailSlot(null) });
+  const [activeTab, setActiveTab] = useState<"pending" | "confirmed" | "available">("pending");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     if (!isProfessionalAuthenticated()) {
@@ -159,65 +162,76 @@ function ProfessionalAgendaContent() {
     .filter((s) => !isExpired(s.startDateTime))
     .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
 
-  const confirmedSlots = upcoming.filter((s) => !s.isAvailable && s.booking?.status === "Confirmed");
-  const pendingSlots = upcoming.filter((s) => !s.isAvailable && s.booking?.status !== "Confirmed");
-  const availableSlots = upcoming.filter((s) => s.isAvailable);
+  const groups = {
+    confirmed: upcoming.filter((s) => !s.isAvailable && s.booking?.status === "Confirmed"),
+    pending: upcoming.filter((s) => !s.isAvailable && s.booking?.status !== "Confirmed"),
+    available: upcoming.filter((s) => s.isAvailable),
+  };
 
-  const renderSlot = (slot: TimeSlot) => {
+  const tabs: { key: keyof typeof groups; label: string; activeClass: string }[] = [
+    { key: "pending", label: "Reservados", activeClass: "border-orange-400 text-orange-400" },
+    { key: "confirmed", label: "Confirmados", activeClass: "border-blue-400 text-blue-400" },
+    { key: "available", label: "Libres", activeClass: "border-green-400 text-green-400" },
+  ];
+
+  const activeSlots = groups[activeTab];
+  const totalPages = Math.max(1, Math.ceil(activeSlots.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageSlots = activeSlots.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const changeTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setPage(1);
+  };
+
+  const renderRow = (slot: TimeSlot) => {
     const isHighlighted = highlightedBookingId != null && slot.booking?.id === highlightedBookingId;
     return (
-      <div
+      <tr
         key={slot.id}
         ref={isHighlighted ? highlightedRef : undefined}
         data-testid="agenda-slot-item"
         data-slot-label={slot.label}
         onClick={() => !slot.isAvailable && slot.booking && setDetailSlot(slot)}
-        className={`p-4 rounded-xl border ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
-          isHighlighted
-            ? "border-champagne ring-2 ring-champagne/50 bg-champagne/10"
-            : slot.isAvailable
-            ? "border-green-500/30 bg-green-500/10"
-            : slot.booking?.status === "Confirmed"
-            ? "border-blue-500/30 bg-blue-500/10"
-            : "border-orange-500/30 bg-orange-500/10"
+        className={`border-b border-mauve/5 last:border-0 ${!slot.isAvailable ? "cursor-pointer hover:bg-porcelain" : ""} ${
+          isHighlighted ? "bg-champagne/10" : ""
         }`}
       >
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              {isHighlighted && (
-                <span className="text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">NUEVO</span>
-              )}
-              <p className="text-charcoal font-medium text-sm">{slot.label}</p>
-            </div>
-            {!slot.isAvailable && slot.booking && (
-              <p className="text-charcoal/60 text-xs mt-1">
-                {slot.booking.customerName} · {slot.booking.customerPhone}
-                {slot.booking.service && ` · ${slot.booking.service}`}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {slot.isAvailable ? (
-              <button
-                onClick={() => deleteSlot(slot.id)}
-                data-testid="agenda-slot-delete"
-                className="text-red-600 hover:text-red-400 text-xs font-medium uppercase tracking-wide transition"
-              >
-                Eliminar
-              </button>
-            ) : (
-              <button
-                onClick={(e) => { e.stopPropagation(); releaseSlot(slot.id); }}
-                data-testid="agenda-slot-release"
-                className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
-              >
-                Liberar
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+        <td className="py-3 pr-3 text-charcoal font-medium text-sm whitespace-nowrap">
+          {isHighlighted && (
+            <span className="mr-1.5 text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded align-middle">NUEVO</span>
+          )}
+          {slot.label}
+        </td>
+        {activeTab !== "available" && (
+          <>
+            <td className="py-3 pr-3 text-charcoal/70 text-sm">
+              {slot.booking?.customerName}
+              <span className="block text-charcoal/40 text-xs">{slot.booking?.customerPhone}</span>
+            </td>
+            <td className="py-3 pr-3 text-charcoal/60 text-sm">{slot.booking?.service || "—"}</td>
+          </>
+        )}
+        <td className="py-3 text-right">
+          {slot.isAvailable ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteSlot(slot.id); }}
+              data-testid="agenda-slot-delete"
+              className="text-red-600 hover:text-red-400 text-xs font-medium uppercase tracking-wide transition"
+            >
+              Eliminar
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); releaseSlot(slot.id); }}
+              data-testid="agenda-slot-release"
+              className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
+            >
+              Liberar
+            </button>
+          )}
+        </td>
+      </tr>
     );
   };
 
@@ -294,35 +308,66 @@ function ProfessionalAgendaContent() {
             <h2 className="text-lg font-semibold text-charcoal mb-4">
               Próximos turnos ({upcoming.length})
             </h2>
-            {upcoming.length === 0 ? (
-              <p className="text-charcoal/40 text-sm py-8 text-center">No tenés turnos cargados todavía.</p>
+
+            <div className="flex gap-1 mb-4 border-b border-mauve/10">
+              {tabs.map(({ key, label, activeClass }) => (
+                <button
+                  key={key}
+                  onClick={() => changeTab(key)}
+                  data-testid={`agenda-tab-${key}`}
+                  className={`px-3 py-2 text-xs font-bold uppercase tracking-wide border-b-2 transition ${
+                    activeTab === key ? activeClass : "border-transparent text-charcoal/40 hover:text-charcoal/70"
+                  }`}
+                >
+                  {label} ({groups[key].length})
+                </button>
+              ))}
+            </div>
+
+            {activeSlots.length === 0 ? (
+              <p className="text-charcoal/40 text-sm py-8 text-center">No hay turnos en esta categoría.</p>
             ) : (
-              <div className="space-y-6">
-                {confirmedSlots.length > 0 && (
-                  <div>
-                    <p className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">
-                      Confirmados ({confirmedSlots.length})
-                    </p>
-                    <div className="space-y-2">{confirmedSlots.map(renderSlot)}</div>
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-charcoal/40 text-[11px] uppercase tracking-wider border-b border-mauve/10">
+                        <th className="text-left font-medium py-2 pr-3">Fecha</th>
+                        {activeTab !== "available" && (
+                          <>
+                            <th className="text-left font-medium py-2 pr-3">Cliente</th>
+                            <th className="text-left font-medium py-2 pr-3">Servicio</th>
+                          </>
+                        )}
+                        <th className="text-right font-medium py-2">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>{pageSlots.map(renderRow)}</tbody>
+                  </table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-mauve/10">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      data-testid="agenda-page-prev"
+                      className="text-xs text-charcoal/60 hover:text-charcoal disabled:opacity-30 disabled:hover:text-charcoal/60 transition"
+                    >
+                      ← Anterior
+                    </button>
+                    <span className="text-xs text-charcoal/40">Página {currentPage} de {totalPages}</span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      data-testid="agenda-page-next"
+                      className="text-xs text-charcoal/60 hover:text-charcoal disabled:opacity-30 disabled:hover:text-charcoal/60 transition"
+                    >
+                      Siguiente →
+                    </button>
                   </div>
                 )}
-                {pendingSlots.length > 0 && (
-                  <div>
-                    <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-2">
-                      Reservados, esperando confirmación ({pendingSlots.length})
-                    </p>
-                    <div className="space-y-2">{pendingSlots.map(renderSlot)}</div>
-                  </div>
-                )}
-                {availableSlots.length > 0 && (
-                  <div>
-                    <p className="text-green-400 text-xs font-bold uppercase tracking-wider mb-2">
-                      Libres ({availableSlots.length})
-                    </p>
-                    <div className="space-y-2">{availableSlots.map(renderSlot)}</div>
-                  </div>
-                )}
-              </div>
+              </>
             )}
           </div>
         </div>
