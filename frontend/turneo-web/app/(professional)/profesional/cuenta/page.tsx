@@ -80,6 +80,42 @@ export default function ProfesionalCuentaPage() {
     }
   };
 
+  // ── Cambiar contraseña ──
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordMessageType, setPasswordMessageType] = useState<MessageType>("success");
+
+  const handlePasswordSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSavingPassword(true);
+    setPasswordMessage("");
+
+    try {
+      const response = await fetchWithAuth("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(passwordForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPasswordMessageType("success");
+        setPasswordMessage("Contraseña actualizada.");
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+        return;
+      }
+
+      setPasswordMessageType("error");
+      setPasswordMessage(data.message || "No se pudo cambiar la contraseña.");
+    } catch {
+      setPasswordMessageType("error");
+      setPasswordMessage("Error de conexión. Intentá nuevamente.");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   // ── Chat ID de Telegram ──
   const [telegramChatId, setTelegramChatId] = useState("");
   const [loadingTelegram, setLoadingTelegram] = useState(true);
@@ -205,6 +241,70 @@ export default function ProfesionalCuentaPage() {
               className="w-full"
             >
               {savingProfile ? "Guardando..." : "Guardar datos"}
+            </Button>
+          </form>
+        </div>
+
+        {/* Cambiar contraseña */}
+        <div className="bg-ivory border border-mauve/5 rounded-2xl p-5 md:p-6 mb-4">
+          <p className="text-charcoal/70 text-sm font-medium mb-4">Cambiar contraseña</p>
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {passwordMessage && (
+              <div
+                className={`rounded-lg border p-3 text-sm ${
+                  passwordMessageType === "success"
+                    ? "bg-green-500/10 border-green-500/20 text-green-400"
+                    : "bg-red-500/10 border-red-500/20 text-red-600"
+                }`}
+              >
+                {passwordMessage}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-charcoal/70">Contraseña actual</label>
+              <input
+                type="password"
+                className="form-input"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-charcoal/70">Contraseña nueva</label>
+              <input
+                type="password"
+                className="form-input"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+                required
+                minLength={8}
+              />
+              <p className="text-charcoal/40 text-xs">Mínimo 8 caracteres, con una mayúscula y un número.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-charcoal/70">Confirmar contraseña nueva</label>
+              <input
+                type="password"
+                className="form-input"
+                value={passwordForm.confirmNewPassword}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmNewPassword: e.target.value }))}
+                required
+                minLength={8}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={savingPassword}
+              variant="primary"
+              shape="pill"
+              className="w-full"
+            >
+              {savingPassword ? "Guardando..." : "Cambiar contraseña"}
             </Button>
           </form>
         </div>

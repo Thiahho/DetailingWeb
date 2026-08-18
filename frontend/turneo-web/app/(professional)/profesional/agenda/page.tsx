@@ -111,6 +111,18 @@ function ProfessionalAgendaContent() {
     }
   };
 
+  const confirmBooking = async (bookingId: number) => {
+    const res = await fetch(`/api/bookings/${bookingId}/confirm`, { method: "PATCH" });
+    const data = await res.json();
+    if (res.ok) {
+      setDetailSlot(null);
+      showToast("success", "Turno confirmado");
+      loadSlots();
+    } else {
+      showToast("error", data.message || "No se pudo confirmar el turno");
+    }
+  };
+
   const releaseSlot = async (id: number) => {
     if (!(await confirm({ message: "¿Liberar este turno? Si tenía una reserva, se cancela.", confirmLabel: "Liberar turno" }))) return;
     const res = await fetch(`/api/timeslots/${id}/release`, { method: "PUT" });
@@ -319,6 +331,17 @@ function ProfessionalAgendaContent() {
               {detailSlot.booking.message && <Row label="Mensaje" value={detailSlot.booking.message} />}
               <Row label="Estado" value={detailSlot.booking.status === "Confirmed" ? "Confirmado" : "Pendiente"} />
             </div>
+            {detailSlot.booking.status !== "Confirmed" && (
+              <div className="px-6 pb-1">
+                <button
+                  data-testid="agenda-detail-confirm"
+                  onClick={() => confirmBooking(detailSlot.booking!.id)}
+                  className="w-full bg-blush hover:bg-blushdark text-cream py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wide transition"
+                >
+                  Confirmar turno
+                </button>
+              </div>
+            )}
             <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
               <a
                 href={`https://wa.me/+54${detailSlot.booking.customerPhone.replace(/\D/g, "")}`}

@@ -199,6 +199,38 @@ public class ProfessionalsController : ControllerBase
         return Ok(new { message = "Datos actualizados" });
     }
 
+    // GET: api/professionals/me/earnings?year=&month= (el propio profesional ve su comisión del mes)
+    [HttpGet("me/earnings")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> GetMyEarnings([FromQuery] int year, [FromQuery] int month)
+    {
+        if (month is < 1 or > 12)
+            return BadRequest(new { message = "Mes inválido" });
+
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        var from = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = from.AddMonths(1);
+
+        var chargedTotal = await _repository.GetChargedTotalInRangeAsync(professionalId.Value, from, to);
+        var commissionAmount = chargedTotal * (professional.Commission / 100m);
+
+        return Ok(new
+        {
+            year,
+            month,
+            commissionRate = professional.Commission,
+            chargedTotal,
+            commissionAmount
+        });
+    }
+
     private int? GetOwnProfessionalId()
     {
         var claim = User.FindFirst("professional_id")?.Value;

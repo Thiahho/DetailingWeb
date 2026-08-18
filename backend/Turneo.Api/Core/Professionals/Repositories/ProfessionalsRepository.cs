@@ -60,6 +60,23 @@ public class ProfessionalsRepository : IProfessionalsRepository
     public Task<int> CountActiveAsync() =>
         _context.Professionals.CountAsync(p => p.IsActive);
 
+    public async Task<decimal> GetChargedTotalInRangeAsync(int professionalId, DateTime from, DateTime to)
+    {
+        var totals = await _context.CajaMovements
+            .Where(m => m.Booking != null && m.Booking.ProfessionalId == professionalId
+                && m.CreatedAt >= from && m.CreatedAt < to
+                && (m.Type == CajaMovementType.Charge || m.Type == CajaMovementType.Deposit || m.Type == CajaMovementType.Refund))
+            .GroupBy(m => 1)
+            .Select(g => new
+            {
+                Charged = g.Where(m => m.Type != CajaMovementType.Refund).Sum(m => (decimal?)m.Amount) ?? 0m,
+                Refunded = g.Where(m => m.Type == CajaMovementType.Refund).Sum(m => (decimal?)m.Amount) ?? 0m
+            })
+            .FirstOrDefaultAsync();
+
+        return totals == null ? 0m : totals.Charged - totals.Refunded;
+    }
+
     public Task<List<Service>> GetServicesByIdsAsync(List<int> serviceIds) =>
         serviceIds.Count > 0
             ? _context.Services.Where(s => serviceIds.Contains(s.Id)).ToListAsync()

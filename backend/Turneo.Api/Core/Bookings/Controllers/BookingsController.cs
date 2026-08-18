@@ -367,15 +367,25 @@ public class BookingsController : ControllerBase
         return Ok(new { success = true, deletedTimeSlots = deletedSlots });
     }
 
-    // PATCH: api/bookings/{id}/confirm (admin)
+    // PATCH: api/bookings/{id}/confirm (admin, o el profesional dueño del turno)
     [HttpPatch("{id}/confirm")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,Professional")]
     [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> ConfirmBooking(int id)
     {
         var booking = await _repository.FindAsync(id);
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        // Un profesional solo puede confirmar turnos propios — RequirePermission
+        // arriba no lo restringe (solo acota a Staff, ver su comentario), así que
+        // la propiedad del turno se valida acá.
+        if (User.IsInRole("Professional"))
+        {
+            var claim = User.FindFirst("professional_id")?.Value;
+            if (!int.TryParse(claim, out var professionalId) || booking.ProfessionalId != professionalId)
+                return Forbid();
+        }
 
         booking.Status = BookingStatus.Confirmed;
         await _repository.SaveChangesAsync();
