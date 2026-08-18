@@ -77,6 +77,7 @@ builder.Services.AddScoped<ReminderService>();
 builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
 builder.Services.AddScoped<AutomationRuleEvaluationJob>();
+builder.Services.AddScoped<BookingNotificationJob>();
 builder.Services.AddScoped<RouletteService>();
 builder.Services.AddScoped<LoyaltyRouletteService>();
 builder.Services.AddHttpClient<CloudinaryAdminService>();

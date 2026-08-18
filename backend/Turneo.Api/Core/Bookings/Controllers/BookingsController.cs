@@ -1,8 +1,10 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Turneo.Api.Core.Notifications;
 using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Bookings;
@@ -12,17 +14,15 @@ namespace Turneo.Api.Core.Bookings;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingsRepository _repository;
-    private readonly NotificationService _notificationService;
     private readonly AuthService _authService;
     private readonly IConfiguration _configuration;
     private readonly IInsumosRepository _insumosRepository;
     private readonly IPlanLimitsService _planLimits;
     private readonly ISmartTagsRepository _smartTagsRepository;
 
-    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository)
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository)
     {
         _repository = repository;
-        _notificationService = notificationService;
         _authService = authService;
         _configuration = configuration;
         _insumosRepository = insumosRepository;
@@ -104,7 +104,7 @@ public class BookingsController : ControllerBase
 
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
-        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCreated);
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCreated));
 
         if (!string.IsNullOrWhiteSpace(request.SmartTagToken))
         {
@@ -238,7 +238,7 @@ public class BookingsController : ControllerBase
         booking.TimeSlot.IsAvailable = true;
 
         await _repository.SaveChangesAsync();
-        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCancelled);
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCancelled));
 
         return Ok(new
         {
@@ -379,7 +379,7 @@ public class BookingsController : ControllerBase
 
         booking.Status = BookingStatus.Confirmed;
         await _repository.SaveChangesAsync();
-        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingConfirmed);
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingConfirmed));
 
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
