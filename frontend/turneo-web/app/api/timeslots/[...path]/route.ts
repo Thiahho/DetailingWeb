@@ -24,6 +24,7 @@ export async function GET(
         Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
       },
+      cache: "no-store", // agenda en vivo (mine/available/{id}): cambia con cada reserva/reprogramación
     });
 
     const data = await response.json();

@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
         Authorization: token ? `Bearer ${token}` : "",
         "Content-Type": "application/json",
       },
+      cache: "no-store", // listado en vivo: cambia con cada reserva/cancelación/reprogramación
     });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });

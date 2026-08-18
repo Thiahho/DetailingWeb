@@ -102,6 +102,7 @@ export async function GET(
         ...tenantHeader(request),
         Authorization: token ? `Bearer ${token}` : "",
       },
+      cache: "no-store", // detalle en vivo: cambia con cada cancelación/reprogramación/confirmación
     });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
