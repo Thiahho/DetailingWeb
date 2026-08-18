@@ -8,6 +8,7 @@ namespace Turneo.Api.Infrastructure.Integrations;
 public class GmailProvider : INotificationProvider
 {
     private readonly EmailSettings _settings;
+    private readonly ILogger<GmailProvider> _logger;
 
     public string Channel => "Email";
     public string ProviderName => "Gmail";
@@ -16,9 +17,10 @@ public class GmailProvider : INotificationProvider
         !string.IsNullOrWhiteSpace(_settings.Password) &&
         _settings.Password != "APP_PASSWORD";
 
-    public GmailProvider(IOptions<EmailSettings> settings)
+    public GmailProvider(IOptions<EmailSettings> settings, ILogger<GmailProvider> logger)
     {
         _settings = settings.Value;
+        _logger = logger;
     }
 
     public Task<NotificationSendResult> SendAsync(Booking booking, NotificationMessage message, CancellationToken cancellationToken = default)
@@ -43,7 +45,16 @@ public class GmailProvider : INotificationProvider
     private async Task<NotificationSendResult> SendToAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken)
     {
         if (!IsEnabled)
+        {
+            _logger.LogWarning("[Email] Gmail no configurado (Username/Password vacíos) — no se envía a {ToEmail}", toEmail);
             return new NotificationSendResult { Success = false, Error = "Gmail no configurado", IsTransientFailure = false };
+        }
+
+        // LogWarning a propósito (no LogInformation): Production tiene Logging:LogLevel:Default
+        // en "Warning" (appsettings.Production.json), así que un log Information acá quedaría
+        // invisible en los logs de Render.
+        _logger.LogWarning("[Email] Enviando '{Subject}' a {ToEmail} vía {SmtpServer}:{Port} (usuario {Username})",
+            message.Subject, toEmail, _settings.SmtpServer, _settings.Port, _settings.Username);
 
         try
         {
@@ -68,18 +79,22 @@ public class GmailProvider : INotificationProvider
             var messageId = await smtp.SendAsync(email, cts.Token);
             await smtp.DisconnectAsync(true, cts.Token);
 
+            _logger.LogWarning("[Email] ENVIADO OK a {ToEmail} (messageId={MessageId})", toEmail, messageId);
             return new NotificationSendResult { Success = true, ProviderMessageId = messageId };
         }
         catch (AuthenticationException ex)
         {
+            _logger.LogWarning(ex, "[Email] FALLÓ (autenticación) enviando a {ToEmail} vía {SmtpServer}", toEmail, _settings.SmtpServer);
             return new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = false };
         }
         catch (OperationCanceledException)
         {
+            _logger.LogWarning("[Email] FALLÓ (timeout 30s) enviando a {ToEmail} vía {SmtpServer}", toEmail, _settings.SmtpServer);
             return new NotificationSendResult { Success = false, Error = "Timeout al conectar con Gmail SMTP (30s)", IsTransientFailure = true };
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "[Email] FALLÓ enviando a {ToEmail} vía {SmtpServer}", toEmail, _settings.SmtpServer);
             return new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = true };
         }
     }
