@@ -30,7 +30,10 @@ public class NotificationService
         _planLimits = planLimits;
     }
 
-    public async Task DispatchForBookingAsync(int bookingId, string eventType, CancellationToken cancellationToken = default)
+    // previousStartDateTime: solo relevante para BookingRescheduled — el caller (controller)
+    // lo captura antes de pisar booking.TimeSlotId, porque para cuando este método corre
+    // (puede ser un job de Hangfire minutos después) esa información ya no está en la DB.
+    public async Task DispatchForBookingAsync(int bookingId, string eventType, DateTime? previousStartDateTime = null, CancellationToken cancellationToken = default)
     {
         // IgnoreQueryFilters: esto lo dispara tanto una request HTTP (tenant ya
         // resuelto) como un background job (sin tenant ambiental) — el bookingId
@@ -107,7 +110,7 @@ public class NotificationService
         // la creación del turno ni las notificaciones al cliente si fallan.
         if (eventType == NotificationEventType.BookingCreated)
         {
-            await TryNotifyProfessionalAsync(booking, businessName, logoUrl, NotificationEventType.ProfessionalBookingCreated, cancellationToken);
+            await TryNotifyProfessionalAsync(booking, businessName, logoUrl, NotificationEventType.ProfessionalBookingCreated, null, cancellationToken);
             await TryNotifyAdminsAsync(booking, NotificationEventType.AdminBookingCreated, businessName, logoUrl, cancellationToken);
         }
         else if (eventType == NotificationEventType.BookingCancelled)
@@ -120,7 +123,7 @@ public class NotificationService
             // reprogramado por el cliente pasa a Pending igual (ver RescheduleBooking),
             // pero acá el pedido explícito fue no molestar al profesional en ese caso.
             if (booking.Status != BookingStatus.Confirmed)
-                await TryNotifyProfessionalAsync(booking, businessName, logoUrl, NotificationEventType.ProfessionalBookingRescheduled, cancellationToken);
+                await TryNotifyProfessionalAsync(booking, businessName, logoUrl, NotificationEventType.ProfessionalBookingRescheduled, previousStartDateTime, cancellationToken);
         }
     }
 
@@ -139,7 +142,7 @@ public class NotificationService
         return (businessName, logoUrl);
     }
 
-    private async Task TryNotifyProfessionalAsync(Booking booking, string businessName, string? logoUrl, string professionalEventType, CancellationToken cancellationToken)
+    private async Task TryNotifyProfessionalAsync(Booking booking, string businessName, string? logoUrl, string professionalEventType, DateTime? previousStartDateTime, CancellationToken cancellationToken)
     {
         if (!booking.ProfessionalId.HasValue) return;
         if (!(_configuration.GetValue<bool?>("Notifications:NotifyProfessional") ?? true)) return;
@@ -157,7 +160,7 @@ public class NotificationService
         // verificar un dominio propio, algo que decidimos no hacer por ahora. El
         // cliente sí sigue recibiendo por email (ver DispatchForBookingAsync).
         if (!string.IsNullOrWhiteSpace(account.TelegramChatId))
-            await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, businessName, logoUrl, professionalEventType, cancellationToken);
+            await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, businessName, logoUrl, professionalEventType, previousStartDateTime, cancellationToken);
     }
 
     // Avisa a todos los Admin del tenant (no solo uno fijo por config) — reemplaza
@@ -245,7 +248,13 @@ public class NotificationService
         }
     }
 
-    private async Task SendProfessionalNotificationAsync(Booking booking, string channel, string destination, string businessName, string? logoUrl, string eventType, CancellationToken cancellationToken)
+    // Neutraliza &, < y > antes de interpolar un dato libre en un template que va a
+    // Telegram con parse_mode=HTML — sin esto, un nombre de cliente o servicio con
+    // esos caracteres tira abajo el parseo del mensaje entero (ver TelegramProvider).
+    private static string EscapeTelegramHtml(string? value) =>
+        string.IsNullOrEmpty(value) ? string.Empty : value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private async Task SendProfessionalNotificationAsync(Booking booking, string channel, string destination, string businessName, string? logoUrl, string eventType, DateTime? previousStartDateTime, CancellationToken cancellationToken)
     {
         try
         {
@@ -258,17 +267,22 @@ public class NotificationService
                 ? $"{booking.Professional.FirstName} {booking.Professional.LastName}".Trim()
                 : "";
 
+            // Este método solo manda por Telegram (ver TryNotifyProfessionalAsync) con
+            // parse_mode=HTML (TelegramProvider) — cualquier &, < o > sin escapar en un
+            // dato libre (nombre del cliente, servicio, etc.) rompe el parseo del mensaje
+            // entero. Las plantillas en sí (appsettings) son de confianza y no se escapan.
             var templateData = new NotificationTemplateData
             {
-                CustomerName     = booking.CustomerName,
-                Service          = booking.Service ?? "Servicio no informado",
-                Subject          = booking.Subject,
+                CustomerName     = EscapeTelegramHtml(booking.CustomerName),
+                Service          = EscapeTelegramHtml(booking.Service ?? "Servicio no informado"),
+                Subject          = EscapeTelegramHtml(booking.Subject),
                 StartDateTime    = booking.TimeSlot.StartDateTime,
+                PreviousStartDateTime = previousStartDateTime,
                 Location         = _configuration["Notifications:Location"] ?? "Sucursal principal",
                 CancellationLink = "",
                 MyBookingsLink   = "",
-                ProfessionalName = professionalName,
-                CustomerPhone    = booking.CustomerPhone,
+                ProfessionalName = EscapeTelegramHtml(professionalName),
+                CustomerPhone    = EscapeTelegramHtml(booking.CustomerPhone),
                 AgendaLink       = $"{agendaBaseUrl}?bookingId={booking.Id}"
             };
 

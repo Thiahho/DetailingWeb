@@ -41,7 +41,14 @@ public class TelegramProvider : INotificationProvider
         var payload = new
         {
             chat_id = toChatId,
-            text
+            text,
+            // HTML: nos deja tachar el horario viejo y resaltar el nuevo en
+            // ProfessionalBookingRescheduled (ver NotificationService) — Telegram
+            // no soporta color de texto, esto es lo más parecido disponible.
+            // Soporta solo un subset de tags (b/i/u/s/a/code/pre) — cualquier
+            // &, < o > suelto en el texto rompe el parseo, por eso las plantillas
+            // que apuntan acá escapan los valores dinámicos antes de interpolarlos.
+            parse_mode = "HTML"
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)

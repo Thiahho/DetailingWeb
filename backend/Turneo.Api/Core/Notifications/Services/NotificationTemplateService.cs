@@ -160,6 +160,7 @@ public class NotificationTemplateService
             .Replace("{{link_mis_turnos}}", data.MyBookingsLink)
             .Replace("{{profesional}}", data.ProfessionalName ?? "")
             .Replace("{{telefono_cliente}}", data.CustomerPhone ?? "")
-            .Replace("{{link_agenda}}", data.AgendaLink ?? "");
+            .Replace("{{link_agenda}}", data.AgendaLink ?? "")
+            .Replace("{{fecha_hora_anterior}}", data.PreviousStartDateTime?.ToString("dd/MM/yyyy HH:mm") ?? "");
     }
 }

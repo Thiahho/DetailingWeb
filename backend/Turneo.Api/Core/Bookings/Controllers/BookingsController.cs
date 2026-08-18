@@ -104,7 +104,7 @@ public class BookingsController : ControllerBase
 
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
-        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCreated));
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCreated, null));
 
         if (!string.IsNullOrWhiteSpace(request.SmartTagToken))
         {
@@ -238,7 +238,7 @@ public class BookingsController : ControllerBase
         booking.TimeSlot.IsAvailable = true;
 
         await _repository.SaveChangesAsync();
-        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCancelled));
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCancelled, null));
 
         return Ok(new
         {
@@ -285,13 +285,17 @@ public class BookingsController : ControllerBase
         if (updated == 0)
             return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
 
+        // Antes de pisar el TimeSlotId — es lo único que le queda al job de background
+        // para poder avisar "de tal hora a tal hora" (ver NotificationService).
+        var previousStartDateTime = booking.TimeSlot.StartDateTime;
+
         // Liberar el slot anterior
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
         booking.TimeSlotId = request.NewTimeSlotId;
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
-        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled));
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
         // Recargar para devolver la fecha actualizada
         await _repository.LoadTimeSlotAsync(booking);
@@ -339,12 +343,14 @@ public class BookingsController : ControllerBase
         if (updated == 0)
             return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
 
+        var previousStartDateTime = booking.TimeSlot.StartDateTime;
+
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
         booking.TimeSlotId = request.NewTimeSlotId;
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
-        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled));
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
         await _repository.LoadTimeSlotAsync(booking);
 
@@ -391,7 +397,7 @@ public class BookingsController : ControllerBase
 
         booking.Status = BookingStatus.Confirmed;
         await _repository.SaveChangesAsync();
-        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingConfirmed));
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingConfirmed, null));
 
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }

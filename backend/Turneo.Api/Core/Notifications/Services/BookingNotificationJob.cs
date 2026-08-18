@@ -10,7 +10,7 @@ public class BookingNotificationJob(
     ICurrentTenant currentTenant,
     ILogger<BookingNotificationJob> logger)
 {
-    public async Task DispatchAsync(int bookingId, string eventType)
+    public async Task DispatchAsync(int bookingId, string eventType, DateTime? previousStartDateTime = null)
     {
         // Cross-tenant a propósito: el job corre en un scope propio sin tenant
         // ambiental (el HTTP request que lo encoló ya terminó) — sin esto, RLS
@@ -20,7 +20,7 @@ public class BookingNotificationJob(
 
         try
         {
-            await notificationService.DispatchForBookingAsync(bookingId, eventType);
+            await notificationService.DispatchForBookingAsync(bookingId, eventType, previousStartDateTime);
         }
         catch (Exception ex)
         {

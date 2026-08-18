@@ -15,6 +15,12 @@ public class NotificationTemplateData
     public string? ProfessionalName { get; init; }
     public string? CustomerPhone { get; init; }
     public string? AgendaLink { get; init; }
+
+    // Solo para ProfessionalBookingRescheduled — el horario que tenía el turno
+    // antes de la reprogramación (booking.TimeSlot ya apunta al nuevo para cuando
+    // este dato se arma, así que hay que capturarlo en el controller antes de
+    // pisar el TimeSlotId y pasarlo explícito por todo el pipeline).
+    public DateTime? PreviousStartDateTime { get; init; }
 }
 
 public class NotificationMessage

@@ -61,7 +61,7 @@ public class ReminderBackgroundService : BackgroundService
                 {
                     _logger.LogInformation("[Reminder] Enviando recordatorio para turno {BookingId} ({StartDateTime:HH:mm})",
                         booking.Id, booking.TimeSlot.StartDateTime);
-                    await notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingReminder24h, stoppingToken);
+                    await notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingReminder24h, cancellationToken: stoppingToken);
                 }
             }
             catch (Exception ex)
