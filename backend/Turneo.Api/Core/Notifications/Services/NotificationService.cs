@@ -139,16 +139,15 @@ public class NotificationService
         var account = await _context.Users
             .IgnoreQueryFilters()
             .Where(u => u.Role == "Professional" && u.ProfessionalId == booking.ProfessionalId && u.TenantId == booking.TenantId)
-            .Select(u => new { u.Email, u.TelegramChatId })
+            .Select(u => new { u.TelegramChatId })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (account == null) return;
 
-        // Cada canal es independiente: si el profesional tiene email Y Telegram cargados,
-        // recibe el aviso por los dos. Uno fallando no afecta al otro.
-        if (!string.IsNullOrWhiteSpace(account.Email))
-            await SendProfessionalNotificationAsync(booking, "Email", account.Email, businessName, logoUrl, cancellationToken);
-
+        // Solo Telegram para el profesional — no email: el sandbox de Resend rechaza
+        // (403) cualquier destinatario que no sea la cuenta dueña del API key hasta
+        // verificar un dominio propio, algo que decidimos no hacer por ahora. El
+        // cliente sí sigue recibiendo por email (ver DispatchForBookingAsync).
         if (!string.IsNullOrWhiteSpace(account.TelegramChatId))
             await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, businessName, logoUrl, cancellationToken);
     }
