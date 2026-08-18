@@ -51,6 +51,7 @@ public class NotificationService
         var baseMyBookingsUrl = _configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos";
         var location = _configuration["Notifications:Location"] ?? "Sucursal principal";
         var accessToken = _authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId);
+        var myBookingsLink = $"{baseMyBookingsUrl}?accessToken={Uri.EscapeDataString(accessToken)}";
         var templateData = new NotificationTemplateData
         {
             CustomerName = booking.CustomerName,
@@ -59,10 +60,16 @@ public class NotificationService
             StartDateTime = booking.TimeSlot.StartDateTime,
             Location = location,
             CancellationLink = $"{baseCancellationUrl}?bookingId={booking.Id}",
-            MyBookingsLink = $"{baseMyBookingsUrl}?accessToken={Uri.EscapeDataString(accessToken)}"
+            MyBookingsLink = myBookingsLink
         };
 
+        var (businessName, logoUrl) = await GetBrandingAsync(booking.TenantId, cancellationToken);
         var message = await _templateService.BuildAsync(eventType, templateData, cancellationToken);
+        message.BusinessName = businessName;
+        message.LogoUrl = logoUrl;
+        message.EventType = eventType;
+        message.CtaLabel = "Ver mis turnos";
+        message.CtaUrl = myBookingsLink;
 
         foreach (var provider in _providers)
         {
@@ -88,15 +95,35 @@ public class NotificationService
             await TrySendAsync(log.Id, booking, message, cancellationToken);
         }
 
-        // Aviso aparte al profesional asignado (si tiene cuenta con email cargado) — no
-        // debe afectar la creación del turno ni las notificaciones al cliente si falla.
+        // Avisos aparte (profesional asignado, Admins del tenant) — no deben afectar
+        // la creación del turno ni las notificaciones al cliente si fallan.
         if (eventType == NotificationEventType.BookingCreated)
         {
-            await TryNotifyProfessionalAsync(booking, cancellationToken);
+            await TryNotifyProfessionalAsync(booking, businessName, logoUrl, cancellationToken);
+            await TryNotifyAdminsAsync(booking, NotificationEventType.AdminBookingCreated, businessName, logoUrl, cancellationToken);
+        }
+        else if (eventType == NotificationEventType.BookingCancelled)
+        {
+            await TryNotifyAdminsAsync(booking, NotificationEventType.AdminBookingCancelled, businessName, logoUrl, cancellationToken);
         }
     }
 
-    private async Task TryNotifyProfessionalAsync(Booking booking, CancellationToken cancellationToken)
+    // "Turneo" a secas si el tenant todavía no cargó su SiteConfig — el mismo
+    // fallback que ya usa el resto del sistema para negocios sin configurar.
+    private async Task<(string BusinessName, string? LogoUrl)> GetBrandingAsync(int tenantId, CancellationToken cancellationToken)
+    {
+        var siteConfig = await _context.SiteConfigs
+            .IgnoreQueryFilters()
+            .Where(s => s.TenantId == tenantId)
+            .Select(s => new { s.BusinessName, s.LogoUrl })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var businessName = string.IsNullOrWhiteSpace(siteConfig?.BusinessName) ? "Turneo" : siteConfig.BusinessName;
+        var logoUrl = string.IsNullOrWhiteSpace(siteConfig?.LogoUrl) ? null : siteConfig.LogoUrl;
+        return (businessName, logoUrl);
+    }
+
+    private async Task TryNotifyProfessionalAsync(Booking booking, string businessName, string? logoUrl, CancellationToken cancellationToken)
     {
         if (!booking.ProfessionalId.HasValue) return;
         if (!(_configuration.GetValue<bool?>("Notifications:NotifyProfessional") ?? true)) return;
@@ -112,13 +139,98 @@ public class NotificationService
         // Cada canal es independiente: si el profesional tiene email Y Telegram cargados,
         // recibe el aviso por los dos. Uno fallando no afecta al otro.
         if (!string.IsNullOrWhiteSpace(account.Email))
-            await SendProfessionalNotificationAsync(booking, "Email", account.Email, cancellationToken);
+            await SendProfessionalNotificationAsync(booking, "Email", account.Email, businessName, logoUrl, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(account.TelegramChatId))
-            await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, cancellationToken);
+            await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, businessName, logoUrl, cancellationToken);
     }
 
-    private async Task SendProfessionalNotificationAsync(Booking booking, string channel, string destination, CancellationToken cancellationToken)
+    // Avisa a todos los Admin del tenant (no solo uno fijo por config) — reemplaza
+    // los envíos que antes hacía el frontend Next.js por su cuenta con nodemailer,
+    // fuera de este sistema de logs/reintentos.
+    private async Task TryNotifyAdminsAsync(Booking booking, string adminEventType, string businessName, string? logoUrl, CancellationToken cancellationToken)
+    {
+        var admins = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.Role == "Admin" && u.TenantId == booking.TenantId)
+            .Select(u => new { u.Email, u.TelegramChatId })
+            .ToListAsync(cancellationToken);
+
+        foreach (var admin in admins)
+        {
+            if (!string.IsNullOrWhiteSpace(admin.Email))
+                await SendAdminNotificationAsync(booking, adminEventType, "Email", admin.Email, businessName, logoUrl, cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(admin.TelegramChatId))
+                await SendAdminNotificationAsync(booking, adminEventType, "Telegram", admin.TelegramChatId, businessName, logoUrl, cancellationToken);
+        }
+    }
+
+    private async Task SendAdminNotificationAsync(Booking booking, string adminEventType, string channel, string destination, string businessName, string? logoUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var provider = _providers.FirstOrDefault(p => p.Channel == channel);
+            if (provider == null) return;
+
+            var templateData = new NotificationTemplateData
+            {
+                CustomerName     = booking.CustomerName,
+                Service          = booking.Service ?? "Servicio no informado",
+                Subject          = booking.Subject,
+                StartDateTime    = booking.TimeSlot.StartDateTime,
+                Location         = _configuration["Notifications:Location"] ?? "Sucursal principal",
+                CancellationLink = "",
+                MyBookingsLink   = "",
+                CustomerPhone    = booking.CustomerPhone
+            };
+
+            var message = await _templateService.BuildAsync(adminEventType, templateData, cancellationToken);
+            message.BusinessName = businessName;
+            message.LogoUrl = logoUrl;
+            message.EventType = adminEventType;
+
+            var log = new NotificationLog
+            {
+                TenantId  = booking.TenantId,
+                BookingId = booking.Id,
+                EventType = adminEventType,
+                Channel   = channel,
+                Provider  = provider.ProviderName,
+                Status    = NotificationDeliveryStatus.Pending,
+                IsRetryable = false
+            };
+            _context.NotificationLogs.Add(log);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var result = await provider.SendToAddressAsync(destination, message, cancellationToken);
+
+            log.LastAttemptAt = DateTime.Now;
+            log.RetryCount = 1;
+
+            if (result.Success)
+            {
+                log.Status = NotificationDeliveryStatus.Sent;
+                log.ProviderMessageId = result.ProviderMessageId;
+                log.SentAt = DateTime.Now;
+                _logger.LogInformation("[Notification] {Channel} a admin enviado OK para booking {BookingId}", channel, booking.Id);
+            }
+            else
+            {
+                log.Status = NotificationDeliveryStatus.Failed;
+                log.ErrorMessage = result.Error;
+                _logger.LogWarning("[Notification] {Channel} a admin falló para booking {BookingId}: {Error}", channel, booking.Id, result.Error);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Notification] Error notificando a admin ({Channel}) del booking {BookingId}", channel, booking.Id);
+        }
+    }
+
+    private async Task SendProfessionalNotificationAsync(Booking booking, string channel, string destination, string businessName, string? logoUrl, CancellationToken cancellationToken)
     {
         try
         {
@@ -146,6 +258,9 @@ public class NotificationService
             };
 
             var message = await _templateService.BuildAsync(NotificationEventType.ProfessionalBookingCreated, templateData, cancellationToken);
+            message.BusinessName = businessName;
+            message.LogoUrl = logoUrl;
+            message.EventType = NotificationEventType.ProfessionalBookingCreated;
 
             var log = new NotificationLog
             {
@@ -212,6 +327,7 @@ public class NotificationService
                 continue;
             }
 
+            var myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}";
             var message = await _templateService.BuildAsync(log.EventType, new NotificationTemplateData
             {
                 CustomerName = booking.CustomerName,
@@ -220,8 +336,15 @@ public class NotificationService
                 StartDateTime = booking.TimeSlot.StartDateTime,
                 Location = _configuration["Notifications:Location"] ?? "Sucursal principal",
                 CancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar"}?bookingId={booking.Id}",
-                MyBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}"
+                MyBookingsLink = myBookingsLink
             });
+
+            var (businessName, logoUrl) = await GetBrandingAsync(booking.TenantId, cancellationToken);
+            message.BusinessName = businessName;
+            message.LogoUrl = logoUrl;
+            message.EventType = log.EventType;
+            message.CtaLabel = "Ver mis turnos";
+            message.CtaUrl = myBookingsLink;
 
             await TrySendAsync(log.Id, booking, message, cancellationToken);
         }

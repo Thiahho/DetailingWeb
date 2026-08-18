@@ -50,14 +50,14 @@ public class AuthService
     }
 
     // Crea o actualiza la cuenta de acceso de un profesional (Role="Professional", ligada por ProfessionalId).
-    // La usa el admin desde la ficha del profesional para "activar acceso" / cambiar su contraseña.
-    public async Task<LoginResponse> CreateProfessionalAccountAsync(int professionalId, string email, string password, string? username = null)
+    // La usa el admin desde la ficha del profesional para "activar acceso" / cambiar email o contraseña.
+    // password nulo/vacío en una cuenta YA existente = no tocar la contraseña actual
+    // (permite corregir solo el email sin forzar un reset). En el alta (cuenta nueva)
+    // sigue siendo obligatoria.
+    public async Task<LoginResponse> CreateProfessionalAccountAsync(int professionalId, string email, string? password, string? username = null)
     {
         var professional = await _context.Professionals.FindAsync(professionalId)
             ?? throw new ArgumentException("Profesional no encontrado");
-
-        if (password.Length < 6)
-            throw new ArgumentException("La contraseña debe tener al menos 6 caracteres");
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
         var normalizedUsername = string.IsNullOrWhiteSpace(username) ? null : username.Trim();
@@ -74,6 +74,17 @@ public class AuthService
         }
 
         var account = existingByEmail ?? await _context.Users.FirstOrDefaultAsync(u => u.ProfessionalId == professionalId && u.Role == "Professional");
+        var isNewAccount = account == null;
+
+        if (string.IsNullOrEmpty(password))
+        {
+            if (isNewAccount)
+                throw new ArgumentException("La contraseña debe tener al menos 6 caracteres");
+        }
+        else if (password.Length < 6)
+        {
+            throw new ArgumentException("La contraseña debe tener al menos 6 caracteres");
+        }
 
         if (account == null)
         {
@@ -83,7 +94,8 @@ public class AuthService
 
         account.Email = normalizedEmail;
         account.Username = normalizedUsername;
-        account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        if (!string.IsNullOrEmpty(password))
+            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
         account.ProfessionalId = professionalId;
         await _context.SaveChangesAsync();
 

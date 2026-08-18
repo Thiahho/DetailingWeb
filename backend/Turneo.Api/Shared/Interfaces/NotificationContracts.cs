@@ -21,6 +21,15 @@ public class NotificationMessage
 {
     public required string Subject { get; init; }
     public required string Body { get; init; }
+
+    // Completados por NotificationService antes de pasarle el mensaje a los
+    // providers — GmailProvider los usa para armar el HTML; WhatsApp/Telegram
+    // los ignoran (solo mandan texto plano).
+    public string? BusinessName { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? EventType { get; set; }
+    public string? CtaLabel { get; set; }
+    public string? CtaUrl { get; set; }
 }
 
 public class NotificationSendResult

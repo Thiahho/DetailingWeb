@@ -270,5 +270,7 @@ public class AuthController : ControllerBase
     }
 }
 
-public record CreateProfessionalAccountRequest(int ProfessionalId, string Email, string Password, string? Username = null);
+// Password nulo/vacío = no tocar la contraseña actual (solo tiene sentido si la
+// cuenta ya existe; CreateProfessionalAccountAsync exige password en el alta).
+public record CreateProfessionalAccountRequest(int ProfessionalId, string Email, string? Password, string? Username = null);
 public record SetTelegramChatIdRequest(string? TelegramChatId);

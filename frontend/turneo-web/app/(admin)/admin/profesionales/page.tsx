@@ -679,15 +679,15 @@ export default function ProfesionalesAdminPage() {
                   </div>
                   <div>
                     <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
-                      {editingProfessional.accountEmail ? "Nueva contraseña" : "Contraseña"}
+                      {editingProfessional.accountEmail ? "Nueva contraseña (opcional)" : "Contraseña"}
                     </label>
                     <PasswordInput
                       className="form-input mt-1.5"
                       value={accessForm.password}
                       onChange={(e) => setAccessForm((prev) => ({ ...prev, password: e.target.value }))}
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder={editingProfessional.accountEmail ? "Dejar vacío para no cambiarla" : "Mínimo 6 caracteres"}
                       minLength={6}
-                      required
+                      required={!editingProfessional.accountEmail}
                     />
                   </div>
                   <Button
@@ -696,7 +696,7 @@ export default function ProfesionalesAdminPage() {
                     variant="secondary"
                     className="w-full"
                   >
-                    {savingAccess ? "Guardando..." : editingProfessional.accountEmail ? "Cambiar contraseña" : "Activar acceso"}
+                    {savingAccess ? "Guardando..." : editingProfessional.accountEmail ? "Guardar acceso" : "Activar acceso"}
                   </Button>
                 </form>
               </div>

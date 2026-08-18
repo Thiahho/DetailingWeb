@@ -238,6 +238,7 @@ public class BookingsController : ControllerBase
         booking.TimeSlot.IsAvailable = true;
 
         await _repository.SaveChangesAsync();
+        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCancelled);
 
         return Ok(new
         {
