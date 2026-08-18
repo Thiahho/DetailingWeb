@@ -107,12 +107,20 @@ public class NotificationService
         // la creación del turno ni las notificaciones al cliente si fallan.
         if (eventType == NotificationEventType.BookingCreated)
         {
-            await TryNotifyProfessionalAsync(booking, businessName, logoUrl, cancellationToken);
+            await TryNotifyProfessionalAsync(booking, businessName, logoUrl, NotificationEventType.ProfessionalBookingCreated, cancellationToken);
             await TryNotifyAdminsAsync(booking, NotificationEventType.AdminBookingCreated, businessName, logoUrl, cancellationToken);
         }
         else if (eventType == NotificationEventType.BookingCancelled)
         {
             await TryNotifyAdminsAsync(booking, NotificationEventType.AdminBookingCancelled, businessName, logoUrl, cancellationToken);
+        }
+        else if (eventType == NotificationEventType.BookingRescheduled)
+        {
+            // Solo si el turno todavía no estaba confirmado — un turno ya confirmado
+            // reprogramado por el cliente pasa a Pending igual (ver RescheduleBooking),
+            // pero acá el pedido explícito fue no molestar al profesional en ese caso.
+            if (booking.Status != BookingStatus.Confirmed)
+                await TryNotifyProfessionalAsync(booking, businessName, logoUrl, NotificationEventType.ProfessionalBookingRescheduled, cancellationToken);
         }
     }
 
@@ -131,7 +139,7 @@ public class NotificationService
         return (businessName, logoUrl);
     }
 
-    private async Task TryNotifyProfessionalAsync(Booking booking, string businessName, string? logoUrl, CancellationToken cancellationToken)
+    private async Task TryNotifyProfessionalAsync(Booking booking, string businessName, string? logoUrl, string professionalEventType, CancellationToken cancellationToken)
     {
         if (!booking.ProfessionalId.HasValue) return;
         if (!(_configuration.GetValue<bool?>("Notifications:NotifyProfessional") ?? true)) return;
@@ -149,7 +157,7 @@ public class NotificationService
         // verificar un dominio propio, algo que decidimos no hacer por ahora. El
         // cliente sí sigue recibiendo por email (ver DispatchForBookingAsync).
         if (!string.IsNullOrWhiteSpace(account.TelegramChatId))
-            await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, businessName, logoUrl, cancellationToken);
+            await SendProfessionalNotificationAsync(booking, "Telegram", account.TelegramChatId, businessName, logoUrl, professionalEventType, cancellationToken);
     }
 
     // Avisa a todos los Admin del tenant (no solo uno fijo por config) — reemplaza
@@ -237,7 +245,7 @@ public class NotificationService
         }
     }
 
-    private async Task SendProfessionalNotificationAsync(Booking booking, string channel, string destination, string businessName, string? logoUrl, CancellationToken cancellationToken)
+    private async Task SendProfessionalNotificationAsync(Booking booking, string channel, string destination, string businessName, string? logoUrl, string eventType, CancellationToken cancellationToken)
     {
         try
         {
@@ -264,16 +272,16 @@ public class NotificationService
                 AgendaLink       = $"{agendaBaseUrl}?bookingId={booking.Id}"
             };
 
-            var message = await _templateService.BuildAsync(NotificationEventType.ProfessionalBookingCreated, templateData, cancellationToken);
+            var message = await _templateService.BuildAsync(eventType, templateData, cancellationToken);
             message.BusinessName = businessName;
             message.LogoUrl = logoUrl;
-            message.EventType = NotificationEventType.ProfessionalBookingCreated;
+            message.EventType = eventType;
 
             var log = new NotificationLog
             {
                 TenantId  = booking.TenantId,
                 BookingId = booking.Id,
-                EventType = NotificationEventType.ProfessionalBookingCreated,
+                EventType = eventType,
                 Channel   = channel,
                 Provider  = provider.ProviderName,
                 Status    = NotificationDeliveryStatus.Pending,

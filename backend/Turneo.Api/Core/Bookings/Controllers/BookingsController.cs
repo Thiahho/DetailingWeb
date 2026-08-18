@@ -291,6 +291,7 @@ public class BookingsController : ControllerBase
         booking.TimeSlotId = request.NewTimeSlotId;
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled));
 
         // Recargar para devolver la fecha actualizada
         await _repository.LoadTimeSlotAsync(booking);
@@ -343,6 +344,7 @@ public class BookingsController : ControllerBase
         booking.TimeSlotId = request.NewTimeSlotId;
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled));
 
         await _repository.LoadTimeSlotAsync(booking);
 

@@ -82,29 +82,9 @@ async function notifyRescheduled(booking: RescheduledBooking) {
     );
   }
 
-  // Email al cliente
-  if (booking.email) {
-    const name = booking.customerName || "Cliente";
-    emails.push(
-      transporter.sendMail({
-        from: `"${businessName}" <${user}>`,
-        to: booking.email,
-        subject: `Turno reprogramado — ${businessName}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f1115;color:#f1f1f1;border-radius:12px;border:1px solid #30363d;">
-            <h2 style="margin:0 0 4px;font-size:20px;">${businessName}</h2>
-            <p style="color:#60a5fa;font-size:14px;margin:0 0 24px;">🔄 Tu turno fue reprogramado</p>
-            <p style="color:#ccc;font-size:15px;margin:0 0 20px;">Hola <strong>${name}</strong>, tu turno fue reprogramado exitosamente.</p>
-            <div style="background:#1a1f26;border:1px solid #2a2f36;border-radius:10px;padding:20px;margin-bottom:20px;">
-              <p style="color:#60a5fa;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 12px;">Nuevo horario</p>
-              <p style="color:#fff;font-size:18px;font-weight:bold;margin:0;">${turno}</p>
-              ${booking.service ? `<p style="color:#888;font-size:13px;margin:8px 0 0;">${booking.service}</p>` : ""}
-            </div>
-            <p style="color:#666;font-size:12px;">Ante cualquier consulta respondé este email o escribinos por WhatsApp.</p>
-          </div>`,
-      }).then(() => { console.log(`[reschedule-email] Cliente notificado: ${booking.email}`); })
-    );
-  }
+  // El aviso al cliente lo manda el backend (.NET, NotificationService +
+  // EmailProvider/Resend, evento BookingRescheduled) — antes este endpoint
+  // también lo mandaba por su cuenta con nodemailer, duplicando el email.
 
   await Promise.allSettled(emails);
 }

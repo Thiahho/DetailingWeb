@@ -29,6 +29,7 @@ public static class EmailHtmlBuilder
         NotificationEventType.BookingCreated => ("RESERVA RECIBIDA", Bronze),
         NotificationEventType.BookingConfirmed => ("TURNO CONFIRMADO", BronzeDeep),
         NotificationEventType.BookingCancelled => ("TURNO CANCELADO", Wine),
+        NotificationEventType.BookingRescheduled => ("TURNO REPROGRAMADO", BronzeDeep),
         NotificationEventType.BookingReminder24h => ("RECORDATORIO", Bronze),
         NotificationEventType.AdminBookingCreated => ("NUEVA RESERVA", Bronze),
         NotificationEventType.AdminBookingCancelled => ("CANCELACIÓN", Wine),
