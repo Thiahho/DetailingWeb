@@ -159,6 +159,68 @@ function ProfessionalAgendaContent() {
     .filter((s) => !isExpired(s.startDateTime))
     .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
 
+  const confirmedSlots = upcoming.filter((s) => !s.isAvailable && s.booking?.status === "Confirmed");
+  const pendingSlots = upcoming.filter((s) => !s.isAvailable && s.booking?.status !== "Confirmed");
+  const availableSlots = upcoming.filter((s) => s.isAvailable);
+
+  const renderSlot = (slot: TimeSlot) => {
+    const isHighlighted = highlightedBookingId != null && slot.booking?.id === highlightedBookingId;
+    return (
+      <div
+        key={slot.id}
+        ref={isHighlighted ? highlightedRef : undefined}
+        data-testid="agenda-slot-item"
+        data-slot-label={slot.label}
+        onClick={() => !slot.isAvailable && slot.booking && setDetailSlot(slot)}
+        className={`p-4 rounded-xl border ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
+          isHighlighted
+            ? "border-champagne ring-2 ring-champagne/50 bg-champagne/10"
+            : slot.isAvailable
+            ? "border-green-500/30 bg-green-500/10"
+            : slot.booking?.status === "Confirmed"
+            ? "border-blue-500/30 bg-blue-500/10"
+            : "border-orange-500/30 bg-orange-500/10"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              {isHighlighted && (
+                <span className="text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">NUEVO</span>
+              )}
+              <p className="text-charcoal font-medium text-sm">{slot.label}</p>
+            </div>
+            {!slot.isAvailable && slot.booking && (
+              <p className="text-charcoal/60 text-xs mt-1">
+                {slot.booking.customerName} · {slot.booking.customerPhone}
+                {slot.booking.service && ` · ${slot.booking.service}`}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {slot.isAvailable ? (
+              <button
+                onClick={() => deleteSlot(slot.id)}
+                data-testid="agenda-slot-delete"
+                className="text-red-600 hover:text-red-400 text-xs font-medium uppercase tracking-wide transition"
+              >
+                Eliminar
+              </button>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); releaseSlot(slot.id); }}
+                data-testid="agenda-slot-release"
+                className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
+              >
+                Liberar
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -227,7 +289,7 @@ function ProfessionalAgendaContent() {
             </form>
           </div>
 
-          {/* Lista de turnos */}
+          {/* Lista de turnos, separada por estado */}
           <div className="bg-ivory border border-mauve/10 rounded-xl p-6">
             <h2 className="text-lg font-semibold text-charcoal mb-4">
               Próximos turnos ({upcoming.length})
@@ -235,73 +297,31 @@ function ProfessionalAgendaContent() {
             {upcoming.length === 0 ? (
               <p className="text-charcoal/40 text-sm py-8 text-center">No tenés turnos cargados todavía.</p>
             ) : (
-              <div className="space-y-2">
-                {upcoming.map((slot) => {
-                  const isHighlighted = highlightedBookingId != null && slot.booking?.id === highlightedBookingId;
-                  return (
-                  <div
-                    key={slot.id}
-                    ref={isHighlighted ? highlightedRef : undefined}
-                    data-testid="agenda-slot-item"
-                    data-slot-label={slot.label}
-                    onClick={() => !slot.isAvailable && slot.booking && setDetailSlot(slot)}
-                    className={`p-4 rounded-xl border ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
-                      isHighlighted
-                        ? "border-champagne ring-2 ring-champagne/50 bg-champagne/10"
-                        : slot.isAvailable
-                        ? "border-green-500/30 bg-green-500/10"
-                        : slot.booking?.status === "Confirmed"
-                        ? "border-blue-500/30 bg-blue-500/10"
-                        : "border-orange-500/30 bg-orange-500/10"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {isHighlighted && (
-                            <span className="text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">NUEVO</span>
-                          )}
-                          <p className="text-charcoal font-medium text-sm">{slot.label}</p>
-                        </div>
-                        {!slot.isAvailable && slot.booking && (
-                          <p className="text-charcoal/60 text-xs mt-1">
-                            {slot.booking.customerName} · {slot.booking.customerPhone}
-                            {slot.booking.service && ` · ${slot.booking.service}`}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          slot.isAvailable
-                            ? "bg-green-500/20 text-green-400"
-                            : slot.booking?.status === "Confirmed"
-                            ? "bg-blue-500/20 text-blue-400"
-                            : "bg-orange-500/20 text-orange-400"
-                        }`}>
-                          {slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
-                        </span>
-                        {slot.isAvailable ? (
-                          <button
-                            onClick={() => deleteSlot(slot.id)}
-                            data-testid="agenda-slot-delete"
-                            className="text-red-600 hover:text-red-400 text-xs font-medium uppercase tracking-wide transition"
-                          >
-                            Eliminar
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); releaseSlot(slot.id); }}
-                            data-testid="agenda-slot-release"
-                            className="text-green-400 hover:text-green-300 text-xs font-medium uppercase tracking-wide transition"
-                          >
-                            Liberar
-                          </button>
-                        )}
-                      </div>
-                    </div>
+              <div className="space-y-6">
+                {confirmedSlots.length > 0 && (
+                  <div>
+                    <p className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">
+                      Confirmados ({confirmedSlots.length})
+                    </p>
+                    <div className="space-y-2">{confirmedSlots.map(renderSlot)}</div>
                   </div>
-                  );
-                })}
+                )}
+                {pendingSlots.length > 0 && (
+                  <div>
+                    <p className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-2">
+                      Reservados, esperando confirmación ({pendingSlots.length})
+                    </p>
+                    <div className="space-y-2">{pendingSlots.map(renderSlot)}</div>
+                  </div>
+                )}
+                {availableSlots.length > 0 && (
+                  <div>
+                    <p className="text-green-400 text-xs font-bold uppercase tracking-wider mb-2">
+                      Libres ({availableSlots.length})
+                    </p>
+                    <div className="space-y-2">{availableSlots.map(renderSlot)}</div>
+                  </div>
+                )}
               </div>
             )}
           </div>
