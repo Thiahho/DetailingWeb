@@ -18,23 +18,86 @@ export default function ProfesionalCuentaPage() {
     }
   }, [router]);
 
+  // ── Mis datos (nombre, especialidad, email de acceso) ──
+  const [profileForm, setProfileForm] = useState({ firstName: "", lastName: "", specialty: "", email: "" });
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileMessageType, setProfileMessageType] = useState<MessageType>("success");
+
+  useEffect(() => {
+    Promise.all([
+      fetchWithAuth("/api/professionals/me").then((r) => r.json()),
+      fetchWithAuth("/api/auth/me").then((r) => r.json()),
+    ])
+      .then(([profile, account]) => {
+        setProfileForm({
+          firstName: profile.firstName ?? "",
+          lastName: profile.lastName ?? "",
+          specialty: profile.specialty ?? "",
+          email: account.email ?? "",
+        });
+      })
+      .finally(() => setLoadingProfile(false));
+  }, []);
+
+  const handleProfileSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    setProfileMessage("");
+
+    try {
+      const [profileRes, emailRes] = await Promise.all([
+        fetchWithAuth("/api/professionals/me", {
+          method: "PUT",
+          body: JSON.stringify({
+            firstName: profileForm.firstName.trim(),
+            lastName: profileForm.lastName.trim(),
+            specialty: profileForm.specialty.trim() || null,
+          }),
+        }),
+        fetchWithAuth("/api/auth/me", {
+          method: "PUT",
+          body: JSON.stringify({ email: profileForm.email.trim() }),
+        }),
+      ]);
+
+      const [profileData, emailData] = await Promise.all([profileRes.json(), emailRes.json()]);
+
+      if (profileRes.ok && emailRes.ok) {
+        setProfileMessageType("success");
+        setProfileMessage("Datos actualizados.");
+        return;
+      }
+
+      setProfileMessageType("error");
+      setProfileMessage(!profileRes.ok ? profileData.message : emailData.message || "No se pudo guardar. Intentá nuevamente.");
+    } catch {
+      setProfileMessageType("error");
+      setProfileMessage("Error de conexión. Intentá nuevamente.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // ── Chat ID de Telegram ──
   const [telegramChatId, setTelegramChatId] = useState("");
-  const [loadingInitial, setLoadingInitial] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<MessageType>("success");
+  const [loadingTelegram, setLoadingTelegram] = useState(true);
+  const [savingTelegram, setSavingTelegram] = useState(false);
+  const [telegramMessage, setTelegramMessage] = useState("");
+  const [telegramMessageType, setTelegramMessageType] = useState<MessageType>("success");
 
   useEffect(() => {
     fetchWithAuth("/api/auth/me")
       .then((r) => r.json())
       .then((data) => setTelegramChatId(data.telegramChatId ?? ""))
-      .finally(() => setLoadingInitial(false));
+      .finally(() => setLoadingTelegram(false));
   }, []);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleTelegramSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSaving(true);
-    setMessage("");
+    setSavingTelegram(true);
+    setTelegramMessage("");
 
     try {
       const response = await fetchWithAuth("/api/auth/telegram-chat-id", {
@@ -45,18 +108,18 @@ export default function ProfesionalCuentaPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessageType("success");
-        setMessage(telegramChatId.trim() ? "Listo, ya vas a recibir avisos por Telegram." : "Avisos por Telegram desactivados.");
+        setTelegramMessageType("success");
+        setTelegramMessage(telegramChatId.trim() ? "Listo, ya vas a recibir avisos por Telegram." : "Avisos por Telegram desactivados.");
         return;
       }
 
-      setMessageType("error");
-      setMessage(data.message || "No se pudo guardar. Intentá nuevamente.");
+      setTelegramMessageType("error");
+      setTelegramMessage(data.message || "No se pudo guardar. Intentá nuevamente.");
     } catch {
-      setMessageType("error");
-      setMessage("Error de conexión. Intentá nuevamente.");
+      setTelegramMessageType("error");
+      setTelegramMessage("Error de conexión. Intentá nuevamente.");
     } finally {
-      setSaving(false);
+      setSavingTelegram(false);
     }
   };
 
@@ -65,11 +128,91 @@ export default function ProfesionalCuentaPage() {
       <div className="mx-auto max-w-xl">
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Mi cuenta</h1>
-          <p className="text-charcoal/50 text-sm mt-1">Recibí un aviso por Telegram cada vez que te asignen un turno nuevo</p>
+          <p className="text-charcoal/50 text-sm mt-1">Tus datos y cómo te avisamos cuando te asignan un turno</p>
         </div>
 
+        {/* Mis datos */}
         <div className="bg-ivory border border-mauve/5 rounded-2xl p-5 md:p-6 mb-4">
-          <p className="text-charcoal/70 text-sm font-medium mb-3">Cómo conseguir tu Chat ID</p>
+          <p className="text-charcoal/70 text-sm font-medium mb-4">Mis datos</p>
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            {profileMessage && (
+              <div
+                className={`rounded-lg border p-3 text-sm ${
+                  profileMessageType === "success"
+                    ? "bg-green-500/10 border-green-500/20 text-green-400"
+                    : "bg-red-500/10 border-red-500/20 text-red-600"
+                }`}
+              >
+                {profileMessage}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm text-charcoal/70">Nombre</label>
+                <input
+                  className="form-input"
+                  placeholder={loadingProfile ? "Cargando..." : "Nombre"}
+                  value={profileForm.firstName}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                  disabled={loadingProfile}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm text-charcoal/70">Apellido</label>
+                <input
+                  className="form-input"
+                  placeholder={loadingProfile ? "Cargando..." : "Apellido"}
+                  value={profileForm.lastName}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                  disabled={loadingProfile}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-charcoal/70">Especialidad</label>
+              <input
+                className="form-input"
+                placeholder={loadingProfile ? "Cargando..." : "Ej: Fade, barba, color"}
+                value={profileForm.specialty}
+                onChange={(e) => setProfileForm((prev) => ({ ...prev, specialty: e.target.value }))}
+                disabled={loadingProfile}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm text-charcoal/70">Email de acceso</label>
+              <input
+                type="email"
+                className="form-input"
+                placeholder={loadingProfile ? "Cargando..." : "tu@email.com"}
+                value={profileForm.email}
+                onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
+                disabled={loadingProfile}
+                required
+              />
+              <p className="text-charcoal/40 text-xs">Es el email con el que iniciás sesión. Si lo cambiás, la próxima vez usalo para entrar.</p>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={savingProfile || loadingProfile}
+              variant="primary"
+              shape="pill"
+              className="w-full"
+            >
+              {savingProfile ? "Guardando..." : "Guardar datos"}
+            </Button>
+          </form>
+        </div>
+
+        {/* Telegram */}
+        <div className="bg-ivory border border-mauve/5 rounded-2xl p-5 md:p-6 mb-4">
+          <p className="text-charcoal/70 text-sm font-medium mb-1">Avisos por Telegram</p>
+          <p className="text-charcoal/50 text-xs mb-3">Recibí un mensaje cada vez que te asignen un turno nuevo</p>
           <ol className="text-charcoal/60 text-sm space-y-2 list-decimal list-inside">
             <li>
               Abrí{" "}
@@ -104,16 +247,16 @@ export default function ProfesionalCuentaPage() {
         </div>
 
         <div className="bg-ivory border border-mauve/5 rounded-2xl p-5 md:p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {message && (
+          <form onSubmit={handleTelegramSubmit} className="space-y-4">
+            {telegramMessage && (
               <div
                 className={`rounded-lg border p-3 text-sm ${
-                  messageType === "success"
+                  telegramMessageType === "success"
                     ? "bg-green-500/10 border-green-500/20 text-green-400"
                     : "bg-red-500/10 border-red-500/20 text-red-600"
                 }`}
               >
-                {message}
+                {telegramMessage}
               </div>
             )}
 
@@ -121,22 +264,22 @@ export default function ProfesionalCuentaPage() {
               <label className="text-sm text-charcoal/70">Chat ID de Telegram</label>
               <input
                 className="form-input"
-                placeholder={loadingInitial ? "Cargando..." : "Ej: 123456789"}
+                placeholder={loadingTelegram ? "Cargando..." : "Ej: 123456789"}
                 value={telegramChatId}
                 onChange={(e) => setTelegramChatId(e.target.value)}
-                disabled={loadingInitial}
+                disabled={loadingTelegram}
               />
               <p className="text-charcoal/40 text-xs">Dejalo vacío y guardá para desactivar los avisos por Telegram.</p>
             </div>
 
             <Button
               type="submit"
-              disabled={saving || loadingInitial}
+              disabled={savingTelegram || loadingTelegram}
               variant="primary"
               shape="pill"
               className="w-full"
             >
-              {saving ? "Guardando..." : "Guardar"}
+              {savingTelegram ? "Guardando..." : "Guardar"}
             </Button>
           </form>
         </div>

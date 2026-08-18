@@ -204,6 +204,26 @@ public class AuthService
         await _context.SaveChangesAsync();
     }
 
+    // El propio usuario logueado cambia su email de acceso (login). La sesión actual
+    // sigue con el email viejo en el JWT hasta que vuelva a loguearse — mismo criterio
+    // que ChangePasswordAsync, que tampoco reemite el token.
+    public async Task UpdateOwnEmailAsync(string currentEmail, string newEmail)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == currentEmail)
+            ?? throw new UnauthorizedAccessException("Usuario no autorizado");
+
+        var normalizedEmail = newEmail.Trim().ToLowerInvariant();
+        if (normalizedEmail == user.Email)
+            return;
+
+        var existing = await _context.Users.AnyAsync(u => u.Email == normalizedEmail);
+        if (existing)
+            throw new ArgumentException("Ese email ya está en uso por otra cuenta");
+
+        user.Email = normalizedEmail;
+        await _context.SaveChangesAsync();
+    }
+
     public async Task ChangePasswordAsync(string email, ChangePasswordRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);

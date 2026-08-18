@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace Turneo.Api.Core.Auth;
@@ -139,6 +140,31 @@ public class AuthController : ControllerBase
         }
     }
 
+    // PUT: api/auth/me (el propio usuario cambia su email de acceso)
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateOwnEmail([FromBody] UpdateEmailRequest request)
+    {
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+        if (email == null)
+            return Unauthorized();
+
+        try
+        {
+            await _authService.UpdateOwnEmailAsync(email, request.Email);
+            return Ok(new { message = "Email actualizado" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("logout")]
     public IActionResult Logout()
     {
@@ -274,3 +300,4 @@ public class AuthController : ControllerBase
 // cuenta ya existe; CreateProfessionalAccountAsync exige password en el alta).
 public record CreateProfessionalAccountRequest(int ProfessionalId, string Email, string? Password, string? Username = null);
 public record SetTelegramChatIdRequest(string? TelegramChatId);
+public record UpdateEmailRequest([property: Required, EmailAddress] string Email);
