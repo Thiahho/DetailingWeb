@@ -1,33 +1,38 @@
 namespace Turneo.Api.Infrastructure.Integrations;
 
-// Plantilla HTML compartida entre providers de email (GmailProvider vía SMTP,
-// EmailProvider vía API HTTP) — la marca (colores, badge, footer) debe verse
-// igual sin importar qué provider esté activo en Program.cs.
+// Plantilla HTML compartida entre providers de email (EmailProvider vía API HTTP,
+// GmailProvider vía SMTP si algún día se reactiva) — la identidad visual (ticket
+// de barbería: banda de cuero, badge estampado, perforación) debe verse igual sin
+// importar qué provider esté activo en Program.cs.
+//
+// Diseño aprobado en sesión: ver artefacto "Barbería Ticket Emails". Paleta y
+// tipografía intencionalmente distintas del genérico "salón" (cream/serif/terracota):
+// bronce/cuero + slab serif + display condensada, tomado de tailwind.config.js.
 public static class EmailHtmlBuilder
 {
-    // Paleta tomada de frontend/turneo-web/tailwind.config.js (blush/champagne)
-    // para que el email se sienta parte del mismo producto que el sitio — con
-    // fondo claro en vez del dark theme del sitio, porque un email oscuro
-    // depende de que el cliente de correo respete el CSS (Outlook/Gmail móvil
-    // suelen no hacerlo) y termina ilegible en varios clientes.
-    private const string BgColor = "#F6F1E9";      // ivory cálido (versión clara de "cream")
-    private const string CardColor = "#FFFFFF";
-    private const string HeaderColor = "#19191C";  // ivory (dark) del sitio
-    private const string AccentColor = "#B9853B";  // blush
-    private const string TextColor = "#2A2A2E";
-    private const string MutedColor = "#6E6E73";   // lavender
-    private const string SuccessColor = "#4C7A52";
-    private const string CancelColor = "#9C2B2B";  // champagne
+    private const string Paper = "#EFE4C9";       // canvas exterior del mail
+    private const string Card = "#FBF5E7";        // tarjeta principal (ticket)
+    private const string HeaderBg = "#1B1611";    // banda de cuero (header y footer)
+    private const string Bronze = "#B9853B";
+    private const string BronzeDeep = "#8F6427";
+    private const string Wine = "#8C2F2F";
+    private const string TextInk = "#241C13";
+    private const string Muted = "#8A7A5C";
+    private const string GoldText = "#F1E4C8";    // texto sobre el header oscuro
+
+    private const string FontLink = """<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Zilla+Slab:wght@400;600;700&display=swap" rel="stylesheet">""";
+    private const string DisplayFont = "'Bebas Neue','Arial Narrow',Arial,sans-serif";
+    private const string SlabFont = "'Zilla Slab',Georgia,'Times New Roman',serif";
 
     private static (string Label, string Color) BadgeFor(string? eventType) => eventType switch
     {
-        NotificationEventType.BookingCreated => ("Reserva recibida", AccentColor),
-        NotificationEventType.BookingConfirmed => ("Turno confirmado", SuccessColor),
-        NotificationEventType.BookingCancelled => ("Turno cancelado", CancelColor),
-        NotificationEventType.BookingReminder24h => ("Recordatorio", AccentColor),
-        NotificationEventType.AdminBookingCreated => ("Nueva reserva", AccentColor),
-        NotificationEventType.AdminBookingCancelled => ("Cancelación", CancelColor),
-        _ => ("Aviso", AccentColor),
+        NotificationEventType.BookingCreated => ("RESERVA RECIBIDA", Bronze),
+        NotificationEventType.BookingConfirmed => ("TURNO CONFIRMADO", BronzeDeep),
+        NotificationEventType.BookingCancelled => ("TURNO CANCELADO", Wine),
+        NotificationEventType.BookingReminder24h => ("RECORDATORIO", Bronze),
+        NotificationEventType.AdminBookingCreated => ("NUEVA RESERVA", Bronze),
+        NotificationEventType.AdminBookingCancelled => ("CANCELACIÓN", Wine),
+        _ => ("AVISO", Bronze),
     };
 
     public static string Build(NotificationMessage message)
@@ -38,64 +43,92 @@ public static class EmailHtmlBuilder
             .Replace(">", "&gt;")
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-        var bodyHtml = string.Join("", bodyLines.Select(l => $"<p style=\"margin:0 0 12px 0;color:{TextColor};line-height:1.6;font-size:15px\">{l}</p>"));
+        var bodyHtml = string.Join("", bodyLines.Select(l =>
+            $"""<p style="margin:0 0 14px 0;color:{TextInk};line-height:1.65;font-size:15.5px;font-family:{SlabFont}">{l}</p>"""));
 
         var businessName = string.IsNullOrWhiteSpace(message.BusinessName) ? "Turneo" : message.BusinessName;
         var (badgeLabel, badgeColor) = BadgeFor(message.EventType);
 
         var logoHtml = string.IsNullOrWhiteSpace(message.LogoUrl)
-            ? $"""<h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.5px">{businessName}</h1>"""
+            ? $"""<div style="font-family:{DisplayFont};font-size:30px;letter-spacing:0.06em;color:{GoldText};line-height:1">{businessName.ToUpperInvariant()}</div>"""
             : $"""<img src="{message.LogoUrl}" alt="{businessName}" height="36" style="height:36px;max-width:220px;object-fit:contain">""";
 
         var ctaHtml = string.IsNullOrWhiteSpace(message.CtaUrl)
             ? ""
             : $"""
-                <div style="margin-top:8px;text-align:center">
-                  <a href="{message.CtaUrl}" style="display:inline-block;padding:13px 28px;background:{AccentColor};color:#ffffff;border-radius:999px;font-size:14px;font-weight:600;text-decoration:none">
-                    {message.CtaLabel ?? "Ver más"}
-                  </a>
+                <td>
+                  <a href="{message.CtaUrl}" style="display:inline-block;padding:13px 30px;background:{badgeColor};color:{GoldText};font-family:{DisplayFont};letter-spacing:0.08em;font-size:14px;border-radius:2px;text-decoration:none;white-space:nowrap">{(message.CtaLabel ?? "Ver más").ToUpperInvariant()}</a>
+                </td>
+                """;
+
+        var cancelCtaHtml = string.IsNullOrWhiteSpace(message.CancelCtaUrl)
+            ? ""
+            : $"""
+                <td style="padding-left:12px">
+                  <a href="{message.CancelCtaUrl}" style="display:inline-block;padding:11.5px 28px;border:1.5px solid {Wine};color:{Wine};font-family:{DisplayFont};letter-spacing:0.08em;font-size:14px;border-radius:2px;text-decoration:none;white-space:nowrap">{(message.CancelCtaLabel ?? "Cancelar").ToUpperInvariant()}</a>
+                </td>
+                """;
+
+        var actionsHtml = string.IsNullOrEmpty(ctaHtml) && string.IsNullOrEmpty(cancelCtaHtml)
+            ? ""
+            : $"""
+                <div style="margin-top:10px">
+                  <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                    {ctaHtml}{cancelCtaHtml}
+                  </tr></table>
                 </div>
                 """;
 
         return $"""
             <!DOCTYPE html>
             <html lang="es">
-            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-            <body style="margin:0;padding:0;background-color:{BgColor};font-family:'Segoe UI',Arial,sans-serif">
-              <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px">
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            {FontLink}
+            </head>
+            <body style="margin:0;padding:0;background-color:{Paper};font-family:{SlabFont}">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:36px 16px">
                 <tr>
                   <td align="center">
-                    <table width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:{CardColor};border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)">
+                    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:{Card};border-radius:4px;overflow:hidden;box-shadow:0 10px 34px rgba(27,22,17,0.18)">
 
-                      <!-- Header -->
+                      <!-- Header: banda de cuero -->
                       <tr>
-                        <td style="background:{HeaderColor};padding:28px 32px;text-align:center">
+                        <td style="background:{HeaderBg};padding:30px 32px 26px;text-align:center;border-bottom:3px solid {badgeColor}">
                           {logoHtml}
-                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.55);font-size:12px;letter-spacing:0.5px">TURNOS ONLINE</p>
+                          <div style="font-family:{DisplayFont};font-size:12px;letter-spacing:0.32em;color:{badgeColor};margin-top:4px">TURNOS ONLINE</div>
                         </td>
                       </tr>
 
-                      <!-- Badge -->
+                      <!-- Badge estampado -->
                       <tr>
-                        <td style="padding:24px 32px 0">
-                          <span style="display:inline-block;padding:6px 14px;border-radius:999px;background:{badgeColor}1A;color:{badgeColor};font-size:12px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase">{badgeLabel}</span>
+                        <td style="padding:26px 32px 0">
+                          <span style="display:inline-block;padding:7px 16px;border:1.5px solid {badgeColor};border-radius:3px;color:{badgeColor};font-family:{DisplayFont};font-size:13px;letter-spacing:0.18em">{badgeLabel}</span>
                         </td>
                       </tr>
 
-                      <!-- Body -->
+                      <!-- Cuerpo -->
                       <tr>
-                        <td style="padding:16px 32px 8px">
-                          <h2 style="margin:0 0 18px;color:{TextColor};font-size:19px;font-weight:700">{message.Subject}</h2>
+                        <td style="padding:18px 32px 6px">
+                          <h2 style="margin:0 0 16px;color:{TextInk};font-family:{SlabFont};font-size:21px;font-weight:700">{message.Subject}</h2>
                           {bodyHtml}
-                          {ctaHtml}
+                          {actionsHtml}
                         </td>
                       </tr>
 
-                      <!-- Footer -->
+                      <!-- Perforación de ticket -->
                       <tr>
-                        <td style="padding:28px 32px 24px;text-align:center;border-top:1px solid #EEE8DC">
-                          <p style="margin:0;color:{MutedColor};font-size:12px">Mensaje automático de {businessName}. Por favor no respondas a este correo.</p>
-                          <p style="margin:6px 0 0;color:{MutedColor};font-size:11px">Gestionado con Turneo</p>
+                        <td style="padding:28px 0 0">
+                          <div style="border-top:2px dashed {Muted}66;margin:0 32px"></div>
+                        </td>
+                      </tr>
+
+                      <!-- Footer: banda de cuero -->
+                      <tr>
+                        <td style="background:{HeaderBg};padding:20px 32px;text-align:center">
+                          <p style="margin:0;color:{Muted};font-family:{SlabFont};font-size:11.5px">Mensaje automático de {businessName}. Por favor no respondas a este correo.</p>
+                          <p style="margin:6px 0 0;color:{Muted}99;font-family:{SlabFont};font-size:10.5px;letter-spacing:0.04em">GESTIONADO CON TURNEO</p>
                         </td>
                       </tr>
 

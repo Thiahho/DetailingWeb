@@ -123,7 +123,7 @@ public class BookingsController : ControllerBase
         {
             success = true,
             message = "Turno agendado exitosamente",
-            myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}",
+            myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://turneo-barber.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}",
             booking = new
             {
                 id = booking.Id,

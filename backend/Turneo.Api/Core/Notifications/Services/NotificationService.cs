@@ -47,8 +47,8 @@ public class NotificationService
             return;
         }
 
-        var baseCancellationUrl = _configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar";
-        var baseMyBookingsUrl = _configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos";
+        var baseCancellationUrl = _configuration["Notifications:CancellationBaseUrl"] ?? "https://turneo-barber.vercel.app/cancelar";
+        var baseMyBookingsUrl = _configuration["Notifications:MyBookingsBaseUrl"] ?? "https://turneo-barber.vercel.app/mis-turnos";
         var location = _configuration["Notifications:Location"] ?? "Sucursal principal";
         var accessToken = _authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId);
         var myBookingsLink = $"{baseMyBookingsUrl}?accessToken={Uri.EscapeDataString(accessToken)}";
@@ -70,6 +70,14 @@ public class NotificationService
         message.EventType = eventType;
         message.CtaLabel = "Ver mis turnos";
         message.CtaUrl = myBookingsLink;
+
+        // El botón de cancelar no tiene sentido en el aviso de cancelación en sí
+        // (el turno ya está cancelado) — sí en creado/confirmado/recordatorio.
+        if (eventType != NotificationEventType.BookingCancelled)
+        {
+            message.CancelCtaLabel = "Cancelar turno";
+            message.CancelCtaUrl = templateData.CancellationLink;
+        }
 
         foreach (var provider in _providers)
         {
@@ -238,7 +246,7 @@ public class NotificationService
             if (provider == null) return;
 
             var agendaBaseUrl = _configuration["Notifications:ProfessionalAgendaBaseUrl"]
-                ?? "https://detailing-web-five.vercel.app/profesional/agenda";
+                ?? "https://turneo-barber.vercel.app/profesional/agenda";
             var professionalName = booking.Professional != null
                 ? $"{booking.Professional.FirstName} {booking.Professional.LastName}".Trim()
                 : "";
@@ -327,7 +335,8 @@ public class NotificationService
                 continue;
             }
 
-            var myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://detailing-web-five.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}";
+            var myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://turneo-barber.vercel.app/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}";
+            var cancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://turneo-barber.vercel.app/cancelar"}?bookingId={booking.Id}";
             var message = await _templateService.BuildAsync(log.EventType, new NotificationTemplateData
             {
                 CustomerName = booking.CustomerName,
@@ -335,7 +344,7 @@ public class NotificationService
                 Subject = booking.Subject,
                 StartDateTime = booking.TimeSlot.StartDateTime,
                 Location = _configuration["Notifications:Location"] ?? "Sucursal principal",
-                CancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://detailing-web-five.vercel.app/cancelar"}?bookingId={booking.Id}",
+                CancellationLink = cancellationLink,
                 MyBookingsLink = myBookingsLink
             });
 
@@ -345,6 +354,12 @@ public class NotificationService
             message.EventType = log.EventType;
             message.CtaLabel = "Ver mis turnos";
             message.CtaUrl = myBookingsLink;
+
+            if (log.EventType != NotificationEventType.BookingCancelled)
+            {
+                message.CancelCtaLabel = "Cancelar turno";
+                message.CancelCtaUrl = cancellationLink;
+            }
 
             await TrySendAsync(log.Id, booking, message, cancellationToken);
         }

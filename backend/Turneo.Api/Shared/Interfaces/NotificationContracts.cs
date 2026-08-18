@@ -30,6 +30,12 @@ public class NotificationMessage
     public string? EventType { get; set; }
     public string? CtaLabel { get; set; }
     public string? CtaUrl { get; set; }
+
+    // Botón secundario (outline) — solo se completa para estados donde el turno
+    // todavía se puede cancelar (creado/confirmado/recordatorio), nunca para el
+    // aviso de cancelación en sí ni para los avisos a admin/profesional.
+    public string? CancelCtaLabel { get; set; }
+    public string? CancelCtaUrl { get; set; }
 }
 
 public class NotificationSendResult

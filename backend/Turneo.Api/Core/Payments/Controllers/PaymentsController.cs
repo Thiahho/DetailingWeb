@@ -69,7 +69,7 @@ public class PaymentsController : ControllerBase
             return BadRequest(new { success = false, message = "No se pudo determinar el monto a cobrar" });
         }
 
-        var baseUrl = _configuration["MercadoPago:BaseUrl"] ?? "https://detailing-web-five.vercel.app";
+        var baseUrl = _configuration["MercadoPago:BaseUrl"] ?? "https://turneo-barber.vercel.app";
 
         var preferenceRequest = new PreferenceRequest
         {
