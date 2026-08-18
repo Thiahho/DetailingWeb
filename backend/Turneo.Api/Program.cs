@@ -67,7 +67,11 @@ else
 {
     builder.Services.AddHttpClient<WhatsAppProvider>();
     builder.Services.AddHttpClient<TelegramProvider>();
-    builder.Services.AddScoped<INotificationProvider, GmailProvider>();
+    // EmailProvider (API HTTP, Resend por default) en vez de GmailProvider (SMTP):
+    // Google bloquea/throttlea SMTP saliente desde IPs de datacenter como las de
+    // Render, así que GmailProvider timeoutea siempre en producción — ver EmailProvider.cs.
+    builder.Services.AddHttpClient<EmailProvider>(client => client.Timeout = TimeSpan.FromSeconds(15));
+    builder.Services.AddScoped<INotificationProvider, EmailProvider>();
     builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
     builder.Services.AddScoped<INotificationProvider, TelegramProvider>();
 }
