@@ -2,6 +2,8 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { getSiteConfig, DEFAULT_SITE_CONFIG } from "@/src/lib/siteConfig";
+import { Button } from "@/src/components/shared/Button";
 
 interface BookingDetail {
   id: number;
@@ -39,6 +41,13 @@ function CancelarContent() {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [businessName, setBusinessName] = useState(DEFAULT_SITE_CONFIG.businessName);
+
+  useEffect(() => {
+    getSiteConfig().then((config) => {
+      if (config.businessName) setBusinessName(config.businessName);
+    });
+  }, []);
 
   useEffect(() => {
     if (!bookingId) {
@@ -91,38 +100,38 @@ function CancelarContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1115] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-cream flex items-center justify-center p-4">
       <div className="w-full max-w-md">
 
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <h1 className="text-white text-2xl font-bold tracking-tight">Auto Detail Studio</h1>
-          <p className="text-white/40 text-sm mt-1">Cancelación de turno</p>
+          <h1 className="text-charcoal text-2xl font-semibold tracking-tight">{businessName}</h1>
+          <p className="text-charcoal/40 text-sm mt-1">Cancelación de turno</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#161b22] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="glass-card overflow-hidden">
 
           {/* Loading */}
           {state === "loading" && (
             <div className="p-10 flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              <p className="text-white/50 text-sm">Cargando reserva...</p>
+              <div className="w-8 h-8 border-2 border-mauve/20 border-t-blush rounded-full animate-spin" />
+              <p className="text-charcoal/50 text-sm">Cargando reserva...</p>
             </div>
           )}
 
           {/* Confirm */}
           {state === "confirm" && booking && (
             <>
-              <div className="bg-orange-900/20 border-b border-orange-900/30 px-6 py-5 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-amber-50 border-b border-amber-100 px-6 py-5 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-white font-semibold text-sm">¿Cancelar este turno?</p>
-                  <p className="text-white/40 text-xs mt-0.5">Esta acción no se puede deshacer</p>
+                  <p className="text-charcoal font-semibold text-sm">¿Cancelar este turno?</p>
+                  <p className="text-charcoal/40 text-xs mt-0.5">Esta acción no se puede deshacer</p>
                 </div>
               </div>
 
@@ -134,17 +143,18 @@ function CancelarContent() {
               </div>
 
               <div className="px-6 pb-6 flex flex-col gap-2">
-                <button
+                <Button
                   onClick={handleCancel}
                   disabled={cancelling}
                   data-testid="cancel-confirm-button"
-                  className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white py-3 rounded-xl font-semibold text-sm transition"
+                  variant="danger"
+                  className="w-full"
                 >
                   {cancelling ? "Cancelando..." : "Sí, cancelar mi turno"}
-                </button>
+                </Button>
                 <a
                   href="/reservar"
-                  className="w-full text-center text-white/40 hover:text-white/70 py-2 text-sm transition"
+                  className="w-full text-center text-charcoal/40 hover:text-charcoal/70 py-2 text-sm transition"
                 >
                   No, mantener mi turno
                 </a>
@@ -155,18 +165,18 @@ function CancelarContent() {
           {/* Cancelled (success) */}
           {state === "cancelled" && (
             <div className="p-10 flex flex-col items-center gap-4 text-center" data-testid="cancel-success">
-              <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center">
-                <svg className="w-7 h-7 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center">
+                <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <div>
-                <p className="text-white font-semibold text-lg">Turno cancelado</p>
-                <p className="text-white/50 text-sm mt-1">Tu turno fue cancelado correctamente. El horario quedó disponible.</p>
+                <p className="text-charcoal font-semibold text-lg">Turno cancelado</p>
+                <p className="text-charcoal/50 text-sm mt-1">Tu turno fue cancelado correctamente. El horario quedó disponible.</p>
               </div>
               <a
                 href="/reservar"
-                className="mt-2 text-green-400 hover:text-green-300 text-sm font-medium transition"
+                className="mt-2 text-emerald-600 hover:text-emerald-500 text-sm font-medium transition"
               >
                 Reservar un nuevo turno →
               </a>
@@ -176,20 +186,20 @@ function CancelarContent() {
           {/* Already cancelled */}
           {state === "already_cancelled" && booking && (
             <div className="p-10 flex flex-col items-center gap-4 text-center">
-              <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
-                <svg className="w-7 h-7 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-14 h-14 rounded-full bg-mauve/10 flex items-center justify-center">
+                <svg className="w-7 h-7 text-charcoal/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
               <div>
-                <p className="text-white font-semibold text-lg">Ya estaba cancelado</p>
-                <p className="text-white/50 text-sm mt-1">
+                <p className="text-charcoal font-semibold text-lg">Ya estaba cancelado</p>
+                <p className="text-charcoal/50 text-sm mt-1">
                   Este turno ya fue cancelado{booking.cancelledAt ? ` el ${formatDateFriendly(booking.cancelledAt)}` : ""}.
                 </p>
               </div>
               <a
                 href="/reservar"
-                className="mt-2 text-white/40 hover:text-white/70 text-sm font-medium transition"
+                className="mt-2 text-charcoal/40 hover:text-charcoal/70 text-sm font-medium transition"
               >
                 Reservar un nuevo turno →
               </a>
@@ -199,14 +209,14 @@ function CancelarContent() {
           {/* Expired */}
           {state === "expired" && (
             <div className="p-10 flex flex-col items-center gap-4 text-center">
-              <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
-                <svg className="w-7 h-7 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-14 h-14 rounded-full bg-mauve/10 flex items-center justify-center">
+                <svg className="w-7 h-7 text-charcoal/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-white font-semibold text-lg">Turno expirado</p>
-                <p className="text-white/50 text-sm mt-1">Este turno ya pasó y no puede cancelarse.</p>
+                <p className="text-charcoal font-semibold text-lg">Turno expirado</p>
+                <p className="text-charcoal/50 text-sm mt-1">Este turno ya pasó y no puede cancelarse.</p>
               </div>
             </div>
           )}
@@ -214,21 +224,21 @@ function CancelarContent() {
           {/* Error */}
           {state === "error" && (
             <div className="p-10 flex flex-col items-center gap-4 text-center">
-              <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center">
-                <svg className="w-7 h-7 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                <svg className="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
               <div>
-                <p className="text-white font-semibold text-lg">Algo salió mal</p>
-                <p className="text-white/50 text-sm mt-1">{errorMsg}</p>
+                <p className="text-charcoal font-semibold text-lg">Algo salió mal</p>
+                <p className="text-charcoal/50 text-sm mt-1">{errorMsg}</p>
               </div>
             </div>
           )}
 
         </div>
 
-        <p className="text-center text-white/20 text-xs mt-6">
+        <p className="text-center text-charcoal/30 text-xs mt-6">
           ¿Necesitás ayuda? Contactanos por WhatsApp.
         </p>
       </div>
@@ -239,8 +249,8 @@ function CancelarContent() {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-start gap-4">
-      <span className="text-white/40 text-sm shrink-0">{label}</span>
-      <span className="text-white text-sm text-right">{value}</span>
+      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
+      <span className="text-charcoal text-sm text-right">{value}</span>
     </div>
   );
 }
@@ -248,8 +258,8 @@ function Row({ label, value }: { label: string; value: string }) {
 export default function CancelarPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0f1115] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-mauve/20 border-t-blush rounded-full animate-spin" />
       </div>
     }>
       <CancelarContent />

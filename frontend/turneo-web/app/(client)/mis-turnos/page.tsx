@@ -5,6 +5,7 @@ import { getWhatsAppLink } from "@/src/lib/siteConfig";
 import PaymentButton from "@/src/components/payments/PaymentButton";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { Button } from "@/src/components/shared/Button";
 
 interface MyBooking {
   id: number;
@@ -30,9 +31,9 @@ interface TimeSlot {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  Pending:   "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
-  Confirmed: "bg-green-500/20 text-green-300 border border-green-500/30",
-  Cancelled: "bg-red-500/20 text-red-400 border border-red-500/30",
+  Pending:   "bg-amber-50 text-amber-700 border border-amber-200",
+  Confirmed: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  Cancelled: "bg-red-50 text-red-600 border border-red-200",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -98,7 +99,7 @@ export default function MisTurnosPage() {
   };
 
   const cancelBooking = async (id: number) => {
-    if (!(await confirm({ message: "¿Confirmás que querés cancelar este turno?", confirmLabel: "Cancelar turno", theme: "dark" }))) return;
+    if (!(await confirm({ message: "¿Confirmás que querés cancelar este turno?", confirmLabel: "Cancelar turno" }))) return;
     const res = await fetch(`/api/bookings/${id}/cancel`, { method: "POST", credentials: "include" });
     if (res.ok) {
       setItems((prev) =>
@@ -155,18 +156,18 @@ export default function MisTurnosPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0f1115] p-6">
+    <main className="min-h-screen bg-cream p-6">
       {ConfirmDialog}
       <div className="max-w-2xl mx-auto">
 
         {/* Formulario de email */}
         {items === null && (
           <div className="mt-10">
-            <h1 className="text-3xl text-white font-bold mb-2">Mis turnos</h1>
-            <p className="text-white/60 mb-8">Ingresá tu email para ver tus reservas.</p>
+            <h1 className="text-3xl text-charcoal font-semibold mb-2">Mis turnos</h1>
+            <p className="text-charcoal/60 mb-8">Ingresá tu email para ver tus reservas.</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm text-white/70 mb-1">Email</label>
+                <label className="block text-sm text-charcoal/70 mb-1">Email</label>
                 <input
                   type="email"
                   required
@@ -174,18 +175,19 @@ export default function MisTurnosPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-lux/50"
+                  className="form-input"
                 />
               </div>
-              {error && <p className="text-red-400 text-sm">{error}</p>}
-              <button
+              {error && <p className="text-red-600 text-sm">{error}</p>}
+              <Button
                 type="submit"
                 disabled={loading}
                 data-testid="mis-turnos-submit"
-                className="w-full rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black disabled:opacity-50 transition hover:scale-[1.01]"
+                shape="pill"
+                className="w-full"
               >
                 {loading ? "Buscando..." : "Ver mis turnos"}
-              </button>
+              </Button>
             </form>
           </div>
         )}
@@ -195,21 +197,21 @@ export default function MisTurnosPage() {
           <>
             <div className="mt-10 flex items-center justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-3xl text-white font-bold">Mis turnos</h1>
-                <p className="text-white/40 text-sm mt-0.5">{email}</p>
+                <h1 className="text-3xl text-charcoal font-semibold">Mis turnos</h1>
+                <p className="text-charcoal/40 text-sm mt-0.5">{email}</p>
               </div>
               <button
                 onClick={() => { setItems(null); setError(""); }}
-                className="text-white/40 hover:text-white text-sm transition"
+                className="text-charcoal/40 hover:text-charcoal text-sm transition"
               >
                 Cambiar email
               </button>
             </div>
 
             {items.length === 0 ? (
-              <div className="text-center py-16 text-white/40">
+              <div className="text-center py-16 text-charcoal/40">
                 <p className="text-lg">No encontramos turnos para ese email</p>
-                <a href="/reservar#contacto" className="mt-4 inline-block text-lux hover:underline text-sm">
+                <a href="/reservar#contacto" className="mt-4 inline-block text-blushdark hover:underline text-sm">
                   Reservar un turno
                 </a>
               </div>
@@ -217,7 +219,7 @@ export default function MisTurnosPage() {
               <div className="space-y-4">
                 {items.map((b) => {
                   const customFields = parseCustomFields(b.customFieldsJson);
-                  const statusClass = STATUS_STYLES[b.status] || "bg-white/10 text-white/70";
+                  const statusClass = STATUS_STYLES[b.status] || "bg-mauve/10 text-charcoal/70";
                   const statusLabel = STATUS_LABELS[b.status] || b.status;
                   const waLink = waNumber
                     ? getWhatsAppLink(waNumber, `Hola, quiero reprogramar mi turno #${b.id} del ${formatDate(b.startDateTime)}`)
@@ -228,25 +230,25 @@ export default function MisTurnosPage() {
                       key={b.id}
                       data-testid="mis-turnos-booking-card"
                       data-booking-subject={b.subject ?? ""}
-                      className="bg-[#161b22] border border-white/10 rounded-xl p-5 space-y-3"
+                      className="glass-card p-5 space-y-3"
                     >
                       <div className="flex flex-wrap justify-between gap-2 items-start">
                         <div>
-                          <p className="text-white font-semibold">{b.service || "Turno"}</p>
-                          {b.subject && <p className="text-white/60 text-sm">{b.subject}</p>}
-                          <p className="text-white/40 text-xs mt-0.5">{b.customerName}</p>
+                          <p className="text-charcoal font-semibold">{b.service || "Turno"}</p>
+                          {b.subject && <p className="text-charcoal/60 text-sm">{b.subject}</p>}
+                          <p className="text-charcoal/40 text-xs mt-0.5">{b.customerName}</p>
                         </div>
                         <span className={`text-xs px-3 py-1 rounded-full ${statusClass}`}>
                           {statusLabel}
                         </span>
                       </div>
 
-                      <p className="text-white/80 text-sm capitalize">{formatDate(b.startDateTime)}</p>
+                      <p className="text-charcoal/80 text-sm capitalize">{formatDate(b.startDateTime)}</p>
 
                       {Object.keys(customFields).length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {Object.entries(customFields).map(([k, v]) => (
-                            <span key={k} className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-white/60">
+                            <span key={k} className="text-xs bg-mauve/5 border border-mauve/15 rounded-full px-3 py-1 text-charcoal/60">
                               {k}: {v}
                             </span>
                           ))}
@@ -255,11 +257,11 @@ export default function MisTurnosPage() {
 
                       {/* Payment Status */}
                       {b.paymentStatus === "Approved" && (
-                        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
-                          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                          <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="text-green-400 text-sm font-medium">
+                          <span className="text-emerald-700 text-sm font-medium">
                             Pagado{b.paymentAmount ? ` — $${b.paymentAmount.toLocaleString("es-AR")}` : ""}
                           </span>
                         </div>
@@ -267,17 +269,17 @@ export default function MisTurnosPage() {
 
                       {b.paymentStatus === "Pending" && b.status !== "Cancelled" && b.paymentCheckoutUrl && (
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
-                            <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                            <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span className="text-yellow-400 text-sm">Pago pendiente</span>
+                            <span className="text-amber-700 text-sm">Pago pendiente</span>
                           </div>
                           <a
                             href={b.paymentCheckoutUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block text-center px-4 py-2.5 rounded-lg bg-sky-600/80 hover:bg-sky-600 text-white text-sm font-medium transition"
+                            className="block text-center px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition"
                           >
                             Completar pago
                           </a>
@@ -292,21 +294,22 @@ export default function MisTurnosPage() {
                       )}
 
                       <div className="flex gap-3 pt-1">
-                        <button
+                        <Button
                           onClick={() => cancelBooking(b.id)}
                           disabled={!b.canCancel}
                           data-testid="mis-turnos-cancel-button"
-                          className="px-4 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:bg-white/10 disabled:text-white/30 text-white text-sm transition"
+                          variant="danger"
+                          size="sm"
                         >
                           Cancelar
-                        </button>
+                        </Button>
 
                         {/* Reprogramar: Pending → modal horarios | Confirmed → WhatsApp */}
                         {b.canReschedule && b.status === "Pending" && (
                           <button
                             onClick={() => openReschedule(b)}
                             data-testid="mis-turnos-reschedule-button"
-                            className="px-4 py-2 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-sm transition"
+                            className="px-3 py-1.5 rounded-lg border border-blush/40 bg-blush/10 text-blushdark text-xs font-medium hover:bg-blush/20 transition"
                           >
                             Reprogramar
                           </button>
@@ -316,7 +319,7 @@ export default function MisTurnosPage() {
                             href={waLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-4 py-2 rounded-lg bg-green-700/80 hover:bg-green-700 text-white text-sm transition"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition"
                           >
                             Reprogramar por WhatsApp
                           </a>
@@ -324,7 +327,7 @@ export default function MisTurnosPage() {
                         {!b.canReschedule && (
                           <button
                             disabled
-                            className="px-4 py-2 rounded-lg bg-white/10 text-white/30 text-sm cursor-not-allowed"
+                            className="px-3 py-1.5 rounded-lg border border-mauve/10 bg-mauve/5 text-charcoal/30 text-xs font-medium cursor-not-allowed"
                           >
                             Reprogramar
                           </button>
@@ -346,25 +349,25 @@ export default function MisTurnosPage() {
           onClick={() => !rescheduling && setRescheduleBooking(null)}
         >
           <div
-            className="bg-[#161b22] border border-white/10 rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+            className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto shadow-elevated"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="text-white font-semibold text-lg">Elegir nuevo horario</h2>
+                <h2 className="text-charcoal font-semibold text-lg">Elegir nuevo horario</h2>
                 <button
                   onClick={() => setRescheduleBooking(null)}
-                  className="text-white/40 hover:text-white transition text-xl"
+                  className="text-charcoal/40 hover:text-charcoal transition text-xl"
                 >✕</button>
               </div>
-              <p className="text-white/40 text-sm mb-5">
-                Turno actual: <span className="text-white/70 capitalize">{formatDate(rescheduleBooking.startDateTime)}</span>
+              <p className="text-charcoal/40 text-sm mb-5">
+                Turno actual: <span className="text-charcoal/70 capitalize">{formatDate(rescheduleBooking.startDateTime)}</span>
               </p>
 
-              {loadingSlots && <p className="text-white/50 text-sm text-center py-8">Cargando horarios...</p>}
+              {loadingSlots && <p className="text-charcoal/50 text-sm text-center py-8">Cargando horarios...</p>}
 
               {!loadingSlots && availableSlots.length === 0 && (
-                <p className="text-white/40 text-sm text-center py-8">No hay horarios disponibles por ahora.</p>
+                <p className="text-charcoal/40 text-sm text-center py-8">No hay horarios disponibles por ahora.</p>
               )}
 
               {!loadingSlots && availableSlots.length > 0 && (
@@ -377,8 +380,8 @@ export default function MisTurnosPage() {
                       onClick={() => setSelectedSlotId(slot.id)}
                       className={`rounded-lg border px-3 py-2.5 text-sm text-left transition ${
                         selectedSlotId === slot.id
-                          ? "border-lux bg-lux/20 text-lux"
-                          : "border-white/10 text-white/70 hover:border-white/30 hover:bg-white/5"
+                          ? "border-blush bg-blush/10 text-blushdark"
+                          : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-mauve/5"
                       }`}
                     >
                       {slot.label}
@@ -387,24 +390,26 @@ export default function MisTurnosPage() {
                 </div>
               )}
 
-              {rescheduleError && <p className="text-red-400 text-sm mb-3">{rescheduleError}</p>}
+              {rescheduleError && <p className="text-red-600 text-sm mb-3">{rescheduleError}</p>}
 
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   onClick={submitReschedule}
                   disabled={!selectedSlotId || rescheduling}
                   data-testid="mis-turnos-reschedule-confirm"
-                  className="flex-1 rounded-full bg-lux px-6 py-3 text-sm font-semibold text-black disabled:opacity-40 transition hover:scale-[1.01]"
+                  shape="pill"
+                  className="flex-1"
                 >
                   {rescheduling ? "Guardando..." : "Confirmar cambio"}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setRescheduleBooking(null)}
                   disabled={rescheduling}
-                  className="px-5 py-3 rounded-full bg-white/5 text-white/60 hover:bg-white/10 text-sm transition"
+                  variant="secondary"
+                  shape="pill"
                 >
                   Cancelar
-                </button>
+                </Button>
               </div>
             </div>
           </div>
