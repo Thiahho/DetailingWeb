@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Turneo.Api.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Turneo.Api.Infrastructure.Persistence;
 namespace Turneo.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260819003439_AddTelegramChatIdToUsers")]
+    partial class AddTelegramChatIdToUsers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -671,106 +674,6 @@ namespace Turneo.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("ServiceInsumos");
-                });
-
-            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltyPrize", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Probability")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ValidityDays")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("Value")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("LoyaltyPrizes");
-                });
-
-            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltySpin", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("CustomerName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("PrizeId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("RedeemedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int?>("RedeemedByUserId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("SpunAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("WhatsApp")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PrizeId");
-
-                    b.HasIndex("TenantId", "Code")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "WhatsApp")
-                        .IsUnique();
-
-                    b.ToTable("LoyaltySpins");
                 });
 
             modelBuilder.Entity("Turneo.Api.Core.Notifications.NotificationLog", b =>
@@ -2300,36 +2203,6 @@ namespace Turneo.Api.Migrations
                     b.Navigation("Insumo");
 
                     b.Navigation("Service");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltyPrize", b =>
-                {
-                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltySpin", b =>
-                {
-                    b.HasOne("Turneo.Api.Core.Loyalty.LoyaltyPrize", "Prize")
-                        .WithMany()
-                        .HasForeignKey("PrizeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Prize");
 
                     b.Navigation("Tenant");
                 });

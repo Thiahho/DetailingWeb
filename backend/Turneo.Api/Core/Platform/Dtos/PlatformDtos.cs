@@ -25,3 +25,5 @@ public record TenantSummary(
     DateTime CreatedAt);
 
 public record PlanSummary(int Id, string Name, decimal? PriceMonthly, decimal? PriceYearly);
+
+public record CreateAdminRequest(string Email, string Password);

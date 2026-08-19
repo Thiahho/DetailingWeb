@@ -8,6 +8,7 @@ namespace Turneo.Api.Infrastructure.Integrations;
 public class GmailProvider : INotificationProvider
 {
     private readonly EmailSettings _settings;
+    private readonly ILogger<GmailProvider> _logger;
 
     public string Channel => "Email";
     public string ProviderName => "Gmail";
@@ -16,9 +17,10 @@ public class GmailProvider : INotificationProvider
         !string.IsNullOrWhiteSpace(_settings.Password) &&
         _settings.Password != "APP_PASSWORD";
 
-    public GmailProvider(IOptions<EmailSettings> settings)
+    public GmailProvider(IOptions<EmailSettings> settings, ILogger<GmailProvider> logger)
     {
         _settings = settings.Value;
+        _logger = logger;
     }
 
     public Task<NotificationSendResult> SendAsync(Booking booking, NotificationMessage message, CancellationToken cancellationToken = default)
@@ -43,7 +45,16 @@ public class GmailProvider : INotificationProvider
     private async Task<NotificationSendResult> SendToAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken)
     {
         if (!IsEnabled)
+        {
+            _logger.LogWarning("[Email] Gmail no configurado (Username/Password vacíos) — no se envía a {ToEmail}", toEmail);
             return new NotificationSendResult { Success = false, Error = "Gmail no configurado", IsTransientFailure = false };
+        }
+
+        // LogWarning a propósito (no LogInformation): Production tiene Logging:LogLevel:Default
+        // en "Warning" (appsettings.Production.json), así que un log Information acá quedaría
+        // invisible en los logs de Render.
+        _logger.LogWarning("[Email] Enviando '{Subject}' a {ToEmail} vía {SmtpServer}:{Port} (usuario {Username})",
+            message.Subject, toEmail, _settings.SmtpServer, _settings.Port, _settings.Username);
 
         try
         {
@@ -55,7 +66,7 @@ public class GmailProvider : INotificationProvider
             var bodyBuilder = new BodyBuilder
             {
                 TextBody = message.Body,
-                HtmlBody = BuildHtmlBody(message)
+                HtmlBody = EmailHtmlBuilder.Build(message)
             };
             email.Body = bodyBuilder.ToMessageBody();
 
@@ -68,71 +79,23 @@ public class GmailProvider : INotificationProvider
             var messageId = await smtp.SendAsync(email, cts.Token);
             await smtp.DisconnectAsync(true, cts.Token);
 
+            _logger.LogWarning("[Email] ENVIADO OK a {ToEmail} (messageId={MessageId})", toEmail, messageId);
             return new NotificationSendResult { Success = true, ProviderMessageId = messageId };
         }
         catch (AuthenticationException ex)
         {
+            _logger.LogWarning(ex, "[Email] FALLÓ (autenticación) enviando a {ToEmail} vía {SmtpServer}", toEmail, _settings.SmtpServer);
             return new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = false };
         }
         catch (OperationCanceledException)
         {
+            _logger.LogWarning("[Email] FALLÓ (timeout 30s) enviando a {ToEmail} vía {SmtpServer}", toEmail, _settings.SmtpServer);
             return new NotificationSendResult { Success = false, Error = "Timeout al conectar con Gmail SMTP (30s)", IsTransientFailure = true };
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "[Email] FALLÓ enviando a {ToEmail} vía {SmtpServer}", toEmail, _settings.SmtpServer);
             return new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = true };
         }
-    }
-
-    private static string BuildHtmlBody(NotificationMessage message)
-    {
-        var bodyLines = message.Body
-            .Replace("&", "&amp;")
-            .Replace("<", "&lt;")
-            .Replace(">", "&gt;")
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
-
-        var bodyHtml = string.Join("", bodyLines.Select(l => $"<p style=\"margin:0 0 10px 0;color:#444;line-height:1.6\">{l}</p>"));
-
-        return $"""
-            <!DOCTYPE html>
-            <html lang="es">
-            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-            <body style="margin:0;padding:0;background-color:#f2f2f2;font-family:Arial,sans-serif">
-              <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 0">
-                <tr>
-                  <td align="center">
-                    <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
-
-                      <!-- Header -->
-                      <tr>
-                        <td style="background:#0f1115;padding:28px 32px;text-align:center">
-                          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:1px">Auto Detail Studio</h1>
-                          <p style="margin:6px 0 0;color:rgba(255,255,255,0.5);font-size:13px">Turnos profesionales</p>
-                        </td>
-                      </tr>
-
-                      <!-- Body -->
-                      <tr>
-                        <td style="padding:36px 32px">
-                          <h2 style="margin:0 0 20px;color:#111;font-size:18px;font-weight:600">{message.Subject}</h2>
-                          {bodyHtml}
-                        </td>
-                      </tr>
-
-                      <!-- Footer -->
-                      <tr>
-                        <td style="background:#f8f8f8;padding:18px 32px;text-align:center;border-top:1px solid #eee">
-                          <p style="margin:0;color:#aaa;font-size:12px">Este es un mensaje automático. Por favor no respondas a este correo.</p>
-                        </td>
-                      </tr>
-
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </body>
-            </html>
-            """;
     }
 }

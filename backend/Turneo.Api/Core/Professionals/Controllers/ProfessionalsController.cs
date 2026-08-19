@@ -154,6 +154,89 @@ public class ProfessionalsController : ControllerBase
             slotEnd <= end);
     }
 
+    // GET: api/professionals/me (el propio profesional ve sus datos básicos)
+    [HttpGet("me")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> GetMyProfile()
+    {
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        return Ok(new
+        {
+            professional.Id,
+            professional.FirstName,
+            professional.LastName,
+            professional.Specialty
+        });
+    }
+
+    // PUT: api/professionals/me (el propio profesional edita nombre/especialidad —
+    // no comisión, estado, orden ni servicios: eso sigue siendo config del admin)
+    [HttpPut("me")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateMyProfileRequest request)
+    {
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        professional.FirstName = request.FirstName;
+        professional.LastName = request.LastName;
+        professional.Specialty = request.Specialty;
+        professional.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.SaveChangesAsync();
+        return Ok(new { message = "Datos actualizados" });
+    }
+
+    // GET: api/professionals/me/earnings?year=&month= (el propio profesional ve su comisión del mes)
+    [HttpGet("me/earnings")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> GetMyEarnings([FromQuery] int year, [FromQuery] int month)
+    {
+        if (month is < 1 or > 12)
+            return BadRequest(new { message = "Mes inválido" });
+
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        var from = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = from.AddMonths(1);
+
+        var chargedTotal = await _repository.GetChargedTotalInRangeAsync(professionalId.Value, from, to);
+        var commissionAmount = chargedTotal * (professional.Commission / 100m);
+
+        return Ok(new
+        {
+            year,
+            month,
+            commissionRate = professional.Commission,
+            chargedTotal,
+            commissionAmount
+        });
+    }
+
+    private int? GetOwnProfessionalId()
+    {
+        var claim = User.FindFirst("professional_id")?.Value;
+        return int.TryParse(claim, out var id) ? id : null;
+    }
+
     // GET: api/professionals/{id} (público)
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
@@ -316,4 +399,16 @@ public class ProfessionalRequest
     public int Order { get; set; } = 0;
 
     public List<int> ServiceIds { get; set; } = new();
+}
+
+public class UpdateMyProfileRequest
+{
+    [Required, StringLength(100, MinimumLength = 1)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required, StringLength(100, MinimumLength = 1)]
+    public string LastName { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string? Specialty { get; set; }
 }

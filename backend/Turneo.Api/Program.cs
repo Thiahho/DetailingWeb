@@ -66,8 +66,14 @@ if (builder.Environment.IsEnvironment("Testing"))
 else
 {
     builder.Services.AddHttpClient<WhatsAppProvider>();
-    builder.Services.AddScoped<INotificationProvider, GmailProvider>();
+    builder.Services.AddHttpClient<TelegramProvider>();
+    // EmailProvider (API HTTP, Resend por default) en vez de GmailProvider (SMTP):
+    // Google bloquea/throttlea SMTP saliente desde IPs de datacenter como las de
+    // Render, así que GmailProvider timeoutea siempre en producción — ver EmailProvider.cs.
+    builder.Services.AddHttpClient<EmailProvider>(client => client.Timeout = TimeSpan.FromSeconds(15));
+    builder.Services.AddScoped<INotificationProvider, EmailProvider>();
     builder.Services.AddScoped<INotificationProvider, WhatsAppProvider>();
+    builder.Services.AddScoped<INotificationProvider, TelegramProvider>();
 }
 builder.Services.AddHostedService<NotificationRetryBackgroundService>();
 builder.Services.AddHostedService<ReminderBackgroundService>();
@@ -75,7 +81,9 @@ builder.Services.AddScoped<ReminderService>();
 builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
 builder.Services.AddScoped<AutomationRuleEvaluationJob>();
+builder.Services.AddScoped<BookingNotificationJob>();
 builder.Services.AddScoped<RouletteService>();
+builder.Services.AddScoped<LoyaltyRouletteService>();
 builder.Services.AddHttpClient<CloudinaryAdminService>();
 builder.Services.AddScoped<ContentTakedownService>();
 

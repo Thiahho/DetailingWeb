@@ -21,6 +21,10 @@ public interface IProfessionalsRepository
     Task<Professional?> GetByIdWithServicesAsync(int id);
     Task<Professional?> GetByIdAsync(int id);
     Task<int> CountActiveAsync();
+
+    // Total cobrado (Charge+Deposit-Refund, ver CajaMovement) por turnos asignados
+    // a este profesional dentro del rango — base para calcular su comisión.
+    Task<decimal> GetChargedTotalInRangeAsync(int professionalId, DateTime from, DateTime to);
     Task<List<Service>> GetServicesByIdsAsync(List<int> serviceIds);
     void Add(Professional professional);
     void Remove(Professional professional);

@@ -3,80 +3,72 @@ using System.Text.Json;
 
 namespace Turneo.Api.Infrastructure.Integrations;
 
+// Provider de email vía API HTTP (Resend por default) en vez de SMTP crudo —
+// Google bloquea/throttlea conexiones SMTP salientes desde IPs de datacenter
+// (Render, AWS, Heroku, etc.) como medida antispam, así que GmailProvider
+// timeoutea siempre a los 30s desde producción. Un POST HTTPS no tiene ese
+// problema. Ver GmailProvider para el provider SMTP (queda sin registrar en
+// Program.cs, disponible si algún día se resuelve el bloqueo).
 public class EmailProvider : INotificationProvider
 {
+    private const string DefaultEndpoint = "https://api.resend.com/emails";
+
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<EmailProvider> _logger;
 
     public string Channel => "Email";
-    public string ProviderName => _configuration["Notifications:Email:Provider"] ?? "GenericEmail";
-    public bool IsEnabled => !string.IsNullOrWhiteSpace(_configuration["Notifications:Email:Endpoint"]) &&
-                             !string.IsNullOrWhiteSpace(_configuration["Notifications:Email:ApiKey"]);
+    public string ProviderName => _configuration["Notifications:Email:Provider"] ?? "Resend";
 
-    public EmailProvider(HttpClient httpClient, IConfiguration configuration)
+    public bool IsEnabled =>
+        !string.IsNullOrWhiteSpace(_configuration["Notifications:Email:ApiKey"]) &&
+        !string.IsNullOrWhiteSpace(_configuration["Notifications:Email:From"]);
+
+    public EmailProvider(HttpClient httpClient, IConfiguration configuration, ILogger<EmailProvider> logger)
     {
         _httpClient = httpClient;
         _configuration = configuration;
+        _logger = logger;
     }
 
-    public async Task<NotificationSendResult> SendAsync(Booking booking, NotificationMessage message, CancellationToken cancellationToken = default)
+    public Task<NotificationSendResult> SendAsync(Booking booking, NotificationMessage message, CancellationToken cancellationToken = default)
     {
-        if (!IsEnabled)
-        {
-            return new NotificationSendResult { Success = false, Error = "Email provider no configurado", IsTransientFailure = false };
-        }
+        if (string.IsNullOrWhiteSpace(booking.Email))
+            return Task.FromResult(new NotificationSendResult { Success = false, Error = "El cliente no tiene email", IsTransientFailure = false });
 
-        var endpoint = _configuration["Notifications:Email:Endpoint"]!;
-        var payload = new
-        {
-            to = _configuration["Notifications:Email:To"],
-            subject = message.Subject,
-            text = message.Body,
-            customerPhone = booking.CustomerPhone
-        };
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
-        {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
-        };
-
-        request.Headers.Add("Authorization", $"Bearer {_configuration["Notifications:Email:ApiKey"]}");
-
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (response.IsSuccessStatusCode)
-        {
-            return new NotificationSendResult
-            {
-                Success = true,
-                ProviderMessageId = TryExtractMessageId(responseBody)
-            };
-        }
-
-        return new NotificationSendResult
-        {
-            Success = false,
-            Error = responseBody,
-            IsTransientFailure = (int)response.StatusCode >= 500 || (int)response.StatusCode == 429
-        };
+        return SendToAsync(booking.Email, message, cancellationToken);
     }
 
     public Task<NotificationSendResult> SendDirectAsync(string phone, string messageBody, CancellationToken cancellationToken = default) =>
         Task.FromResult(new NotificationSendResult { Success = false, Error = "EmailProvider no soporta envío directo por teléfono.", IsTransientFailure = false });
 
-    public async Task<NotificationSendResult> SendToAddressAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken = default)
+    public Task<NotificationSendResult> SendToAddressAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(toEmail))
+            return Task.FromResult(new NotificationSendResult { Success = false, Error = "Dirección de destino vacía", IsTransientFailure = false });
+
+        return SendToAsync(toEmail, message, cancellationToken);
+    }
+
+    private async Task<NotificationSendResult> SendToAsync(string toEmail, NotificationMessage message, CancellationToken cancellationToken)
     {
         if (!IsEnabled)
         {
-            return new NotificationSendResult { Success = false, Error = "Email provider no configurado", IsTransientFailure = false };
+            _logger.LogWarning("[Email] {Provider} no configurado (ApiKey/From vacíos) — no se envía a {ToEmail}", ProviderName, toEmail);
+            return new NotificationSendResult { Success = false, Error = $"{ProviderName} no configurado", IsTransientFailure = false };
         }
 
-        var endpoint = _configuration["Notifications:Email:Endpoint"]!;
+        var endpoint = _configuration["Notifications:Email:Endpoint"];
+        endpoint = string.IsNullOrWhiteSpace(endpoint) ? DefaultEndpoint : endpoint;
+        var from = _configuration["Notifications:Email:From"]!;
+        var apiKey = _configuration["Notifications:Email:ApiKey"]!;
+
         var payload = new
         {
-            to = toEmail,
+            from,
+            to = new[] { toEmail },
             subject = message.Subject,
+            html = EmailHtmlBuilder.Build(message),
             text = message.Body
         };
 
@@ -84,27 +76,38 @@ public class EmailProvider : INotificationProvider
         {
             Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
         };
+        request.Headers.Add("Authorization", $"Bearer {apiKey}");
 
-        request.Headers.Add("Authorization", $"Bearer {_configuration["Notifications:Email:ApiKey"]}");
+        // LogWarning a propósito (no LogInformation): Production tiene Logging:LogLevel:Default
+        // en "Warning" (appsettings.Production.json), así que un log Information acá quedaría
+        // invisible en los logs de Render.
+        _logger.LogWarning("[Email] Enviando '{Subject}' a {ToEmail} vía {Provider} ({Endpoint})", message.Subject, toEmail, ProviderName, endpoint);
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (response.IsSuccessStatusCode)
+        try
         {
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var messageId = TryExtractMessageId(responseBody);
+                _logger.LogWarning("[Email] ENVIADO OK a {ToEmail} vía {Provider} (messageId={MessageId})", toEmail, ProviderName, messageId);
+                return new NotificationSendResult { Success = true, ProviderMessageId = messageId };
+            }
+
+            _logger.LogWarning("[Email] FALLÓ ({Status}) enviando a {ToEmail} vía {Provider}: {Body}", (int)response.StatusCode, toEmail, ProviderName, responseBody);
             return new NotificationSendResult
             {
-                Success = true,
-                ProviderMessageId = TryExtractMessageId(responseBody)
+                Success = false,
+                Error = responseBody,
+                IsTransientFailure = (int)response.StatusCode >= 500 || (int)response.StatusCode == 429
             };
         }
-
-        return new NotificationSendResult
+        catch (Exception ex)
         {
-            Success = false,
-            Error = responseBody,
-            IsTransientFailure = (int)response.StatusCode >= 500 || (int)response.StatusCode == 429
-        };
+            _logger.LogWarning(ex, "[Email] FALLÓ (excepción) enviando a {ToEmail} vía {Provider}", toEmail, ProviderName);
+            return new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = true };
+        }
     }
 
     private static string? TryExtractMessageId(string body)
