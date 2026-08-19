@@ -15,7 +15,7 @@ public interface IProfessionalsRepository
 {
     Task<List<Professional>> GetActiveWithServicesAsync();
     Task<List<Professional>> GetAllWithServicesAsync();
-    Task<Dictionary<int, (string? Email, string? Username)>> GetProfessionalAccountsAsync();
+    Task<Dictionary<int, (string? Email, string? Username, string? TelegramChatId)>> GetProfessionalAccountsAsync();
     Task<List<Professional>> GetActiveByServiceAsync(int serviceId);
     Task<Professional?> GetActiveByIdWithServicesAsync(int id);
     Task<Professional?> GetByIdWithServicesAsync(int id);

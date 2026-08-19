@@ -190,6 +190,23 @@ public class AuthController : ControllerBase
         }
     }
 
+    // POST: api/auth/professional-account/{professionalId}/telegram-chat-id
+    // (admin carga/borra el chat_id de Telegram de un profesional desde su ficha)
+    [HttpPost("professional-account/{professionalId}/telegram-chat-id")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SetProfessionalTelegramChatId(int professionalId, [FromBody] SetTelegramChatIdRequest request)
+    {
+        try
+        {
+            await _authService.SetTelegramChatIdForProfessionalAsync(professionalId, request.TelegramChatId);
+            return Ok(new { message = "Chat ID de Telegram actualizado" });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("client/access/request")]
     [AllowAnonymous]
     [EnableRateLimiting("auth")]

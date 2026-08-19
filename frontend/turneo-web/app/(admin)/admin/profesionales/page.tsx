@@ -29,6 +29,7 @@ interface Professional {
   services: ServiceOption[];
   accountEmail?: string | null;
   accountUsername?: string | null;
+  accountTelegramChatId?: string | null;
 }
 
 interface WeeklyScheduleDay {
@@ -74,6 +75,8 @@ export default function ProfesionalesAdminPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [accessForm, setAccessForm] = useState({ email: "", username: "", password: "" });
   const [savingAccess, setSavingAccess] = useState(false);
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [savingTelegram, setSavingTelegram] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -130,6 +133,7 @@ export default function ProfesionalesAdminPage() {
       setSchedule(defaultSchedule());
     }
     setAccessForm({ email: professional.accountEmail ?? "", username: professional.accountUsername ?? "", password: "" });
+    setTelegramChatId(professional.accountTelegramChatId ?? "");
     setShowForm(true);
   };
 
@@ -139,6 +143,7 @@ export default function ProfesionalesAdminPage() {
     setFormData({ ...emptyForm });
     setSchedule(defaultSchedule());
     setAccessForm({ email: "", username: "", password: "" });
+    setTelegramChatId("");
   };
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -171,6 +176,30 @@ export default function ProfesionalesAdminPage() {
       showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
     } finally {
       setSavingAccess(false);
+    }
+  };
+
+  const handleSaveTelegram = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProfessional) return;
+    setSavingTelegram(true);
+    try {
+      const res = await fetch(`/api/auth/professional-account/${editingProfessional.id}/telegram-chat-id`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegramChatId: telegramChatId.trim() || null }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("success", "Telegram actualizado", telegramChatId.trim() ? "El profesional va a recibir avisos por Telegram." : "Avisos por Telegram desactivados.");
+        loadProfessionals();
+      } else {
+        showToast("error", "Error", data.message || "No se pudo guardar el Chat ID");
+      }
+    } catch {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+    } finally {
+      setSavingTelegram(false);
     }
   };
 
@@ -614,6 +643,37 @@ export default function ProfesionalesAdminPage() {
                     className="w-full"
                   >
                     {savingAccess ? "Guardando..." : editingProfessional.accountEmail ? "Cambiar contraseña" : "Activar acceso"}
+                  </Button>
+                </form>
+              </div>
+            )}
+
+            {/* Chat ID de Telegram — solo tiene sentido si ya tiene acceso activado,
+                porque se guarda en la misma cuenta de Users que crea "Activar acceso" */}
+            {editingProfessional && editingProfessional.accountEmail && (
+              <div className="mt-6 pt-6 border-t border-mauve/10">
+                <h3 className="text-charcoal font-semibold text-sm mb-1">Avisos por Telegram</h3>
+                <p className="text-charcoal/50 text-xs mb-3">
+                  Cargá el Chat ID para que {editingProfessional.firstName} reciba avisos de turnos nuevos por Telegram.
+                </p>
+                <form onSubmit={handleSaveTelegram} className="space-y-3">
+                  <div>
+                    <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Chat ID de Telegram</label>
+                    <input
+                      type="text"
+                      className="form-input mt-1.5"
+                      value={telegramChatId}
+                      onChange={(e) => setTelegramChatId(e.target.value)}
+                      placeholder="Ej: 123456789"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={savingTelegram}
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    {savingTelegram ? "Guardando..." : "Guardar Chat ID"}
                   </Button>
                 </form>
               </div>

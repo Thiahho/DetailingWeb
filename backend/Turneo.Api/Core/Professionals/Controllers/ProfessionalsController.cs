@@ -79,7 +79,8 @@ public class ProfessionalsController : ControllerBase
                 p.UpdatedAt,
                 Services = p.Services.Select(s => new { s.Id, s.Title }),
                 AccountEmail = account.Email,
-                AccountUsername = account.Username
+                AccountUsername = account.Username,
+                AccountTelegramChatId = account.TelegramChatId
             };
         }));
     }

@@ -192,6 +192,18 @@ public class AuthService
         await _context.SaveChangesAsync();
     }
 
+    // El admin carga/borra el chat_id de Telegram de un profesional desde su ficha,
+    // sin depender de que el profesional entre a /profesional/cuenta a cargarlo él mismo.
+    // Requiere que el profesional ya tenga cuenta activada (ver CreateProfessionalAccountAsync).
+    public async Task SetTelegramChatIdForProfessionalAsync(int professionalId, string? telegramChatId)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.ProfessionalId == professionalId && u.Role == "Professional")
+            ?? throw new ArgumentException("El profesional no tiene una cuenta de acceso activada todavía");
+
+        user.TelegramChatId = string.IsNullOrWhiteSpace(telegramChatId) ? null : telegramChatId.Trim();
+        await _context.SaveChangesAsync();
+    }
+
     // El propio usuario logueado cambia su email de acceso (login). La sesión actual
     // sigue con el email viejo en el JWT hasta que vuelva a loguearse — mismo criterio
     // que ChangePasswordAsync, que tampoco reemite el token.
