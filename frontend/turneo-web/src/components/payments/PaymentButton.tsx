@@ -60,7 +60,7 @@ export default function PaymentButton({
       <button
         onClick={handlePayment}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-3 rounded-xl border-2 border-sky-400/50 bg-gradient-to-r from-sky-500/20 to-blue-600/20 px-6 py-4 text-white font-semibold transition hover:from-sky-500/30 hover:to-blue-600/30 hover:border-sky-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-3 rounded-xl border-2 border-blush/50 bg-blush/10 px-6 py-4 text-charcoal font-semibold transition hover:bg-blush/20 hover:border-blush disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (
           <>
@@ -91,17 +91,17 @@ export default function PaymentButton({
           href={checkoutUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-center text-sky-400 text-sm hover:underline"
+          className="block text-center text-blush hover:text-blushdark text-sm hover:underline"
         >
           Si no se abrió automáticamente, hacé clic aquí
         </a>
       )}
 
       {error && (
-        <p className="text-red-400 text-sm text-center">{error}</p>
+        <p className="text-red-500 text-sm text-center">{error}</p>
       )}
 
-      <div className="flex items-center justify-center gap-2 text-white/40 text-xs">
+      <div className="flex items-center justify-center gap-2 text-charcoal/40 text-xs">
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0110 0v4" />
@@ -110,7 +110,7 @@ export default function PaymentButton({
       </div>
 
       <div className="flex items-center justify-center gap-4 opacity-50">
-        <span className="text-[10px] text-white/30 uppercase tracking-wider">
+        <span className="text-[10px] text-charcoal/30 uppercase tracking-wider">
           Tarjetas de crédito/débito &middot; Transferencia bancaria &middot; Efectivo
         </span>
       </div>
