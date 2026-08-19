@@ -8,7 +8,14 @@ const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onr
 
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self'",
+  // Next.js App Router inyecta el payload de hidratación de RSC vía <script>
+  // inline (self.__next_f.push(...)) en cada página — sin 'unsafe-inline' acá
+  // el browser los bloquea sin tirar error visible y React nunca hidrata (el
+  // sitio queda 100% inerte: ni clicks ni useEffect corren). El fix correcto
+  // es CSP con nonce por request vía middleware, pero requiere reescribir
+  // middleware.ts (hoy solo matchea /admin/:path*) — queda para hacerlo con
+  // tiempo de probarlo antes de otro apagón como este.
+  "script-src 'self' 'unsafe-inline'",
   // styled-jsx (usado en BookingForms.tsx, etc.) inyecta <style> inline en
   // runtime — no hay forma de evitar 'unsafe-inline' acá sin migrar de
   // styled-jsx a otra solución de CSS-in-JS con soporte de nonce.
