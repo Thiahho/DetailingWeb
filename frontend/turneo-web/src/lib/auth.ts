@@ -15,6 +15,15 @@ function isFreshWindow(): boolean {
 // cerrado la ventana anterior). Costo aceptado: abrir una pestaña nueva del
 // panel sin cerrar nada también cierra la sesión — no hay forma de
 // distinguir ambos casos con las APIs del navegador.
+//
+// El logout al backend se dispara SIEMPRE, no solo si localStorage decía que
+// había sesión — si no, cuando la cookie queda viva pero localStorage está
+// limpio (ventana nueva que nunca pasó por setLoggedIn en este tab), el
+// middleware (que sí ve la cookie) deja pasar a /admin/*, pero cada página
+// (que mira localStorage) intenta mandar a /admin/login, y el middleware la
+// rebota de vuelta porque la cookie sigue siendo válida — loop invisible que
+// deja la página colgada en "Cargando..." para siempre. Sacar la cookie acá
+// mantiene sincronizados los dos guards (middleware y cliente).
 function forceLogoutStaleWindow(): void {
   const hadSession = localStorage.getItem("isLoggedIn") === "true";
   localStorage.removeItem("isLoggedIn");
@@ -22,8 +31,8 @@ function forceLogoutStaleWindow(): void {
   localStorage.removeItem("role");
   if (hadSession) {
     window.dispatchEvent(new Event("auth-change"));
-    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
   }
+  fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
 }
 
 // Verificar si hay sesión activa — SOLO indicador de UI (localStorage), no una
