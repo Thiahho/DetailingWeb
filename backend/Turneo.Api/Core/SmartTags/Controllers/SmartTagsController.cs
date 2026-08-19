@@ -24,7 +24,7 @@ public class SmartTagsController : ControllerBase
 
     private SmartTagResponse ToResponse(SmartTag t)
     {
-        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://turneo.app";
+        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://gestion-turnos-kappa.vercel.app";
         return new SmartTagResponse(
             t.Id, t.Name, t.Location, t.Action, t.IsActive, t.Token,
             $"{baseUrl}/s/{t.Token}", t.CreatedAt, t.UpdatedAt);
@@ -107,7 +107,7 @@ public class SmartTagsController : ControllerBase
         var tag = await _repository.GetByIdAsync(id);
         if (tag is null) return NotFound();
 
-        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://turneo.app";
+        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://gestion-turnos-kappa.vercel.app";
         var smartLinkUrl = $"{baseUrl}/s/{tag.Token}";
 
         using var generator = new QRCodeGenerator();
