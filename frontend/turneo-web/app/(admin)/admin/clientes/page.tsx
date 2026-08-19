@@ -357,7 +357,7 @@ export default function ClientesPage() {
       )}
 
       {/* ── header ── */}
-      <div className="md:pl-56">
+      <div>
         <div className="px-4 pt-20 pb-4 md:pt-8">
 
           {/* ── detail view ── */}

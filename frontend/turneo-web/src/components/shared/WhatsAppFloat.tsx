@@ -119,7 +119,7 @@ export default function WhatsAppFloat({
     >
       {/* Formulario */}
       <div
-        className={`absolute bottom-16 right-0 w-72 origin-bottom-right transition-all duration-300 ${
+        className={`absolute bottom-16 right-0 w-[calc(100vw-3rem)] max-w-72 origin-bottom-right transition-all duration-300 ${
           isOpen
             ? "scale-100 opacity-100"
             : "pointer-events-none scale-95 opacity-0"

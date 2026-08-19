@@ -463,7 +463,7 @@ export default function AdminDashboard() {
           onClick={() => setDetailSlot(null)}
         >
           <div
-            className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md shadow-2xl"
+            className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">

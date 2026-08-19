@@ -44,9 +44,9 @@ const ACTION_LABELS: Record<SmartTag["action"], string> = {
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-ivory border border-mauve/5 rounded-xl p-5">
+    <div className="bg-ivory border border-mauve/5 rounded-xl p-3 sm:p-5">
       <p className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">{label}</p>
-      <p className="text-3xl font-bold mt-2 text-charcoal">{value}</p>
+      <p className="text-xl sm:text-3xl font-bold mt-2 text-charcoal">{value}</p>
       {sub && <p className="text-charcoal/40 text-xs mt-1">{sub}</p>}
     </div>
   );

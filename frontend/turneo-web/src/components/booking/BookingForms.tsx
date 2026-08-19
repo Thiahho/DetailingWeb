@@ -732,7 +732,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
               type="button"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((prev) => prev - 1)}
-              className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
+              className="p-3 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -757,7 +757,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
                     key={page}
                     type="button"
                     onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                       currentPage === page
                         ? "bg-blush text-white"
                         : "bg-porcelain text-charcoal/40"
@@ -773,7 +773,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((prev) => prev + 1)}
-              className="p-2 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
+              className="p-3 text-charcoal/50 hover:text-charcoal disabled:opacity-20"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

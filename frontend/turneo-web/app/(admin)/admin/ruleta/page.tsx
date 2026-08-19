@@ -312,7 +312,7 @@ export default function RuletaAdminPage() {
 
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4">
-          <form ref={formRef} onSubmit={handleSubmit} className="w-full max-w-lg space-y-4 rounded-xl bg-ivory p-6">
+          <form ref={formRef} onSubmit={handleSubmit} className="w-full max-w-lg space-y-4 rounded-xl bg-ivory p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-charcoal">{editingPrize ? "Editar premio" : "Nuevo premio"}</h2>
 
             <div>
@@ -359,7 +359,7 @@ export default function RuletaAdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs text-charcoal/60">Probabilidad (%)</label>
                 <input

@@ -144,7 +144,7 @@ export default function ContenidoAdminPage() {
 
       {showForm && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4">
-          <form ref={formRef} onSubmit={handleSubmit} className="w-full max-w-xl space-y-4 rounded-xl bg-ivory p-6">
+          <form ref={formRef} onSubmit={handleSubmit} className="w-full max-w-xl space-y-4 rounded-xl bg-ivory p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-charcoal">{editingVideo ? "Editar video" : "Nuevo video"}</h2>
 
             <div>

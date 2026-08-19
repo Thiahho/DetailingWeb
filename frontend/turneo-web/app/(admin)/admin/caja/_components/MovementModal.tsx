@@ -74,7 +74,7 @@ export default function MovementModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-charcoal">{titles[mode]}</h2>
           <button onClick={onClose} className="text-charcoal/40 hover:text-charcoal text-xl">✕</button>

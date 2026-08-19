@@ -293,7 +293,7 @@ export default function PermisosPage() {
       {/* Modal: nueva cuenta Staff */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateForm(false)}>
-          <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-charcoal">Nueva cuenta Staff</h2>
               <button onClick={() => setShowCreateForm(false)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
@@ -404,7 +404,7 @@ export default function PermisosPage() {
       {/* Modal: cambiar contraseña */}
       {passwordStaff && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPasswordStaff(null)}>
-          <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-charcoal">Cambiar contraseña</h2>
               <button onClick={() => setPasswordStaff(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>

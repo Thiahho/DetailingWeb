@@ -7,10 +7,10 @@ import { CalendarDays, History, LogOut, UserCog, Wallet } from "lucide-react";
 import { getSiteConfig } from "@/src/lib/siteConfig";
 
 const navItems = [
-  { href: "/profesional/agenda", label: "Mi Agenda", icon: CalendarDays },
-  { href: "/profesional/historial", label: "Historial", icon: History },
-  { href: "/profesional/comisiones", label: "Mis comisiones", icon: Wallet },
-  { href: "/profesional/cuenta", label: "Mi cuenta", icon: UserCog },
+  { href: "/profesional/agenda", label: "Mi Agenda", shortLabel: "Agenda", icon: CalendarDays },
+  { href: "/profesional/historial", label: "Historial", shortLabel: "Historial", icon: History },
+  { href: "/profesional/comisiones", label: "Mis comisiones", shortLabel: "Comisiones", icon: Wallet },
+  { href: "/profesional/cuenta", label: "Mi cuenta", shortLabel: "Cuenta", icon: UserCog },
 ];
 
 export default function ProfessionalSidebar() {
@@ -85,6 +85,27 @@ export default function ProfessionalSidebar() {
           <LogOut size={20} />
         </button>
       </header>
+
+      {/* MOBILE — bottom tab bar: solo 4 items, entran todos sin drawer "Más" */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-ivory border-t border-mauve/10 z-40">
+        <div className="grid grid-cols-4 h-14">
+          {navItems.map(({ href, shortLabel, icon: Icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex flex-col items-center justify-center gap-0.5 transition-all ${
+                  active ? "text-blushdark" : "text-charcoal/30 hover:text-charcoal/60"
+                }`}
+              >
+                <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+                <span className="text-[9px] font-medium leading-none">{shortLabel}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 }

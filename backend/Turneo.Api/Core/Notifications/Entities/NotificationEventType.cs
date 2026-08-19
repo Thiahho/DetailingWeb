@@ -15,6 +15,9 @@ public static class NotificationEventType
     // dispara si el turno todavía no estaba confirmado (ver DispatchForBookingAsync).
     public const string ProfessionalBookingRescheduled = "ProfessionalBookingRescheduled";
 
+    // Aviso al profesional de que el cliente canceló un turno suyo.
+    public const string ProfessionalBookingCancelled = "ProfessionalBookingCancelled";
+
     // Avisos a los Admin del tenant — antes los mandaba el frontend Next.js por
     // su cuenta (nodemailer), migrados acá para que todo el email de reservas
     // salga por un solo canal.

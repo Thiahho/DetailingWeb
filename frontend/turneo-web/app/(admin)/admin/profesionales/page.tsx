@@ -539,7 +539,7 @@ export default function ProfesionalesAdminPage() {
               </div>
 
               {/* Comisión, Orden y Estado */}
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Comisión %</label>
                   <input

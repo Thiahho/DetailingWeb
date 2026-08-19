@@ -115,6 +115,7 @@ public class NotificationService
         }
         else if (eventType == NotificationEventType.BookingCancelled)
         {
+            await TryNotifyProfessionalAsync(booking, businessName, logoUrl, NotificationEventType.ProfessionalBookingCancelled, null, cancellationToken);
             await TryNotifyAdminsAsync(booking, NotificationEventType.AdminBookingCancelled, businessName, logoUrl, cancellationToken);
         }
         else if (eventType == NotificationEventType.BookingRescheduled)

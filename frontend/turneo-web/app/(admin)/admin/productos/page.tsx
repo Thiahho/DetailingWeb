@@ -159,7 +159,7 @@ export default function ProductosAdminPage() {
             </button>
           </div>
         ) : (
-          <div className="bg-ivory border border-mauve/5 rounded-2xl overflow-hidden">
+          <div className="bg-ivory border border-mauve/5 rounded-2xl overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-mauve/5 text-charcoal/30 text-xs uppercase tracking-wider">
