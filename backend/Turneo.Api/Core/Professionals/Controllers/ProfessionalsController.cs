@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -15,16 +16,22 @@ public class ProfessionalsController : ControllerBase
     // Solo para GetAvailable: la búsqueda de TimeSlot es una consulta de
     // Scheduling, no de Professionals — ver nota en IProfessionalsRepository.
     private readonly ApplicationDbContext _context;
+    private readonly CloudinaryAdminService _cloudinary;
+    private readonly ILogger<ProfessionalsController> _logger;
 
-    public ProfessionalsController(IProfessionalsRepository repository, IPlanLimitsService planLimits, ApplicationDbContext context)
+    public ProfessionalsController(IProfessionalsRepository repository, IPlanLimitsService planLimits, ApplicationDbContext context, CloudinaryAdminService cloudinary, ILogger<ProfessionalsController> logger)
     {
         _repository = repository;
         _planLimits = planLimits;
         _context = context;
+        _cloudinary = cloudinary;
+        _logger = logger;
     }
 
     // GET: api/professionals (público) — sin Commission, es dato interno
     [HttpGet]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetAll()
     {
         var professionals = await _repository.GetActiveWithServicesAsync();
@@ -81,6 +88,8 @@ public class ProfessionalsController : ControllerBase
     // Profesionales activos que ofrecen el servicio y, según su horario semanal (si lo tienen cargado),
     // están trabajando en el día/franja horaria del turno elegido.
     [HttpGet("available")]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetAvailable([FromQuery] int serviceId, [FromQuery] int timeSlotId)
     {
         if (serviceId <= 0 || timeSlotId <= 0)
@@ -143,6 +152,89 @@ public class ProfessionalsController : ControllerBase
             TimeSpan.TryParse(day.End, out var end) &&
             slotStart >= start &&
             slotEnd <= end);
+    }
+
+    // GET: api/professionals/me (el propio profesional ve sus datos básicos)
+    [HttpGet("me")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> GetMyProfile()
+    {
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        return Ok(new
+        {
+            professional.Id,
+            professional.FirstName,
+            professional.LastName,
+            professional.Specialty
+        });
+    }
+
+    // PUT: api/professionals/me (el propio profesional edita nombre/especialidad —
+    // no comisión, estado, orden ni servicios: eso sigue siendo config del admin)
+    [HttpPut("me")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateMyProfileRequest request)
+    {
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        professional.FirstName = request.FirstName;
+        professional.LastName = request.LastName;
+        professional.Specialty = request.Specialty;
+        professional.UpdatedAt = DateTime.UtcNow;
+
+        await _repository.SaveChangesAsync();
+        return Ok(new { message = "Datos actualizados" });
+    }
+
+    // GET: api/professionals/me/earnings?year=&month= (el propio profesional ve su comisión del mes)
+    [HttpGet("me/earnings")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> GetMyEarnings([FromQuery] int year, [FromQuery] int month)
+    {
+        if (month is < 1 or > 12)
+            return BadRequest(new { message = "Mes inválido" });
+
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        var from = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var to = from.AddMonths(1);
+
+        var chargedTotal = await _repository.GetChargedTotalInRangeAsync(professionalId.Value, from, to);
+        var commissionAmount = chargedTotal * (professional.Commission / 100m);
+
+        return Ok(new
+        {
+            year,
+            month,
+            commissionRate = professional.Commission,
+            chargedTotal,
+            commissionAmount
+        });
+    }
+
+    private int? GetOwnProfessionalId()
+    {
+        var claim = User.FindFirst("professional_id")?.Value;
+        return int.TryParse(claim, out var id) ? id : null;
     }
 
     // GET: api/professionals/{id} (público)
@@ -266,6 +358,13 @@ public class ProfessionalsController : ControllerBase
         _repository.Remove(professional);
         await _repository.SaveChangesAsync();
 
+        if (!string.IsNullOrWhiteSpace(professional.PhotoUrl))
+        {
+            var (deleted, error) = await _cloudinary.TryDestroyAsync(professional.PhotoUrl);
+            if (!deleted)
+                _logger.LogWarning("[Professionals] No se pudo borrar {PhotoUrl} de Cloudinary tras eliminar profesional {Id}: {Error}", professional.PhotoUrl, id, error);
+        }
+
         return Ok(new { message = "Profesional eliminado correctamente" });
     }
 }
@@ -300,4 +399,16 @@ public class ProfessionalRequest
     public int Order { get; set; } = 0;
 
     public List<int> ServiceIds { get; set; } = new();
+}
+
+public class UpdateMyProfileRequest
+{
+    [Required, StringLength(100, MinimumLength = 1)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required, StringLength(100, MinimumLength = 1)]
+    public string LastName { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string? Specialty { get; set; }
 }

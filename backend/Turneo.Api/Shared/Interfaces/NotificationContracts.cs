@@ -15,12 +15,33 @@ public class NotificationTemplateData
     public string? ProfessionalName { get; init; }
     public string? CustomerPhone { get; init; }
     public string? AgendaLink { get; init; }
+
+    // Solo para ProfessionalBookingRescheduled — el horario que tenía el turno
+    // antes de la reprogramación (booking.TimeSlot ya apunta al nuevo para cuando
+    // este dato se arma, así que hay que capturarlo en el controller antes de
+    // pisar el TimeSlotId y pasarlo explícito por todo el pipeline).
+    public DateTime? PreviousStartDateTime { get; init; }
 }
 
 public class NotificationMessage
 {
     public required string Subject { get; init; }
     public required string Body { get; init; }
+
+    // Completados por NotificationService antes de pasarle el mensaje a los
+    // providers — GmailProvider los usa para armar el HTML; WhatsApp/Telegram
+    // los ignoran (solo mandan texto plano).
+    public string? BusinessName { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? EventType { get; set; }
+    public string? CtaLabel { get; set; }
+    public string? CtaUrl { get; set; }
+
+    // Botón secundario (outline) — solo se completa para estados donde el turno
+    // todavía se puede cancelar (creado/confirmado/recordatorio), nunca para el
+    // aviso de cancelación en sí ni para los avisos a admin/profesional.
+    public string? CancelCtaLabel { get; set; }
+    public string? CancelCtaUrl { get; set; }
 }
 
 public class NotificationSendResult

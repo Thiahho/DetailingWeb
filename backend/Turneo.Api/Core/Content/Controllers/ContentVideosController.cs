@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Turneo.Api.Core.Content;
 
@@ -8,13 +9,19 @@ namespace Turneo.Api.Core.Content;
 public class ContentVideosController : ControllerBase
 {
     private readonly IContentVideosRepository _repository;
+    private readonly CloudinaryAdminService _cloudinary;
+    private readonly ILogger<ContentVideosController> _logger;
 
-    public ContentVideosController(IContentVideosRepository repository)
+    public ContentVideosController(IContentVideosRepository repository, CloudinaryAdminService cloudinary, ILogger<ContentVideosController> logger)
     {
         _repository = repository;
+        _cloudinary = cloudinary;
+        _logger = logger;
     }
 
     [HttpGet]
+    [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetActive()
     {
         var videos = await _repository.GetActiveAsync();
@@ -107,6 +114,17 @@ public class ContentVideosController : ControllerBase
 
         _repository.Remove(video);
         await _repository.SaveChangesAsync();
+
+        var (videoDeleted, videoError) = await _cloudinary.TryDestroyAsync(video.VideoUrl);
+        if (!videoDeleted)
+            _logger.LogWarning("[ContentVideos] No se pudo borrar {VideoUrl} de Cloudinary tras eliminar video {Id}: {Error}", video.VideoUrl, id, videoError);
+
+        if (!string.IsNullOrWhiteSpace(video.ThumbnailUrl))
+        {
+            var (thumbDeleted, thumbError) = await _cloudinary.TryDestroyAsync(video.ThumbnailUrl);
+            if (!thumbDeleted)
+                _logger.LogWarning("[ContentVideos] No se pudo borrar la miniatura {ThumbnailUrl} de Cloudinary tras eliminar video {Id}: {Error}", video.ThumbnailUrl, id, thumbError);
+        }
 
         return Ok(new { message = "Video eliminado correctamente" });
     }

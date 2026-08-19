@@ -1,8 +1,11 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Turneo.Api.Core.Notifications;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Bookings;
 
@@ -11,20 +14,20 @@ namespace Turneo.Api.Core.Bookings;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingsRepository _repository;
-    private readonly NotificationService _notificationService;
     private readonly AuthService _authService;
     private readonly IConfiguration _configuration;
     private readonly IInsumosRepository _insumosRepository;
     private readonly IPlanLimitsService _planLimits;
+    private readonly ISmartTagsRepository _smartTagsRepository;
 
-    public BookingsController(IBookingsRepository repository, NotificationService notificationService, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits)
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository)
     {
         _repository = repository;
-        _notificationService = notificationService;
         _authService = authService;
         _configuration = configuration;
         _insumosRepository = insumosRepository;
         _planLimits = planLimits;
+        _smartTagsRepository = smartTagsRepository;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -35,6 +38,9 @@ public class BookingsController : ControllerBase
     {
         if (!string.IsNullOrWhiteSpace(request.Email) && !new EmailAddressAttribute().IsValid(request.Email))
             return BadRequest(new { success = false, message = "El email no es válido" });
+
+        if (!request.AcceptedTerms)
+            return BadRequest(new { success = false, message = "Debés aceptar los Términos y Condiciones para reservar un turno" });
 
         if (request.ProfessionalId.HasValue)
         {
@@ -89,14 +95,29 @@ public class BookingsController : ControllerBase
             Service = request.Service,
             CustomFieldsJson = request.CustomFieldsJson,
             Message = request.Message,
-            Status = BookingStatus.Pending
+            Status = BookingStatus.Pending,
+            TermsAcceptedAt = DateTime.UtcNow,
+            TermsVersion = LegalTermsVersions.Customer
         };
 
         _repository.Add(booking);
 
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
-        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingCreated);
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCreated, null));
+
+        if (!string.IsNullOrWhiteSpace(request.SmartTagToken))
+        {
+            var smartTag = await _smartTagsRepository.FindActiveByTokenIgnoringTenantAsync(request.SmartTagToken);
+            // Solo si el tag sigue activo y pertenece al MISMO tenant que la reserva —
+            // descarta en silencio un token ajeno (no debe inflar métricas de otro
+            // tenant) ni bloquea la reserva en ningún caso.
+            if (smartTag is not null && smartTag.TenantId == booking.TenantId)
+            {
+                await _smartTagsRepository.RecordEventAsync(
+                    smartTag.Id, smartTag.TenantId, smartTag.Action, SmartTagEventType.BookingCompleted);
+            }
+        }
 
         return Ok(new
         {
@@ -217,6 +238,7 @@ public class BookingsController : ControllerBase
         booking.TimeSlot.IsAvailable = true;
 
         await _repository.SaveChangesAsync();
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCancelled, null));
 
         return Ok(new
         {
@@ -263,12 +285,17 @@ public class BookingsController : ControllerBase
         if (updated == 0)
             return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
 
+        // Antes de pisar el TimeSlotId — es lo único que le queda al job de background
+        // para poder avisar "de tal hora a tal hora" (ver NotificationService).
+        var previousStartDateTime = booking.TimeSlot.StartDateTime;
+
         // Liberar el slot anterior
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
         booking.TimeSlotId = request.NewTimeSlotId;
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
         // Recargar para devolver la fecha actualizada
         await _repository.LoadTimeSlotAsync(booking);
@@ -316,11 +343,14 @@ public class BookingsController : ControllerBase
         if (updated == 0)
             return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
 
+        var previousStartDateTime = booking.TimeSlot.StartDateTime;
+
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
         booking.TimeSlotId = request.NewTimeSlotId;
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
         await _repository.LoadTimeSlotAsync(booking);
 
@@ -345,9 +375,9 @@ public class BookingsController : ControllerBase
         return Ok(new { success = true, deletedTimeSlots = deletedSlots });
     }
 
-    // PATCH: api/bookings/{id}/confirm (admin)
+    // PATCH: api/bookings/{id}/confirm (admin, o el profesional dueño del turno)
     [HttpPatch("{id}/confirm")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,Professional")]
     [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> ConfirmBooking(int id)
     {
@@ -355,9 +385,19 @@ public class BookingsController : ControllerBase
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
 
+        // Un profesional solo puede confirmar turnos propios — RequirePermission
+        // arriba no lo restringe (solo acota a Staff, ver su comentario), así que
+        // la propiedad del turno se valida acá.
+        if (User.IsInRole("Professional"))
+        {
+            var claim = User.FindFirst("professional_id")?.Value;
+            if (!int.TryParse(claim, out var professionalId) || booking.ProfessionalId != professionalId)
+                return Forbid();
+        }
+
         booking.Status = BookingStatus.Confirmed;
         await _repository.SaveChangesAsync();
-        await _notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingConfirmed);
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingConfirmed, null));
 
         return Ok(new { success = true, message = "Turno confirmado exitosamente" });
     }
@@ -513,6 +553,17 @@ public class CreateBookingRequest
 
     [StringLength(2000)]
     public string? Message { get; set; }
+
+    // Presente cuando la reserva se originó en un Smart Tag (docs/NFC.md) —
+    // se usa solo para registrar el evento BOOKING_COMPLETED, nunca para
+    // resolver el tenant de la reserva en sí.
+    [StringLength(16)]
+    public string? SmartTagToken { get; set; }
+
+    // Sin [Required]: en un bool no-nullable, RequiredAttribute solo rechaza
+    // null, nunca false (el default del tipo) — la validación real de que
+    // sea explícitamente true se hace a mano en CreateBooking.
+    public bool AcceptedTerms { get; set; }
 }
 
 public class UpdateBookingDetailRequest

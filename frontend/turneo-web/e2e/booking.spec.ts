@@ -31,6 +31,9 @@ test.describe("Flujo público de reserva", () => {
     await expect(slotOptions.first()).toBeVisible();
     await slotOptions.first().click();
 
+    // Aceptar Términos y Condiciones (checkbox obligatorio, deshabilita el submit si no está tildado)
+    await page.getByTestId("booking-accept-terms").check();
+
     // Enviar y capturar el bookingId de la respuesta real de la API
     const [bookingResponse] = await Promise.all([
       page.waitForResponse(

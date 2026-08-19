@@ -47,6 +47,7 @@ interface BookingPayload {
   subject?: string;
   service?: string;
   message?: string;
+  smartTagToken?: string;
 }
 
 interface BookingResponse {
@@ -177,12 +178,13 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
 // POST: Crear una reserva
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as BookingPayload;
+  const tenantSlug = request.nextUrl.searchParams.get("tenantSlug");
 
   try {
     const response = await fetch(`${API_URL}/api/bookings`, {
       method: "POST",
       headers: {
-        ...tenantHeader(request),
+        ...tenantHeader(request, tenantSlug),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),

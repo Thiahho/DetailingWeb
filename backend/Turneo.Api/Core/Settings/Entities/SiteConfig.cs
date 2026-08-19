@@ -22,5 +22,7 @@ public class SiteConfig : ITenantScoped
     public string HeroSubtitle { get; set; } = string.Empty;
     public string HeroBadge { get; set; } = string.Empty;
     public string MetaDescription { get; set; } = string.Empty;
+    // Destino de la acción REVIEW de Smart Tag para calificaciones altas (docs/NFC.md CU-03).
+    public string? GoogleReviewUrl { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

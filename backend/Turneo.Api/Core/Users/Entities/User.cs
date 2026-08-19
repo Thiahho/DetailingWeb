@@ -18,4 +18,8 @@ public class User : ITenantScoped
     // Solo se usa cuando Role == "Professional": liga la cuenta de acceso a su ficha.
     public int? ProfessionalId { get; set; }
     public Professional? Professional { get; set; }
+
+    // Chat ID de Telegram que el propio profesional carga desde su cuenta (opcional) —
+    // ver TelegramProvider. Null = no quiere avisos por este canal.
+    public string? TelegramChatId { get; set; }
 }

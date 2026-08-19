@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Turneo.Api.Core.Settings;
 
@@ -18,6 +19,7 @@ public class SiteConfigController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> Get()
     {
         var config = await _repository.GetAsync() ?? new SiteConfig();
@@ -42,6 +44,7 @@ public class SiteConfigController : ControllerBase
             config.HeroSubtitle,
             config.HeroBadge,
             config.MetaDescription,
+            config.GoogleReviewUrl,
             hideBranding
         });
     }
@@ -70,6 +73,7 @@ public class SiteConfigController : ControllerBase
         config.HeroSubtitle = request.HeroSubtitle;
         config.HeroBadge = request.HeroBadge;
         config.MetaDescription = request.MetaDescription;
+        config.GoogleReviewUrl = request.GoogleReviewUrl;
         config.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync();
@@ -90,5 +94,6 @@ public record SiteConfigRequest(
     string HeroTitle,
     string HeroSubtitle,
     string HeroBadge,
-    string MetaDescription
+    string MetaDescription,
+    string? GoogleReviewUrl
 );

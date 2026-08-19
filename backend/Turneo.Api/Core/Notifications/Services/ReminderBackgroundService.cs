@@ -27,6 +27,10 @@ public class ReminderBackgroundService : BackgroundService
             try
             {
                 using var scope = _scopeFactory.CreateScope();
+                // Cross-tenant a propósito (revisa turnos de todos los tenants) — sin
+                // esto, RLS filtraría todas las queries de este job al tenant "vacío"
+                // por default de una CurrentTenantService recién creada.
+                scope.ServiceProvider.GetRequiredService<ICurrentTenant>().SetBypass();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
@@ -57,7 +61,7 @@ public class ReminderBackgroundService : BackgroundService
                 {
                     _logger.LogInformation("[Reminder] Enviando recordatorio para turno {BookingId} ({StartDateTime:HH:mm})",
                         booking.Id, booking.TimeSlot.StartDateTime);
-                    await notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingReminder24h, stoppingToken);
+                    await notificationService.DispatchForBookingAsync(booking.Id, NotificationEventType.BookingReminder24h, cancellationToken: stoppingToken);
                 }
             }
             catch (Exception ex)

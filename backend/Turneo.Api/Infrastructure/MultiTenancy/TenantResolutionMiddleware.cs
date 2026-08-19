@@ -25,6 +25,21 @@ public class TenantResolutionMiddleware(RequestDelegate next)
         ApplicationDbContext db,
         IConfiguration configuration)
     {
+        // PlatformOwner opera cruzando todos los tenants (alta de tenants,
+        // takedown de contenido) — sin esto caería al DefaultTenantSlug por
+        // fallback, que ya era semánticamente incorrecto a nivel EF (por eso
+        // esos controllers usan IgnoreQueryFilters()) y rompería RLS directo
+        // (la policy filtraría todo a un tenant que no es el que se quiere tocar).
+        var isPlatformOwner = context.User?.IsInRole("PlatformOwner") ?? false;
+        var hasExplicitBypass = context.GetEndpoint()?.Metadata.GetMetadata<TenantContextBypassAttribute>() is not null;
+
+        if (isPlatformOwner || hasExplicitBypass)
+        {
+            currentTenant.SetBypass();
+            await next(context);
+            return;
+        }
+
         var tenantClaim = context.User?.FindFirst("tenant_id")?.Value;
 
         if (tenantClaim is not null && int.TryParse(tenantClaim, out var tenantIdFromClaim))
@@ -39,6 +54,10 @@ public class TenantResolutionMiddleware(RequestDelegate next)
 
             if (slug is not null)
             {
+                // Esta query es la primera que toca la base en requests anónimas —
+                // abre la conexión física y dispara TenantSessionInterceptor ANTES
+                // de que sepamos el tenant, dejando la sesión en "app.tenant_id='0'"
+                // (default de CurrentTenantService) para el resto de la request.
                 var tenantId = await db.Tenants
                     .AsNoTracking()
                     .Where(t => t.Slug == slug)
@@ -46,7 +65,20 @@ public class TenantResolutionMiddleware(RequestDelegate next)
                     .FirstOrDefaultAsync();
 
                 if (tenantId != 0)
+                {
                     currentTenant.SetTenant(tenantId);
+
+                    // Re-aplicar en la conexión ya abierta: el interceptor no vuelve a
+                    // correr solo porque cambiamos CurrentTenantService en memoria. Sin
+                    // este SET, todo lo que siga en esta request (incluida la query o el
+                    // insert que dispare el controller) queda bloqueado por RLS aunque el
+                    // query filter de EF esté apuntando al tenant correcto.
+                    // tenantId es un int devuelto por la propia query de arriba, nunca texto
+                    // de usuario — mismo criterio que TenantSessionInterceptor.
+#pragma warning disable EF1002
+                    await db.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId}'");
+#pragma warning restore EF1002
+                }
             }
         }
 

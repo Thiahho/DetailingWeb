@@ -38,6 +38,7 @@ const emptyForm = {
   planId: "",
   adminEmail: "",
   adminPassword: "",
+  acceptedTerms: false,
 };
 
 export default function PlatformTenantsPage() {
@@ -101,6 +102,7 @@ export default function PlatformTenantsPage() {
       <div className="flex items-center gap-4 text-sm text-white/50">
         <span className="font-semibold text-white">Tenants</span>
         <Link href="/platform/roulette" className="hover:text-white">Ruleta</Link>
+        <Link href="/platform/takedown" className="hover:text-white">Takedown</Link>
       </div>
 
       <h1 className="mt-2 text-2xl font-bold">Tenants</h1>
@@ -177,6 +179,25 @@ export default function PlatformTenantsPage() {
             value={form.adminPassword}
             onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
           />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="flex items-start gap-2 text-xs text-white/60">
+            <input
+              type="checkbox"
+              required
+              className="mt-0.5"
+              checked={form.acceptedTerms}
+              onChange={(e) => setForm({ ...form, acceptedTerms: e.target.checked })}
+            />
+            <span>
+              El titular del negocio leyó y aceptó los{" "}
+              <Link href="/platform/terminos-saas" target="_blank" className="font-medium text-white hover:underline">
+                Términos del Servicio SaaS
+              </Link>{" "}
+              (incluye cláusula de arbitraje).
+            </span>
+          </label>
         </div>
 
         <div className="sm:col-span-2">

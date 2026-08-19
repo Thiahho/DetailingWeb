@@ -187,6 +187,13 @@ namespace Turneo.Api.Migrations
                     b.Property<int>("TenantId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime>("TermsAcceptedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("TermsVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("TimeSlotId")
                         .HasColumnType("integer");
 
@@ -664,6 +671,106 @@ namespace Turneo.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("ServiceInsumos");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltyPrize", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Probability")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ValidityDays")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Value")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("LoyaltyPrizes");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltySpin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("PrizeId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RedeemedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("RedeemedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("SpunAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WhatsApp")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrizeId");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "WhatsApp")
+                        .IsUnique();
+
+                    b.ToTable("LoyaltySpins");
                 });
 
             modelBuilder.Entity("Turneo.Api.Core.Notifications.NotificationLog", b =>
@@ -1151,6 +1258,9 @@ namespace Turneo.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("GoogleReviewUrl")
+                        .HasColumnType("text");
+
                     b.Property<string>("HeroBadge")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1211,6 +1321,88 @@ namespace Turneo.Api.Migrations
                     b.ToTable("SiteConfigs");
                 });
 
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTag", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "IsActive");
+
+                    b.ToTable("SmartTags");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTagEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SmartTagId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SmartTagId");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.ToTable("SmartTagEvents");
+                });
+
             modelBuilder.Entity("Turneo.Api.Core.Users.User", b =>
                 {
                     b.Property<int>("Id")
@@ -1235,6 +1427,9 @@ namespace Turneo.Api.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TelegramChatId")
                         .HasColumnType("text");
 
                     b.Property<int>("TenantId")
@@ -1738,6 +1933,12 @@ namespace Turneo.Api.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("TermsAcceptedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("TermsVersion")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("TrialEndsAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -2103,6 +2304,36 @@ namespace Turneo.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltyPrize", b =>
+                {
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.Loyalty.LoyaltySpin", b =>
+                {
+                    b.HasOne("Turneo.Api.Core.Loyalty.LoyaltyPrize", "Prize")
+                        .WithMany()
+                        .HasForeignKey("PrizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Prize");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("Turneo.Api.Core.Notifications.NotificationLog", b =>
                 {
                     b.HasOne("Turneo.Api.Core.Bookings.Booking", "Booking")
@@ -2247,6 +2478,36 @@ namespace Turneo.Api.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTag", b =>
+                {
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Core.SmartTags.SmartTagEvent", b =>
+                {
+                    b.HasOne("Turneo.Api.Core.SmartTags.SmartTag", "SmartTag")
+                        .WithMany()
+                        .HasForeignKey("SmartTagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SmartTag");
 
                     b.Navigation("Tenant");
                 });

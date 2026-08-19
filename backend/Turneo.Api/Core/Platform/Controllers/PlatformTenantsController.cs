@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Platform;
 
@@ -55,6 +56,9 @@ public class PlatformTenantsController : ControllerBase
         if (request.AdminPassword.Length < 6)
             return BadRequest(new { message = "La contraseña debe tener al menos 6 caracteres" });
 
+        if (!request.AcceptedTerms)
+            return BadRequest(new { message = "El titular del negocio debe aceptar los Términos del Servicio antes de dar de alta el tenant" });
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         var tenant = new Tenant
@@ -64,7 +68,9 @@ public class PlatformTenantsController : ControllerBase
             Vertical = request.Vertical.Trim(),
             CommercialModel = request.CommercialModel,
             Status = TenantStatus.Active,
-            PlanId = request.PlanId
+            PlanId = request.PlanId,
+            TermsAcceptedAt = DateTime.UtcNow,
+            TermsVersion = LegalTermsVersions.Saas
         };
         _context.Tenants.Add(tenant);
         await _context.SaveChangesAsync();
@@ -82,5 +88,36 @@ public class PlatformTenantsController : ControllerBase
         await transaction.CommitAsync();
 
         return Ok(new { tenantId = tenant.Id, slug = tenant.Slug, adminEmail = admin.Email });
+    }
+
+    // POST: api/platform/tenants/{tenantId}/admins
+    // Vista temporal (/platform/admins) para cuando hay que crear un Admin
+    // para un tenant que ya existe, sin dar de alta un tenant nuevo.
+    [HttpPost("tenants/{tenantId:int}/admins")]
+    public async Task<IActionResult> CreateAdmin(int tenantId, [FromBody] CreateAdminRequest request)
+    {
+        var tenant = await _context.Tenants.FindAsync(tenantId);
+        if (tenant is null)
+            return BadRequest(new { message = "El tenant no existe" });
+
+        var email = request.Email.Trim();
+
+        if (request.Password.Length < 6)
+            return BadRequest(new { message = "La contraseña debe tener al menos 6 caracteres" });
+
+        if (await _context.Users.AnyAsync(u => u.TenantId == tenantId && u.Email == email))
+            return BadRequest(new { message = "Ya existe un usuario con ese email en este tenant" });
+
+        var admin = new User
+        {
+            TenantId = tenantId,
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            Role = "Admin"
+        };
+        _context.Users.Add(admin);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { tenantId, slug = tenant.Slug, adminEmail = admin.Email });
     }
 }

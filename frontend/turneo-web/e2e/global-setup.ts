@@ -169,6 +169,7 @@ export default async function globalSetup() {
         customerPhone: "+5491100000001",
         email,
         subject,
+        acceptedTerms: true,
       }),
     });
     if (!bookingRes.ok) {

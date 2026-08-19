@@ -7,11 +7,14 @@ const API_URL =
 
 // GET: Obtener servicios activos (público)
 export async function GET(request: NextRequest) {
+  const tenantSlug = request.nextUrl.searchParams.get("tenantSlug");
   try {
     const response = await fetch(`${API_URL}/api/services`, {
       method: "GET",
-      headers: { ...tenantHeader(request), "Content-Type": "application/json" },
-      next: { revalidate: 60, tags: ["services"] }, // cache 60s, invalidado al crear/editar/borrar
+      headers: { ...tenantHeader(request, tenantSlug), "Content-Type": "application/json" },
+      // Con override de tenant (flujo de Smart Tag) no se puede cachear bajo esta
+      // misma URL literal — serviría el catálogo de un tenant a otro.
+      ...(tenantSlug ? { cache: "no-store" as const } : { next: { revalidate: 60, tags: ["services"] } }),
     });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });

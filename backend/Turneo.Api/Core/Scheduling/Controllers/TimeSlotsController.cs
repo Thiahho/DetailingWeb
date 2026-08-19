@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace Turneo.Api.Core.Scheduling;
@@ -31,6 +32,7 @@ public class TimeSlotsController : ControllerBase
     // GET: api/timeslots/available (público - para clientes)
     [HttpGet("available")]
     [AllowAnonymous]
+    [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetAvailableSlots([FromQuery] int? professionalId)
     {
         var slots = await _repository.GetAvailableAsync(professionalId, NowArgentina());

@@ -149,6 +149,9 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
           subject: subject.trim(),
           professionalId: slot.professionalId ?? (professionalId ? Number(professionalId) : null),
           message: message || undefined,
+          // Reserva creada por el staff a nombre del cliente (turno telefónico/presencial) —
+          // no hay checkbox online que tildar, el negocio ya tiene el vínculo comercial.
+          acceptedTerms: true,
         }),
       });
       const data = await bookingRes.json().catch(() => ({}));
