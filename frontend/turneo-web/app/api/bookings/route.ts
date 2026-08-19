@@ -131,7 +131,7 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
 
   const turno = formatDateTime(bookingData.booking?.startDateTime);
   const name = booking.customerName || "Cliente";
-  const myBookingsUrl = bookingData.myBookingsLink || "https://detailing-web-five.vercel.app/mis-turnos";
+  const myBookingsUrl = bookingData.myBookingsLink || "https://gestion-turnos-kappa.vercel.app//mis-turnos";
 
   await sendEmail(
     customerEmail,

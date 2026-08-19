@@ -438,5 +438,5 @@ Las imágenes (servicios, galería) se almacenan y sirven a través de Cloudinar
 - **Versión Frontend:** Next.js 14.2.5 / React 18.3.1 / TypeScript 5.5.4
 - **Versión Backend:** .NET 9.0
 - **Base de datos:** PostgreSQL (Render.com)
-- **Frontend URL:** https://detailing-web-five.vercel.app
+- **Frontend URL:** https://gestion-turnos-kappa.vercel.app/
 - **Backend URL:** https://detailing-api.onrender.com

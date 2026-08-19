@@ -53,6 +53,7 @@ packages/
 # Sensitive .NET config
 backend/Turneo.Api/appsettings.Development.json
 backend/Turneo.Api/appsettings.Production.json
+backend/Turneo.Api/appsettings.Testing.json
 
 # Google OAuth credentials y tokens — NUNCA subir al repositorio
 backend/Turneo.Api/credentials.json
