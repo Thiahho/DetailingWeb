@@ -80,6 +80,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<CustomerProfile> CustomerProfiles { get; set; }
     public DbSet<ScheduledReminder> ScheduledReminders { get; set; }
     public DbSet<ReminderLog> ReminderLogs { get; set; }
+    public DbSet<DataDeletionRequest> DataDeletionRequests { get; set; }
 
     //Automatizaciones
     public DbSet<AutomationRule> AutomationRules { get; set; }
@@ -619,6 +620,18 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.FavoriteProfessionalId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<DataDeletionRequest>(e =>
+        {
+            e.HasIndex(x => new { x.TenantId, x.Status });
+
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
         });

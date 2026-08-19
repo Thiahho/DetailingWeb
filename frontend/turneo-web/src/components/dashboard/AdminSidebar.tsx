@@ -8,7 +8,7 @@ import { usePermissions, type PermissionModuleKey } from "@/src/hooks/usePermiss
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
-  MoreHorizontal, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc,
+  MoreHorizontal, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert,
 } from "lucide-react";
 
 // `module`: a qué PermissionModule pertenece este link — un Staff sin permiso
@@ -37,6 +37,7 @@ const groups: NavGroup[] = [
     title: "Negocio",
     items: [
       { href: "/admin/clientes", label: "Clientes", icon: Users, module: "Clientes" },
+      { href: "/admin/solicitudes-privacidad", label: "Privacidad", icon: ShieldAlert, module: "Clientes" },
       { href: "/admin/profesionales", label: "Equipo", icon: UserCog, module: "Profesionales" },
       { href: "/admin/servicios", label: "Servicios", icon: Wrench, module: "Servicios" },
       { href: "/admin/productos", label: "Productos", icon: Package, module: "Productos" },
@@ -44,6 +45,7 @@ const groups: NavGroup[] = [
       { href: "/admin/caja", label: "Caja", icon: Wallet, module: "Caja" },
       { href: "/admin/automatizaciones", label: "Automatizaciones", icon: Zap, module: "Automatizaciones" },
       { href: "/admin/smart-tags", label: "Smart Tags", icon: Nfc, module: "SmartTags" },
+      { href: "/admin/ruleta", label: "Ruleta", icon: Gift, module: "Ruleta" },
       { href: "/admin/configuracion", label: "Empresa", icon: Building2, adminOnly: true },
     ],
   },

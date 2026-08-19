@@ -101,6 +101,7 @@ export default function PlatformTenantsPage() {
 
       <div className="flex items-center gap-4 text-sm text-white/50">
         <span className="font-semibold text-white">Tenants</span>
+        <Link href="/platform/admins" className="hover:text-white">Admins</Link>
         <Link href="/platform/roulette" className="hover:text-white">Ruleta</Link>
         <Link href="/platform/takedown" className="hover:text-white">Takedown</Link>
       </div>

@@ -56,6 +56,7 @@ export default function PlatformTakedownPage() {
 
       <div className="flex items-center gap-4 text-sm text-white/50">
         <Link href="/platform/tenants" className="hover:text-white">Tenants</Link>
+        <Link href="/platform/admins" className="hover:text-white">Admins</Link>
         <Link href="/platform/roulette" className="hover:text-white">Ruleta</Link>
         <span className="font-semibold text-white">Takedown</span>
       </div>

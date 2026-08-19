@@ -86,6 +86,7 @@ builder.Services.AddScoped<RouletteService>();
 builder.Services.AddScoped<LoyaltyRouletteService>();
 builder.Services.AddHttpClient<CloudinaryAdminService>();
 builder.Services.AddScoped<ContentTakedownService>();
+builder.Services.AddScoped<DataDeletionService>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);
 

@@ -221,6 +221,7 @@ export default function PlatformRoulettePage() {
 
       <div className="flex items-center gap-4 text-sm text-white/50">
         <Link href="/platform/tenants" className="hover:text-white">Tenants</Link>
+        <Link href="/platform/admins" className="hover:text-white">Admins</Link>
         <span className="font-semibold text-white">Ruleta</span>
       </div>
 

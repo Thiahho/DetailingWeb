@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
+import { es } from "date-fns/locale";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
@@ -27,6 +30,30 @@ const normalizeBookingStatus = (status: string) => {
   return status;
 };
 
+// Local, sin pasar por UTC (igual criterio que el resto del archivo) — evita
+// que "2026-08-20" se corra un día al convertir con toISOString/new Date(str).
+const dateToLocalStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const localStrToDate = (s: string) => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+const TODAY_MIDNIGHT = new Date(new Date().setHours(0, 0, 0, 0));
+
+// Orden visual Lun..Dom — los valores son el dayOfWeek de JS (0=Domingo..6=Sábado),
+// igual convención que WeeklyScheduleDay en el Horario semanal del profesional.
+const GEN_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const GEN_DAY_LABELS: Record<number, string> = {
+  1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb", 0: "Dom",
+};
+const GEN_PRESETS: { key: string; label: string; days: number[] }[] = [
+  { key: "labor", label: "Lun-Vie", days: [1, 2, 3, 4, 5] },
+  { key: "sixDay", label: "Lun-Sáb", days: [1, 2, 3, 4, 5, 6] },
+  { key: "all", label: "Todos", days: [0, 1, 2, 3, 4, 5, 6] },
+];
+const GEN_DURATION_OPTIONS = [15, 20, 30, 45, 60, 90, 120];
+const GEN_BUFFER_OPTIONS = [0, 5, 10, 15, 20, 30];
+
 // --- Componente Principal ---
 export default function TurnosPage() {
   const router = useRouter();
@@ -36,8 +63,9 @@ export default function TurnosPage() {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
 
   // Estados de formulario
-  const [formData, setFormData] = useState<{ date: string; hour: string; minute: string; professionalIds: string[] }>({
+  const [formData, setFormData] = useState<{ date: string; dates: string[]; hour: string; minute: string; professionalIds: string[] }>({
     date: "",
+    dates: [],
     hour: "09",
     minute: "00",
     professionalIds: [],
@@ -46,6 +74,17 @@ export default function TurnosPage() {
   const [creating, setCreating] = useState(false);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [professionalFilter, setProfessionalFilter] = useState<string>("all");
+
+  // Estados del generador de disponibilidad ("Generar disponibilidad")
+  const [formMode, setFormMode] = useState<"single" | "generate">("single");
+  const [genDays, setGenDays] = useState<number[]>([1, 2, 3, 4, 5]); // 0=Domingo..6=Sábado (igual que WeeklyScheduleDay)
+  const [genFrom, setGenFrom] = useState("");
+  const [genTo, setGenTo] = useState("");
+  const [genStartTime, setGenStartTime] = useState("09:00");
+  const [genEndTime, setGenEndTime] = useState("18:00");
+  const [genDuration, setGenDuration] = useState(30);
+  const [genBuffer, setGenBuffer] = useState(0);
+  const [generating, setGenerating] = useState(false);
 
   // Estados de Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,7 +114,9 @@ export default function TurnosPage() {
       return;
     }
     loadSlots();
-    fetch("/api/professionals").then((r) => r.json()).then((d) => setProfessionals(Array.isArray(d) ? d : [])).catch(() => {});
+    // /all incluye inactivos — al crear turnos el admin puede querer agendar
+    // para alguien que está temporalmente desactivado, no solo los activos.
+    fetch("/api/professionals/all").then((r) => r.json()).then((d) => setProfessionals(Array.isArray(d) ? d : [])).catch(() => {});
   }, [router]);
 
   // --- Lógica de Carga y CRUD (Igual que tu código original) ---
@@ -99,46 +140,55 @@ export default function TurnosPage() {
     }
   };
 
+  // Calcula start/end (string local, sin conversión UTC) para una fecha puntual.
+  const computeRange = (dateStr: string) => {
+    const startDateTime = `${dateStr}T${formData.hour}:${formData.minute}:00`;
+    let endHour = parseInt(formData.hour) + 2;
+    let endDate = dateStr;
+    if (endHour >= 24) {
+      endHour -= 24;
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const nextDay = new Date(y, m - 1, d + 1);
+      endDate = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, "0")}-${String(nextDay.getDate()).padStart(2, "0")}`;
+    }
+    const endDateTime = `${endDate}T${String(endHour).padStart(2, "0")}:${formData.minute}:00`;
+    return { startDateTime, endDateTime };
+  };
+
   const createSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.professionalIds.length === 0) {
       showToast("error", "Error al crear turno", "Elegí al menos un profesional");
       return;
     }
+    const allDates = formData.dates;
+    if (allDates.length === 0) {
+      showToast("error", "Error al crear turno", "Elegí al menos una fecha");
+      return;
+    }
     setCreating(true);
     try {
-      // Enviar fecha como string local (sin conversión UTC)
-      const startDateTime = `${formData.date}T${formData.hour}:${formData.minute}:00`;
-      // Calcular endDateTime sumando 2 horas manualmente
-      let endHour = parseInt(formData.hour) + 2;
-      let endDate = formData.date;
-      if (endHour >= 24) {
-        endHour -= 24;
-        // Parsear con hora local para evitar desfase de timezone
-        const [y, m, d] = formData.date.split("-").map(Number);
-        const nextDay = new Date(y, m - 1, d + 1);
-        endDate = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, "0")}-${String(nextDay.getDate()).padStart(2, "0")}`;
-      }
-      const endDateTime = `${endDate}T${String(endHour).padStart(2, "0")}:${formData.minute}:00`;
-
-      // Un turno idéntico por cada profesional elegido: el modelo de datos
-      // (TimeSlot.ProfessionalId) es siempre un único profesional, no hay
-      // concepto de turno compartido entre varios a la vez.
+      // Un turno idéntico por cada combinación fecha × profesional elegido: el
+      // modelo de datos (TimeSlot.ProfessionalId) es siempre un único profesional
+      // y un único horario, no hay concepto de turno compartido o recurrente.
       const results = await Promise.all(
-        formData.professionalIds.map(async (professionalId) => {
-          const response = await fetch("/api/timeslots", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              startDateTime,
-              endDateTime,
-              professionalId: Number(professionalId),
-            }),
+        allDates.flatMap((dateStr) => {
+          const { startDateTime, endDateTime } = computeRange(dateStr);
+          return formData.professionalIds.map(async (professionalId) => {
+            const response = await fetch("/api/timeslots", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                startDateTime,
+                endDateTime,
+                professionalId: Number(professionalId),
+              }),
+            });
+            const data = await response.json();
+            const professional = professionals.find((p) => String(p.id) === professionalId);
+            const professionalName = professional ? `${professional.firstName} ${professional.lastName}` : professionalId;
+            return { ok: response.ok, dateStr, professionalName, message: data.message };
           });
-          const data = await response.json();
-          const professional = professionals.find((p) => String(p.id) === professionalId);
-          const professionalName = professional ? `${professional.firstName} ${professional.lastName}` : professionalId;
-          return { ok: response.ok, professionalName, message: data.message };
         })
       );
 
@@ -150,8 +200,8 @@ export default function TurnosPage() {
           "success",
           "Turno Creado",
           okCount === results.length
-            ? `Turno para el ${formData.date} a las ${formData.hour}:${formData.minute} creado para ${okCount} profesional(es)`
-            : `Turno creado para ${okCount} de ${results.length} profesional(es) seleccionado(s)`,
+            ? `${okCount} turno(s) creados a las ${formData.hour}:${formData.minute} en ${allDates.length} fecha(s) para ${formData.professionalIds.length} profesional(es)`
+            : `Turno creado para ${okCount} de ${results.length} combinación(es) fecha/profesional`,
           5000
         );
       }
@@ -159,11 +209,11 @@ export default function TurnosPage() {
         showToast(
           "error",
           okCount > 0 ? "Algunos turnos no se pudieron crear" : "Error al crear turno",
-          failed.map((f) => `${f.professionalName}: ${f.message || "No se pudo crear"}`).join(" · ")
+          failed.map((f) => `${f.dateStr} · ${f.professionalName}: ${f.message || "No se pudo crear"}`).join(" · ")
         );
       }
       if (okCount > 0) {
-        setFormData({ date: "", hour: "09", minute: "00", professionalIds: formData.professionalIds });
+        setFormData({ date: "", dates: [], hour: "09", minute: "00", professionalIds: formData.professionalIds });
         loadSlots();
       }
     } catch (error) {
@@ -171,6 +221,123 @@ export default function TurnosPage() {
       logError(error);
     } finally {
       setCreating(false);
+    }
+  };
+
+  // --- Generador de disponibilidad ("Generar disponibilidad") ---
+
+  // Fechas del rango [from, to] cuyo día de semana está en `days` (0=Domingo..6=Sábado).
+  const datesInRange = (from: string, to: string, days: number[]): string[] => {
+    if (!from || !to || days.length === 0) return [];
+    const [fy, fm, fd] = from.split("-").map(Number);
+    const [ty, tm, td] = to.split("-").map(Number);
+    const start = new Date(fy, fm - 1, fd);
+    const end = new Date(ty, tm - 1, td);
+    const result: string[] = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (days.includes(d.getDay())) {
+        result.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+      }
+    }
+    return result;
+  };
+
+  // Turnos de `duration` minutos entre startTime y endTime, dejando `buffer` minutos entre uno y otro.
+  const timeSlotsInDay = (startTime: string, endTime: string, duration: number, buffer: number): { start: string; end: string }[] => {
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const endMin = eh * 60 + em;
+    const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const result: { start: string; end: string }[] = [];
+    for (let cursor = startMin; cursor + duration <= endMin; cursor += duration + buffer) {
+      result.push({ start: fmt(cursor), end: fmt(cursor + duration) });
+    }
+    return result;
+  };
+
+  const genDates = datesInRange(genFrom, genTo, genDays);
+  const genDaySlots = timeSlotsInDay(genStartTime, genEndTime, genDuration, genBuffer);
+  const genPreviewCount = genDates.length * genDaySlots.length * formData.professionalIds.length;
+
+  const generateAvailability = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.professionalIds.length === 0) {
+      showToast("error", "Error al generar", "Elegí al menos un profesional");
+      return;
+    }
+    if (genDays.length === 0) {
+      showToast("error", "Error al generar", "Elegí al menos un día de la semana");
+      return;
+    }
+    if (!genFrom || !genTo) {
+      showToast("error", "Error al generar", "Elegí el rango de fechas");
+      return;
+    }
+    if (genDates.length === 0 || genDaySlots.length === 0) {
+      showToast("error", "Error al generar", "No hay turnos para generar con esta configuración");
+      return;
+    }
+
+    if (genPreviewCount > 300) {
+      const ok = await confirm({
+        message: `Esto va a crear ${genPreviewCount} turnos. ¿Continuar?`,
+        confirmLabel: "Generar",
+      });
+      if (!ok) return;
+    }
+
+    setGenerating(true);
+    try {
+      const jobs = genDates.flatMap((dateStr) =>
+        genDaySlots.flatMap((slot) =>
+          formData.professionalIds.map((professionalId) => ({
+            startDateTime: `${dateStr}T${slot.start}:00`,
+            endDateTime: `${dateStr}T${slot.end}:00`,
+            professionalId: Number(professionalId),
+          }))
+        )
+      );
+
+      // En lotes: cientos de POSTs en simultáneo saturan al backend/proxy.
+      const CHUNK_SIZE = 15;
+      let okCount = 0;
+      let failCount = 0;
+      for (let i = 0; i < jobs.length; i += CHUNK_SIZE) {
+        const chunk = jobs.slice(i, i + CHUNK_SIZE);
+        const results = await Promise.all(
+          chunk.map((job) =>
+            fetch("/api/timeslots", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(job),
+            })
+              .then((r) => r.ok)
+              .catch(() => false)
+          )
+        );
+        okCount += results.filter(Boolean).length;
+        failCount += results.filter((r) => !r).length;
+      }
+
+      if (okCount > 0) {
+        showToast(
+          "success",
+          "Disponibilidad generada",
+          failCount > 0
+            ? `Se crearon ${okCount} turno(s) — ${failCount} no se pudieron crear (probablemente ya existían)`
+            : `Se crearon ${okCount} turno(s)`,
+          6000
+        );
+        loadSlots();
+      } else {
+        showToast("error", "No se generó ningún turno", "Puede que ya existan turnos en esos horarios");
+      }
+    } catch (error) {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      logError(error);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -191,7 +358,7 @@ export default function TurnosPage() {
       });
       if (response.ok) {
         showToast("success", "Turno Actualizado", "Los cambios se guardaron correctamente", 4000);
-        setFormData({ date: "", hour: "09", minute: "00", professionalIds: [] });
+        setFormData({ date: "", dates: [], hour: "09", minute: "00", professionalIds: [] });
         setEditingSlot(null);
         loadSlots();
       } else {
@@ -353,6 +520,24 @@ export default function TurnosPage() {
     }));
   };
 
+  const toggleAllProfessionals = () => {
+    setFormData((prev) => ({
+      ...prev,
+      professionalIds:
+        prev.professionalIds.length === professionals.length
+          ? []
+          : professionals.map((p) => String(p.id)),
+    }));
+  };
+
+  const removeDate = (dateStr: string) => {
+    setFormData((prev) => ({ ...prev, dates: prev.dates.filter((d) => d !== dateStr) }));
+  };
+
+  const toggleGenDay = (day: number) => {
+    setGenDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
+  };
+
   // --- Funciones de Selección Múltiple ---
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
@@ -439,6 +624,7 @@ export default function TurnosPage() {
     const [hour, minute] = timePart.split(":");
     setFormData({
       date: datePart,
+      dates: [],
       hour: hour.padStart(2, "0"),
       minute: minute.padStart(2, "0"),
       professionalIds: slot.professionalId ? [String(slot.professionalId)] : [],
@@ -447,7 +633,7 @@ export default function TurnosPage() {
 
   const cancelEditing = () => {
     setEditingSlot(null);
-    setFormData({ date: "", hour: "09", minute: "00", professionalIds: [] });
+    setFormData({ date: "", dates: [], hour: "09", minute: "00", professionalIds: [] });
   };
 
   // --- Filtrado por estado + profesional ---
@@ -485,6 +671,52 @@ export default function TurnosPage() {
     );
   }
 
+  // Selector de profesionales — compartido entre "Turno puntual" y "Generar disponibilidad".
+  const professionalSelector = (
+    <div>
+      <div className="flex items-center justify-between">
+        <label className="text-charcoal/70 text-sm font-medium">
+          Profesional{formData.professionalIds.length > 1 ? "es" : ""}
+        </label>
+        {professionals.length > 0 && (
+          <button
+            type="button"
+            data-testid="slot-form-professional-select-all"
+            onClick={toggleAllProfessionals}
+            className="text-xs text-blush hover:text-blushdark font-medium transition"
+          >
+            {formData.professionalIds.length === professionals.length
+              ? "Deseleccionar todos"
+              : "Seleccionar todos"}
+          </button>
+        )}
+      </div>
+      <p className="text-charcoal/40 text-xs mt-0.5">
+        Elegí uno o más — se crea un turno igual para cada profesional seleccionado
+      </p>
+      {professionals.length === 0 ? (
+        <p className="text-charcoal/30 text-xs italic mt-1.5">No hay profesionales cargados todavía.</p>
+      ) : (
+        <div
+          data-testid="slot-form-professional"
+          className="mt-2 grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto bg-cream border border-mauve/10 rounded-lg p-3"
+        >
+          {professionals.map((p) => (
+            <label key={p.id} className="flex items-center gap-1.5 text-charcoal/70 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.professionalIds.includes(String(p.id))}
+                onChange={() => toggleProfessional(String(p.id))}
+                className="accent-green-500"
+              />
+              {p.firstName} {p.lastName}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="p-4 md:p-6 font-sans">
       {/* Toast Container */}
@@ -505,6 +737,17 @@ export default function TurnosPage() {
         }
         .animate-slide-in {
           animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        /* Tema del calendario de selección múltiple (react-day-picker) acorde
+           a la paleta de Belleza — los defaults del paquete no coinciden. */
+        .rdp-root {
+          --rdp-accent-color: #D69AA6;
+          --rdp-accent-color-dark: #C07E8C;
+          --rdp-background-color: #F5EBE5;
+          --rdp-background-color-dark: #EFE1D9;
+          --rdp-outline: 2px solid #D69AA6;
+          --rdp-outline-selected: 2px solid #C07E8C;
+          color: #2E2328;
         }
       `}</style>
 
@@ -545,25 +788,92 @@ export default function TurnosPage() {
             <h2 className="text-xl font-semibold text-charcoal mb-6">
               {editingSlot ? "Editar Turno" : "Crear Turno Disponible"}
             </h2>
+
+            {!editingSlot && (
+              <div className="flex gap-1 bg-porcelain/10 rounded-lg p-1 mb-5" data-testid="slot-form-mode-tabs">
+                <button
+                  type="button"
+                  data-testid="slot-form-mode-single"
+                  onClick={() => setFormMode("single")}
+                  className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                    formMode === "single" ? "bg-blush text-cream shadow-glow" : "text-charcoal/60 hover:text-charcoal"
+                  }`}
+                >
+                  Turno puntual
+                </button>
+                <button
+                  type="button"
+                  data-testid="slot-form-mode-generate"
+                  onClick={() => setFormMode("generate")}
+                  className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                    formMode === "generate" ? "bg-blush text-cream shadow-glow" : "text-charcoal/60 hover:text-charcoal"
+                  }`}
+                >
+                  Generar disponibilidad
+                </button>
+              </div>
+            )}
+
+            {(editingSlot || formMode === "single") && (
             <form
               onSubmit={editingSlot ? updateSlot : createSlot}
               className="space-y-5"
             >
-              <div>
-                <label className="text-charcoal/70 text-sm font-medium">
-                  Fecha
-                </label>
-                <input
-                  type="date"
-                  data-testid="slot-form-date"
-                  className="form-input mt-2"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, date: e.target.value }))
-                  }
-                  required
-                />
-              </div>
+              {editingSlot ? (
+                <div>
+                  <label className="text-charcoal/70 text-sm font-medium">Fecha</label>
+                  <input
+                    type="date"
+                    data-testid="slot-form-date"
+                    className="form-input mt-2"
+                    value={formData.date}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, date: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-charcoal/70 text-sm font-medium">
+                    Fecha{formData.dates.length > 1 ? "s" : ""}
+                  </label>
+                  <p className="text-charcoal/40 text-xs mt-0.5 mb-1">
+                    Elegí uno o más días en el calendario — se crea un turno igual en cada uno
+                  </p>
+                  <DayPicker
+                    mode="multiple"
+                    locale={es}
+                    data-testid="slot-form-daypicker"
+                    selected={formData.dates.map(localStrToDate)}
+                    onSelect={(dates) =>
+                      setFormData((prev) => ({ ...prev, dates: (dates ?? []).map(dateToLocalStr).sort() }))
+                    }
+                    disabled={{ before: TODAY_MIDNIGHT }}
+                    className="mt-1 bg-cream border border-mauve/10 rounded-lg p-2"
+                  />
+                  {formData.dates.length > 0 && (
+                    <div data-testid="slot-form-dates-list" className="mt-2 flex flex-wrap gap-1.5">
+                      {formData.dates.map((d) => (
+                        <span
+                          key={d}
+                          className="flex items-center gap-1.5 bg-blush/15 text-blushdark text-xs font-medium rounded-full pl-3 pr-1.5 py-1"
+                        >
+                          {d}
+                          <button
+                            type="button"
+                            onClick={() => removeDate(d)}
+                            className="hover:text-champagne transition"
+                            aria-label={`Quitar fecha ${d}`}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="text-charcoal/70 text-sm font-medium">
@@ -610,36 +920,7 @@ export default function TurnosPage() {
                 </div>
               </div>
 
-              {!editingSlot && (
-                <div>
-                  <label className="text-charcoal/70 text-sm font-medium">
-                    Profesional{formData.professionalIds.length > 1 ? "es" : ""}
-                  </label>
-                  <p className="text-charcoal/40 text-xs mt-0.5">
-                    Elegí uno o más — se crea un turno igual para cada profesional seleccionado
-                  </p>
-                  {professionals.length === 0 ? (
-                    <p className="text-charcoal/30 text-xs italic mt-1.5">No hay profesionales cargados todavía.</p>
-                  ) : (
-                    <div
-                      data-testid="slot-form-professional"
-                      className="mt-2 grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto bg-cream border border-mauve/10 rounded-lg p-3"
-                    >
-                      {professionals.map((p) => (
-                        <label key={p.id} className="flex items-center gap-1.5 text-charcoal/70 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.professionalIds.includes(String(p.id))}
-                            onChange={() => toggleProfessional(String(p.id))}
-                            className="accent-green-500"
-                          />
-                          {p.firstName} {p.lastName}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              {!editingSlot && professionalSelector}
 
               <div className="flex gap-3 pt-2">
                 <Button
@@ -663,6 +944,140 @@ export default function TurnosPage() {
                 )}
               </div>
             </form>
+            )}
+
+            {!editingSlot && formMode === "generate" && (
+              <form onSubmit={generateAvailability} className="space-y-5" data-testid="slot-generate-form">
+                <div>
+                  <label className="text-charcoal/70 text-sm font-medium">Días de atención</label>
+                  <div className="flex gap-1.5 mt-2 flex-wrap">
+                    {GEN_PRESETS.map((preset) => (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        data-testid={`slot-generate-preset-${preset.key}`}
+                        onClick={() => setGenDays(preset.days)}
+                        className="px-3 py-1 rounded-full text-xs font-semibold bg-porcelain/10 text-charcoal/60 hover:bg-porcelain/20 hover:text-charcoal transition"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 mt-2" data-testid="slot-generate-days">
+                    {GEN_DAY_ORDER.map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        data-testid={`slot-generate-day-${day}`}
+                        onClick={() => toggleGenDay(day)}
+                        className={`py-2 rounded-lg text-xs font-semibold transition ${
+                          genDays.includes(day)
+                            ? "bg-blush text-cream"
+                            : "bg-cream border border-mauve/10 text-charcoal/50 hover:text-charcoal"
+                        }`}
+                      >
+                        {GEN_DAY_LABELS[day]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-charcoal/70 text-sm font-medium">Rango de fechas</label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <input
+                      type="date"
+                      data-testid="slot-generate-from"
+                      className="form-input"
+                      value={genFrom}
+                      onChange={(e) => setGenFrom(e.target.value)}
+                      required
+                    />
+                    <input
+                      type="date"
+                      data-testid="slot-generate-to"
+                      className="form-input"
+                      value={genTo}
+                      min={genFrom || undefined}
+                      onChange={(e) => setGenTo(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-charcoal/70 text-sm font-medium">Horario</label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <input
+                      type="time"
+                      data-testid="slot-generate-start-time"
+                      className="form-input"
+                      value={genStartTime}
+                      onChange={(e) => setGenStartTime(e.target.value)}
+                      required
+                    />
+                    <input
+                      type="time"
+                      data-testid="slot-generate-end-time"
+                      className="form-input"
+                      value={genEndTime}
+                      onChange={(e) => setGenEndTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-charcoal/70 text-sm font-medium">Duración</label>
+                    <select
+                      data-testid="slot-generate-duration"
+                      className="form-input mt-2"
+                      value={genDuration}
+                      onChange={(e) => setGenDuration(Number(e.target.value))}
+                    >
+                      {GEN_DURATION_OPTIONS.map((min) => (
+                        <option key={min} value={min}>{min} min</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-charcoal/70 text-sm font-medium">Buffer</label>
+                    <select
+                      data-testid="slot-generate-buffer"
+                      className="form-input mt-2"
+                      value={genBuffer}
+                      onChange={(e) => setGenBuffer(Number(e.target.value))}
+                    >
+                      {GEN_BUFFER_OPTIONS.map((min) => (
+                        <option key={min} value={min}>{min === 0 ? "Sin buffer" : `${min} min`}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {professionalSelector}
+
+                {genPreviewCount > 0 && (
+                  <p data-testid="slot-generate-preview" className="text-charcoal/50 text-xs">
+                    Se van a crear <strong className="text-charcoal">{genPreviewCount}</strong> turno(s) —{" "}
+                    {genDates.length} fecha(s) × {genDaySlots.length} horario(s) por día × {formData.professionalIds.length} profesional(es)
+                  </p>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    disabled={generating}
+                    data-testid="slot-generate-submit"
+                    variant="primary"
+                    className="flex-1"
+                  >
+                    {generating ? "Generando..." : "Generar disponibilidad"}
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
 
           {/* COLUMNA DERECHA: Lista Estilo Imagen */}

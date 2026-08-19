@@ -1,6 +1,6 @@
 // Versión vigente — subir junto con LegalTermsVersions.Customer en el backend
 // cada vez que cambie el texto (mismo criterio que /terminos).
-const PRIVACY_VERSION = "2026-08-13";
+const PRIVACY_VERSION = "2026-08-19";
 
 export default function PrivacidadPage() {
   return (
@@ -111,13 +111,18 @@ export default function PrivacidadPage() {
             <h2>5. Tus derechos</h2>
             <p>
               Conforme a la Ley N.º 25.326, tenés derecho de acceso, rectificación y
-              supresión de tus datos personales. Para ejercerlos, contactate
-              directamente con el negocio donde reservaste el turno — hoy estas
-              solicitudes se gestionan de forma manual por el propio negocio, no existe
-              todavía un mecanismo de autoservicio dentro del sitio. La Agencia de Acceso
-              a la Información Pública, como órgano de control de la Ley N.º 25.326, tiene
-              la atribución de atender denuncias y reclamos que se interpongan en relación
-              al incumplimiento de las normas sobre protección de datos personales.
+              supresión de tus datos personales. Para pedir la supresión de tus datos,
+              podés completar el{" "}
+              <a href="/privacidad/solicitar-borrado" className="font-medium text-blush hover:underline">
+                formulario de solicitud de borrado
+              </a>
+              . El negocio revisa y confirma el pedido manualmente; una vez confirmado, tu
+              nombre, teléfono y email se reemplazan por datos anónimos en el sistema (el
+              registro del turno en sí se conserva, sin datos que te identifiquen). La
+              Agencia de Acceso a la Información Pública, como órgano de control de la Ley
+              N.º 25.326, tiene la atribución de atender denuncias y reclamos que se
+              interpongan en relación al incumplimiento de las normas sobre protección de
+              datos personales.
             </p>
           </section>
 

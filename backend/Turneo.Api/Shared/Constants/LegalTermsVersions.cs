@@ -6,6 +6,6 @@ namespace Turneo.Api.Shared.Constants;
 // y Tenant.TermsVersion).
 public static class LegalTermsVersions
 {
-    public const string Customer = "2026-08-13";
+    public const string Customer = "2026-08-19";
     public const string Saas = "2026-08-13";
 }

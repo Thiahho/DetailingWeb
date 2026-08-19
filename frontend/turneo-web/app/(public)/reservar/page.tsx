@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import BookingForm from "@/src/components/booking/BookingForms";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
+import RouletteFloat from "@/src/components/shared/RouletteFloat";
 import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "@/src/lib/siteConfig";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
@@ -378,6 +379,7 @@ export default function Home() {
       {siteConfig?.whatsAppNumber && (
         <WhatsAppFloat whatsappNumber={siteConfig.whatsAppNumber.replace(/\D/g, "")} />
       )}
+      <RouletteFloat />
 
       {/* MODAL DETALLE SERVICIO */}
       {selectedService && (
