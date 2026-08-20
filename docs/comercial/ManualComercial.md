@@ -1,6 +1,6 @@
 # Manual Comercial — Turneo
 
-**Versión:** 1.0 · **Fecha:** julio 2026
+**Versión:** 1.1 · **Fecha:** agosto 2026 (actualizado: Smart Tags NFC/QR, ajustes de landing)
 **Uso:** documento base para todo el equipo comercial y de marketing — guiones de video, anuncios, copy de landing/web, presentaciones a clientes y respuestas a objeciones. Toda pieza de comunicación nueva debería poder trazarse a algo de este documento.
 
 **Regla de oro de este manual:** todo lo que está en la sección 7 ("HOY") es real, está construido y probado con tests automatizados — se puede vender y mostrar sin miedo. Todo lo marcado como roadmap o "MAÑANA" **no existe en código todavía** — es visión de producto, no una promesa a un cliente. El Anexo A es la referencia rápida para no cruzar esa línea en una llamada de venta.
@@ -152,6 +152,7 @@ Cada uno de estos está construido y verificado — no es aspiracional. Usar com
 11. **Un mismo sistema, tres formas de comprarlo.** El negocio puede pagar una suscripción mensual (SaaS), comprar el software una vez y correrlo por su cuenta (Licencia), o pedir un desarrollo a medida (Custom) — sin que eso signifique un producto distinto ni funcionalidades recortadas artificialmente entre una opción y otra.
 12. **Nace de un caso real, no de una idea de escritorio.** El origen automotriz y el salón de belleza que corre en producción hoy son la prueba de que el sistema fue construido resolviendo un negocio real primero.
 13. **Acceso del equipo a medida, no todo o nada.** El dueño no tiene que elegir entre darle a un empleado el mismo acceso que a un socio o no darle acceso al sistema — puede crearle una cuenta con permiso solo sobre los módulos que necesita (por ejemplo, caja y turnos, sin poder tocar servicios ni eliminar clientes), eligiendo módulo por módulo si puede ver, cargar, editar o eliminar.
+14. **Convierte una etiqueta física en una acción digital medible.** Etiquetas NFC (o QR) que el negocio pega en el mostrador, el espejo o la salida: un cliente acerca el celular o escanea, y el sistema lo lleva directo a reservar, volver a reservar su último servicio, o dejar una reseña — sin buscar el negocio en Google ni en Instagram. El dueño mide, etiqueta por etiqueta, cuántas interacciones se convirtieron en reserva o en reseña real.
 
 ---
 
@@ -231,6 +232,12 @@ Cada uno de estos está construido y verificado — no es aspiracional. Usar com
 **Solución:** cobro de seña o pago completo online al momento de reservar, vía Mercado Pago.
 **Resultado:** menos ausencias sin aviso, cobro asegurado antes del turno.
 
+#### Smart Tag — etiquetas NFC/QR físicas
+
+**Problema:** el negocio depende de que el cliente se acuerde de buscarlo en Google para reservar de nuevo o dejar una reseña — y esa dependencia se pierde apenas el cliente sale del local.
+**Solución:** etiquetas NFC/QR físicas (mostrador, espejo, salida) que el dueño da de alta desde el panel, cada una con una acción propia (reservar, volver a reservar el último servicio, o dejar una reseña — con redirect directo a la ficha de Google Maps del negocio). La acción de cada etiqueta se puede cambiar en cualquier momento sin reemplazar la etiqueta física, y cada interacción queda registrada con su conversión (interacciones, reservas completadas, reseñas).
+**Resultado:** un punto físico del local (mostrador, espejo, silla) se convierte en un canal medible de reservas y reseñas, sin fricción para el cliente y sin que el negocio tenga que acordarse de pedirla.
+
 #### Estadísticas
 
 **Problema:** el dueño no sabe, sin sentarse a calcular a mano, cuánto facturó el mes, qué servicio vende más, o qué profesional está más ocupado.
@@ -261,7 +268,7 @@ Tabla de referencia rápida para no prometer de más en una llamada de venta.
 
 ### ✅ Se puede prometer y demostrar hoy
 
-Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-reserva, reserva manual desde el equipo (mostrador/teléfono) con cliente existente o nuevo y alta automática en el CRM, multi-profesional con agenda propia, agenda visual (mes/semana/día, drag&drop), servicios con categorías/buffer/precio, CRM de clientes, historial por turno con productos/fotos/pago, caja diaria y mensual con reconciliación, automatizaciones de reactivación/cumpleaños, recordatorios automáticos multicanal, pagos y señas por Mercado Pago, estadísticas generales y por profesional, aislamiento total de datos entre negocios (multi-tenant), autenticación y roles (Admin, Profesional, Staff con permisos granulares por módulo, Cliente), panel 100% web sin instalación.
+Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-reserva, reserva manual desde el equipo (mostrador/teléfono) con cliente existente o nuevo y alta automática en el CRM, multi-profesional con agenda propia, agenda visual (mes/semana/día, drag&drop), servicios con categorías/buffer/precio, CRM de clientes, historial por turno con productos/fotos/pago, caja diaria y mensual con reconciliación, automatizaciones de reactivación/cumpleaños, recordatorios automáticos multicanal, pagos y señas por Mercado Pago, estadísticas generales y por profesional, Smart Tags NFC/QR (reservar, volver a reservar, dejar reseña con redirect a Google Maps, analytics de conversión por etiqueta), aislamiento total de datos entre negocios (multi-tenant), autenticación y roles (Admin, Profesional, Staff con permisos granulares por módulo, Cliente), panel 100% web sin instalación.
 
 ### 🟡 Con matices — aclarar antes de cerrar
 
@@ -303,6 +310,8 @@ Turneo se vende de tres formas distintas, **sobre exactamente el mismo software*
 Precios en pesos argentinos, por mes. Pagando anual: **"Pagá 10 meses y usá 12"** (equivale a ~15% de descuento) en vez de un simple 15% off — se comunica mejor porque es concreto y fácil de calcular para el dueño del negocio.
 
 *Enterprise es "desde" porque se cotiza según el caso (sucursales, volumen, integraciones a medida) — no es un número cerrado como los otros cuatro planes.*
+
+**Nota operativa (agosto 2026):** la landing pública (`turneo.app`) ya no muestra esta grilla de planes ni precios — se sacó a propósito para no publicar precios sin control. La página sigue mostrando qué ofrece el sistema (funciones, beneficios), pero el precio y el plan que le conviene a cada negocio ahora los define el equipo comercial en la conversación por WhatsApp, usando esta misma tabla como referencia interna.
 
 **Contacto comercial:** WhatsApp +54 11 2269-2061 — es el canal real conectado en la landing (`turneo.app`) y en la Ruleta de Captación (Anexo C). Todo botón de contacto de piezas nuevas de marketing debería apuntar a este mismo número, no inventar un email u otro canal.
 
