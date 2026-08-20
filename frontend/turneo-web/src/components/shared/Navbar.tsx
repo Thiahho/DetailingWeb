@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { LogIn, Menu, X, LayoutDashboard } from "lucide-react";
+import { LogIn, LogOut, Menu, X, LayoutDashboard } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSiteConfig } from "@/src/lib/siteConfig";
 
@@ -45,6 +45,13 @@ export default function Navbar() {
   };
 
   const close = () => setMobileMenuOpen(false);
+
+  const handleLogout = async () => {
+    const { logout } = await import("@/src/lib/auth");
+    await logout();
+    close();
+    router.push("/reservar");
+  };
 
   return (
     <>
@@ -152,13 +159,22 @@ export default function Navbar() {
               </Link>
 
               {isLoggedIn ? (
-                <button
-                  onClick={() => { close(); router.push("/admin"); }}
-                  className="w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 transition text-sm font-medium"
-                >
-                  <LayoutDashboard size={17} />
-                  Panel Admin
-                </button>
+                <>
+                  <button
+                    onClick={() => { close(); router.push("/admin"); }}
+                    className="w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 transition text-sm font-medium"
+                  >
+                    <LayoutDashboard size={17} />
+                    Panel Admin
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-red-600/70 hover:text-red-600 hover:bg-red-50 transition text-sm font-medium"
+                  >
+                    <LogOut size={17} />
+                    Cerrar sesión
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => { close(); router.push("/admin/login"); }}
