@@ -72,7 +72,14 @@ export default function CloudinaryUpload({
       );
       const data = await res.json();
       if (data.secure_url) {
-        onChange(data.secure_url);
+        // Celulares (sobre todo iPhone) suben video en .mov/.avi, que la mayoría
+        // de los navegadores no puede reproducir en un <video> — la URL carga
+        // bien (por eso "figura como cargado") pero nunca arranca a reproducir y
+        // solo se ve el poster/thumbnail. Cloudinary transcodea al vuelo según
+        // la extensión de la URL de entrega, así que forzamos .mp4 acá sin
+        // volver a subir nada.
+        const url = isImage ? data.secure_url : data.secure_url.replace(/\.\w+$/, ".mp4");
+        onChange(url);
       } else {
         setError(isImage ? "Error al subir la imagen" : "Error al subir el video");
       }
