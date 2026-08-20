@@ -12,6 +12,7 @@ export interface SiteConfig {
   heroTitle: string;
   heroSubtitle: string;
   heroBadge: string;
+  heroHighlights: string[];
   metaDescription: string;
   // Viaja solo en la respuesta cruda de GET /api/siteconfig (no pasa por
   // getSiteConfig() de abajo, que solo whitelistea los campos editables del
@@ -33,6 +34,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   heroTitle: "",
   heroSubtitle: "",
   heroBadge: "",
+  heroHighlights: [],
   metaDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION || "",
 };
 
@@ -90,6 +92,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
       heroTitle: data.heroTitle || DEFAULT_SITE_CONFIG.heroTitle,
       heroSubtitle: data.heroSubtitle || DEFAULT_SITE_CONFIG.heroSubtitle,
       heroBadge: data.heroBadge || DEFAULT_SITE_CONFIG.heroBadge,
+      heroHighlights: Array.isArray(data.heroHighlights) ? data.heroHighlights : DEFAULT_SITE_CONFIG.heroHighlights,
       metaDescription: data.metaDescription || DEFAULT_SITE_CONFIG.metaDescription,
     };
     return cachedConfig;

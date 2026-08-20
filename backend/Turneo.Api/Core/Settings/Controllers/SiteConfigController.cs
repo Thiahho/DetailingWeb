@@ -43,6 +43,7 @@ public class SiteConfigController : ControllerBase
             config.HeroTitle,
             config.HeroSubtitle,
             config.HeroBadge,
+            config.HeroHighlights,
             config.MetaDescription,
             config.GoogleReviewUrl,
             hideBranding
@@ -72,6 +73,7 @@ public class SiteConfigController : ControllerBase
         config.HeroTitle = request.HeroTitle;
         config.HeroSubtitle = request.HeroSubtitle;
         config.HeroBadge = request.HeroBadge;
+        config.HeroHighlights = request.HeroHighlights ?? new List<string>();
         config.MetaDescription = request.MetaDescription;
         config.GoogleReviewUrl = request.GoogleReviewUrl;
         config.UpdatedAt = DateTime.UtcNow;
@@ -95,5 +97,6 @@ public record SiteConfigRequest(
     string HeroSubtitle,
     string HeroBadge,
     string MetaDescription,
-    string? GoogleReviewUrl
+    string? GoogleReviewUrl,
+    List<string>? HeroHighlights = null
 );

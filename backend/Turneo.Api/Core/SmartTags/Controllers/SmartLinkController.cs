@@ -47,8 +47,10 @@ public class SmartLinkController : ControllerBase
     }
 
     // Paso final de la acción REVIEW (docs/NFC.md CU-03): registra la valoración y,
-    // si es alta y el negocio cargó un link de reseñas, indica al frontend a dónde
-    // redirigir. No intermedia el envío real de la reseña a terceros.
+    // si el negocio cargó un link de reseñas, indica al frontend a dónde redirigir
+    // (siempre, sin importar el rating — decisión explícita del negocio de mandar
+    // a Google a todo el mundo, no solo a quien calificó alto). No intermedia el
+    // envío real de la reseña a terceros.
     [HttpPost("{token}/review")]
     [EnableRateLimiting("smart-tag")]
     public async Task<IActionResult> SubmitReview(string token, [FromBody] SubmitReviewRequest request)
@@ -59,13 +61,8 @@ public class SmartLinkController : ControllerBase
 
         await _repository.RecordEventAsync(tag.Id, tag.TenantId, tag.Action, SmartTagEventType.ReviewCompleted);
 
-        string? redirectUrl = null;
-        if (request.Rating >= 4)
-        {
-            var reviewUrl = await _siteConfigRepository.GetGoogleReviewUrlIgnoringTenantAsync(tag.TenantId);
-            if (!string.IsNullOrWhiteSpace(reviewUrl))
-                redirectUrl = reviewUrl;
-        }
+        var reviewUrl = await _siteConfigRepository.GetGoogleReviewUrlIgnoringTenantAsync(tag.TenantId);
+        var redirectUrl = string.IsNullOrWhiteSpace(reviewUrl) ? null : reviewUrl;
 
         return Ok(new SubmitReviewResponse(redirectUrl));
     }

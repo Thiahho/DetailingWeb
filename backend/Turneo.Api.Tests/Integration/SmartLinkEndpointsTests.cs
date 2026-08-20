@@ -90,7 +90,7 @@ public class SmartLinkEndpointsTests
     }
 
     [Fact]
-    public async Task SubmitReview_WithLowRating_ReturnsNullRedirectUrl()
+    public async Task SubmitReview_WithLowRating_StillReturnsConfiguredRedirectUrl()
     {
         var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
         var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Espejo", action: "REVIEW");
@@ -98,6 +98,20 @@ public class SmartLinkEndpointsTests
 
         var client = _factory.CreateClient();
         var response = await client.PostAsJsonAsync($"/api/smart/{tag.Token}/review", new { rating = 2 });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        Assert.Equal("https://g.page/r/test/review", body.GetProperty("redirectUrl").GetString());
+    }
+
+    [Fact]
+    public async Task SubmitReview_WithoutConfiguredUrl_ReturnsNullRedirectUrl()
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Espejo", action: "REVIEW");
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync($"/api/smart/{tag.Token}/review", new { rating = 5 });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();

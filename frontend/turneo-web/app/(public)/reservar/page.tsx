@@ -143,8 +143,11 @@ export default function Home() {
               {siteConfig?.businessName || "Nuestros servicios"}
             </h3>
             <div className="space-y-3 text-sm text-charcoal/70">
-              {services.slice(0, 2).map((s) => (
-                <p key={s.id}>✓ {s.title}</p>
+              {(siteConfig?.heroHighlights?.length
+                ? siteConfig.heroHighlights
+                : services.slice(0, 2).map((s) => s.title)
+              ).map((highlight) => (
+                <p key={highlight}>✓ {highlight}</p>
               ))}
             </div>
           </div>

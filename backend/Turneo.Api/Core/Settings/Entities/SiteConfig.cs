@@ -21,6 +21,10 @@ public class SiteConfig : ITenantScoped
     public string HeroTitle { get; set; } = string.Empty;
     public string HeroSubtitle { get; set; } = string.Empty;
     public string HeroBadge { get; set; } = string.Empty;
+    // Bullets curados a mano para la tarjeta de portada del sitio público — reemplaza
+    // el default anterior de tomar los primeros 2 Services (se volvía un choclo con
+    // muchos servicios cargados). Vacío => el frontend cae de nuevo a ese default.
+    public List<string> HeroHighlights { get; set; } = new();
     public string MetaDescription { get; set; } = string.Empty;
     // Destino de la acción REVIEW de Smart Tag para calificaciones altas (docs/NFC.md CU-03).
     public string? GoogleReviewUrl { get; set; }

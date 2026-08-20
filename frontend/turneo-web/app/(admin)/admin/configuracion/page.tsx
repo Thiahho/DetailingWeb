@@ -24,6 +24,7 @@ const emptyForm = {
   heroTitle: "",
   heroSubtitle: "",
   heroBadge: "",
+  heroHighlights: "",
   metaDescription: "",
 };
 
@@ -66,6 +67,7 @@ export default function ConfiguracionPage() {
               heroTitle: data.heroTitle || "",
               heroSubtitle: data.heroSubtitle || "",
               heroBadge: data.heroBadge || "",
+              heroHighlights: Array.isArray(data.heroHighlights) ? data.heroHighlights.join("\n") : "",
               metaDescription: data.metaDescription || "",
             });
           }
@@ -86,11 +88,19 @@ export default function ConfiguracionPage() {
     setSaving(true);
     setMessage("");
 
+    const payload = {
+      ...formData,
+      heroHighlights: formData.heroHighlights
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    };
+
     try {
       const res = await fetch("/api/siteconfig", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         clearSiteConfigCache();
@@ -256,7 +266,7 @@ export default function ConfiguracionPage() {
                 placeholder="https://g.page/r/tu-negocio/review"
               />
               <p className="text-charcoal/40 text-xs mt-1.5">
-                Cuando alguien deja una valoración alta desde una Smart Tag de tipo "Dejar reseña", se lo redirige acá.
+                Cuando alguien usa una Smart Tag de tipo "Dejar reseña", se lo redirige acá siempre, sin importar la valoración que haya dejado.
               </p>
             </div>
           </div>
@@ -324,6 +334,21 @@ export default function ConfiguracionPage() {
                     value={formData.heroSubtitle}
                     onChange={(e) => setFormData((prev) => ({ ...prev, heroSubtitle: e.target.value }))}
                   />
+                </div>
+                <div>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
+                    Destacados de portada (uno por línea)
+                  </label>
+                  <textarea
+                    className="form-input mt-1.5 resize-none"
+                    rows={3}
+                    value={formData.heroHighlights}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, heroHighlights: e.target.value }))}
+                    placeholder={"Manicura Clásica\nEsmaltado Semipermanente"}
+                  />
+                  <p className="text-charcoal/40 text-xs mt-1.5">
+                    Se muestran con un ✓ en la tarjeta de portada. Si lo dejás vacío, se muestran los primeros 2 servicios cargados.
+                  </p>
                 </div>
                 <div>
                   <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Descripción para buscadores (SEO)</label>
