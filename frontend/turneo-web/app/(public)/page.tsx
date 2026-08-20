@@ -65,7 +65,6 @@ const BENEFICIOS = [
 const PLANES = [
   {
     name: "Free",
-    price: "$0 / mes",
     tagline: "Para empezar",
     items: [
       "1 profesional",
@@ -79,7 +78,6 @@ const PLANES = [
   },
   {
     name: "Starter",
-    price: "$12.900 / mes",
     tagline: "Para profesionales independientes",
     items: [
       "1 profesional",
@@ -92,7 +90,6 @@ const PLANES = [
   },
   {
     name: "Pro",
-    price: "$24.900 / mes",
     tagline: "El más elegido",
     items: [
       "Hasta 5 profesionales",
@@ -106,7 +103,6 @@ const PLANES = [
   },
   {
     name: "Premium",
-    price: "$39.900 / mes",
     tagline: "Para equipos grandes",
     items: [
       "Hasta 15 profesionales",
@@ -119,7 +115,6 @@ const PLANES = [
   },
   {
     name: "Enterprise",
-    price: "Desde $69.900 / mes",
     tagline: "A tu medida",
     items: [
       "Profesionales y turnos sin límite",
@@ -130,8 +125,6 @@ const PLANES = [
     cta: "Hablar con nosotros",
   },
 ];
-
-const NOTA_ANUAL = "Pagando anual: pagá 10 meses y usá 12 (2 meses gratis).";
 
 const A_MEDIDA = [
   {
@@ -257,7 +250,6 @@ export default function ComercialHome() {
         <div className="space-y-3 text-center">
           <span className="badge mx-auto">Planes</span>
           <h2 className="text-3xl font-semibold text-charcoal">Un plan para cada etapa de tu negocio</h2>
-          <p className="text-sm text-charcoal/60">{NOTA_ANUAL}</p>
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {PLANES.map((plan) => (
@@ -268,7 +260,6 @@ export default function ComercialHome() {
               <div>
                 <h3 className="text-xl font-semibold text-charcoal">{plan.name}</h3>
                 <p className="text-xs uppercase tracking-widest text-charcoal/40">{plan.tagline}</p>
-                <p className="mt-1 text-sm font-medium text-blushdark">{plan.price}</p>
               </div>
               <ul className="flex-1 space-y-2 text-sm text-charcoal/60">
                 {plan.items.map((item) => (
