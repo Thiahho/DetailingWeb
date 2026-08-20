@@ -2,9 +2,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Turneo.Api.Core.Roles;
 
-// Permiso de un usuario Staff sobre un módulo del panel admin. Los Admin no
-// tienen filas acá — su acceso es total siempre, sin excepción (ver
-// RequirePermissionAttribute). Solo aplica a usuarios con User.Role == "Staff".
+// Permiso de un usuario sobre un módulo del panel admin. Los Admin no tienen
+// filas acá — su acceso es total siempre, sin excepción (ver
+// RequirePermissionAttribute). Aplica a usuarios con Role == "Staff" (su único
+// modo de acceso al panel) o Role == "Professional" (acceso adicional a su
+// propia agenda — ver RequirePermissionAttribute.alsoCheckProfessional).
 [Table("ModulePermissions")]
 public class ModulePermission : ITenantScoped
 {

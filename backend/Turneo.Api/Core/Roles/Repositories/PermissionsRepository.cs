@@ -11,11 +11,15 @@ public class PermissionsRepository : IPermissionsRepository
         _context = context;
     }
 
-    public Task<List<User>> GetStaffUsersAsync() =>
-        _context.Users.Where(u => u.Role == "Staff").OrderBy(u => u.Email).ToListAsync();
+    public Task<List<User>> GetPermissionableUsersAsync() =>
+        _context.Users
+            .Include(u => u.Professional)
+            .Where(u => u.Role == "Staff" || (u.Role == "Professional" && _context.ModulePermissions.Any(p => p.UserId == u.Id)))
+            .OrderBy(u => u.Email)
+            .ToListAsync();
 
-    public Task<User?> FindStaffUserAsync(int userId) =>
-        _context.Users.FirstOrDefaultAsync(u => u.Id == userId && u.Role == "Staff");
+    public Task<User?> FindPermissionableUserAsync(int userId) =>
+        _context.Users.FirstOrDefaultAsync(u => u.Id == userId && (u.Role == "Staff" || u.Role == "Professional"));
 
     public Task<List<ModulePermission>> GetForUserAsync(int userId) =>
         _context.ModulePermissions.Where(p => p.UserId == userId).ToListAsync();

@@ -29,8 +29,8 @@ public class GalleryController : ControllerBase
     }
 
     [HttpGet("all")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Galeria, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Galeria, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAll()
     {
         var items = await _repository.GetAllAsync();
@@ -38,8 +38,8 @@ public class GalleryController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Galeria, PermissionActions.Create)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Galeria, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> Create([FromBody] GalleryItemRequest request)
     {
         var item = new GalleryItem
@@ -57,8 +57,8 @@ public class GalleryController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Galeria, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Galeria, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> Update(int id, [FromBody] GalleryItemRequest request)
     {
         var item = await _repository.FindAsync(id);
@@ -75,8 +75,8 @@ public class GalleryController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Galeria, PermissionActions.Delete)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Galeria, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> Delete(int id)
     {
         var item = await _repository.FindAsync(id);

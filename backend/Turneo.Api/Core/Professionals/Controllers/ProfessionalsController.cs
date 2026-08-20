@@ -53,8 +53,8 @@ public class ProfessionalsController : ControllerBase
 
     // GET: api/professionals/all (admin, incluye inactivos + Commission)
     [HttpGet("all")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Profesionales, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Profesionales, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAllAdmin()
     {
         var professionals = await _repository.GetAllWithServicesAsync();
@@ -78,6 +78,7 @@ public class ProfessionalsController : ControllerBase
                 p.CreatedAt,
                 p.UpdatedAt,
                 Services = p.Services.Select(s => new { s.Id, s.Title }),
+                AccountUserId = account.Email != null ? (int?)account.UserId : null,
                 AccountEmail = account.Email,
                 AccountUsername = account.Username,
                 AccountTelegramChatId = account.TelegramChatId
@@ -264,8 +265,8 @@ public class ProfessionalsController : ControllerBase
 
     // POST: api/professionals (admin)
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Profesionales, PermissionActions.Create)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Profesionales, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> Create([FromBody] ProfessionalRequest request)
     {
         var activeCount = await _repository.CountActiveAsync();
@@ -314,8 +315,8 @@ public class ProfessionalsController : ControllerBase
 
     // PUT: api/professionals/{id} (admin)
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Profesionales, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Profesionales, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> Update(int id, [FromBody] ProfessionalRequest request)
     {
         // Include(Services) para que el M2M quede trackeado y se pueda reconciliar
@@ -348,8 +349,8 @@ public class ProfessionalsController : ControllerBase
 
     // DELETE: api/professionals/{id} (admin)
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Profesionales, PermissionActions.Delete)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Profesionales, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> Delete(int id)
     {
         var professional = await _repository.GetByIdAsync(id);

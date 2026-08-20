@@ -5,16 +5,16 @@ namespace Turneo.Api.Core.Notifications;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Staff")]
+[Authorize(Roles = "Admin,Staff,Professional")]
 public class RemindersController(ReminderService reminderService) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.View)]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetReminders([FromQuery] string? status = null) =>
         Ok(await reminderService.GetRemindersAsync(status));
 
     [HttpGet("{id:int}")]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.View)]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetReminder(int id)
     {
         var reminder = await reminderService.GetReminderByIdAsync(id);
@@ -22,7 +22,7 @@ public class RemindersController(ReminderService reminderService) : ControllerBa
     }
 
     [HttpPost]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.Create)]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> CreateReminder([FromBody] CreateReminderRequest req)
     {
         try
@@ -37,7 +37,7 @@ public class RemindersController(ReminderService reminderService) : ControllerBa
     }
 
     [HttpPut("{id:int}")]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> UpdateReminder(int id, [FromBody] UpdateReminderRequest req)
     {
         try
@@ -52,7 +52,7 @@ public class RemindersController(ReminderService reminderService) : ControllerBa
     }
 
     [HttpPost("{id:int}/cancel")]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> CancelReminder(int id)
     {
         var cancelled = await reminderService.CancelReminderAsync(id);
@@ -64,7 +64,7 @@ public class RemindersController(ReminderService reminderService) : ControllerBa
     // El admin lo mandó a mano (WhatsApp/email personal) — evita que el job
     // automático lo procese de nuevo más tarde.
     [HttpPost("{id:int}/mark-sent")]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> MarkSent(int id)
     {
         var marked = await reminderService.MarkSentAsync(id);

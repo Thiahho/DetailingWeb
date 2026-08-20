@@ -39,13 +39,20 @@ public class AuthService
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
         var token = GenerateJwtToken(user.Id, user.Email, user.Role, "admin_access", TimeSpan.FromMinutes(expiryMinutes), user.ProfessionalId);
 
+        // Admin/Staff siempre tienen panel. Un profesional lo tiene solo si el admin
+        // le otorgó algún módulo desde Permisos (ver PermissionsController).
+        var hasPanelAccess = user.Role is "Admin" or "Staff"
+            || (user.Role == "Professional" && await _context.ModulePermissions.AnyAsync(p =>
+                p.UserId == user.Id && (p.CanView || p.CanCreate || p.CanEdit || p.CanDelete)));
+
         return new LoginResponse
         {
             Token = token,
             Email = user.Email,
             Role = user.Role,
             ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
-            ProfessionalId = user.ProfessionalId
+            ProfessionalId = user.ProfessionalId,
+            HasPanelAccess = hasPanelAccess
         };
     }
 

@@ -7,7 +7,7 @@ namespace Turneo.Api.Core.Caja;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Staff")]
+[Authorize(Roles = "Admin,Staff,Professional")]
 public class CajaController : ControllerBase
 {
     private readonly ICajaRepository _repository;
@@ -52,7 +52,7 @@ public class CajaController : ControllerBase
 
     // GET: api/caja/current (admin - sesión de caja abierta, si hay)
     [HttpGet("current")]
-    [RequirePermission(PermissionModules.Caja, PermissionActions.View)]
+    [RequirePermission(PermissionModules.Caja, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetCurrent()
     {
         var session = await _repository.GetOpenSessionAsync();
@@ -75,7 +75,7 @@ public class CajaController : ControllerBase
 
     // POST: api/caja/open (admin)
     [HttpPost("open")]
-    [RequirePermission(PermissionModules.Caja, PermissionActions.Create)]
+    [RequirePermission(PermissionModules.Caja, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> OpenSession([FromBody] OpenCajaSessionRequest request)
     {
         var existing = await _repository.GetOpenSessionAsync();
@@ -96,7 +96,7 @@ public class CajaController : ControllerBase
 
     // POST: api/caja/close (admin)
     [HttpPost("close")]
-    [RequirePermission(PermissionModules.Caja, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.Caja, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> CloseSession([FromBody] CloseCajaSessionRequest request)
     {
         var session = await _repository.GetOpenSessionAsync();
@@ -124,7 +124,7 @@ public class CajaController : ControllerBase
 
     // POST: api/caja/movements (admin - cobro/seña/devolución/movimiento manual)
     [HttpPost("movements")]
-    [RequirePermission(PermissionModules.Caja, PermissionActions.Create)]
+    [RequirePermission(PermissionModules.Caja, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> CreateMovement([FromBody] CreateCajaMovementRequest request)
     {
         var session = await _repository.GetOpenSessionAsync();
@@ -151,7 +151,7 @@ public class CajaController : ControllerBase
 
     // GET: api/caja/sessions?year=&month= (admin - caja mensual, solo lectura)
     [HttpGet("sessions")]
-    [RequirePermission(PermissionModules.Caja, PermissionActions.View)]
+    [RequirePermission(PermissionModules.Caja, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetSessionsInMonth([FromQuery] int year, [FromQuery] int month)
     {
         if (month is < 1 or > 12)
@@ -193,7 +193,7 @@ public class CajaController : ControllerBase
 
     // GET: api/caja/pending-bookings (admin - turnos recientes con saldo pendiente de cobro)
     [HttpGet("pending-bookings")]
-    [RequirePermission(PermissionModules.Caja, PermissionActions.View)]
+    [RequirePermission(PermissionModules.Caja, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetPendingBookings()
     {
         var since = DateTime.UtcNow.AddDays(-30);

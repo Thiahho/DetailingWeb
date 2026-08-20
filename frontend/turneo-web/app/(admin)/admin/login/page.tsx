@@ -45,7 +45,7 @@ export default function LoginPage() {
         throw new Error(data.message || "Error al iniciar sesión");
       }
 
-      setLoggedIn(data.email, data.role);
+      setLoggedIn(data.email, data.role, data.hasPanelAccess);
       router.push("/admin/turnos");
     } catch (err: any) {
       setError(err.message || "Error de conexión");

@@ -24,10 +24,10 @@ public class PermissionsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public IActionResult GetModules() => Ok(PermissionModules.All);
 
-    // GET: api/permissions/me (admin/staff - permisos efectivos del usuario logueado,
-    // los consume el frontend para ocultar/deshabilitar lo que no puede usar)
+    // GET: api/permissions/me (admin/staff/profesional-con-permisos - permisos efectivos
+    // del usuario logueado, los consume el frontend para ocultar/deshabilitar lo que no puede usar)
     [HttpGet("me")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff,Professional")]
     public async Task<IActionResult> GetMine()
     {
         var role = User.FindFirst(ClaimTypes.Role)!.Value;
@@ -52,15 +52,16 @@ public class PermissionsController : ControllerBase
         return Ok(new { role, permissions = granted.Select(MapPermission) });
     }
 
-    // GET: api/permissions/staff (admin - lista de usuarios Staff con su grilla de permisos)
+    // GET: api/permissions/staff (admin - lista de cuentas Staff + profesionales con
+    // permisos de panel otorgados, cada una con su grilla)
     [HttpGet("staff")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetStaff()
     {
-        var staffUsers = await _repository.GetStaffUsersAsync();
+        var users = await _repository.GetPermissionableUsersAsync();
         var result = new List<object>();
 
-        foreach (var user in staffUsers)
+        foreach (var user in users)
         {
             var permissions = await _repository.GetForUserAsync(user.Id);
             result.Add(new
@@ -68,6 +69,9 @@ public class PermissionsController : ControllerBase
                 user.Id,
                 user.Email,
                 user.Username,
+                type = user.Role,
+                professionalId = user.ProfessionalId,
+                professionalName = user.Professional != null ? $"{user.Professional.FirstName} {user.Professional.LastName}" : null,
                 permissions = permissions.Select(MapPermission)
             });
         }
@@ -97,9 +101,9 @@ public class PermissionsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdatePermissions(int userId, [FromBody] UpdateStaffPermissionsRequest request)
     {
-        var user = await _repository.FindStaffUserAsync(userId);
+        var user = await _repository.FindPermissionableUserAsync(userId);
         if (user == null)
-            return NotFound(new { success = false, message = "Usuario Staff no encontrado" });
+            return NotFound(new { success = false, message = "Usuario no encontrado" });
 
         var invalidModule = request.Permissions.FirstOrDefault(p => !PermissionModules.IsValid(p.Module));
         if (invalidModule != null)
@@ -141,18 +145,21 @@ public class PermissionsController : ControllerBase
         }
     }
 
-    // DELETE: api/permissions/staff/{userId} (admin - revoca el acceso por completo)
+    // DELETE: api/permissions/staff/{userId} (admin - revoca el acceso)
+    // Para Staff borra la cuenta completa (no tiene otro uso). Para un profesional
+    // solo se le sacan los permisos de panel — su login de agenda no se toca.
     [HttpDelete("staff/{userId}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteStaff(int userId)
     {
-        var user = await _repository.FindStaffUserAsync(userId);
+        var user = await _repository.FindPermissionableUserAsync(userId);
         if (user == null)
-            return NotFound(new { success = false, message = "Usuario Staff no encontrado" });
+            return NotFound(new { success = false, message = "Usuario no encontrado" });
 
         var permissions = await _repository.GetForUserAsync(userId);
         _repository.RemovePermissions(permissions);
-        _repository.RemoveUser(user);
+        if (user.Role == "Staff")
+            _repository.RemoveUser(user);
         await _repository.SaveChangesAsync();
 
         return Ok(new { success = true, message = "Acceso revocado" });

@@ -48,7 +48,7 @@ export default function ProfessionalLoginPage() {
         throw new Error("Esta cuenta no tiene acceso al panel de profesionales");
       }
 
-      setLoggedIn(data.email, data.role);
+      setLoggedIn(data.email, data.role, data.hasPanelAccess);
       router.push("/profesional/agenda");
     } catch (err: any) {
       setError(err.message || "Error de conexión");

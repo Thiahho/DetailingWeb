@@ -26,14 +26,14 @@ public class ProfessionalsRepository : IProfessionalsRepository
             .ThenBy(p => p.CreatedAt)
             .ToListAsync();
 
-    public async Task<Dictionary<int, (string? Email, string? Username, string? TelegramChatId)>> GetProfessionalAccountsAsync()
+    public async Task<Dictionary<int, (int UserId, string? Email, string? Username, string? TelegramChatId)>> GetProfessionalAccountsAsync()
     {
         var accounts = await _context.Users
             .Where(u => u.ProfessionalId != null && u.Role == "Professional")
-            .Select(u => new { u.ProfessionalId, u.Email, u.Username, u.TelegramChatId })
+            .Select(u => new { u.Id, u.ProfessionalId, u.Email, u.Username, u.TelegramChatId })
             .ToListAsync();
 
-        return accounts.ToDictionary(a => a.ProfessionalId!.Value, a => ((string?)a.Email, a.Username, a.TelegramChatId));
+        return accounts.ToDictionary(a => a.ProfessionalId!.Value, a => (a.Id, (string?)a.Email, a.Username, a.TelegramChatId));
     }
 
     public Task<List<Professional>> GetActiveByServiceAsync(int serviceId) =>

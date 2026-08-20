@@ -20,7 +20,21 @@ interface StaffUser {
   id: number;
   email: string;
   username?: string | null;
+  type?: "Staff" | "Professional";
+  professionalId?: number | null;
+  professionalName?: string | null;
   permissions: StaffPermission[];
+}
+
+// Profesional del Equipo con acceso ya activado (ver /admin/profesionales),
+// candidato a que se le otorguen permisos de panel desde acá.
+interface ProfessionalOption {
+  id: number;
+  firstName: string;
+  lastName: string;
+  accountUserId: number | null;
+  accountEmail: string | null;
+  accountUsername: string | null;
 }
 
 type PermFlag = "canView" | "canCreate" | "canEdit" | "canDelete";
@@ -56,6 +70,7 @@ export default function PermisosPage() {
   const router = useRouter();
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [modules, setModules] = useState<string[]>([]);
+  const [professionals, setProfessionals] = useState<ProfessionalOption[]>([]);
   const [loading, setLoading] = useState(true);
   const { toasts, showToast, removeToast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -64,6 +79,8 @@ export default function PermisosPage() {
   const [createForm, setCreateForm] = useState({ email: "", username: "", password: "" });
   const [creating, setCreating] = useState(false);
   const createFormRef = useRef<HTMLFormElement>(null);
+
+  const [showLinkPicker, setShowLinkPicker] = useState(false);
 
   const [editingStaff, setEditingStaff] = useState<StaffUser | null>(null);
   const [editGrid, setEditGrid] = useState<PermGrid>({});
@@ -85,13 +102,21 @@ export default function PermisosPage() {
     Promise.all([
       fetch("/api/permissions/staff").then((r) => r.json()),
       fetch("/api/permissions/modules").then((r) => r.json()),
+      fetch("/api/professionals/all").then((r) => r.json()),
     ])
-      .then(([staffData, modulesData]) => {
+      .then(([staffData, modulesData, professionalsData]) => {
         if (Array.isArray(staffData)) setStaff(staffData);
         if (Array.isArray(modulesData)) setModules(modulesData);
+        if (Array.isArray(professionalsData)) setProfessionals(professionalsData);
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  // Profesionales con acceso activado que todavía no tienen fila en Permisos —
+  // candidatos para "Vincular profesional".
+  const linkableProfessionals = professionals.filter(
+    (p) => p.accountUserId != null && !staff.some((s) => s.id === p.accountUserId)
+  );
 
   const openCreate = () => {
     setCreateForm({ email: "", username: "", password: "" });
@@ -110,7 +135,7 @@ export default function PermisosPage() {
       const data = await res.json();
       if (res.ok) {
         showToast("success", "Cuenta creada", "Ahora asignale permisos por módulo.");
-        setStaff((prev) => [...prev, { id: data.id, email: data.email, username: data.username, permissions: [] }]);
+        setStaff((prev) => [...prev, { id: data.id, email: data.email, username: data.username, type: "Staff", permissions: [] }]);
         setShowCreateForm(false);
       } else {
         showToast("error", "No se pudo crear la cuenta", data.message);
@@ -120,6 +145,20 @@ export default function PermisosPage() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const linkProfessional = (p: ProfessionalOption) => {
+    if (p.accountUserId == null) return;
+    setShowLinkPicker(false);
+    openEdit({
+      id: p.accountUserId,
+      email: p.accountEmail ?? "",
+      username: p.accountUsername,
+      type: "Professional",
+      professionalId: p.id,
+      professionalName: `${p.firstName} ${p.lastName}`,
+      permissions: [],
+    });
   };
 
   const openEdit = (s: StaffUser) => {
@@ -159,7 +198,11 @@ export default function PermisosPage() {
       const data = await res.json();
       if (res.ok) {
         showToast("success", "Permisos actualizados");
-        setStaff((prev) => prev.map((s) => (s.id === editingStaff.id ? { ...s, permissions } : s)));
+        setStaff((prev) =>
+          prev.some((s) => s.id === editingStaff.id)
+            ? prev.map((s) => (s.id === editingStaff.id ? { ...s, permissions } : s))
+            : [...prev, { ...editingStaff, permissions }]
+        );
         setEditingStaff(null);
       } else {
         showToast("error", "No se pudo guardar", data.message);
@@ -201,15 +244,18 @@ export default function PermisosPage() {
   };
 
   const deleteStaff = async (s: StaffUser) => {
+    const isProfessional = s.type === "Professional";
     if (!(await confirm({
-      message: `¿Revocar el acceso de ${s.email}? Ya no va a poder entrar al panel.`,
-      confirmLabel: "Revocar acceso",
+      message: isProfessional
+        ? `¿Sacarle los permisos de panel a ${s.professionalName ?? s.email}? Sigue entrando normalmente a su agenda, solo pierde el acceso extra.`
+        : `¿Revocar el acceso de ${s.email}? Ya no va a poder entrar al panel.`,
+      confirmLabel: isProfessional ? "Sacar permisos" : "Revocar acceso",
     }))) return;
 
     const res = await fetch(`/api/permissions/staff/${s.id}`, { method: "DELETE" });
     const data = await res.json();
     if (res.ok) {
-      showToast("warning", "Acceso revocado", data.message);
+      showToast("warning", isProfessional ? "Permisos de panel removidos" : "Acceso revocado", data.message);
       setStaff((prev) => prev.filter((x) => x.id !== s.id));
     } else {
       showToast("error", "No se pudo revocar", data.message);
@@ -234,17 +280,22 @@ export default function PermisosPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Permisos</h1>
             <p className="text-charcoal/50 text-sm mt-1">
-              Creá cuentas de acceso limitado (Staff) y asignales qué módulos pueden ver, crear, editar o eliminar.
+              Creá cuentas de acceso limitado (Staff) o sumale acceso al panel a un profesional del Equipo, y asignales qué módulos pueden ver, crear, editar o eliminar.
             </p>
           </div>
-          <Button onClick={openCreate} data-testid="staff-create-button" variant="primary" className="shrink-0">
-            + Nueva cuenta
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button onClick={() => setShowLinkPicker(true)} variant="secondary">
+              Vincular profesional
+            </Button>
+            <Button onClick={openCreate} data-testid="staff-create-button" variant="primary">
+              + Nueva cuenta
+            </Button>
+          </div>
         </div>
 
         {staff.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-mauve/10 rounded-xl">
-            <p className="text-charcoal/40 text-lg">No hay cuentas Staff todavía</p>
+            <p className="text-charcoal/40 text-lg">No hay cuentas con permisos todavía</p>
             <button onClick={openCreate} className="mt-4 text-blushdark hover:text-blush transition text-sm">
               + Crear la primera
             </button>
@@ -257,8 +308,21 @@ export default function PermisosPage() {
                 <div key={s.id} data-testid="staff-row" className="bg-ivory border border-mauve/5 rounded-2xl p-4 md:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-charcoal font-semibold text-sm">{s.email}</p>
-                      {s.username && <p className="text-charcoal/40 text-xs mt-0.5">Usuario: {s.username}</p>}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-charcoal font-semibold text-sm">
+                          {s.type === "Professional" ? s.professionalName : s.email}
+                        </p>
+                        {s.type === "Professional" && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-mauve/10 text-charcoal/50 font-medium uppercase tracking-wide">
+                            Equipo
+                          </span>
+                        )}
+                      </div>
+                      {s.type === "Professional" ? (
+                        <p className="text-charcoal/40 text-xs mt-0.5">{s.email}</p>
+                      ) : (
+                        s.username && <p className="text-charcoal/40 text-xs mt-0.5">Usuario: {s.username}</p>
+                      )}
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {granted.length === 0 ? (
                           <span className="text-[11px] text-charcoal/30 italic">Sin permisos asignados todavía</span>
@@ -275,11 +339,13 @@ export default function PermisosPage() {
                       <Button onClick={() => openEdit(s)} data-testid="staff-edit-permissions" variant="secondary" size="sm">
                         Permisos
                       </Button>
-                      <Button onClick={() => openPassword(s)} variant="secondary" size="sm">
-                        Contraseña
-                      </Button>
+                      {s.type !== "Professional" && (
+                        <Button onClick={() => openPassword(s)} variant="secondary" size="sm">
+                          Contraseña
+                        </Button>
+                      )}
                       <Button onClick={() => deleteStaff(s)} data-testid="staff-delete-button" variant="danger" size="sm">
-                        Revocar
+                        {s.type === "Professional" ? "Sacar permisos" : "Revocar"}
                       </Button>
                     </div>
                   </div>
@@ -346,13 +412,48 @@ export default function PermisosPage() {
         </div>
       )}
 
+      {/* Modal: elegir profesional del Equipo para vincular */}
+      {showLinkPicker && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowLinkPicker(false)}>
+          <div className="bg-ivory border border-mauve/10 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-charcoal">Vincular profesional</h2>
+              <button onClick={() => setShowLinkPicker(false)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
+            </div>
+            <p className="text-charcoal/50 text-xs mb-4">
+              Elegí un profesional del Equipo para sumarle acceso al panel admin. Va a seguir entrando con el mismo usuario y contraseña que ya tiene para su agenda.
+            </p>
+            {linkableProfessionals.length === 0 ? (
+              <p className="text-charcoal/40 text-sm text-center py-6">
+                No hay profesionales disponibles. Activales el acceso primero desde Equipo, o ya tienen permisos asignados acá.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {linkableProfessionals.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => linkProfessional(p)}
+                    className="w-full text-left px-3 py-2.5 rounded-lg border border-mauve/10 hover:border-blush/40 hover:bg-blush/5 transition"
+                  >
+                    <p className="text-charcoal text-sm font-medium">{p.firstName} {p.lastName}</p>
+                    <p className="text-charcoal/40 text-xs">{p.accountEmail}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Modal: grilla de permisos */}
       {editingStaff && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setEditingStaff(null)}>
           <div data-testid="staff-permissions-modal" className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
-                <h2 className="text-charcoal font-semibold text-lg">Permisos de {editingStaff.email}</h2>
+                <h2 className="text-charcoal font-semibold text-lg">
+                  Permisos de {editingStaff.type === "Professional" ? editingStaff.professionalName : editingStaff.email}
+                </h2>
                 <p className="text-charcoal/40 text-xs mt-0.5">Marcar "Ver" alcanza para consultar; las demás columnas habilitan escribir sobre ese módulo.</p>
               </div>
               <button onClick={() => setEditingStaff(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>

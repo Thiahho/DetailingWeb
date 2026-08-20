@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, History, LogOut, UserCog, Wallet } from "lucide-react";
+import { CalendarDays, History, LayoutDashboard, LogOut, UserCog, Wallet } from "lucide-react";
 import { getSiteConfig } from "@/src/lib/siteConfig";
+import { isAdminAuthenticated } from "@/src/lib/auth";
 
 const navItems = [
   { href: "/profesional/agenda", label: "Mi Agenda", shortLabel: "Agenda", icon: CalendarDays },
@@ -16,9 +17,13 @@ const navItems = [
 export default function ProfessionalSidebar() {
   const pathname = usePathname();
   const [logoUrl, setLogoUrl] = useState("/img/logo.png");
+  // Un profesional con permisos de panel otorgados desde Permisos (mismo login,
+  // acceso extra) ve un link a /admin. Sin permisos otorgados, no aparece.
+  const [hasPanelAccess, setHasPanelAccess] = useState(false);
 
   useEffect(() => {
     getSiteConfig().then((config) => { if (config.logoUrl) setLogoUrl(config.logoUrl); });
+    setHasPanelAccess(isAdminAuthenticated());
   }, []);
 
   const handleLogout = async () => {
@@ -58,7 +63,16 @@ export default function ProfessionalSidebar() {
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-mauve/10">
+        <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
+          {hasPanelAccess && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-charcoal/50 hover:text-charcoal hover:bg-porcelain transition-all"
+            >
+              <LayoutDashboard size={17} />
+              Panel
+            </Link>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600/70 hover:text-red-600 hover:bg-red-50 transition-all w-full"
@@ -77,13 +91,24 @@ export default function ProfessionalSidebar() {
           </div>
           <span className="text-charcoal text-sm font-semibold">Mi Agenda</span>
         </Link>
-        <button
-          onClick={handleLogout}
-          className="p-2 text-charcoal/60 hover:text-red-600 transition"
-          aria-label="Cerrar sesión"
-        >
-          <LogOut size={20} />
-        </button>
+        <div className="flex items-center gap-1">
+          {hasPanelAccess && (
+            <Link
+              href="/admin"
+              className="p-2 text-charcoal/60 hover:text-charcoal transition"
+              aria-label="Panel"
+            >
+              <LayoutDashboard size={20} />
+            </Link>
+          )}
+          <button
+            onClick={handleLogout}
+            className="p-2 text-charcoal/60 hover:text-red-600 transition"
+            aria-label="Cerrar sesión"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </header>
 
       {/* MOBILE — bottom tab bar: solo 4 items, entran todos sin drawer "Más" */}

@@ -6,7 +6,7 @@ namespace Turneo.Api.Core.SmartTags;
 
 [ApiController]
 [Route("api/smart-tags")]
-[Authorize(Roles = "Admin,Staff")]
+[Authorize(Roles = "Admin,Staff,Professional")]
 public class SmartTagsController : ControllerBase
 {
     private readonly ISmartTagsRepository _repository;
@@ -31,7 +31,7 @@ public class SmartTagsController : ControllerBase
     }
 
     [HttpGet]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetSmartTags()
     {
         var tags = await _repository.GetAllAsync();
@@ -39,7 +39,7 @@ public class SmartTagsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetSmartTag(int id)
     {
         var tag = await _repository.GetByIdAsync(id);
@@ -47,7 +47,7 @@ public class SmartTagsController : ControllerBase
     }
 
     [HttpPost]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Create)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> CreateSmartTag([FromBody] CreateSmartTagRequest req)
     {
         if (!SmartTagAction.IsValid(req.Action))
@@ -66,7 +66,7 @@ public class SmartTagsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> UpdateSmartTag(int id, [FromBody] UpdateSmartTagRequest req)
     {
         if (!SmartTagAction.IsValid(req.Action))
@@ -83,7 +83,7 @@ public class SmartTagsController : ControllerBase
     }
 
     [HttpPatch("{id:int}/status")]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> SetStatus(int id, [FromBody] SetSmartTagStatusRequest req)
     {
         var updated = await _repository.SetActiveAsync(id, req.IsActive);
@@ -91,7 +91,7 @@ public class SmartTagsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Delete)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> DeleteSmartTag(int id)
     {
         var deleted = await _repository.DeleteAsync(id);
@@ -101,7 +101,7 @@ public class SmartTagsController : ControllerBase
     // PngByteQRCode devuelve un byte[] puro — a propósito, no la clase QRCode
     // (basada en System.Drawing/Bitmap), que no corre en Linux/Render.
     [HttpGet("{id:int}/qr")]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetQrCode(int id)
     {
         var tag = await _repository.GetByIdAsync(id);
@@ -126,7 +126,7 @@ public class SmartTagsController : ControllerBase
         ConversionRate(row.Interactions, row.Completions));
 
     [HttpGet("{id:int}/analytics")]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetTagAnalytics(int id)
     {
         var row = await _repository.GetAnalyticsForTagAsync(id);
@@ -134,7 +134,7 @@ public class SmartTagsController : ControllerBase
     }
 
     [HttpGet("analytics")]
-    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View)]
+    [RequirePermission(PermissionModules.SmartTags, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAnalyticsSummary()
     {
         var rows = await _repository.GetAnalyticsSummaryAsync();

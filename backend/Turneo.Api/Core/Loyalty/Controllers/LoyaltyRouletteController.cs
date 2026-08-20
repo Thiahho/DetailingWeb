@@ -64,8 +64,8 @@ public class LoyaltyRouletteController : ControllerBase
 
     // GET: api/loyalty-roulette/prizes/all (admin — catálogo completo, activos e inactivos)
     [HttpGet("prizes/all")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Ruleta, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Ruleta, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetPrizesAdmin()
     {
         var prizes = await _context.LoyaltyPrizes
@@ -89,8 +89,8 @@ public class LoyaltyRouletteController : ControllerBase
 
     // POST: api/loyalty-roulette/prizes (admin)
     [HttpPost("prizes")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Ruleta, PermissionActions.Create)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Ruleta, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> CreatePrize([FromBody] SaveLoyaltyPrizeRequest request)
     {
         if (!Enum.TryParse<LoyaltyPrizeType>(request.Type, ignoreCase: true, out var type))
@@ -122,8 +122,8 @@ public class LoyaltyRouletteController : ControllerBase
     // quién le tocó — desactivarlo (IsActive=false) lo saca de la rueda sin
     // romper esa referencia.
     [HttpPut("prizes/{id:int}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Ruleta, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Ruleta, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> UpdatePrize(int id, [FromBody] SaveLoyaltyPrizeRequest request)
     {
         var prize = await _context.LoyaltyPrizes.FindAsync(id);
@@ -150,8 +150,8 @@ public class LoyaltyRouletteController : ControllerBase
 
     // GET: api/loyalty-roulette/spins (admin — historial de giros/ganadores)
     [HttpGet("spins")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Ruleta, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Ruleta, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetSpins()
     {
         var spins = await _context.LoyaltySpins
@@ -174,8 +174,8 @@ public class LoyaltyRouletteController : ControllerBase
 
     // POST: api/loyalty-roulette/spins/redeem (admin — canjear un código al mostrador)
     [HttpPost("spins/redeem")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Ruleta, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Ruleta, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> Redeem([FromBody] RedeemLoyaltyCodeRequest request)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

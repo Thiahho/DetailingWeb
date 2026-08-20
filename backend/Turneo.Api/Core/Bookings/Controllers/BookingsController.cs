@@ -139,8 +139,8 @@ public class BookingsController : ControllerBase
 
     // GET: api/bookings (admin - todas las reservas)
     [HttpGet]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAllBookings()
     {
         var bookings = await _repository.GetAllWithDetailsAsync();
@@ -321,8 +321,8 @@ public class BookingsController : ControllerBase
     // POST: api/bookings/{id}/admin-reschedule (admin - drag&drop de la agenda, sin las
     // restricciones del reschedule público: un admin sí puede mover turnos Confirmed)
     [HttpPost("{id}/admin-reschedule")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> AdminRescheduleBooking(int id, [FromBody] RescheduleRequest request)
     {
         await using var transaction = await _repository.BeginTransactionAsync();
@@ -364,8 +364,8 @@ public class BookingsController : ControllerBase
 
     // DELETE: api/bookings/expired (admin)
     [HttpDelete("expired")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.Delete)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> DeleteExpiredBookings()
     {
         var now = DateTime.UtcNow;
@@ -378,7 +378,7 @@ public class BookingsController : ControllerBase
     // PATCH: api/bookings/{id}/confirm (admin, o el profesional dueño del turno)
     [HttpPatch("{id}/confirm")]
     [Authorize(Roles = "Admin,Staff,Professional")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> ConfirmBooking(int id)
     {
         var booking = await _repository.FindAsync(id);
@@ -406,8 +406,8 @@ public class BookingsController : ControllerBase
     // servicio, mensaje. No toca ProfessionalId: reasignar profesional se hace arrastrando
     // el turno en la agenda, así el TimeSlot.ProfessionalId no queda desincronizado.)
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> UpdateBooking(int id, [FromBody] UpdateBookingRequest request)
     {
         var booking = await _repository.FindAsync(id);
@@ -441,8 +441,8 @@ public class BookingsController : ControllerBase
     // Reemplaza la lista de items completa en cada guardado, más simple que CRUD granular
     // por item y coherente con el flujo de UI de "guardar detalle" de una sola vez.)
     [HttpPut("{id}/detail")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> UpdateBookingDetail(int id, [FromBody] UpdateBookingDetailRequest request)
     {
         var booking = await _repository.GetByIdWithItemsAsync(id);

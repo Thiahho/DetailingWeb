@@ -8,4 +8,7 @@ public class LoginResponse
     public DateTime ExpiresAt { get; set; }
     public string? PendingOtpCode { get; set; }
     public int? ProfessionalId { get; set; }
+    // Admin/Staff siempre true. Un profesional lo tiene en true solo si el admin
+    // le otorgó algún módulo del panel desde Permisos (ver AuthService.LoginAsync).
+    public bool HasPanelAccess { get; set; }
 }

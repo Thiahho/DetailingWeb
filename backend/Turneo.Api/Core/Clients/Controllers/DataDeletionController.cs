@@ -20,13 +20,13 @@ public class DataDeletionController(DataDeletionService service) : ControllerBas
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAll() => Ok(await service.GetRequestsAsync());
 
     [HttpPost("{id:int}/confirm")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.Delete)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> Confirm(int id, [FromBody] ResolveDataDeletionRequest request)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -37,8 +37,8 @@ public class DataDeletionController(DataDeletionService service) : ControllerBas
     }
 
     [HttpPost("{id:int}/reject")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Clientes, PermissionActions.Delete)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Clientes, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> Reject(int id, [FromBody] ResolveDataDeletionRequest request)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

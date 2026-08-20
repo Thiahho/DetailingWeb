@@ -66,6 +66,7 @@ public class AuthController : ControllerBase
               email=response.Email,
               role=response.Role,
               professionalId=response.ProfessionalId,
+              hasPanelAccess=response.HasPanelAccess,
             });
         }
         catch (Exception ex)

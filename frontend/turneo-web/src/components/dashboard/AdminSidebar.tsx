@@ -75,7 +75,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("/img/logo.png");
-  const { isAdmin, can, loading: loadingPermissions } = usePermissions();
+  const { role, isAdmin, can, loading: loadingPermissions } = usePermissions();
 
   useEffect(() => {
     getSiteConfig().then((config) => { if (config.logoUrl) setLogoUrl(config.logoUrl); });
@@ -154,7 +154,13 @@ export default function AdminSidebar() {
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-mauve/10">
+        <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
+          {role === "Professional" && (
+            <Link href="/profesional/agenda" className={linkClasses(false)}>
+              <CalendarDays size={17} />
+              Mi agenda
+            </Link>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600/70 hover:text-red-600 hover:bg-red-50 transition-all w-full"
@@ -268,7 +274,13 @@ export default function AdminSidebar() {
               ))}
             </nav>
 
-            <div className="px-3 py-4 border-t border-mauve/10">
+            <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
+              {role === "Professional" && (
+                <Link href="/profesional/agenda" onClick={() => setMenuOpen(false)} className={linkClasses(false)}>
+                  <CalendarDays size={17} />
+                  Mi agenda
+                </Link>
+              )}
               <button
                 onClick={() => { setMenuOpen(false); handleLogout(); }}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-600/70 hover:text-red-600 hover:bg-red-50 transition-all w-full"

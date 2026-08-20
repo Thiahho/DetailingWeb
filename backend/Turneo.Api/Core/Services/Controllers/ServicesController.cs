@@ -49,8 +49,8 @@ public class ServicesController : ControllerBase
 
     // GET: api/services/all  (admin, incluye inactivos)
     [HttpGet("all")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Servicios, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAllAdmin()
     {
         var services = await _repository.GetAllAsync();
@@ -106,8 +106,8 @@ public class ServicesController : ControllerBase
 
     // POST: api/services  (admin)
     [HttpPost]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Servicios, PermissionActions.Create)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> Create([FromBody] ServiceRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Slug))
@@ -167,8 +167,8 @@ public class ServicesController : ControllerBase
 
     // PUT: api/services/{id}  (admin)
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Servicios, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> Update(int id, [FromBody] ServiceRequest request)
     {
         var service = await _repository.FindAsync(id);
@@ -201,8 +201,8 @@ public class ServicesController : ControllerBase
 
     // DELETE: api/services/{id}  (admin)
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Servicios, PermissionActions.Delete)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> Delete(int id)
     {
         var service = await _repository.FindAsync(id);
@@ -217,8 +217,8 @@ public class ServicesController : ControllerBase
 
     // GET: api/services/{id}/recipe  (admin - insumos que consume este servicio, con cantidad)
     [HttpGet("{id}/recipe")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Servicios, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetRecipe(int id)
     {
         var items = await _recipeRepository.GetByServiceIdAsync(id);
@@ -234,8 +234,8 @@ public class ServicesController : ControllerBase
     // PUT: api/services/{id}/recipe  (admin - reemplaza la receta completa, mismo patrón
     // que el detalle de un turno: más simple que CRUD granular por ítem)
     [HttpPut("{id}/recipe")]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Servicios, PermissionActions.Edit)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Servicios, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> UpdateRecipe(int id, [FromBody] UpdateServiceRecipeRequest request)
     {
         var service = await _repository.FindAsync(id);

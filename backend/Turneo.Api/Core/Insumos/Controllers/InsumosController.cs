@@ -6,7 +6,7 @@ namespace Turneo.Api.Core.Insumos;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Staff")]
+[Authorize(Roles = "Admin,Staff,Professional")]
 public class InsumosController : ControllerBase
 {
     private readonly IInsumosRepository _repository;
@@ -18,7 +18,7 @@ public class InsumosController : ControllerBase
 
     // GET: api/insumos  (admin - inventario + catálogo usado al armar el detalle de un turno)
     [HttpGet]
-    [RequirePermission(PermissionModules.Insumos, PermissionActions.View)]
+    [RequirePermission(PermissionModules.Insumos, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAll()
     {
         var insumos = await _repository.GetAllAsync();
@@ -39,7 +39,7 @@ public class InsumosController : ControllerBase
 
     // POST: api/insumos  (admin)
     [HttpPost]
-    [RequirePermission(PermissionModules.Insumos, PermissionActions.Create)]
+    [RequirePermission(PermissionModules.Insumos, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> Create([FromBody] InsumoRequest request)
     {
         var insumo = new Insumo
@@ -69,7 +69,7 @@ public class InsumosController : ControllerBase
 
     // PUT: api/insumos/{id}  (admin - también se usa para ajustar stock manualmente)
     [HttpPut("{id}")]
-    [RequirePermission(PermissionModules.Insumos, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.Insumos, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> Update(int id, [FromBody] InsumoRequest request)
     {
         var insumo = await _repository.FindAsync(id);
@@ -91,7 +91,7 @@ public class InsumosController : ControllerBase
 
     // DELETE: api/insumos/{id}  (admin)
     [HttpDelete("{id}")]
-    [RequirePermission(PermissionModules.Insumos, PermissionActions.Delete)]
+    [RequirePermission(PermissionModules.Insumos, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> Delete(int id)
     {
         var insumo = await _repository.FindAsync(id);

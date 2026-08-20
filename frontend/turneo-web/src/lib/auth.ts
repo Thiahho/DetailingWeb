@@ -29,6 +29,7 @@ function forceLogoutStaleWindow(): void {
   localStorage.removeItem("isLoggedIn");
   localStorage.removeItem("email");
   localStorage.removeItem("role");
+  localStorage.removeItem("hasPanelAccess");
   if (hadSession) {
     window.dispatchEvent(new Event("auth-change"));
   }
@@ -52,13 +53,19 @@ export function getRole(): string | null {
   return localStorage.getItem("role");
 }
 
-// Sesión activa Y con rol Admin o Staff — usar este guard en /admin/*, no
+// Sesión activa Y con acceso al panel admin — usar este guard en /admin/*, no
 // isAuthenticated() a secas, porque un profesional logueado también pasa
-// isAuthenticated(). Staff entra al panel igual que Admin, pero con acceso
-// acotado por módulo (ver usePermissions) — el backend es quien realmente lo
-// hace cumplir vía RequirePermission, esto solo decide si entra al panel.
+// isAuthenticated(). Admin y Staff siempre entran (con acceso acotado por
+// módulo para Staff, ver usePermissions). Un profesional también entra si
+// desde Permisos se le otorgó algún módulo — mismo login que usa para su
+// propia agenda, "hasPanelAccess" viaja en el login (ver setLoggedIn). El
+// backend es quien realmente lo hace cumplir vía RequirePermission, esto solo
+// decide si entra al panel.
 export function isAdminAuthenticated(): boolean {
-  return isAuthenticated() && (getRole() === "Admin" || getRole() === "Staff");
+  if (!isAuthenticated()) return false;
+  const role = getRole();
+  if (role === "Admin" || role === "Staff") return true;
+  return role === "Professional" && localStorage.getItem("hasPanelAccess") === "true";
 }
 
 // Sesión activa Y con rol Admin exactamente (no Staff) — usar para gatear
@@ -73,13 +80,16 @@ export function isProfessionalAuthenticated(): boolean {
 }
 
 // Marcar sesión como activa (solo para UI)
-export function setLoggedIn(email?: string, role?: string): void {
+export function setLoggedIn(email?: string, role?: string, hasPanelAccess?: boolean): void {
   // Login legítimo en esta ventana — marcarla para que isFreshWindow() no la
   // trate como heredada en la próxima verificación dentro de la misma ventana.
   sessionStorage.setItem(SESSION_MARKER, "true");
   localStorage.setItem("isLoggedIn", "true");
   if (email) localStorage.setItem("email", email);
   if (role) localStorage.setItem("role", role);
+  // Solo se pisa cuando el caller lo manda explícitamente (login real) — verifySession()
+  // no lo pasa al restaurar sesión en un refresh, y no debe borrar el valor ya guardado.
+  if (hasPanelAccess !== undefined) localStorage.setItem("hasPanelAccess", hasPanelAccess ? "true" : "false");
   // Disparar evento para que otros componentes se actualicen
   window.dispatchEvent(new Event("auth-change"));
 }

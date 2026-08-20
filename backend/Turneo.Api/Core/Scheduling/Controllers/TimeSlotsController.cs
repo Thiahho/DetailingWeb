@@ -83,10 +83,12 @@ public class TimeSlotsController : ControllerBase
         }));
     }
 
-    // GET: api/timeslots (admin - todos los turnos con info de reserva)
+    // GET: api/timeslots (admin - todos los turnos con info de reserva; un profesional
+    // con el módulo Turnos otorgado desde Permisos también puede verlos todos, no solo
+    // los suyos — mismo criterio que un Staff con ese permiso)
     [HttpGet]
-    [Authorize(Roles = "Admin,Staff")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.View)]
+    [Authorize(Roles = "Admin,Staff,Professional")]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAllSlots()
     {
         var slots = await _repository.GetAllWithBookingsAsync();

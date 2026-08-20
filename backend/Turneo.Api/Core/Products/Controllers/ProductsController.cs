@@ -6,7 +6,7 @@ namespace Turneo.Api.Core.Products;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Staff")]
+[Authorize(Roles = "Admin,Staff,Professional")]
 public class ProductsController : ControllerBase
 {
     private readonly IProductsRepository _repository;
@@ -18,7 +18,7 @@ public class ProductsController : ControllerBase
 
     // GET: api/products  (admin - catálogo usado al armar el detalle de un turno)
     [HttpGet]
-    [RequirePermission(PermissionModules.Productos, PermissionActions.View)]
+    [RequirePermission(PermissionModules.Productos, PermissionActions.View, alsoCheckProfessional: true)]
     public async Task<IActionResult> GetAll()
     {
         var products = await _repository.GetAllAsync();
@@ -37,7 +37,7 @@ public class ProductsController : ControllerBase
 
     // POST: api/products  (admin)
     [HttpPost]
-    [RequirePermission(PermissionModules.Productos, PermissionActions.Create)]
+    [RequirePermission(PermissionModules.Productos, PermissionActions.Create, alsoCheckProfessional: true)]
     public async Task<IActionResult> Create([FromBody] ProductRequest request)
     {
         var product = new Product
@@ -63,7 +63,7 @@ public class ProductsController : ControllerBase
 
     // PUT: api/products/{id}  (admin)
     [HttpPut("{id}")]
-    [RequirePermission(PermissionModules.Productos, PermissionActions.Edit)]
+    [RequirePermission(PermissionModules.Productos, PermissionActions.Edit, alsoCheckProfessional: true)]
     public async Task<IActionResult> Update(int id, [FromBody] ProductRequest request)
     {
         var product = await _repository.FindAsync(id);
@@ -83,7 +83,7 @@ public class ProductsController : ControllerBase
 
     // DELETE: api/products/{id}  (admin)
     [HttpDelete("{id}")]
-    [RequirePermission(PermissionModules.Productos, PermissionActions.Delete)]
+    [RequirePermission(PermissionModules.Productos, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> Delete(int id)
     {
         var product = await _repository.FindAsync(id);
