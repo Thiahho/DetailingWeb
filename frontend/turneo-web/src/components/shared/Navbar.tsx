@@ -12,7 +12,7 @@ export default function Navbar() {
   const [businessName, setBusinessName] = useState(
     process.env.NEXT_PUBLIC_BUSINESS_NAME || ""
   );
-  const [logoUrl, setLogoUrl] = useState("/img/LogoPortada.png");
+  const logoUrl = "/img/LogoPortada.png";
   const pathname = usePathname();
   const router = useRouter();
 
@@ -32,7 +32,6 @@ export default function Navbar() {
   useEffect(() => {
     getSiteConfig().then((config) => {
       if (config.businessName) setBusinessName(config.businessName);
-      if (config.logoUrl) setLogoUrl(config.logoUrl);
     });
   }, []);
 
