@@ -62,84 +62,87 @@ const BENEFICIOS = [
   "Todo el negocio a la vista: estadísticas reales, no una libreta.",
 ];
 
-const PLANES = [
-  {
-    name: "Free",
-    tagline: "Para empezar",
-    items: [
-      "1 profesional",
-      "Hasta 35 turnos por mes",
-      "Notificaciones por WhatsApp",
-      "Agenda y página de reservas online",
-      "CRM e historial básico",
-    ],
-    note: "Podés quedarte en este plan el tiempo que quieras.",
-    cta: "Crear cuenta",
-  },
-  {
-    name: "Starter",
-    tagline: "Para profesionales independientes",
-    items: [
-      "1 profesional",
-      "Hasta 50 turnos por mes",
-      "CRM e historial completos",
-      "Subdominio propio, sin marca Turneo",
-      "Caja básica y gestión de señas",
-    ],
-    cta: "Elegir plan",
-  },
-  {
-    name: "Pro",
-    tagline: "El más elegido",
-    items: [
-      "Hasta 5 profesionales",
-      "Hasta 500 turnos por mes",
-      "WhatsApp y Mercado Pago",
-      "Caja completa: apertura, cierre y señas",
-      "Estadísticas por profesional",
-    ],
-    highlighted: true,
-    cta: "Elegir plan",
-  },
-  {
-    name: "Premium",
-    tagline: "Para equipos grandes",
-    items: [
-      "Hasta 15 profesionales",
-      "Hasta 2.000 turnos por mes",
-      "WhatsApp y Mercado Pago",
-      "Automatizaciones y recordatorios con IA",
-      "Estadísticas avanzadas",
-    ],
-    cta: "Elegir plan",
-  },
-  {
-    name: "Enterprise",
-    tagline: "A tu medida",
-    items: [
-      "Profesionales y turnos sin límite",
-      "WhatsApp, Mercado Pago y automatizaciones con IA",
-      "Infraestructura de mayor capacidad",
-      "Soporte prioritario",
-    ],
-    cta: "Hablar con nosotros",
-  },
-];
-
-const A_MEDIDA = [
-  {
-    name: "Licencia",
-    tagline: "Tu propia instalación",
-    description: "Instancia exclusiva de Turneo: base de datos, infraestructura y dominio propios, sin marca Turneo. Pago único, con mantenimiento mensual opcional (hosting, backups, actualizaciones).",
-    cta: "Consultar",
-  },
-  {
-    name: "Custom",
-    tagline: "A medida",
-    description: "Multi-sucursal real, integraciones externas, funcionalidades fuera del producto estándar. Presupuesto a medida de tu proyecto.",
-    cta: "Hablar con nosotros",
-  },
-];
+// PLANES y A_MEDIDA: datos de la sección de planes, comentada más abajo
+// (no se quiere mostrar selección de planes al público). Se dejan acá listos
+// para cuando se vuelva a habilitar esa sección.
+// const PLANES = [
+//   {
+//     name: "Free",
+//     tagline: "Para empezar",
+//     items: [
+//       "1 profesional",
+//       "Hasta 35 turnos por mes",
+//       "Notificaciones por WhatsApp",
+//       "Agenda y página de reservas online",
+//       "CRM e historial básico",
+//     ],
+//     note: "Podés quedarte en este plan el tiempo que quieras.",
+//     cta: "Crear cuenta",
+//   },
+//   {
+//     name: "Starter",
+//     tagline: "Para profesionales independientes",
+//     items: [
+//       "1 profesional",
+//       "Hasta 50 turnos por mes",
+//       "CRM e historial completos",
+//       "Subdominio propio, sin marca Turneo",
+//       "Caja básica y gestión de señas",
+//     ],
+//     cta: "Elegir plan",
+//   },
+//   {
+//     name: "Pro",
+//     tagline: "El más elegido",
+//     items: [
+//       "Hasta 5 profesionales",
+//       "Hasta 500 turnos por mes",
+//       "WhatsApp y Mercado Pago",
+//       "Caja completa: apertura, cierre y señas",
+//       "Estadísticas por profesional",
+//     ],
+//     highlighted: true,
+//     cta: "Elegir plan",
+//   },
+//   {
+//     name: "Premium",
+//     tagline: "Para equipos grandes",
+//     items: [
+//       "Hasta 15 profesionales",
+//       "Hasta 2.000 turnos por mes",
+//       "WhatsApp y Mercado Pago",
+//       "Automatizaciones y recordatorios con IA",
+//       "Estadísticas avanzadas",
+//     ],
+//     cta: "Elegir plan",
+//   },
+//   {
+//     name: "Enterprise",
+//     tagline: "A tu medida",
+//     items: [
+//       "Profesionales y turnos sin límite",
+//       "WhatsApp, Mercado Pago y automatizaciones con IA",
+//       "Infraestructura de mayor capacidad",
+//       "Soporte prioritario",
+//     ],
+//     cta: "Hablar con nosotros",
+//   },
+// ];
+//
+// const A_MEDIDA = [
+//   {
+//     name: "Licencia",
+//     tagline: "Tu propia instalación",
+//     description: "Instancia exclusiva de Turneo: base de datos, infraestructura y dominio propios, sin marca Turneo. Pago único, con mantenimiento mensual opcional (hosting, backups, actualizaciones).",
+//     cta: "Consultar",
+//   },
+//   {
+//     name: "Custom",
+//     tagline: "A medida",
+//     description: "Multi-sucursal real, integraciones externas, funcionalidades fuera del producto estándar. Presupuesto a medida de tu proyecto.",
+//     cta: "Hablar con nosotros",
+//   },
+// ];
 
 export default function ComercialHome() {
   return (
@@ -150,7 +153,7 @@ export default function ComercialHome() {
           <img src="/img/LogoPortada.png" alt="Turneo" className="h-10 w-auto object-contain" />
           <nav className="hidden items-center gap-6 text-sm text-charcoal/70 md:flex">
             <a href="#funciones" className="transition hover:text-charcoal">Funciones</a>
-            <a href="#planes" className="transition hover:text-charcoal">Planes</a>
+            {/* Planes ocultos al público a propósito — ver sección PLANES más abajo */}
             <a href="#contacto" className="transition hover:text-charcoal">Contacto</a>
           </nav>
           <Link
@@ -245,7 +248,11 @@ export default function ComercialHome() {
         </div>
       </section>
 
-      {/* PLANES */}
+      {/* PLANES — comentado a propósito: no se quiere mostrar selección de
+          planes al público, solo qué ofrece el sistema (sección FUNCIONES
+          más arriba) y el contacto por WhatsApp de abajo. Descomentar si en
+          algún momento se vuelve a querer planes públicos. */}
+      {/*
       <section id="planes" className="mx-auto max-w-6xl space-y-10 px-6 py-20">
         <div className="space-y-3 text-center">
           <span className="badge mx-auto">Planes</span>
@@ -302,6 +309,7 @@ export default function ComercialHome() {
           ))}
         </div>
       </section>
+      */}
 
       {/* CONTACTO */}
       <section id="contacto" className="mx-auto max-w-3xl space-y-6 px-6 py-24 text-center">
