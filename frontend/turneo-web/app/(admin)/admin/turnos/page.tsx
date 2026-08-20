@@ -749,6 +749,12 @@ export default function TurnosPage() {
           --rdp-accent-background-color: #F5EBE5;
           --rdp-today-color: #C07E8C;
           color: #2E2328;
+          /* Sin esto, el <div> raíz de react-day-picker (block-level) se estira
+             al 100% de la columna del formulario mientras la grilla de días
+             adentro mide su ancho fijo real (7 × 44px) — queda una franja vacía
+             enorme a la derecha y el calendario se ve "ancho"/desbalanceado. */
+          width: fit-content;
+          max-width: 100%;
         }
         .rdp-selected .rdp-day_button {
           background-color: #D69AA6;
