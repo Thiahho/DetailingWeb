@@ -30,7 +30,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   locationShort: process.env.NEXT_PUBLIC_LOCATION_SHORT || "",
   mapEmbedUrl: "",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "",
-  logoUrl: "/img/logo.png",
+  logoUrl: "/img/LogoPortada.png",
   heroTitle: "",
   heroSubtitle: "",
   heroBadge: "",
