@@ -220,7 +220,6 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
 
   const [formData, setFormData] = useState({
     name: "",
-    subject: "",
     whatsapp: "",
     email:"",
     selectedSlotId: null as number | null,
@@ -238,9 +237,6 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loadingProfessionals, setLoadingProfessionals] = useState(false);
   const [completedBooking, setCompletedBooking] = useState<{ id: number; service: string } | null>(null);
-
-  const subjectLabel = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_LABEL?.trim() || "Trabajo";
-  const subjectPlaceholder = process.env.NEXT_PUBLIC_BOOKING_SUBJECT_PLACEHOLDER?.trim() || "Describe brevemente";
 
   const selectedServiceObj = services.find((s) => s.slug === formData.selectedService) ?? null;
   const customFieldDefs: CustomFieldDef[] = (() => {
@@ -374,7 +370,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
           customerName: formData.name,
           customerPhone: formData.whatsapp,
           email: formData.email,
-          subject: formData.subject,
+          subject: selectedServiceObj?.title ?? formData.selectedService,
           service: formData.selectedService,
           professionalId: formData.selectedProfessionalId,
           message: formData.message,
@@ -405,7 +401,6 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
         // Limpiar formulario
         setFormData({
           name: "",
-          subject: "",
           whatsapp: "",
           email:"",
           selectedSlotId: null,
@@ -499,22 +494,6 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
           placeholder="Tu nombre"
           required
           value={formData.name}
-        />
-      </div>
-
-      <div>
-        <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50">
-          {subjectLabel}
-        </label>
-        <input
-          className="form-input mt-2"
-          data-testid="booking-subject-input"
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, subject: e.target.value }))
-          }
-          placeholder={subjectPlaceholder}
-          required
-          value={formData.subject}
         />
       </div>
 

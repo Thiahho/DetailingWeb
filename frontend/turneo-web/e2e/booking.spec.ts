@@ -21,7 +21,6 @@ test.describe("Flujo público de reserva", () => {
 
     // Datos del cliente
     await page.getByTestId("booking-name-input").fill("Cliente E2E");
-    await page.getByTestId("booking-subject-input").fill("Prueba automatizada");
     await page.getByTestId("booking-whatsapp-input").fill("+5491100000000");
     const email = `e2e-${Date.now()}@example.com`;
     await page.getByTestId("booking-email-input").fill(email);
