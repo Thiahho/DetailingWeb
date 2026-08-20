@@ -738,16 +738,21 @@ export default function TurnosPage() {
         .animate-slide-in {
           animation: slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        /* Tema del calendario de selección múltiple (react-day-picker) acorde
-           a la paleta de Belleza — los defaults del paquete no coinciden. */
+        /* Tema del calendario de selección múltiple (react-day-picker v10) acorde
+           a la paleta de Belleza. Nombres de variables de la v10 (no las de v8/v9,
+           que ya no existen y no aplicaban nada): --rdp-accent-color controla el
+           borde/color de "hoy", --rdp-accent-background-color el fondo de rango.
+           v10 no rellena el día seleccionado en modo "multiple" por defecto (solo
+           bold + borde), así que se agrega el relleno a mano. */
         .rdp-root {
           --rdp-accent-color: #D69AA6;
-          --rdp-accent-color-dark: #C07E8C;
-          --rdp-background-color: #F5EBE5;
-          --rdp-background-color-dark: #EFE1D9;
-          --rdp-outline: 2px solid #D69AA6;
-          --rdp-outline-selected: 2px solid #C07E8C;
+          --rdp-accent-background-color: #F5EBE5;
+          --rdp-today-color: #C07E8C;
           color: #2E2328;
+        }
+        .rdp-selected .rdp-day_button {
+          background-color: #D69AA6;
+          color: #FFFFFF;
         }
       `}</style>
 
