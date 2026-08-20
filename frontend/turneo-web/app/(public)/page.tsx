@@ -55,11 +55,21 @@ const VALIDACIONES = [
   },
 ];
 
-const BENEFICIOS = [
-  "Menos tiempo administrativo: la agenda, la caja y los clientes en un solo panel.",
-  "Menos ausentismo: recordatorios automáticos antes de cada turno.",
-  "Mejor experiencia para tus clientes: reservan y gestionan sus turnos solos.",
-  "Todo el negocio a la vista: estadísticas reales, no una libreta.",
+// Tareas repetitivas que Turneo saca de encima al dueño, siempre en formato
+// "ya no hacés X a mano" — nombra la fricción puntual, no un beneficio genérico.
+const BENEFICIOS_DUENO = [
+  "Ya no confirmás turnos uno por uno por WhatsApp: se confirman y recuerdan solos.",
+  "Ya no perseguís clientes que faltan sin avisar: el recordatorio baja el ausentismo antes de que pase.",
+  "Ya no anotás a mano quién pagó seña: la caja queda conectada a cada turno atendido.",
+  "Ya no armás las estadísticas del mes con calculadora: las ves listas, por profesional y del negocio.",
+  "Ya no te acordás vos de reactivar clientes que no vuelven: la automatización les escribe sola.",
+];
+
+const BENEFICIOS_CLIENTES = [
+  "Reservan un turno a cualquier hora, sin llamar ni escribir esperando respuesta.",
+  "Reciben un recordatorio antes del turno: no se olvidan ni llegan tarde.",
+  "Ven y cancelan sus propios turnos con un código, sin crear cuenta ni recordar contraseña.",
+  "Eligen profesional y horario libre en el momento, sin depender de que alguien les conteste.",
 ];
 
 // PLANES y A_MEDIDA: datos de la sección de planes, comentada más abajo
@@ -195,6 +205,47 @@ export default function ComercialHome() {
         </section>
       </div>
 
+      {/* BENEFICIOS — dueño vs. clientes, justo después del hero para
+          enganchar con lo concreto antes de la lista de funciones. */}
+      <section className="mx-auto max-w-6xl space-y-10 px-6 py-20">
+        <div className="space-y-3 text-center">
+          <span className="badge mx-auto">Lo que cambia</span>
+          <h2 className="text-3xl font-semibold text-charcoal md:text-4xl">
+            Menos tareas repetitivas para vos, mejor experiencia para tus clientes
+          </h2>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="glass-card space-y-5 border-blush/30 p-7 md:p-8">
+            <div className="space-y-1">
+              <span className="badge">Para vos</span>
+              <h3 className="text-xl font-semibold text-charcoal">Lo que dejás de hacer a mano</h3>
+            </div>
+            <ul className="space-y-3.5">
+              {BENEFICIOS_DUENO.map((b) => (
+                <li key={b} className="flex items-start gap-3 text-sm text-charcoal/70">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blush/15 text-xs text-blushdark">✓</span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="glass-card space-y-5 border-champagne/30 p-7 md:p-8">
+            <div className="space-y-1">
+              <span className="badge">Para tus clientes</span>
+              <h3 className="text-xl font-semibold text-charcoal">Lo que ganan al reservar con vos</h3>
+            </div>
+            <ul className="space-y-3.5">
+              {BENEFICIOS_CLIENTES.map((b) => (
+                <li key={b} className="flex items-start gap-3 text-sm text-charcoal/70">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-champagne/20 text-xs text-champagne">✓</span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* FUNCIONES */}
       <section id="funciones" className="mx-auto max-w-6xl space-y-10 px-6 py-20">
         <div className="space-y-3 text-center">
@@ -212,39 +263,23 @@ export default function ComercialHome() {
       </section>
 
       {/* VALIDACIONES / GARANTÍAS */}
-      <section className="mx-auto max-w-6xl space-y-10 px-6 py-20">
-        <div className="space-y-3 text-center">
-          <span className="badge mx-auto">Garantías</span>
-          <h2 className="text-3xl font-semibold text-charcoal">Construido para que funcione bien</h2>
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2">
-          {VALIDACIONES.map((v) => (
-            <article key={v.title} className="glass-card flex gap-4 p-6">
-              <span className="mt-0.5 text-champagne">✓</span>
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-charcoal">{v.title}</h3>
-                <p className="text-sm text-charcoal/60">{v.description}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {/* BENEFICIOS */}
       <section className="hero-grid">
-        <div className="mx-auto max-w-4xl space-y-8 px-6 py-20 text-center">
-          <div className="space-y-3">
-            <span className="badge mx-auto">Beneficios</span>
-            <h2 className="text-3xl font-semibold text-charcoal">Lo que cambia en tu día a día</h2>
+        <div className="mx-auto max-w-6xl space-y-10 px-6 py-20">
+          <div className="space-y-3 text-center">
+            <span className="badge mx-auto">Garantías</span>
+            <h2 className="text-3xl font-semibold text-charcoal">Construido para que funcione bien</h2>
           </div>
-          <ul className="mx-auto max-w-2xl space-y-3 text-left">
-            {BENEFICIOS.map((b) => (
-              <li key={b} className="flex items-start gap-3 text-charcoal/70">
-                <span className="mt-1 text-blushdark">→</span>
-                <span>{b}</span>
-              </li>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {VALIDACIONES.map((v) => (
+              <article key={v.title} className="glass-card flex gap-4 p-6">
+                <span className="mt-0.5 text-champagne">✓</span>
+                <div className="space-y-1">
+                  <h3 className="text-base font-semibold text-charcoal">{v.title}</h3>
+                  <p className="text-sm text-charcoal/60">{v.description}</p>
+                </div>
+              </article>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
 
