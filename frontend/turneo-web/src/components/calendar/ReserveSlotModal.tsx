@@ -63,7 +63,6 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
   const [newEmail, setNewEmail] = useState("");
 
   const [service, setService] = useState("");
-  const [subject, setSubject] = useState("");
   const [professionalId, setProfessionalId] = useState("");
   const [message, setMessage] = useState("");
 
@@ -114,16 +113,13 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
       setError("Seleccioná un servicio.");
       return;
     }
-    if (!subject.trim()) {
-      setError("Completá el detalle del turno.");
-      return;
-    }
 
     setReserving(true);
     try {
       const customerName = mode === "existing" ? selectedCustomer!.name : newName.trim();
       const customerPhone = mode === "existing" ? selectedCustomer!.phone : newPhone.trim();
       const email = mode === "existing" ? (selectedCustomer!.email ?? "") : newEmail.trim();
+      const subject = services.find((s) => s.slug === service)?.title ?? service;
 
       if (mode === "new") {
         const custRes = await fetch("/api/reminders/customers", {
@@ -307,17 +303,6 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
                   <option key={s.id} value={s.slug}>{s.title}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Detalle del turno *</label>
-              <input
-                data-testid="calendario-reserve-subject"
-                className="form-input mt-1.5"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Ej: lavado completo, corte y color..."
-                required
-              />
             </div>
             <div>
               <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Especialista</label>

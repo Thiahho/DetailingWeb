@@ -92,7 +92,6 @@ test.describe("Admin: Agenda semanal (multi-profesional)", () => {
       await page.getByTestId("calendario-reserve-name").fill("Cliente Agenda E2E");
       await page.getByTestId("calendario-reserve-phone").fill("1123456789");
       await page.getByTestId("calendario-reserve-service").selectOption({ index: 1 });
-      await page.getByTestId("calendario-reserve-subject").fill("Turno de agenda E2E");
       await page.getByTestId("calendario-reserve-submit").click();
       await expect(page.getByTestId("calendario-reserve-modal")).toBeHidden();
 

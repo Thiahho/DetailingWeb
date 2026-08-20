@@ -57,7 +57,6 @@ test.describe("Admin: Calendario", () => {
     await page.getByTestId("calendario-reserve-name").fill(customerName);
     await page.getByTestId("calendario-reserve-phone").fill("+5491100000002");
     await page.getByTestId("calendario-reserve-service").selectOption({ label: seed.serviceTitle });
-    await page.getByTestId("calendario-reserve-subject").fill("Lavado completo E2E");
     await page.getByTestId("calendario-reserve-submit").click();
     await expect(modal).not.toBeVisible();
 
