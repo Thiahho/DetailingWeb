@@ -21,6 +21,11 @@ const CSP_DIRECTIVES = [
   // styled-jsx a otra solución de CSS-in-JS con soporte de nonce.
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://res.cloudinary.com",
+  // Sin esto, <video>/<audio> caen al fallback de default-src 'self' y
+  // bloquean silenciosamente cualquier video de Cloudinary — el navegador no
+  // tira error visible, el <video> simplemente nunca carga (solo se ve el
+  // poster, que sí carga porque img-src ya permitía res.cloudinary.com).
+  "media-src 'self' https://res.cloudinary.com",
   "font-src 'self' data:",
   `connect-src 'self' ${API_ORIGIN} https://api.cloudinary.com`,
   "frame-src https://www.google.com",
