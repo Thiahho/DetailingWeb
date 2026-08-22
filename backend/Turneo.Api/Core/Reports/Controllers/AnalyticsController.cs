@@ -9,10 +9,12 @@ namespace Turneo.Api.Core.Reports;
 public class AnalyticsController : ControllerBase
 {
     private readonly IAnalyticsRepository _repository;
+    private readonly IProfessionalsRepository _professionalsRepository;
 
-    public AnalyticsController(IAnalyticsRepository repository)
+    public AnalyticsController(IAnalyticsRepository repository, IProfessionalsRepository professionalsRepository)
     {
         _repository = repository;
+        _professionalsRepository = professionalsRepository;
     }
 
     // GET: api/analytics/summary
@@ -104,5 +106,60 @@ public class AnalyticsController : ControllerBase
             upcomingBookings,
             professionalStats
         });
+    }
+
+    // GET: api/analytics/commissions?granularity=day|week|month&from=&to=&professionalId=
+    // Sin professionalId: ingresos y comisiones a nivel negocio. Con professionalId:
+    // agrega también el desglose diario/semanal/mensual de ese empleado (drill-down del jefe).
+    [HttpGet("commissions")]
+    public async Task<IActionResult> GetCommissions(
+        [FromQuery] string granularity, [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int? professionalId)
+    {
+        if (!Enum.TryParse<EarningsGranularity>(granularity, ignoreCase: true, out var parsedGranularity))
+            return BadRequest(new { message = "granularity inválido (day, week o month)" });
+
+        if (to <= from)
+            return BadRequest(new { message = "El rango de fechas es inválido" });
+
+        var summary = await _repository.GetCommissionsSummaryAsync(from, to, professionalId);
+
+        IEnumerable<object> breakdown;
+        if (professionalId.HasValue)
+        {
+            var rate = summary.ByProfessional.FirstOrDefault()?.CommissionRate ?? 0m;
+            var professionalBreakdown = await _professionalsRepository.GetEarningsBreakdownAsync(professionalId.Value, parsedGranularity, from, to);
+            breakdown = professionalBreakdown.Select(period => (object)new
+            {
+                periodStart = period.PeriodStart,
+                chargedTotal = period.ChargedTotal,
+                commissionAmount = period.ChargedTotal * (rate / 100m)
+            });
+        }
+        else
+        {
+            var businessBreakdown = await _repository.GetBusinessEarningsBreakdownAsync(parsedGranularity, from, to);
+            breakdown = businessBreakdown.Select(period => (object)new
+            {
+                periodStart = period.PeriodStart,
+                chargedTotal = period.ChargedTotal,
+                commissionAmount = period.CommissionAmount
+            });
+        }
+
+        return Ok(new
+        {
+            businessChargedTotal = summary.BusinessChargedTotal,
+            businessCommissionAmount = summary.BusinessCommissionAmount,
+            byProfessional = summary.ByProfessional,
+            breakdown
+        });
+    }
+
+    // GET: api/analytics/day?date=&professionalId= (movimiento de turnos del día — negocio o un empleado puntual)
+    [HttpGet("day")]
+    public async Task<IActionResult> GetDay([FromQuery] DateTime date, [FromQuery] int? professionalId)
+    {
+        var summary = await _repository.GetDaySummaryAllAsync(date, professionalId);
+        return Ok(summary);
     }
 }

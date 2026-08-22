@@ -25,8 +25,37 @@ public interface IProfessionalsRepository
     // Total cobrado (Charge+Deposit-Refund, ver CajaMovement) por turnos asignados
     // a este profesional dentro del rango — base para calcular su comisión.
     Task<decimal> GetChargedTotalInRangeAsync(int professionalId, DateTime from, DateTime to);
+
+    // Movimiento de turnos del día (para la vista "Día Trabajado") — turnos del
+    // profesional en esa fecha, agrupados por estado, más lo cobrado ese día.
+    Task<ProfessionalDaySummary> GetDaySummaryAsync(int professionalId, DateTime date);
+
+    // Desglose de lo cobrado en el rango, agrupado por día/semana/mes — base
+    // de las pestañas Diario/Semanal/Mensual y de los gráficos de tendencia.
+    Task<List<EarningsPeriod>> GetEarningsBreakdownAsync(int professionalId, EarningsGranularity granularity, DateTime from, DateTime to);
+
     Task<List<Service>> GetServicesByIdsAsync(List<int> serviceIds);
     void Add(Professional professional);
     void Remove(Professional professional);
     Task<int> SaveChangesAsync();
 }
+
+public enum EarningsGranularity
+{
+    Day,
+    Week,
+    Month
+}
+
+public record EarningsPeriod(DateTime PeriodStart, decimal ChargedTotal);
+
+public record DayBookingSummary(int BookingId, DateTime StartDateTime, DateTime EndDateTime, string CustomerName, string? Service, string Status);
+
+public record ProfessionalDaySummary(
+    DateTime Date,
+    int PendingCount,
+    int ConfirmedCount,
+    int CancelledCount,
+    decimal ChargedTotal,
+    List<DayBookingSummary> Bookings
+);

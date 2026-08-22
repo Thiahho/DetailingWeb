@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
+import EarningsTabs, { EarningsPeriod } from "@/src/components/professional/EarningsTabs";
 
 interface TopService {
   service: string;
@@ -35,6 +36,17 @@ interface ProfessionalStat {
   upcomingAbsences: number;
 }
 
+interface ProfessionalOption {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+interface CommissionsSummary {
+  businessChargedTotal: number;
+  businessCommissionAmount: number;
+}
+
 interface AnalyticsSummary {
   bookingsThisMonth: number;
   bookingsLastMonth: number;
@@ -59,6 +71,10 @@ const MONTH_NAMES = [
   "Ene", "Feb", "Mar", "Abr", "May", "Jun",
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
 ];
+
+function formatMoney(amount: number) {
+  return amount.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+}
 
 function StatCard({
   label,
@@ -88,6 +104,9 @@ export default function EstadisticasPage() {
   const router = useRouter();
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [professionals, setProfessionals] = useState<ProfessionalOption[]>([]);
+  const [commissions, setCommissions] = useState<CommissionsSummary | null>(null);
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -99,6 +118,19 @@ export default function EstadisticasPage() {
       .then((json) => setData(json))
       .catch((err) => logError("Error cargando estadísticas:", err))
       .finally(() => setLoading(false));
+
+    fetch("/api/professionals/all")
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setProfessionals)
+      .catch((err) => logError("Error cargando profesionales:", err));
+
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    fetch(`/api/analytics/commissions?granularity=month&from=${monthStart.toISOString()}&to=${monthEnd.toISOString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then(setCommissions)
+      .catch((err) => logError("Error cargando comisiones del negocio:", err));
   }, [router]);
 
   if (loading) {
@@ -135,6 +167,21 @@ export default function EstadisticasPage() {
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-charcoal">Estadísticas</h1>
           <p className="text-charcoal/50 text-sm mt-1">Resumen de actividad del negocio</p>
+        </div>
+
+        {/* KPIs de negocio (comisiones, nivel jefe) */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <StatCard
+            label="Ingresos totales (mes)"
+            value={commissions ? formatMoney(commissions.businessChargedTotal) : "—"}
+            sub="Cobrado en caja por todo el negocio"
+            accent
+          />
+          <StatCard
+            label="Comisiones a pagar (mes)"
+            value={commissions ? formatMoney(commissions.businessCommissionAmount) : "—"}
+            sub="Suma de comisiones de todo el equipo"
+          />
         </div>
 
         {/* KPIs principales */}
@@ -292,6 +339,39 @@ export default function EstadisticasPage() {
               </table>
             </div>
           )}
+        </div>
+
+        {/* Día Trabajado / desglose de comisiones, a nivel negocio o por empleado */}
+        <div className="mt-6 bg-ivory border border-mauve/5 rounded-xl p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div>
+              <h2 className="text-charcoal font-semibold">Día Trabajado y comisiones</h2>
+              <p className="text-charcoal/40 text-xs mt-1">Mismo detalle que ve cada profesional, a nivel negocio o por empleado</p>
+            </div>
+            <select
+              value={selectedProfessionalId ?? ""}
+              onChange={(e) => setSelectedProfessionalId(e.target.value ? Number(e.target.value) : null)}
+              className="bg-cream border border-mauve/10 rounded-lg px-3 py-2 text-sm text-charcoal"
+            >
+              <option value="">Todo el negocio</option>
+              {professionals.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.firstName} {p.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <EarningsTabs
+            key={selectedProfessionalId ?? "all"}
+            dayUrl={(date) => `/api/analytics/day?date=${date}${selectedProfessionalId ? `&professionalId=${selectedProfessionalId}` : ""}`}
+            breakdownUrl={(granularity, from, to) =>
+              `/api/analytics/commissions?granularity=${granularity}&from=${from}&to=${to}${
+                selectedProfessionalId ? `&professionalId=${selectedProfessionalId}` : ""
+              }`
+            }
+            extractBreakdown={(json) => (json as { breakdown?: EarningsPeriod[] })?.breakdown ?? []}
+          />
         </div>
 
         {/* Próximas reservas */}

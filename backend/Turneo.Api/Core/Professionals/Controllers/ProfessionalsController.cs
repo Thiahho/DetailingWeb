@@ -233,6 +233,48 @@ public class ProfessionalsController : ControllerBase
         });
     }
 
+    // GET: api/professionals/me/day?date= (movimiento de turnos del día para "Día Trabajado")
+    [HttpGet("me/day")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> GetMyDay([FromQuery] DateTime date)
+    {
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var summary = await _repository.GetDaySummaryAsync(professionalId.Value, date);
+        return Ok(summary);
+    }
+
+    // GET: api/professionals/me/earnings/breakdown?granularity=day|week|month&from=&to=
+    [HttpGet("me/earnings/breakdown")]
+    [Authorize(Roles = "Professional")]
+    public async Task<IActionResult> GetMyEarningsBreakdown([FromQuery] string granularity, [FromQuery] DateTime from, [FromQuery] DateTime to)
+    {
+        if (!Enum.TryParse<EarningsGranularity>(granularity, ignoreCase: true, out var parsedGranularity))
+            return BadRequest(new { message = "granularity inválido (day, week o month)" });
+
+        if (to <= from)
+            return BadRequest(new { message = "El rango de fechas es inválido" });
+
+        var professionalId = GetOwnProfessionalId();
+        if (professionalId == null)
+            return Unauthorized();
+
+        var professional = await _repository.GetByIdAsync(professionalId.Value);
+        if (professional == null)
+            return NotFound(new { message = "Profesional no encontrado" });
+
+        var breakdown = await _repository.GetEarningsBreakdownAsync(professionalId.Value, parsedGranularity, from, to);
+
+        return Ok(breakdown.Select(period => new
+        {
+            periodStart = period.PeriodStart,
+            chargedTotal = period.ChargedTotal,
+            commissionAmount = period.ChargedTotal * (professional.Commission / 100m)
+        }));
+    }
+
     private int? GetOwnProfessionalId()
     {
         var claim = User.FindFirst("professional_id")?.Value;
