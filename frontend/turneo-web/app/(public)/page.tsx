@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buildWhatsAppUrl } from "@/src/lib/contact";
+import CalculadoraCostoInaccion from "@/src/components/public/CalculadoraCostoInaccion";
 
 // Home comercial de Turneo (el producto/SaaS) — a diferencia de /reservar
 // no depende de ningún tenant ni hace fetch a la API, es contenido estático.
@@ -245,6 +246,10 @@ export default function ComercialHome() {
           </div>
         </div>
       </section>
+
+      {/* CALCULADORA — costo de la no-acción, resultado inmediato sin pedir
+          datos de contacto (a propósito: el foco es el número, no el gate). */}
+      <CalculadoraCostoInaccion />
 
       {/* FUNCIONES */}
       <section id="funciones" className="mx-auto max-w-6xl space-y-10 px-6 py-20">
