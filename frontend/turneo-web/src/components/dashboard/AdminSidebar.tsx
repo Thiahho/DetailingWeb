@@ -8,7 +8,7 @@ import { usePermissions, type PermissionModuleKey } from "@/src/hooks/usePermiss
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
-  MoreHorizontal, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert,
+  MoreHorizontal, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star,
 } from "lucide-react";
 
 // `module`: a qué PermissionModule pertenece este link — un Staff sin permiso
@@ -53,6 +53,7 @@ const groups: NavGroup[] = [
     title: "Contenido",
     items: [
       { href: "/admin/galeria", label: "Galería", icon: Image, module: "Galeria" },
+      { href: "/admin/resenas", label: "Reseñas", icon: Star, module: "Resenas" },
       { href: "/admin/contenido", label: "Contenido", icon: Clapperboard, module: "Contenido" },
     ],
   },

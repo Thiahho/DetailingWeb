@@ -50,6 +50,7 @@ const MODULE_LABELS: Record<string, string> = {
   Caja: "Caja",
   Contenido: "Contenido",
   Galeria: "Galería",
+  Resenas: "Reseñas",
   Automatizaciones: "Automatizaciones",
 };
 

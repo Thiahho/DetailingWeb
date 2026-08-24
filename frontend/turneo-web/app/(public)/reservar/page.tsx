@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import BookingForm from "@/src/components/booking/BookingForms";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
 import RouletteFloat from "@/src/components/shared/RouletteFloat";
+import ReviewsSection, { type NativeReview, type GoogleReview } from "@/src/components/public/ReviewsSection";
 import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "@/src/lib/siteConfig";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
@@ -43,6 +44,8 @@ export default function Home() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   useModalHotkeys(!!selectedService, { onClose: () => setSelectedService(null) });
   const [contentVideos, setContentVideos] = useState<ContentVideo[]>([]);
+  const [reviews, setReviews] = useState<NativeReview[]>([]);
+  const [googleReviews, setGoogleReviews] = useState<GoogleReview[]>([]);
 
   const packsToShow = services.slice(0, visiblePacks);
   const galleryToShow = gallery.slice(0, visibleGallery);
@@ -55,6 +58,8 @@ export default function Home() {
         setGallery(Array.isArray(d.gallery) ? d.gallery : []);
         setSiteConfig(d.siteconfig ?? null);
         setContentVideos(Array.isArray(d.contentVideos) ? d.contentVideos : []);
+        setReviews(Array.isArray(d.reviews) ? d.reviews : []);
+        setGoogleReviews(Array.isArray(d.googleReviews) ? d.googleReviews : []);
       })
       .catch(() => {});
   }, []);
@@ -286,6 +291,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* RESEÑAS */}
+      <ReviewsSection nativeReviews={reviews} googleReviews={googleReviews} />
 
       {/* CONTACTO */}
       <section

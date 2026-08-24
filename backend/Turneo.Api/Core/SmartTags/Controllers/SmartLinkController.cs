@@ -15,11 +15,13 @@ public class SmartLinkController : ControllerBase
 {
     private readonly ISmartTagsRepository _repository;
     private readonly ISiteConfigRepository _siteConfigRepository;
+    private readonly IReviewsRepository _reviewsRepository;
 
-    public SmartLinkController(ISmartTagsRepository repository, ISiteConfigRepository siteConfigRepository)
+    public SmartLinkController(ISmartTagsRepository repository, ISiteConfigRepository siteConfigRepository, IReviewsRepository reviewsRepository)
     {
         _repository = repository;
         _siteConfigRepository = siteConfigRepository;
+        _reviewsRepository = reviewsRepository;
     }
 
     // Resolución de tenant manual (no vía ICurrentTenant/TenantResolutionMiddleware):
@@ -61,6 +63,21 @@ public class SmartLinkController : ControllerBase
 
         await _repository.RecordEventAsync(tag.Id, tag.TenantId, tag.Action, SmartTagEventType.ReviewCompleted);
 
+        // TenantId explícito (mismo motivo que RecordEventAsync arriba): este
+        // controller corre con [TenantContextBypass], así que ApplyTenantId no
+        // completaría solo el tenant correcto.
+        _reviewsRepository.Add(new Review
+        {
+            TenantId = tag.TenantId,
+            AuthorName = null,
+            Rating = request.Rating,
+            Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment,
+            Source = ReviewSource.SmartTag,
+            IsApproved = false,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _reviewsRepository.SaveChangesAsync();
+
         var reviewUrl = await _siteConfigRepository.GetGoogleReviewUrlIgnoringTenantAsync(tag.TenantId);
         var redirectUrl = string.IsNullOrWhiteSpace(reviewUrl) ? null : reviewUrl;
 
@@ -68,5 +85,5 @@ public class SmartLinkController : ControllerBase
     }
 }
 
-public record SubmitReviewRequest([Range(1, 5)] int Rating);
+public record SubmitReviewRequest([Range(1, 5)] int Rating, string? Comment);
 public record SubmitReviewResponse(string? RedirectUrl);

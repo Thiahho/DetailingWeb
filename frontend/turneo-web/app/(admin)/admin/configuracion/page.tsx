@@ -19,6 +19,7 @@ const emptyForm = {
   locationShort: "",
   mapEmbedUrl: "",
   googleReviewUrl: "",
+  googlePlaceId: "",
   siteUrl: "",
   logoUrl: "",
   heroTitle: "",
@@ -62,6 +63,7 @@ export default function ConfiguracionPage() {
               locationShort: data.locationShort || "",
               mapEmbedUrl: data.mapEmbedUrl || "",
               googleReviewUrl: data.googleReviewUrl || "",
+              googlePlaceId: data.googlePlaceId || "",
               siteUrl: data.siteUrl || "",
               logoUrl: data.logoUrl || "",
               heroTitle: data.heroTitle || "",
@@ -267,6 +269,20 @@ export default function ConfiguracionPage() {
               />
               <p className="text-charcoal/40 text-xs mt-1.5">
                 Cuando alguien usa una Smart Tag de tipo "Dejar reseña", se lo redirige acá siempre, sin importar la valoración que haya dejado.
+              </p>
+            </div>
+            <div>
+              <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
+                Place ID de Google (para mostrar tus reseñas reales en el sitio)
+              </label>
+              <input
+                className="form-input mt-1.5"
+                value={formData.googlePlaceId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, googlePlaceId: e.target.value }))}
+                placeholder="ChIJ..."
+              />
+              <p className="text-charcoal/40 text-xs mt-1.5">
+                Se busca en Google Maps → tu negocio → "Compartir" → el ID aparece en la URL, o con el buscador de Place ID de Google.
               </p>
             </div>
           </div>

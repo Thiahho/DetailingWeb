@@ -33,6 +33,7 @@ builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository>();
 builder.Services.AddScoped<IPermissionsRepository, PermissionsRepository>();
 builder.Services.AddScoped<ISmartTagsRepository, SmartTagsRepository>();
+builder.Services.AddScoped<IReviewsRepository, ReviewsRepository>();
 
 builder.Services.AddScoped<TenantSessionInterceptor>();
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
@@ -87,6 +88,8 @@ builder.Services.AddScoped<LoyaltyRouletteService>();
 builder.Services.AddHttpClient<CloudinaryAdminService>();
 builder.Services.AddScoped<ContentTakedownService>();
 builder.Services.AddScoped<DataDeletionService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<GooglePlacesService>();
 
 builder.Services.AddBackgroundJobs(builder.Configuration);
 
@@ -154,6 +157,18 @@ builder.Services.AddRateLimiter(options =>
     // Ruleta de captación de leads (docs/RULETA.pdf): endpoint público sin
     // login, blanco fácil de scripts que giren en loop para juntar códigos.
     options.AddPolicy("roulette", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Formulario público de reseñas en el sitio (no Smart Tag): mismo criterio
+    // que "roulette" — endpoint público sin login, blanco fácil de spam/bots.
+    options.AddPolicy("review-submit", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions

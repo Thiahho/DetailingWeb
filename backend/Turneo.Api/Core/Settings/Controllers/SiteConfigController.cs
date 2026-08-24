@@ -46,6 +46,7 @@ public class SiteConfigController : ControllerBase
             config.HeroHighlights,
             config.MetaDescription,
             config.GoogleReviewUrl,
+            config.GooglePlaceId,
             hideBranding
         });
     }
@@ -76,6 +77,7 @@ public class SiteConfigController : ControllerBase
         config.HeroHighlights = request.HeroHighlights ?? new List<string>();
         config.MetaDescription = request.MetaDescription;
         config.GoogleReviewUrl = request.GoogleReviewUrl;
+        config.GooglePlaceId = request.GooglePlaceId;
         config.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync();
@@ -98,5 +100,6 @@ public record SiteConfigRequest(
     string HeroBadge,
     string MetaDescription,
     string? GoogleReviewUrl,
-    List<string>? HeroHighlights = null
+    List<string>? HeroHighlights = null,
+    string? GooglePlaceId = null
 );

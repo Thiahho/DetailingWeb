@@ -28,5 +28,8 @@ public class SiteConfig : ITenantScoped
     public string MetaDescription { get; set; } = string.Empty;
     // Destino de la acción REVIEW de Smart Tag para calificaciones altas (docs/NFC.md CU-03).
     public string? GoogleReviewUrl { get; set; }
+    // Place ID de Google Maps del negocio, para traer sus reseñas reales vía
+    // Google Places API (GooglePlacesService) y mostrarlas en el sitio público.
+    public string? GooglePlaceId { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

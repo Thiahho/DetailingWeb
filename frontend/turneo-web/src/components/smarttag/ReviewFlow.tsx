@@ -8,17 +8,17 @@ interface ReviewFlowProps {
 
 export default function ReviewFlow({ token }: ReviewFlowProps) {
   const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleRate = async (value: number) => {
-    setRating(value);
+  const handleSubmit = async () => {
     setSubmitting(true);
     try {
       const res = await fetch(`/api/smart/${token}/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: value }),
+        body: JSON.stringify({ rating, comment: comment.trim() || null }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -52,15 +52,34 @@ export default function ReviewFlow({ token }: ReviewFlowProps) {
           <button
             key={value}
             type="button"
-            disabled={submitting}
-            onClick={() => handleRate(value)}
+            onClick={() => setRating(value)}
             aria-label={`${value} estrellas`}
-            className="text-4xl leading-none transition hover:scale-110 disabled:opacity-50"
+            className="text-4xl leading-none transition hover:scale-110"
           >
             {value <= rating ? "★" : "☆"}
           </button>
         ))}
       </div>
+
+      {rating > 0 && (
+        <div className="space-y-3 text-left">
+          <textarea
+            className="form-input min-h-24"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Contanos qué te pareció (opcional)"
+            maxLength={1000}
+          />
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={handleSubmit}
+            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {submitting ? "Enviando..." : "Enviar"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

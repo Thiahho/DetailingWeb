@@ -18,11 +18,12 @@ public static class PermissionModules
     public const string Automatizaciones = "Automatizaciones";
     public const string SmartTags = "SmartTags";
     public const string Ruleta = "Ruleta";
+    public const string Resenas = "Resenas";
 
     public static readonly string[] All =
     {
         Turnos, Clientes, Servicios, Productos, Insumos,
-        Profesionales, Caja, Contenido, Galeria, Automatizaciones, SmartTags, Ruleta
+        Profesionales, Caja, Contenido, Galeria, Automatizaciones, SmartTags, Ruleta, Resenas
     };
 
     public static bool IsValid(string module) => All.Contains(module);

@@ -68,6 +68,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ContentVideo> ContentVideos { get; set; }
     public DbSet<SiteConfig> SiteConfigs { get; set; }
     public DbSet<GalleryItem> GalleryItems { get; set; }
+    public DbSet<Review> Reviews { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Product> Products { get; set; }
     public DbSet<Insumo> Insumos { get; set; }
@@ -401,6 +402,19 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<GalleryItem>(entity =>
         {
             entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Order);
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<Review>(entity =>
+        {
+            entity.HasIndex(e => e.IsApproved);
             entity.HasIndex(e => e.Order);
 
             entity.HasOne(e => e.Tenant)
