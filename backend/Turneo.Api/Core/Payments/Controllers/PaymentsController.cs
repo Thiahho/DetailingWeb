@@ -30,6 +30,12 @@ public class PaymentsController : ControllerBase
     [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> CreateMercadoPagoPreference([FromBody] CreatePaymentRequest request)
     {
+        // Piloto: pagos online apagados a propósito (webhook con firma HMAC opcional
+        // y clave de config rota, ver docs/auditoriabelleza_0507.md hallazgos a/g).
+        // Apagar acá evita depender de esos dos fixes hasta que se necesiten señas reales.
+        if (!_configuration.GetValue<bool>("Payments:Enabled"))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { success = false, message = "Pagos online no disponibles por el momento" });
+
         var booking = await _repository.GetBookingWithPaymentAsync(request.BookingId);
 
         if (booking == null)
@@ -146,6 +152,10 @@ public class PaymentsController : ControllerBase
     [TenantContextBypass]
     public async Task<IActionResult> MercadoPagoWebhook()
     {
+        // Mismo apagado que create-preference — ver comentario ahí.
+        if (!_configuration.GetValue<bool>("Payments:Enabled"))
+            return Ok(); // 200 vacío: evita que MercadoPago reintente un webhook que no vamos a procesar
+
         var accessToken = _configuration["MP_ACCESS_TOKEN:AccessToken"];
         if (string.IsNullOrEmpty(accessToken))
             return StatusCode(500);

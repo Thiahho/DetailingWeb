@@ -115,7 +115,7 @@ export default function ProfessionalLoginPage() {
             type="submit"
             disabled={loading}
             data-testid="professional-login-submit"
-            className="w-full rounded-full bg-blush px-6 py-4 font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
+            className="w-full rounded-full bg-blush px-6 py-4 font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02] disabled:opacity-50"
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>

@@ -74,7 +74,7 @@ export default function ReviewFlow({ token }: ReviewFlowProps) {
             type="button"
             disabled={submitting}
             onClick={handleSubmit}
-            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
           >
             {submitting ? "Enviando..." : "Enviar"}
           </button>

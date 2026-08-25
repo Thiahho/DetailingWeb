@@ -125,7 +125,7 @@ export default function SolicitarBorradoPage() {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <button
-            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
+            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.01] disabled:opacity-50"
             type="submit"
             disabled={submitting || !formData.contactName.trim()}
           >

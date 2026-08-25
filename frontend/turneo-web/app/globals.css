@@ -32,6 +32,17 @@ body {
   @apply w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40;
 }
 
+/* Menos y más suave, no cero — dejamos passar transiciones de color/opacidad
+   que ayudan a entender un cambio de estado, pero cortamos el movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Ruleta de captación (/ruleta) — puntero, brillo y confetti al ganar */
 @keyframes pop-in {
   0% { transform: scale(0.92); opacity: 0; }

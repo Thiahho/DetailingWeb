@@ -169,7 +169,7 @@ export default function ComercialHome() {
           </nav>
           <Link
             href="/reservar"
-            className="rounded-full bg-blush px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+            className="rounded-full bg-blush px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
           >
             Ver la web en vivo
           </Link>
@@ -190,7 +190,7 @@ export default function ComercialHome() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/reservar"
-              className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+              className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
             >
               Ver la web en vivo
             </Link>
@@ -362,7 +362,7 @@ export default function ComercialHome() {
           href={buildWhatsAppUrl("Hola! Quiero más información sobre Turneo.")}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+          className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
         >
           Escribinos por WhatsApp
         </a>

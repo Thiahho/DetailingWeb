@@ -92,7 +92,7 @@ export default async function ServiceDetail({ params }: { params: { slug: string
 
             <Link
               href={`/#contacto`}
-              className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+              className="inline-block rounded-full bg-blush px-8 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
             >
               Presupuestar
             </Link>

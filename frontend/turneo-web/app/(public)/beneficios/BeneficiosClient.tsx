@@ -319,7 +319,7 @@ export default function BeneficiosClient() {
             <button
               type="submit"
               disabled={loading || prizes.length === 0}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blush px-6 py-3.5 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blush px-6 py-3.5 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02] disabled:opacity-50"
             >
               {loading ? (
                 "Girando..."
@@ -372,7 +372,7 @@ export default function BeneficiosClient() {
                 href={whatsAppCtaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block rounded-full bg-blush px-6 py-3.5 text-center text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition hover:scale-[1.02]"
+                className="block rounded-full bg-blush px-6 py-3.5 text-center text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
               >
                 Reclamar por WhatsApp
               </a>

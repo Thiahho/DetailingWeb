@@ -360,7 +360,7 @@ export default function RouletteClient({
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blush px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blush px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02] disabled:opacity-50"
             >
               {loading ? (
                 "Girando..."
@@ -405,7 +405,7 @@ export default function RouletteClient({
             <p className="text-xs text-charcoal/50">Válido hasta: {formatFecha(result.venceHasta)}</p>
             <button
               onClick={() => setStep("additional")}
-              className="w-full rounded-full bg-blush px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+              className="w-full rounded-full bg-blush px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
             >
               ACTIVAR MI BENEFICIO
             </button>
@@ -483,7 +483,7 @@ export default function RouletteClient({
               </button>
               <button
                 onClick={handleContinueExtra}
-                className="flex-1 rounded-full bg-blush px-4 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+                className="flex-1 rounded-full bg-blush px-4 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
               >
                 Continuar
               </button>
@@ -501,7 +501,7 @@ export default function RouletteClient({
               href={whatsAppCtaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="block rounded-full bg-blush px-6 py-3.5 text-center text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+              className="block rounded-full bg-blush px-6 py-3.5 text-center text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
             >
               ACTIVAR MI BENEFICIO POR WHATSAPP
             </a>

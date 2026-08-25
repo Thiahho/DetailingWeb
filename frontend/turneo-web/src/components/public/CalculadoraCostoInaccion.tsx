@@ -160,7 +160,7 @@ export default function CalculadoraCostoInaccion() {
             href={whatsAppUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block rounded-full bg-blush px-6 py-3 text-center text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+            className="inline-block rounded-full bg-blush px-6 py-3 text-center text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
           >
             Quiero dejar de perder esto
           </a>

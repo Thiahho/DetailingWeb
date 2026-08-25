@@ -18,7 +18,7 @@ const variantClasses: Record<ButtonVariant, string> = {
 
 const shapeClasses: Record<ButtonShape, string> = {
   default: "rounded-lg",
-  pill: "rounded-full hover:scale-[1.02]",
+  pill: "rounded-full [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

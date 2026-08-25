@@ -80,7 +80,7 @@ export default function RebookFlow({ token, tenantSlug }: RebookFlowProps) {
           <button
             type="submit"
             disabled={searching}
-            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
+            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.01] disabled:opacity-50"
           >
             {searching ? "Buscando..." : "Buscar mi último turno"}
           </button>
@@ -107,7 +107,7 @@ export default function RebookFlow({ token, tenantSlug }: RebookFlowProps) {
           )}
           <button
             onClick={() => setShowForm(true)}
-            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01]"
+            className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.01]"
           >
             {lastBooking ? "Reservar de nuevo" : "Reservar"}
           </button>

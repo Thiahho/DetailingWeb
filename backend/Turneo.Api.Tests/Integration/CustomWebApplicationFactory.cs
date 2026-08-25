@@ -29,6 +29,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = _dbContainer.GetConnectionString(),
+                // Apagado por defecto en appsettings.json (piloto sin señas online,
+                // ver PaymentsController) — prendido acá para poder seguir probando
+                // el comportamiento real del controller.
+                ["Payments:Enabled"] = "true",
             });
         });
 

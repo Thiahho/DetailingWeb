@@ -127,7 +127,7 @@ export default function Home() {
             )}
             <div className="flex flex-wrap gap-3">
               <a
-                className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+                className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -430,7 +430,7 @@ export default function Home() {
               )}
               <button
                 onClick={() => { setSelectedService(null); handlePresupuestar(selectedService.slug); }}
-                className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02]"
+                className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
               >
                 Presupuestar
               </button>

@@ -822,7 +822,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
       </label>
 
       <button
-        className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.01] disabled:opacity-50"
+        className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.01] disabled:opacity-50"
         type="submit"
         data-testid="booking-submit"
         disabled={
