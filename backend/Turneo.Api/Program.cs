@@ -82,6 +82,7 @@ builder.Services.AddScoped<ReminderService>();
 builder.Services.AddScoped<CustomerProfileService>();
 builder.Services.AddScoped<HangfireReminderJob>();
 builder.Services.AddScoped<AutomationRuleEvaluationJob>();
+builder.Services.AddScoped<LowStockAlertJob>();
 builder.Services.AddScoped<BookingNotificationJob>();
 builder.Services.AddScoped<RouletteService>();
 builder.Services.AddScoped<LoyaltyRouletteService>();

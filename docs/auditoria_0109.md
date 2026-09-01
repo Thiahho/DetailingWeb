@@ -338,6 +338,34 @@ expuesto por HTTP en ningún controller, así que si el email/WhatsApp automáti
 de "reserva confirmada" falla de forma no transitoria, hoy no hay forma de
 reintentarlo desde el panel (el `NotificationLog` es invisible para el admin).
 
+### Aviso proactivo de stock bajo en Insumos (misma sesión, 01/09)
+
+Contexto: al preparar guiones de video de venta a partir de esta auditoría, uno
+de ellos afirmaba que Insumos *"te avisa antes de que se termine"*. Verificado
+antes de esa sesión de grabación que **era falso**: `LowStockThreshold` existía
+como campo (`Insumo.cs`), pero nunca se leía para disparar nada — solo
+alimentaba un `StockBadge` visual en `/admin/insumos`, visible únicamente si el
+admin entraba a esa pantalla. Se implementó el aviso real para que la promesa
+del guion sea cierta:
+
+- `Core/Insumos/Services/LowStockAlertJob.cs` (nuevo): job diario de Hangfire
+  (`check-low-stock-insumos`, mismo horario que `evaluate-automation-rules`,
+  09:00 Argentina) — busca insumos activos con `Stock <= LowStockThreshold`
+  cross-tenant, agrupa por tenant, y avisa a todos los `Admin` de cada uno por
+  Email + Telegram (mismo criterio de destino que
+  `NotificationService.TryNotifyAdminsAsync`, pero sin pasar por el pipeline de
+  templates de Booking — no aplica acá, usa `INotificationProvider.SendToAddressAsync`
+  directo con un mensaje simple).
+- Registrado en `Program.cs` (`AddScoped<LowStockAlertJob>()`) y
+  `Infrastructure/BackgroundJobs/BackgroundJobsSetup.cs` (recurring job).
+- **Sin deduplicación por ahora**: si un insumo sigue bajo stock al día
+  siguiente, se vuelve a avisar — decisión deliberada de mantenerlo simple (es
+  un recordatorio útil hasta que se reponga, no un evento de una sola vez); si
+  se vuelve ruidoso en uso real, es el próximo punto a ajustar.
+- Verificado con `dotnet build` limpio. No probado end-to-end contra Telegram/
+  Email reales en este entorno (mismas limitaciones de Docker/credenciales que
+  el resto de la sesión) — sí se verificó código y query a mano.
+
 ### Nota operativa — hallazgo ajeno a esta sesión, no corregido
 
 Durante esta sesión se detectó que `docs/RULETA.pdf` figura borrado del disco

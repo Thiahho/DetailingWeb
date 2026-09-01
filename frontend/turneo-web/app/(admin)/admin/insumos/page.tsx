@@ -313,6 +313,9 @@ export default function InsumosAdminPage() {
                     value={formData.lowStockThreshold}
                     onChange={(e) => setFormData((prev) => ({ ...prev, lowStockThreshold: parseInt(e.target.value) || 0 }))}
                   />
+                  <p className="text-charcoal/40 text-[11px] mt-1">
+                    Te avisamos cuando el stock llegue a este número o menos. En 0, solo avisa cuando ya no queda nada.
+                  </p>
                 </div>
               </div>
 

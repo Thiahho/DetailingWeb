@@ -39,6 +39,13 @@ public static class BackgroundJobsSetup
                 "0 12 * * *" // 12:00 UTC ≈ 09:00 Argentina (sin horario de verano)
             ));
 
+        AddOrUpdateSafely(logger, "check-low-stock-insumos", () =>
+            RecurringJob.AddOrUpdate<LowStockAlertJob>(
+                "check-low-stock-insumos",
+                job => job.CheckLowStockAsync(),
+                "0 12 * * *" // mismo horario que evaluate-automation-rules — un solo chequeo diario alcanza
+            ));
+
         return app;
     }
 
