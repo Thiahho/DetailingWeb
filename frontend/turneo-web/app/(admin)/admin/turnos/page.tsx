@@ -157,7 +157,10 @@ export default function TurnosPage() {
 
   const createSlot = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.professionalIds.length === 0) {
+    // Negocio unipersonal (sin ningún profesional cargado): un solo turno por
+    // fecha, sin asignar. Con profesionales cargados, seguimos exigiendo elegir
+    // al menos uno (mismo criterio que el backend, ver TimeSlotsController.CreateSlot).
+    if (professionals.length > 0 && formData.professionalIds.length === 0) {
       showToast("error", "Error al crear turno", "Elegí al menos un profesional");
       return;
     }
@@ -170,23 +173,25 @@ export default function TurnosPage() {
     try {
       // Un turno idéntico por cada combinación fecha × profesional elegido: el
       // modelo de datos (TimeSlot.ProfessionalId) es siempre un único profesional
-      // y un único horario, no hay concepto de turno compartido o recurrente.
+      // y un único horario, no hay concepto de turno compartido o recurrente. Sin
+      // profesionales cargados, se crea un único turno sin asignar por fecha.
+      const professionalIdsForRequest = professionals.length > 0 ? formData.professionalIds : [null];
       const results = await Promise.all(
         allDates.flatMap((dateStr) => {
           const { startDateTime, endDateTime } = computeRange(dateStr);
-          return formData.professionalIds.map(async (professionalId) => {
+          return professionalIdsForRequest.map(async (professionalId) => {
             const response = await fetch("/api/timeslots", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 startDateTime,
                 endDateTime,
-                professionalId: Number(professionalId),
+                professionalId: professionalId === null ? null : Number(professionalId),
               }),
             });
             const data = await response.json();
             const professional = professionals.find((p) => String(p.id) === professionalId);
-            const professionalName = professional ? `${professional.firstName} ${professional.lastName}` : professionalId;
+            const professionalName = professional ? `${professional.firstName} ${professional.lastName}` : (professionalId ?? "sin asignar");
             return { ok: response.ok, dateStr, professionalName, message: data.message };
           });
         })
@@ -196,11 +201,12 @@ export default function TurnosPage() {
       const failed = results.filter((r) => !r.ok);
 
       if (okCount > 0) {
+        const forWhom = professionals.length > 0 ? `para ${formData.professionalIds.length} profesional(es)` : "";
         showToast(
           "success",
           "Turno Creado",
           okCount === results.length
-            ? `${okCount} turno(s) creados a las ${formData.hour}:${formData.minute} en ${allDates.length} fecha(s) para ${formData.professionalIds.length} profesional(es)`
+            ? `${okCount} turno(s) creados a las ${formData.hour}:${formData.minute} en ${allDates.length} fecha(s) ${forWhom}`.trim()
             : `Turno creado para ${okCount} de ${results.length} combinación(es) fecha/profesional`,
           5000
         );
@@ -258,11 +264,14 @@ export default function TurnosPage() {
 
   const genDates = datesInRange(genFrom, genTo, genDays);
   const genDaySlots = timeSlotsInDay(genStartTime, genEndTime, genDuration, genBuffer);
-  const genPreviewCount = genDates.length * genDaySlots.length * formData.professionalIds.length;
+  // Sin profesionales cargados (negocio unipersonal), se genera 1 turno por
+  // combinación fecha × horario, sin asignar — mismo criterio que "Turno puntual".
+  const genProfessionalCount = professionals.length > 0 ? formData.professionalIds.length : 1;
+  const genPreviewCount = genDates.length * genDaySlots.length * genProfessionalCount;
 
   const generateAvailability = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.professionalIds.length === 0) {
+    if (professionals.length > 0 && formData.professionalIds.length === 0) {
       showToast("error", "Error al generar", "Elegí al menos un profesional");
       return;
     }
@@ -289,12 +298,13 @@ export default function TurnosPage() {
 
     setGenerating(true);
     try {
+      const professionalIdsForRequest = professionals.length > 0 ? formData.professionalIds : [null];
       const jobs = genDates.flatMap((dateStr) =>
         genDaySlots.flatMap((slot) =>
-          formData.professionalIds.map((professionalId) => ({
+          professionalIdsForRequest.map((professionalId) => ({
             startDateTime: `${dateStr}T${slot.start}:00`,
             endDateTime: `${dateStr}T${slot.end}:00`,
-            professionalId: Number(professionalId),
+            professionalId: professionalId === null ? null : Number(professionalId),
           }))
         )
       );

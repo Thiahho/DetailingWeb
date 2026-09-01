@@ -5,6 +5,9 @@ import BookingForm from "@/src/components/booking/BookingForms";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
 import RouletteFloat from "@/src/components/shared/RouletteFloat";
 import ReviewsSection, { type NativeReview, type GoogleReview } from "@/src/components/public/ReviewsSection";
+import GalleryCarousel from "@/src/components/public/GalleryCarousel";
+import AboutSection from "@/src/components/public/AboutSection";
+import FaqSection from "@/src/components/public/FaqSection";
 import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "@/src/lib/siteConfig";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
@@ -34,21 +37,29 @@ interface ContentVideo {
   thumbnailUrl: string;
 }
 
+interface Professional {
+  id: number;
+  firstName: string;
+  lastName: string;
+  photoUrl: string;
+  calendarColor: string;
+  specialty?: string;
+}
+
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [visiblePacks, setVisiblePacks] = useState(3);
-  const [visibleGallery, setVisibleGallery] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   useModalHotkeys(!!selectedService, { onClose: () => setSelectedService(null) });
   const [contentVideos, setContentVideos] = useState<ContentVideo[]>([]);
   const [reviews, setReviews] = useState<NativeReview[]>([]);
   const [googleReviews, setGoogleReviews] = useState<GoogleReview[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
 
   const packsToShow = services.slice(0, visiblePacks);
-  const galleryToShow = gallery.slice(0, visibleGallery);
 
   useEffect(() => {
     fetch("/api/public-data")
@@ -60,6 +71,7 @@ export default function Home() {
         setContentVideos(Array.isArray(d.contentVideos) ? d.contentVideos : []);
         setReviews(Array.isArray(d.reviews) ? d.reviews : []);
         setGoogleReviews(Array.isArray(d.googleReviews) ? d.googleReviews : []);
+        setProfessionals(Array.isArray(d.professionals) ? d.professionals : []);
       })
       .catch(() => {});
   }, []);
@@ -227,40 +239,12 @@ export default function Home() {
             <h3 className="text-3xl font-semibold text-charcoal">Nuestros Trabajos</h3>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {galleryToShow.map((item) => (
-              <article key={item.id} className="glass-card group overflow-hidden p-4">
-                <div className="relative aspect-video overflow-hidden rounded-xl">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                </div>
-                <div className="mt-4">
-                  <h4 className="text-lg font-medium text-charcoal/90 group-hover:text-blushdark transition-colors">
-                    {item.title}
-                  </h4>
-                  <p className="text-xs uppercase tracking-widest text-charcoal/40 mt-1">
-                    {item.tag}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {visibleGallery < gallery.length && (
-            <div className="text-center pt-8">
-              <button
-                onClick={() => setVisibleGallery((p) => p + 3)}
-                className="rounded-full border border-mauve/15 bg-white px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-mauve/30 hover:text-charcoal"
-              >
-                Ver más trabajos ({gallery.length - visibleGallery} restantes)
-              </button>
-            </div>
-          )}
+          <GalleryCarousel items={gallery} />
         </section>
       )}
+
+      {/* SOBRE NOSOTROS */}
+      <AboutSection siteConfig={siteConfig} professionals={professionals} />
 
       {/* REELS */}
       <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
@@ -294,6 +278,9 @@ export default function Home() {
 
       {/* RESEÑAS */}
       <ReviewsSection nativeReviews={reviews} googleReviews={googleReviews} />
+
+      {/* FAQ */}
+      <FaqSection />
 
       {/* CONTACTO */}
       <section

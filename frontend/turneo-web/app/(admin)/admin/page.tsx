@@ -11,6 +11,7 @@ interface Booking {
   id: number;
   customerName: string;
   customerPhone: string;
+  email?: string | null;
   subject: string;
   service: string;
   professionalId?: number | null;
@@ -90,6 +91,17 @@ function buildBookingWhatsAppUrl(slot: Slot) {
   const phone = booking.customerPhone.replace(/\D/g, "");
   const message = `Hola ${booking.customerName} 👋\n\nTe confirmamos tu reserva:\n\n📅 *Fecha:* ${day} ${date} · ${time}\n📝 *Detalle:* ${booking.subject || "—"}\n🔧 *Servicio:* ${booking.service || "—"}\n\n¡Nos vemos!`;
   return `https://wa.me/+54${phone}?text=${encodeURIComponent(message)}`;
+}
+
+function buildBookingMailtoUrl(slot: Slot) {
+  const booking = slot.booking;
+  if (!booking?.email) return "";
+  const { day, date, time } = formatDate(slot.startDateTime);
+  const subject = encodeURIComponent("Confirmación de tu turno");
+  const body = encodeURIComponent(
+    `Hola ${booking.customerName},\n\nTe confirmamos tu reserva:\n\nFecha: ${day} ${date} · ${time}\nDetalle: ${booking.subject || "—"}\nServicio: ${booking.service || "—"}\n\n¡Nos vemos!`
+  );
+  return `mailto:${booking.email}?subject=${subject}&body=${body}`;
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -508,6 +520,14 @@ export default function AdminDashboard() {
               >
                 WhatsApp
               </a>
+              {detailSlot.booking.email && (
+                <a
+                  href={buildBookingMailtoUrl(detailSlot)}
+                  className="flex-1 text-center bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 py-2.5 rounded-lg text-sm font-semibold transition"
+                >
+                  Email
+                </a>
+              )}
               <Button
                 onClick={() => handleLiberar(detailSlot.id, detailSlot.booking?.status === "Confirmed")}
                 variant="danger"

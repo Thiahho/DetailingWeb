@@ -73,6 +73,12 @@ export default function Navbar() {
             <Link href="/reservar#trabajos" onClick={(e) => handleNavClick(e, "trabajos")} className="transition hover:text-charcoal">
               Trabajos
             </Link>
+            <Link href="/reservar#nosotros" onClick={(e) => handleNavClick(e, "nosotros")} className="transition hover:text-charcoal">
+              Nosotros
+            </Link>
+            <Link href="/reservar#preguntas" onClick={(e) => handleNavClick(e, "preguntas")} className="transition hover:text-charcoal">
+              Preguntas
+            </Link>
             <Link
               href="/mis-turnos"
               className="transition hover:text-charcoal"
@@ -141,6 +147,20 @@ export default function Navbar() {
                 className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
               >
                 Trabajos
+              </Link>
+              <Link
+                href="/reservar#nosotros"
+                onClick={(e) => handleNavClick(e, "nosotros")}
+                className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+              >
+                Nosotros
+              </Link>
+              <Link
+                href="/reservar#preguntas"
+                onClick={(e) => handleNavClick(e, "preguntas")}
+                className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+              >
+                Preguntas
               </Link>
               <Link
                 href="/mis-turnos"

@@ -149,13 +149,23 @@ public class TimeSlotsController : ControllerBase
 
         if (professionalId == null)
         {
-            return BadRequest(new { message = "Elegí a qué profesional pertenece el turno" });
+            // Negocio unipersonal (sin ningún Professional activo cargado): el
+            // turno queda sin asignar, mismo criterio que ya usa la generación
+            // automática de disponibilidad (TimeSlotGeneratorService). Si el
+            // negocio sí tiene equipo, seguimos exigiendo elegir a quién.
+            var hasActiveProfessionals = await _repository.AnyActiveProfessionalExistsAsync();
+            if (hasActiveProfessionals)
+            {
+                return BadRequest(new { message = "Elegí a qué profesional pertenece el turno" });
+            }
         }
-
-        var professionalIsActive = await _repository.ProfessionalIsActiveAsync(professionalId.Value);
-        if (!professionalIsActive)
+        else
         {
-            return BadRequest(new { message = "El profesional seleccionado no está disponible" });
+            var professionalIsActive = await _repository.ProfessionalIsActiveAsync(professionalId.Value);
+            if (!professionalIsActive)
+            {
+                return BadRequest(new { message = "El profesional seleccionado no está disponible" });
+            }
         }
 
         var exists = await _repository.SlotExistsAsync(request.StartDateTime, professionalId);

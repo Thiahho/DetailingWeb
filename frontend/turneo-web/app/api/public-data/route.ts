@@ -7,7 +7,7 @@ const API_URL =
 export async function GET(request: NextRequest) {
   try {
     const headers = tenantHeader(request);
-    const [services, gallery, siteconfig, contentVideos, reviews, googleReviews] = await Promise.all([
+    const [services, gallery, siteconfig, contentVideos, reviews, googleReviews, professionals] = await Promise.all([
       fetch(`${API_URL}/api/services`, { headers, next: { revalidate: 60, tags: ["services"] } }).then((r) =>
         r.ok ? r.json() : []
       ),
@@ -30,10 +30,15 @@ export async function GET(request: NextRequest) {
       fetch(`${API_URL}/api/reviews/google`, { headers, next: { revalidate: 3600, tags: ["reviews-google"] } }).then(
         (r) => (r.ok ? r.json() : [])
       ),
+      // Mismo tag "professionals" que ya invalida app/api/professionals/route.ts
+      // al crear/editar/borrar — se suma acá para la sección "Sobre nosotros".
+      fetch(`${API_URL}/api/professionals`, { headers, next: { revalidate: 60, tags: ["professionals"] } }).then(
+        (r) => (r.ok ? r.json() : [])
+      ),
     ]);
 
     return NextResponse.json(
-      { services, gallery, siteconfig, contentVideos, reviews, googleReviews },
+      { services, gallery, siteconfig, contentVideos, reviews, googleReviews, professionals },
       {
         status: 200,
         headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
@@ -41,7 +46,7 @@ export async function GET(request: NextRequest) {
     );
   } catch {
     return NextResponse.json(
-      { services: [], gallery: [], siteconfig: null, contentVideos: [], reviews: [], googleReviews: [] },
+      { services: [], gallery: [], siteconfig: null, contentVideos: [], reviews: [], googleReviews: [], professionals: [] },
       { status: 200 }
     );
   }

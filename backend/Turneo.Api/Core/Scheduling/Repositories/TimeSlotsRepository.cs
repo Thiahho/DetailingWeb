@@ -37,6 +37,9 @@ public class TimeSlotsRepository : ITimeSlotsRepository
     public Task<bool> ProfessionalIsActiveAsync(int professionalId) =>
         _context.Professionals.AnyAsync(p => p.Id == professionalId && p.IsActive);
 
+    public Task<bool> AnyActiveProfessionalExistsAsync() =>
+        _context.Professionals.AnyAsync(p => p.IsActive);
+
     public Task<bool> SlotExistsAsync(DateTime startDateTime, int? professionalId, int? excludeId = null) =>
         _context.TimeSlots.AnyAsync(t =>
             t.StartDateTime == startDateTime &&
