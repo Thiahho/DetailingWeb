@@ -21,17 +21,21 @@ Ver la decisión de diseño completa en [ADR-005](adr/ADR-005-CommercialModels.m
 
 ## Planes seedeados
 
-`SaaSCatalogSeeder` (`Infrastructure/Persistence`) siembra automáticamente al arrancar la API (idempotente, corre una sola vez) los 6 planes del roadmap original:
+`SaaSCatalogSeeder` (`Infrastructure/Persistence`) siembra automáticamente al arrancar la API (idempotente, corre una sola vez) los 6 planes de la **propuesta comercial confirmada el 20/07** — la migración `ReseedCommercialPlanCatalog` (21/07) reemplazó el catálogo placeholder original (Starter/Pro/Premium/Enterprise/License/Custom) por este:
 
-| Plan | MaxProfessionals | MaxBranches | MaxBookings | WhatsApp | IA |
+| Plan | Profesionales | Sucursales | Reservas/mes | WhatsApp | IA |
 |---|---|---|---|---|---|
-| Starter | 1 | 1 | 50 | ❌ | ❌ |
-| Pro | 5 | 1 | 500 | ✅ | ❌ |
-| Premium | 15 | 3 | 2000 | ✅ | ✅ |
-| Enterprise | sin límite | sin límite | sin límite | ✅ | ✅ |
-| License | sin límite | sin límite | sin límite | ✅ | ✅ |
+| Free | 1 | 1 | 50 | ❌ | ❌ |
+| Starter | 2 | 1 | sin límite | ❌ | ❌ |
+| Pro | 10 | 1 | sin límite | ✅ | ❌ |
+| Business | sin límite | sin límite | sin límite | ✅ | ❌ |
+| Licencia | sin límite | sin límite | sin límite | ✅ | ✅ |
 | Custom | sin límite | sin límite | sin límite | ✅ | ✅ |
 
-**Los precios (`PriceMonthly`/`PriceYearly`) se dejaron sin definir (`null`) a propósito** — son una decisión de negocio real que todavía no se cargó, distinta de los límites (que sí son un valor de partida razonable, editable en cualquier momento vía `UPDATE` sobre `PlanFeatures`).
+**Ningún plan salvo Licencia/Custom incluye IA** — hoy no importa demasiado porque `CanUseAI` no tiene ningún caller en el backend (ver [Features](Features.md)), pero es una inconsistencia a resolver si se llega a construir esa función. El plan `Starter` (pensado para 1-2 profesionales) tampoco incluye WhatsApp — contradicción real para el segmento de negocio más chico, que es justamente el que más depende de ese canal.
 
-El tenant "legacy" (el negocio de belleza que ya corre en producción) quedó asignado al plan `License`, coherente con su `CommercialModel`.
+La tabla completa de features tiene más columnas que estas 5 (`MaxClients`, `MaxServices`, `MaxAdmins`, `CanUseMercadoPago`, `CanUseAutomations`, `HideTurneoBranding`) — ver [Features](Features.md) para el catálogo completo y el estado real del enforcement.
+
+**Los precios (`PriceMonthly`/`PriceYearly`) se dejaron sin definir (`null`) a propósito** en los 6 planes — es una decisión de negocio real que todavía no se cargó, distinta de los límites (que sí son un valor de partida razonable, editable en cualquier momento vía `UPDATE` sobre `PlanFeatures`).
+
+El tenant "legacy" (el negocio de belleza que ya corre en producción) quedó asignado al plan `Licencia` según la migración que hizo el reseed — no verificado contra la base real en esta pasada.

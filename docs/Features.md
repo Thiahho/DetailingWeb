@@ -9,7 +9,7 @@ Ver la decisión de diseño completa en [ADR-004](adr/ADR-004-FeatureFlags.md).
 
 Agregar un límite o permiso nuevo es una fila en `Feature` + una fila en `PlanFeature` por plan — nunca una migración de schema en `Plan`.
 
-Features seedeados hoy: `CanUseWhatsapp`, `CanUseAI`, `MaxProfessionals`, `MaxBranches`, `MaxBookings`. Ver los valores actuales por plan en [Plans](Plans.md).
+Features seedeados hoy (11): `CanUseWhatsapp`, `CanUseAI`, `CanUseMercadoPago`, `CanUseAutomations`, `HideTurneoBranding`, `MaxProfessionals`, `MaxBranches`, `MaxBookings`, `MaxClients`, `MaxServices`, `MaxAdmins`. Ver los valores actuales por plan en [Plans](Plans.md). `MaxAdmins` está sembrado a propósito sin uso todavía — no existe ningún endpoint para invitar un segundo Admin/Staff dentro de un tenant, así que no hay nada que ese límite aplique hoy.
 
 ## Regla para toda funcionalidad nueva
 
@@ -45,11 +45,23 @@ Resuelve el `Plan` del tenant actual (`Tenant.PlanId`) → busca el `PlanFeature
 
 ## Estado del enforcement
 
-| Controller | Feature | Estado |
-|---|---|---|
-| `ProfessionalsController.Create` | `MaxProfessionals` | ✅ Conectado — responde `402 Payment Required` al exceder |
-| `BookingsController` | `MaxBookings` | ⏳ Pendiente — mismo patrón, no implementado todavía |
-| (donde corresponda) | `MaxBranches` | ⏳ Pendiente |
-| — | `CanUseWhatsapp` / `CanUseAI` | ⏳ Pendiente — hoy no bloquean el envío ni ninguna función de IA |
+Más avanzado de lo que este documento decía antes — 7 puntos conectados:
 
-`ProfessionalsController` es la implementación de referencia — replicar el mismo patrón (`_planLimits.IsWithinLimitAsync(...)` antes de crear la entidad) en los controllers que faltan.
+| Controller/Servicio | Feature | Estado |
+|---|---|---|
+| `ProfessionalsController.Create` | `MaxProfessionals` | ✅ Conectado — `402 Payment Required` al exceder |
+| `BookingsController.CreateBooking` | `MaxBookings` (por mes) | ✅ Conectado — `402` |
+| `ServicesController.Create` | `MaxServices` | ✅ Conectado — `402` |
+| `CustomerProfilesController.Create` | `MaxClients` | ✅ Conectado — `402` |
+| `AutomationRulesController` | `CanUseAutomations` | ✅ Conectado — `402` |
+| `PaymentsController.CreateMercadoPagoPreference` | `CanUseMercadoPago` | ✅ Conectado — `402` |
+| `NotificationService` (envío) | `CanUseWhatsapp` | ✅ Conectado — corta el envío por ese canal, no responde `402` (es un job, no un endpoint) |
+| `SiteConfigController` | `HideTurneoBranding` | ✅ Conectado — no bloquea, decide si se muestra el badge de marca |
+| (ninguno) | `MaxBranches` | ⏳ Sin ningún caller — coherente con que `Branch` no está conectada a Core todavía |
+| (ninguno) | `MaxAdmins` | ⏳ Sembrado a propósito sin enforcement, ver arriba |
+| (ninguno) | `CanUseAI` | ⏳ Sin ningún caller en todo el backend — no hay ninguna función de IA implementada |
+
+`ProfessionalsController` sigue siendo la implementación de referencia para replicar el patrón
+(`_planLimits.IsWithinLimitAsync(...)` antes de crear la entidad) en lo que falta.
+
+**Importante**: el enforcement real no bloquea a nadie hoy en la práctica — es **fail-open** (ver arriba) y el único tenant real de producción no tenía `PlanId` asignado al momento de escribir la migración `ReseedCommercialPlanCatalog`.

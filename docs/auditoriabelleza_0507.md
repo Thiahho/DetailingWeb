@@ -1,3 +1,8 @@
+> ⚠️ **Desactualizada** — ver **[`auditoria_0109.md`](auditoria_0109.md)** para el
+> inventario y el estado de seguridad vigentes (sistema renombrado a Turneo,
+> multi-tenant, ~10 módulos nuevos desde esta fecha). Los hallazgos de seguridad
+> ya marcados "✅ Resuelto" acá siguen vigentes; el resto del inventario/tamaño no.
+
 # Auditoría completa del sistema — DetailingWeb / Turneo Belleza (05/07)
 
 Base para presupuestar el sistema completo: inventario funcional, tamaño, seguridad, validaciones y calidad de código. Hecha cruzando el grafo de conocimiento del proyecto (`graphify-out/graph.json`, actualizado a 1105 nodos / 1681 edges / 143 comunidades tras sumar el módulo Profesionales y el PRD de Turneo Belleza) con lectura puntual del código fuente.
