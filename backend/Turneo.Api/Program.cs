@@ -8,6 +8,21 @@ using System.Threading.RateLimiting;
 // con inotify limitado (p. ej. Render) esto tira IOException y mata el proceso antes de arrancar.
 Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
 
+// Npgsql lee automáticamente las variables de entorno estilo libpq (PGHOST, PGPASSWORD, etc.)
+// como fallback — Render las auto-inyecta al linkear la base de Postgres al servicio. Un bug de
+// mapeo interno en Npgsql 9.0.2 tira KeyNotFoundException al procesarlas (aunque el connection
+// string ya venga completo desde appsettings), lo que crashea el proceso en el arranque. Nuestro
+// connection string siempre sale de config (ver ConnectionStrings:DefaultConnection), así que
+// nunca necesitamos que Npgsql las lea — se limpian antes de que las toque.
+foreach (var pgEnvVar in new[]
+{
+    "PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD", "PGPASSFILE",
+    "PGSSLMODE", "PGSSLCERT", "PGSSLKEY", "PGSSLROOTCERT", "PGAPPNAME", "PGOPTIONS", "PGTZ"
+})
+{
+    Environment.SetEnvironmentVariable(pgEnvVar, null);
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
