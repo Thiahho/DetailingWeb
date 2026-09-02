@@ -1,3 +1,5 @@
+import { getCached, setCached, removeCached } from "@/src/lib/publicDataCache";
+
 export interface SiteConfig {
   id?: number;
   businessName: string;
@@ -71,38 +73,71 @@ export function extractMapEmbedSrc(mapEmbedUrl?: string, location?: string): str
 }
 
 let cachedConfig: SiteConfig | null = null;
+const SITE_CONFIG_CACHE_KEY = "siteconfig";
+const SITE_CONFIG_CACHE_MAX_AGE_MS = 24 * 60 * 60_000;
 
-export async function getSiteConfig(): Promise<SiteConfig> {
-  if (cachedConfig) return cachedConfig;
+function buildConfig(data: Record<string, unknown>): SiteConfig {
+  return {
+    id: data.id as number | undefined,
+    businessName: (data.businessName as string) || DEFAULT_SITE_CONFIG.businessName,
+    whatsAppNumber: (data.whatsAppNumber as string) || DEFAULT_SITE_CONFIG.whatsAppNumber,
+    instagramUrl: (data.instagramUrl as string) || DEFAULT_SITE_CONFIG.instagramUrl,
+    instagramHandle: (data.instagramHandle as string) || DEFAULT_SITE_CONFIG.instagramHandle,
+    location: (data.location as string) || DEFAULT_SITE_CONFIG.location,
+    locationShort: (data.locationShort as string) || DEFAULT_SITE_CONFIG.locationShort,
+    mapEmbedUrl: (data.mapEmbedUrl as string) || DEFAULT_SITE_CONFIG.mapEmbedUrl,
+    siteUrl: (data.siteUrl as string) || DEFAULT_SITE_CONFIG.siteUrl,
+    logoUrl: (data.logoUrl as string) || DEFAULT_SITE_CONFIG.logoUrl,
+    heroTitle: (data.heroTitle as string) || DEFAULT_SITE_CONFIG.heroTitle,
+    heroSubtitle: (data.heroSubtitle as string) || DEFAULT_SITE_CONFIG.heroSubtitle,
+    heroBadge: (data.heroBadge as string) || DEFAULT_SITE_CONFIG.heroBadge,
+    heroHighlights: Array.isArray(data.heroHighlights)
+      ? (data.heroHighlights as string[])
+      : DEFAULT_SITE_CONFIG.heroHighlights,
+    metaDescription: (data.metaDescription as string) || DEFAULT_SITE_CONFIG.metaDescription,
+  };
+}
+
+async function fetchAndCacheConfig(): Promise<SiteConfig | null> {
   try {
     const res = await fetch("/api/siteconfig", { next: { revalidate: 300 } });
-    if (!res.ok) return DEFAULT_SITE_CONFIG;
+    if (!res.ok) return null;
     const data = await res.json();
-    cachedConfig = {
-      id: data.id,
-      businessName: data.businessName || DEFAULT_SITE_CONFIG.businessName,
-      whatsAppNumber: data.whatsAppNumber || DEFAULT_SITE_CONFIG.whatsAppNumber,
-      instagramUrl: data.instagramUrl || DEFAULT_SITE_CONFIG.instagramUrl,
-      instagramHandle: data.instagramHandle || DEFAULT_SITE_CONFIG.instagramHandle,
-      location: data.location || DEFAULT_SITE_CONFIG.location,
-      locationShort: data.locationShort || DEFAULT_SITE_CONFIG.locationShort,
-      mapEmbedUrl: data.mapEmbedUrl || DEFAULT_SITE_CONFIG.mapEmbedUrl,
-      siteUrl: data.siteUrl || DEFAULT_SITE_CONFIG.siteUrl,
-      logoUrl: data.logoUrl || DEFAULT_SITE_CONFIG.logoUrl,
-      heroTitle: data.heroTitle || DEFAULT_SITE_CONFIG.heroTitle,
-      heroSubtitle: data.heroSubtitle || DEFAULT_SITE_CONFIG.heroSubtitle,
-      heroBadge: data.heroBadge || DEFAULT_SITE_CONFIG.heroBadge,
-      heroHighlights: Array.isArray(data.heroHighlights) ? data.heroHighlights : DEFAULT_SITE_CONFIG.heroHighlights,
-      metaDescription: data.metaDescription || DEFAULT_SITE_CONFIG.metaDescription,
-    };
-    return cachedConfig;
+    const config = buildConfig(data);
+    cachedConfig = config;
+    setCached(SITE_CONFIG_CACHE_KEY, config);
+    return config;
   } catch {
-    return DEFAULT_SITE_CONFIG;
+    return null;
   }
+}
+
+// La variable de módulo `cachedConfig` muere en cada recarga completa de
+// página (el Navbar y compañía vuelven a mostrar el branding por defecto
+// hasta que responde el fetch). Con consentimiento de "preferencias" hay una
+// copia persistida en localStorage (src/lib/publicDataCache.ts): si existe,
+// se devuelve de inmediato (sin esperar red) y se refresca en segundo plano
+// — el Navbar vuelve a llamar a getSiteConfig() en cada montaje, así que la
+// próxima vez ya sale de `cachedConfig` con los datos frescos. Sin
+// consentimiento, getCached() siempre da null y el comportamiento es el
+// mismo de antes (esperar el fetch).
+export async function getSiteConfig(): Promise<SiteConfig> {
+  if (cachedConfig) return cachedConfig;
+
+  const persisted = getCached<SiteConfig>(SITE_CONFIG_CACHE_KEY, SITE_CONFIG_CACHE_MAX_AGE_MS);
+  if (persisted) {
+    cachedConfig = persisted;
+    fetchAndCacheConfig();
+    return persisted;
+  }
+
+  const fresh = await fetchAndCacheConfig();
+  return fresh ?? DEFAULT_SITE_CONFIG;
 }
 
 export function clearSiteConfigCache() {
   cachedConfig = null;
+  removeCached(SITE_CONFIG_CACHE_KEY);
 }
 
 export function getWhatsAppLink(number: string, message?: string): string {

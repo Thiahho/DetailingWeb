@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, type FormEvent } from "react";
+import { useState, useEffect, useCallback, useRef, type FormEvent } from "react";
 import { logError } from "@/src/lib/logger";
 import PaymentButton from "@/src/components/payments/PaymentButton";
 
@@ -237,6 +237,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loadingProfessionals, setLoadingProfessionals] = useState(false);
   const [completedBooking, setCompletedBooking] = useState<{ id: number; service: string } | null>(null);
+  const serviceListRef = useRef<HTMLDivElement>(null);
 
   const selectedServiceObj = services.find((s) => s.slug === formData.selectedService) ?? null;
   const customFieldDefs: CustomFieldDef[] = (() => {
@@ -276,6 +277,19 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
       setFormData((prev) => ({ ...prev, selectedService: preselectedService }));
     }
   }, [preselectedService]);
+
+  // La grilla de servicios tiene alto acotado con scroll (ver className más
+  // abajo) para que no siga estirando la página a medida que el negocio
+  // suma servicios — sin esto, un servicio preseleccionado (ej. desde el
+  // botón "Presupuestar" de la landing) podría quedar fuera de la vista
+  // inicial del box, sin ningún indicio visual de que ya está elegido.
+  useEffect(() => {
+    if (!formData.selectedService) return;
+    const el = serviceListRef.current?.querySelector(
+      `[data-service-slug="${formData.selectedService}"]`
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [formData.selectedService]);
 
   // Reset custom field values when service changes
   useEffect(() => {
@@ -533,28 +547,44 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
         <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
           Seleccioná el servicio
         </label>
-        <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
-          {services.map((pack) => (
-            <button
-              key={pack.slug}
-              type="button"
-              data-testid="booking-service-option"
-              data-service-slug={pack.slug}
-              onClick={() =>
-                setFormData((prev) => ({ ...prev, selectedService: pack.slug }))
-              }
-              className={`rounded-lg border px-4 py-3 text-left transition ${
-                formData.selectedService === pack.slug
-                  ? "border-blush bg-blush/15 text-blushdark"
-                  : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-porcelain/60"
-              }`}
-            >
-              <span className="block text-sm font-medium">{pack.title}</span>
-              <span className="block text-xs text-charcoal/50 mt-1">
-                ${pack.price} · {pack.duration}
-              </span>
-            </button>
-          ))}
+        <div className="relative">
+          <div
+            ref={serviceListRef}
+            // max-h + overflow-y-auto: sin esto, cada servicio que el negocio
+            // agrega en /admin/servicios suma otra fila acá y el formulario de
+            // reserva se estira sin límite — con scroll interno, el alto queda
+            // fijo sin importar cuántos servicios tenga el catálogo.
+            className="grid max-h-80 gap-2 overflow-y-auto rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2"
+          >
+            {services.map((pack) => (
+              <button
+                key={pack.slug}
+                type="button"
+                data-testid="booking-service-option"
+                data-service-slug={pack.slug}
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, selectedService: pack.slug }))
+                }
+                className={`rounded-lg border px-4 py-3 text-left transition ${
+                  formData.selectedService === pack.slug
+                    ? "border-blush bg-blush/15 text-blushdark"
+                    : "border-mauve/15 text-charcoal/70 hover:border-mauve/30 hover:bg-porcelain/60"
+                }`}
+              >
+                <span className="block text-sm font-medium">{pack.title}</span>
+                <span className="block text-xs text-charcoal/50 mt-1">
+                  ${pack.price} · {pack.duration}
+                </span>
+              </button>
+            ))}
+          </div>
+          {/* Degradado sobre el borde inferior del box: sin esto, cuando hay
+              más servicios de los que entran, la última tarjeta visible queda
+              cortada a la mitad justo en el límite del scroll — se lee como
+              un glitch en vez de "hay más abajo, scrolleá". Blanco porque el
+              contenedor es bg-white; si el contenido entra sin scroll, el
+              degradado cae sobre el mismo blanco y no se nota. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-xl bg-gradient-to-t from-white to-transparent" />
         </div>
       </div>
 

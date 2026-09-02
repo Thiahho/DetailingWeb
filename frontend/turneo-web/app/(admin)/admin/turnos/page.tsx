@@ -862,6 +862,10 @@ export default function TurnosPage() {
                   <p className="text-charcoal/40 text-xs mt-0.5 mb-1">
                     Elegí uno o más días en el calendario — se crea un turno igual en cada uno
                   </p>
+                  {/* .rdp-root fija width: fit-content (ver <style jsx global> más abajo)
+                      para que el fondo/borde abrace justo la grilla de 7 columnas, sin
+                      espacio vacío de sobra. mx-auto centra esa caja compacta dentro de
+                      la columna del formulario, sin estirarla a ancho completo. */}
                   <DayPicker
                     mode="multiple"
                     locale={es}
@@ -871,7 +875,7 @@ export default function TurnosPage() {
                       setFormData((prev) => ({ ...prev, dates: (dates ?? []).map(dateToLocalStr).sort() }))
                     }
                     disabled={{ before: TODAY_MIDNIGHT }}
-                    className="mt-1 bg-cream border border-mauve/10 rounded-lg p-2"
+                    className="mt-1 mx-auto bg-cream border border-mauve/10 rounded-lg p-2"
                   />
                   {formData.dates.length > 0 && (
                     <div data-testid="slot-form-dates-list" className="mt-2 flex flex-wrap gap-1.5">

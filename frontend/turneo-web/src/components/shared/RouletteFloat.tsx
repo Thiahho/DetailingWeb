@@ -3,13 +3,15 @@ import { Gift } from "lucide-react";
 
 // Botón flotante que lleva al cliente a /beneficios (la ruleta de
 // fidelización). Apilado arriba de WhatsAppFloat (bottom-6, h-14) para que no
-// se superpongan — ver WhatsAppFloat.tsx.
+// se superpongan — ver WhatsAppFloat.tsx. También se corre hacia arriba
+// mientras la barra de cookies está visible (--consent-bar-h).
 export default function RouletteFloat() {
   return (
     <Link
       href="/beneficios"
       aria-label="Girá la ruleta de beneficios"
-      className="fixed bottom-24 right-6 z-50 flex items-center gap-2 rounded-full bg-blush px-4 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition-transform hover:scale-110"
+      className="fixed right-6 z-50 flex items-center gap-2 rounded-full bg-blush px-4 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition-transform hover:scale-110"
+      style={{ bottom: "calc(6rem + var(--consent-bar-h, 0px))" }}
     >
       <Gift className="h-5 w-5" strokeWidth={2.25} />
       <span className="hidden sm:inline">¡Girá y ganá!</span>

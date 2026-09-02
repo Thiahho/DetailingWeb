@@ -1,6 +1,6 @@
 // Versión vigente — subir junto con LegalTermsVersions.Customer en el backend
 // cada vez que cambie el texto (mismo criterio que /terminos).
-const PRIVACY_VERSION = "2026-08-19";
+const PRIVACY_VERSION = "2026-09-02";
 
 export default function PrivacidadPage() {
   return (
@@ -60,15 +60,46 @@ export default function PrivacidadPage() {
             </ul>
             <p>
               No usamos tus datos con fines publicitarios propios ni los vendemos a
-              terceros. Este sitio no utiliza cookies ni píxeles de seguimiento
-              publicitario de terceros (Google Analytics, Meta Pixel u otros) — la única
-              cookie que usamos es técnica, para mantener tu sesión iniciada en el portal
-              de clientes, y no rastrea tu navegación fuera de este sitio.
+              terceros. Este sitio no utiliza píxeles de seguimiento publicitario de
+              terceros (Meta Pixel u otros) ni comparte datos de navegación con redes de
+              publicidad.
             </p>
           </section>
 
           <section>
-            <h2>3. Con quién compartimos tus datos</h2>
+            <h2>3. Cookies y almacenamiento local</h2>
+            <p>
+              Al entrar por primera vez te preguntamos qué categorías de cookies aceptás.
+              Podés cambiar tu decisión cuando quieras desde el botón &quot;Preferencias de
+              cookies&quot; al pie de la página.
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <strong>Necesarias</strong> (siempre activas) — mantienen tu sesión
+                iniciada en el portal de clientes o en el panel del negocio, y una cookie
+                técnica (<code>turneo_consent</code>, 180 días) que guarda tu propia
+                decisión sobre cookies. No rastrean tu navegación fuera de este sitio.
+              </li>
+              <li>
+                <strong>Preferencias</strong> (opcional) — si las aceptás, guardamos en tu
+                navegador (almacenamiento local, no en un servidor) una copia del catálogo
+                de servicios, galería y datos públicos del negocio, para que la página
+                cargue más rápido en tu próxima visita. No incluye datos personales tuyos.
+              </li>
+              <li>
+                <strong>Analítica</strong> (opcional) — categoría declarada para uso
+                futuro; hoy este sitio no tiene ninguna herramienta de analítica ni de
+                seguimiento activa.
+              </li>
+            </ul>
+            <p>
+              No usamos cookies ni tecnologías de seguimiento publicitario de terceros
+              (Google Analytics, Meta Pixel u otros).
+            </p>
+          </section>
+
+          <section>
+            <h2>4. Con quién compartimos tus datos</h2>
             <p>
               Para poder prestar el servicio, algunos datos se envían a proveedores que
               actúan como encargados del tratamiento por nuestra cuenta:
@@ -98,7 +129,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section>
-            <h2>4. Seguridad</h2>
+            <h2>5. Seguridad</h2>
             <p>
               Las contraseñas de las cuentas del sistema se almacenan siempre encriptadas
               (nunca en texto plano). El acceso al panel de administración del negocio
@@ -108,7 +139,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section>
-            <h2>5. Tus derechos</h2>
+            <h2>6. Tus derechos</h2>
             <p>
               Conforme a la Ley N.º 25.326, tenés derecho de acceso, rectificación y
               supresión de tus datos personales. Para pedir la supresión de tus datos,
@@ -127,7 +158,7 @@ export default function PrivacidadPage() {
           </section>
 
           <section>
-            <h2>6. Modificaciones</h2>
+            <h2>7. Modificaciones</h2>
             <p>
               Esta política puede actualizarse. La versión vigente es la publicada en esta
               página.

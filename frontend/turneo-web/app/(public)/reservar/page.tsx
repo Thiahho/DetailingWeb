@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MapPin } from "lucide-react";
 import BookingForm from "@/src/components/booking/BookingForms";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
 import RouletteFloat from "@/src/components/shared/RouletteFloat";
@@ -10,6 +11,7 @@ import AboutSection from "@/src/components/public/AboutSection";
 import FaqSection from "@/src/components/public/FaqSection";
 import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "@/src/lib/siteConfig";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { getCached, setCached } from "@/src/lib/publicDataCache";
 
 interface Service {
   id: number;
@@ -46,6 +48,16 @@ interface Professional {
   specialty?: string;
 }
 
+interface PublicData {
+  services: Service[];
+  gallery: GalleryItem[];
+  siteconfig: SiteConfig | null;
+  contentVideos: ContentVideo[];
+  reviews: NativeReview[];
+  googleReviews: GoogleReview[];
+  professionals: Professional[];
+}
+
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
@@ -62,16 +74,28 @@ export default function Home() {
   const packsToShow = services.slice(0, visiblePacks);
 
   useEffect(() => {
+    const applyPublicData = (d: Partial<PublicData>) => {
+      setServices(Array.isArray(d.services) ? d.services : []);
+      setGallery(Array.isArray(d.gallery) ? d.gallery : []);
+      setSiteConfig(d.siteconfig ?? null);
+      setContentVideos(Array.isArray(d.contentVideos) ? d.contentVideos : []);
+      setReviews(Array.isArray(d.reviews) ? d.reviews : []);
+      setGoogleReviews(Array.isArray(d.googleReviews) ? d.googleReviews : []);
+      setProfessionals(Array.isArray(d.professionals) ? d.professionals : []);
+    };
+
+    // Con consentimiento de "preferencias" (src/lib/publicDataCache.ts), pinta
+    // primero con lo cacheado en localStorage (instantáneo) y revalida en
+    // segundo plano contra la API — sin consentimiento, getCached siempre
+    // devuelve null y el comportamiento es igual al de antes (solo fetch).
+    const cached = getCached<PublicData>("public-data", 6 * 60 * 60_000);
+    if (cached) applyPublicData(cached);
+
     fetch("/api/public-data")
       .then((r) => r.json())
       .then((d) => {
-        setServices(Array.isArray(d.services) ? d.services : []);
-        setGallery(Array.isArray(d.gallery) ? d.gallery : []);
-        setSiteConfig(d.siteconfig ?? null);
-        setContentVideos(Array.isArray(d.contentVideos) ? d.contentVideos : []);
-        setReviews(Array.isArray(d.reviews) ? d.reviews : []);
-        setGoogleReviews(Array.isArray(d.googleReviews) ? d.googleReviews : []);
-        setProfessionals(Array.isArray(d.professionals) ? d.professionals : []);
+        applyPublicData(d);
+        setCached("public-data", d);
       })
       .catch(() => {});
   }, []);
@@ -182,7 +206,7 @@ export default function Home() {
 
         <div className="grid gap-6 md:grid-cols-3">
           {packsToShow.map((pack) => (
-            <article key={pack.id} className="glass-card flex h-full flex-col gap-4 p-6">
+            <article key={pack.id} data-testid="reservar-service-card" className="glass-card flex h-full flex-col gap-4 p-6">
               <div className="overflow-hidden rounded-xl border border-mauve/10">
                 <img
                   alt={pack.title}
@@ -308,28 +332,59 @@ export default function Home() {
             </p>
           )}
           {siteConfig?.location && (
-            <div className="space-y-3">
-              <p className="text-charcoal/70">
-                Ubicación: {siteConfig.location}
-              </p>
-              <div className="overflow-hidden rounded-2xl border border-mauve/15 shadow-soft">
+            <div className="glass-card overflow-hidden">
+              <div className="flex flex-wrap items-start justify-between gap-3 p-5 pb-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blush/15 text-blushdark">
+                    <MapPin className="h-4 w-4" strokeWidth={2.25} />
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-semibold uppercase tracking-widest text-blushdark">Ubicación</h4>
+                    <p className="mt-1 text-sm text-charcoal/70">{siteConfig.location}</p>
+                  </div>
+                </div>
+                {/* Botón propio AL LADO del mapa, no encima: el embed gratuito
+                    de Google ("maps?q=...&output=embed") pinta su propio
+                    "chrome" (link "Open in Maps", atajos de teclado, Street
+                    View) en una capa de composición que en Chromium ignora el
+                    z-index de hermanos — no hay forma confiable de taparlo con
+                    CSS. En vez de pelear contra eso, el mapa queda interactivo
+                    normal y este botón, con los colores del sitio, es la
+                    forma clara de abrir la ubicación en la app de Maps. */}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-blush/15 px-4 py-2 text-xs font-semibold text-blushdark transition hover:bg-blush/25"
+                >
+                  <MapPin className="h-3.5 w-3.5" strokeWidth={2.25} />
+                  Abrir en Maps
+                </a>
+              </div>
+              <div className="group relative mx-5 mb-5 overflow-hidden rounded-xl border border-mauve/10">
                 <iframe
                   src={extractMapEmbedSrc(siteConfig.mapEmbedUrl, siteConfig.location)}
-                  className="h-56 w-full"
+                  className="h-48 w-full"
                   style={{ border: 0 }}
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title="Ubicación en el mapa"
                 />
+                {/* Hover puramente cosmético: el botón del header de arriba ya
+                    cubre la interacción real. Esto es solo un tinte + pill al
+                    pasar el mouse — pointer-events-none para no bloquear el
+                    mapa interactivo de abajo. En Chromium el iframe puede
+                    seguir pintando su propio "chrome" (link "Open in Maps",
+                    etc.) por encima de este tinte en algunos casos — es un
+                    bug de compositing de iframes que no se puede evitar del
+                    todo con CSS, se acepta como costo de este efecto extra. */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-charcoal/0 transition-colors duration-300 group-hover:bg-charcoal/40">
+                  <span className="flex translate-y-1 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-charcoal opacity-0 shadow-lg transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                    <MapPin className="h-4 w-4 text-blushdark" strokeWidth={2.25} />
+                    Abrir en Maps
+                  </span>
+                </div>
               </div>
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block text-sm text-charcoal/70 underline hover:text-blushdark transition"
-              >
-                Cómo llegar →
-              </a>
             </div>
           )}
           {siteConfig?.instagramUrl && (
@@ -366,6 +421,15 @@ export default function Home() {
           <a href="/derechos-de-autor" className="text-charcoal/40 hover:text-charcoal/60 transition">
             Derechos de Autor
           </a>
+          <span aria-hidden="true">·</span>
+          <button
+            type="button"
+            data-testid="cookie-preferences-footer"
+            onClick={() => window.dispatchEvent(new Event("consent-open"))}
+            className="text-charcoal/40 hover:text-charcoal/60 transition underline-offset-2 hover:underline"
+          >
+            Preferencias de cookies
+          </button>
         </p>
         {siteConfig && !siteConfig.hideBranding && (
           <a href="/" className="mt-2 inline-block text-charcoal/40 hover:text-charcoal/60 transition">

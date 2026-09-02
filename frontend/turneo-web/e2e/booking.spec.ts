@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { seedConsent } from "./consent";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -11,6 +12,9 @@ const seed = JSON.parse(
 
 test.describe("Flujo público de reserva", () => {
   test("un cliente ve servicios, reserva un turno y lo cancela", async ({ page }) => {
+    // Preseedear la decisión de cookies para que el banner (ver
+    // cookie-consent.spec.ts) no tape el formulario/footer en este flujo.
+    await seedConsent(page);
     await page.goto("/reservar");
 
     // Elegir el servicio sembrado en global-setup

@@ -4,6 +4,11 @@
 
 :root {
   color-scheme: light;
+  /* Alto de la barra de cookies (src/components/shared/CookieConsent.tsx)
+     mientras está visible — la setea/limpia el propio componente en
+     document.documentElement. Los floats fijos (WhatsApp, Ruleta) la usan
+     para correrse hacia arriba y no quedar tapados. */
+  --consent-bar-h: 0px;
 }
 
 body {

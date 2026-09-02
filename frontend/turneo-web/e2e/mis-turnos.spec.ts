@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { seedConsent } from "./consent";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,6 +20,9 @@ const seed = JSON.parse(
 // usa un cliente hoy: ver, cancelar y reprogramar sus turnos por email.
 test.describe("Portal Mis Turnos (búsqueda por email)", () => {
   test("un cliente ve sus turnos, cancela uno y reprograma otro", async ({ page }) => {
+    // Preseedear la decisión de cookies para que el banner (ver
+    // cookie-consent.spec.ts) no tape las tarjetas de turnos.
+    await seedConsent(page);
     await page.goto("/mis-turnos");
     await page.getByTestId("mis-turnos-email-input").fill(seed.misTurnosEmail);
     await page.getByTestId("mis-turnos-submit").click();
