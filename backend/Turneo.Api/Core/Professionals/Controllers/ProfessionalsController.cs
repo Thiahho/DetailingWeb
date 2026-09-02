@@ -44,6 +44,9 @@ public class ProfessionalsController : ControllerBase
             p.PhotoUrl,
             p.CalendarColor,
             p.Specialty,
+            p.Bio,
+            p.YearsOfExperience,
+            p.Skills,
             p.Schedule,
             p.IsActive,
             p.Order,
@@ -71,6 +74,9 @@ public class ProfessionalsController : ControllerBase
                 p.PhotoUrl,
                 p.CalendarColor,
                 p.Specialty,
+                p.Bio,
+                p.YearsOfExperience,
+                p.Skills,
                 p.Commission,
                 p.Schedule,
                 p.IsActive,
@@ -298,6 +304,9 @@ public class ProfessionalsController : ControllerBase
             professional.PhotoUrl,
             professional.CalendarColor,
             professional.Specialty,
+            professional.Bio,
+            professional.YearsOfExperience,
+            professional.Skills,
             professional.Schedule,
             professional.IsActive,
             professional.Order,
@@ -329,6 +338,9 @@ public class ProfessionalsController : ControllerBase
             PhotoUrl = request.PhotoUrl ?? string.Empty,
             CalendarColor = request.CalendarColor,
             Specialty = request.Specialty,
+            Bio = request.Bio,
+            YearsOfExperience = request.YearsOfExperience,
+            Skills = request.Skills,
             Commission = request.Commission,
             Schedule = request.Schedule,
             IsActive = request.IsActive,
@@ -347,6 +359,9 @@ public class ProfessionalsController : ControllerBase
             professional.PhotoUrl,
             professional.CalendarColor,
             professional.Specialty,
+            professional.Bio,
+            professional.YearsOfExperience,
+            professional.Skills,
             professional.Commission,
             professional.Schedule,
             professional.IsActive,
@@ -372,6 +387,9 @@ public class ProfessionalsController : ControllerBase
         professional.PhotoUrl = request.PhotoUrl ?? string.Empty;
         professional.CalendarColor = request.CalendarColor;
         professional.Specialty = request.Specialty;
+        professional.Bio = request.Bio;
+        professional.YearsOfExperience = request.YearsOfExperience;
+        professional.Skills = request.Skills;
         professional.Commission = request.Commission;
         professional.Schedule = request.Schedule;
         professional.IsActive = request.IsActive;
@@ -430,6 +448,15 @@ public class ProfessionalRequest
 
     [StringLength(100)]
     public string? Specialty { get; set; }
+
+    [StringLength(2000)]
+    public string? Bio { get; set; }
+
+    [Range(0, 80)]
+    public int? YearsOfExperience { get; set; }
+
+    [StringLength(2000)]
+    public string? Skills { get; set; }
 
     [Range(0, 100)]
     public decimal Commission { get; set; } = 0;

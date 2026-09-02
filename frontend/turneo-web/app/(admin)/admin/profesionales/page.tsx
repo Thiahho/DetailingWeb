@@ -22,6 +22,9 @@ interface Professional {
   photoUrl: string;
   calendarColor: string;
   specialty: string | null;
+  bio: string | null;
+  yearsOfExperience: number | null;
+  skills: string | null;
   commission: number;
   schedule: string | null;
   isActive: boolean;
@@ -55,10 +58,29 @@ const emptyForm = {
   photoUrl: "",
   calendarColor: "#7c3aed",
   specialty: "",
+  bio: "",
+  yearsOfExperience: "",
   commission: 0,
   isActive: true,
   order: 0,
   serviceIds: [] as number[],
+};
+
+// El backend guarda Skills como JSON (mismo criterio que Schedule) — acá se
+// edita como texto separado por comas, más simple para cargar rápido desde el panel.
+const parseSkills = (raw: string | null | undefined): string[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+const skillsInputToJson = (input: string): string | null => {
+  const skills = input.split(",").map((s) => s.trim()).filter(Boolean);
+  return skills.length > 0 ? JSON.stringify(skills) : null;
 };
 
 export default function ProfesionalesAdminPage() {
@@ -71,6 +93,7 @@ export default function ProfesionalesAdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [schedule, setSchedule] = useState<WeeklyScheduleDay[]>(defaultSchedule());
+  const [skillsInput, setSkillsInput] = useState("");
   const { toasts, showToast, removeToast } = useToast();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [accessForm, setAccessForm] = useState({ email: "", username: "", password: "" });
@@ -111,6 +134,7 @@ export default function ProfesionalesAdminPage() {
     setEditingProfessional(null);
     setFormData({ ...emptyForm });
     setSchedule(defaultSchedule());
+    setSkillsInput("");
     setShowForm(true);
   };
 
@@ -122,6 +146,8 @@ export default function ProfesionalesAdminPage() {
       photoUrl: professional.photoUrl,
       calendarColor: professional.calendarColor,
       specialty: professional.specialty ?? "",
+      bio: professional.bio ?? "",
+      yearsOfExperience: professional.yearsOfExperience?.toString() ?? "",
       commission: professional.commission,
       isActive: professional.isActive,
       order: professional.order,
@@ -132,6 +158,7 @@ export default function ProfesionalesAdminPage() {
     } catch {
       setSchedule(defaultSchedule());
     }
+    setSkillsInput(parseSkills(professional.skills).join(", "));
     setAccessForm({ email: professional.accountEmail ?? "", username: professional.accountUsername ?? "", password: "" });
     setTelegramChatId(professional.accountTelegramChatId ?? "");
     setShowForm(true);
@@ -142,6 +169,7 @@ export default function ProfesionalesAdminPage() {
     setEditingProfessional(null);
     setFormData({ ...emptyForm });
     setSchedule(defaultSchedule());
+    setSkillsInput("");
     setAccessForm({ email: "", username: "", password: "" });
     setTelegramChatId("");
   };
@@ -222,6 +250,9 @@ export default function ProfesionalesAdminPage() {
 
     const payload = {
       ...formData,
+      bio: formData.bio.trim() || null,
+      yearsOfExperience: formData.yearsOfExperience.trim() ? parseInt(formData.yearsOfExperience, 10) : null,
+      skills: skillsInputToJson(skillsInput),
       schedule: JSON.stringify(schedule),
     };
 
@@ -347,6 +378,9 @@ export default function ProfesionalesAdminPage() {
 
                   {professional.specialty && (
                     <p className="text-charcoal/60 text-sm">{professional.specialty}</p>
+                  )}
+                  {professional.yearsOfExperience != null && (
+                    <p className="text-charcoal/40 text-xs mt-0.5">{professional.yearsOfExperience} años de experiencia</p>
                   )}
 
                   {professional.services.length > 0 && (
@@ -477,6 +511,44 @@ export default function ProfesionalesAdminPage() {
                     placeholder="Colorista"
                   />
                 </div>
+              </div>
+
+              {/* Años de experiencia y habilidades */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Años de experiencia</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={80}
+                    className="form-input mt-1.5"
+                    value={formData.yearsOfExperience}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, yearsOfExperience: e.target.value }))}
+                    placeholder="5"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Qué sabe hacer</label>
+                  <input
+                    className="form-input mt-1.5"
+                    value={skillsInput}
+                    onChange={(e) => setSkillsInput(e.target.value)}
+                    placeholder="Coloración, Alisado, Peinados de fiesta"
+                  />
+                  <p className="text-charcoal/30 text-[11px] mt-1">Separá cada habilidad con una coma.</p>
+                </div>
+              </div>
+
+              {/* Biografía */}
+              <div>
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Biografía / descripción</label>
+                <textarea
+                  className="form-input mt-1.5 min-h-[90px] resize-y"
+                  value={formData.bio}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
+                  placeholder="Contá su trayectoria, formación o lo que la hace especial en su trabajo..."
+                  maxLength={2000}
+                />
               </div>
 
               {/* Servicios asociados */}

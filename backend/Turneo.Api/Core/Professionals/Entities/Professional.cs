@@ -13,6 +13,10 @@ public class Professional : ITenantScoped
     public string PhotoUrl { get; set; } = string.Empty;
     public string CalendarColor { get; set; } = "#7c3aed";
     public string? Specialty { get; set; }
+    public string? Bio { get; set; }
+    public int? YearsOfExperience { get; set; }
+    // Lista de habilidades serializada como JSON (mismo criterio que Schedule) — el frontend la parsea.
+    public string? Skills { get; set; }
     public decimal Commission { get; set; } = 0;
     public string? Schedule { get; set; }
     public bool IsActive { get; set; } = true;

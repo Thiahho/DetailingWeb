@@ -46,6 +46,9 @@ interface Professional {
   photoUrl: string;
   calendarColor: string;
   specialty?: string;
+  bio?: string | null;
+  yearsOfExperience?: number | null;
+  skills?: string | null;
 }
 
 interface PublicData {

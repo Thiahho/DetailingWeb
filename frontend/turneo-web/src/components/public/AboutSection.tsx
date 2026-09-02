@@ -8,6 +8,20 @@ interface Professional {
   photoUrl: string;
   calendarColor: string;
   specialty?: string;
+  bio?: string | null;
+  yearsOfExperience?: number | null;
+  skills?: string | null;
+}
+
+// El backend guarda Skills como JSON (mismo criterio que Schedule) — se parsea acá.
+function parseSkills(raw?: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 interface AboutSectionProps {
@@ -72,34 +86,61 @@ export default function AboutSection({ siteConfig, professionals }: AboutSection
           <span className="text-xs font-semibold uppercase tracking-widest text-blushdark">
             03 · Equipo
           </span>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {professionals.map((pro) => (
-              <div key={pro.id} className="glass-card flex items-center gap-3 p-4">
-                {pro.photoUrl ? (
-                  <img
-                    src={pro.photoUrl}
-                    alt={`${pro.firstName} ${pro.lastName}`}
-                    className="h-12 w-12 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <span
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                    style={{ backgroundColor: pro.calendarColor || "#D69AA6" }}
-                  >
-                    {pro.firstName?.[0]}
-                    {pro.lastName?.[0]}
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-charcoal">
-                    {pro.firstName} {pro.lastName}
-                  </p>
-                  {pro.specialty && (
-                    <p className="truncate text-xs text-charcoal/50">{pro.specialty}</p>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {professionals.map((pro) => {
+              const skills = parseSkills(pro.skills);
+              return (
+                <div key={pro.id} className="glass-card flex flex-col gap-3 p-5">
+                  <div className="flex items-center gap-3">
+                    {pro.photoUrl ? (
+                      <img
+                        src={pro.photoUrl}
+                        alt={`${pro.firstName} ${pro.lastName}`}
+                        className="h-14 w-14 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-base font-bold text-white"
+                        style={{ backgroundColor: pro.calendarColor || "#D69AA6" }}
+                      >
+                        {pro.firstName?.[0]}
+                        {pro.lastName?.[0]}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-charcoal">
+                        {pro.firstName} {pro.lastName}
+                      </p>
+                      {pro.specialty && (
+                        <p className="truncate text-xs text-charcoal/50">{pro.specialty}</p>
+                      )}
+                      {pro.yearsOfExperience != null && (
+                        <p className="truncate text-xs font-medium text-champagne">
+                          {pro.yearsOfExperience} {pro.yearsOfExperience === 1 ? "año" : "años"} de experiencia
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {pro.bio && (
+                    <p className="text-sm leading-relaxed text-charcoal/70">{pro.bio}</p>
+                  )}
+
+                  {skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="rounded-full bg-blush/10 px-2.5 py-1 text-xs text-blushdark"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
