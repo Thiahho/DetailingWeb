@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
+// Evita que el host arranque un FileSystemWatcher sobre appsettings.json: en contenedores
+// con inotify limitado (p. ej. Render) esto tira IOException y mata el proceso antes de arrancar.
+Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
