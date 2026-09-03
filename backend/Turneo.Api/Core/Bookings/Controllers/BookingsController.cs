@@ -230,7 +230,10 @@ public class BookingsController : ControllerBase
         if (booking.Status == BookingStatus.Cancelled)
             return BadRequest(new { success = false, message = "Este turno ya fue cancelado" });
 
-        if (booking.TimeSlot.EndDateTime < DateTime.UtcNow)
+        // TimeSlot.EndDateTime está en hora de Argentina (ver ArgentinaClock), no UTC —
+        // compararlo contra DateTime.UtcNow marcaba turnos de hoy como "expirados" hasta
+        // 3 horas antes de que terminaran de verdad.
+        if (booking.TimeSlot.EndDateTime < ArgentinaClock.Now())
             return BadRequest(new { success = false, message = "Este turno ya expiró y no puede cancelarse" });
 
         booking.Status = BookingStatus.Cancelled;

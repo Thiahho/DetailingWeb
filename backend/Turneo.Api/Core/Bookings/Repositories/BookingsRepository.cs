@@ -103,6 +103,11 @@ public class BookingsRepository : IBookingsRepository
 
     public Task<List<MyBookingItem>> GetMineAsync(string? emailFilter)
     {
+        // TimeSlot.EndDateTime está en hora de Argentina (ver ArgentinaClock), no UTC —
+        // comparar contra DateTime.UtcNow marcaba turnos de hoy como pasados/no-cancelables
+        // hasta 3 horas antes de que terminaran de verdad.
+        var argNow = ArgentinaClock.Now();
+
         var query = _context.Bookings.Include(b => b.TimeSlot).Include(b => b.Payment).AsQueryable();
         if (emailFilter != null)
             query = query.Where(b => b.CustomerEmailNormalized == emailFilter);
@@ -118,8 +123,8 @@ public class BookingsRepository : IBookingsRepository
                 b.CustomFieldsJson,
                 b.TimeSlot.StartDateTime,
                 b.TimeSlot.EndDateTime,
-                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
-                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
+                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > argNow,
+                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > argNow,
                 b.Payment != null ? b.Payment.Status : null,
                 b.Payment != null ? b.Payment.Amount : (decimal?)null,
                 b.Payment != null ? b.Payment.PaidAt : (DateTime?)null,
@@ -127,8 +132,11 @@ public class BookingsRepository : IBookingsRepository
             .ToListAsync();
     }
 
-    public Task<List<PublicBookingItem>> GetByEmailAsync(string normalizedEmail) =>
-        _context.Bookings
+    public Task<List<PublicBookingItem>> GetByEmailAsync(string normalizedEmail)
+    {
+        var argNow = ArgentinaClock.Now();
+
+        return _context.Bookings
             .Include(b => b.TimeSlot)
             .Where(b => b.CustomerEmailNormalized == normalizedEmail)
             .OrderByDescending(b => b.TimeSlot.StartDateTime)
@@ -141,9 +149,10 @@ public class BookingsRepository : IBookingsRepository
                 b.CustomFieldsJson,
                 b.TimeSlot.StartDateTime,
                 b.TimeSlot.EndDateTime,
-                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow,
-                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > DateTime.UtcNow))
+                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > argNow,
+                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > argNow))
             .ToListAsync();
+    }
 
     public Task<Booking?> GetByIdWithTimeSlotAsync(int id) =>
         _context.Bookings.Include(b => b.TimeSlot).FirstOrDefaultAsync(b => b.Id == id);
