@@ -1,36 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
-import { Button } from "@/src/components/shared/Button";
 import ReserveSlotModal from "@/src/components/calendar/ReserveSlotModal";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import { logError } from "@/src/lib/logger";
+import type { Booking, TimeSlot as Slot } from "./turnos/_components/BookingDetailModal";
 
-interface Booking {
-  id: number;
-  customerName: string;
-  customerPhone: string;
-  email?: string | null;
-  subject: string;
-  service: string;
-  professionalId?: number | null;
-  professionalName?: string | null;
-  message?: string;
-  status: string;
-  paymentStatus?: string | null;
-  paymentAmount?: number | null;
-}
-
-interface Slot {
-  id: number;
-  startDateTime: string;
-  endDateTime: string;
-  isAvailable: boolean;
-  booking?: Booking;
-  professionalId?: number | null;
-  professionalName?: string | null;
-}
+const BookingDetailModal = dynamic(() => import("./turnos/_components/BookingDetailModal"), { ssr: false });
 
 interface Reminder {
   id: number;
@@ -104,15 +84,6 @@ function buildBookingMailtoUrl(slot: Slot) {
   return `mailto:${booking.email}?subject=${subject}&body=${body}`;
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
-      <span className="text-charcoal text-sm text-right">{value}</span>
-    </div>
-  );
-}
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -123,6 +94,7 @@ export default function AdminDashboard() {
   const [detailSlot, setDetailSlot] = useState<Slot | null>(null);
   const [reserveSlot, setReserveSlot] = useState<Slot | null>(null);
   const { confirm, ConfirmDialog } = useConfirm();
+  const { toasts, showToast, removeToast } = useToast();
 
   const reloadSlots = () =>
     fetch("/api/timeslots")
@@ -171,12 +143,81 @@ export default function AdminDashboard() {
       ? "¿Cancelar este turno? La reserva quedará cancelada y la fecha se liberará."
       : "¿Liberar este turno? La fecha quedará disponible nuevamente.";
     if (!(await confirm({ message: msg, confirmLabel: isConfirmed ? "Cancelar turno" : "Liberar turno" }))) return;
-    const res = await fetch(`/api/timeslots/${id}/release`, { method: "PUT" });
-    if (res.ok) {
-      setSlots((prev) =>
-        prev.map((s) => s.id === id ? { ...s, isAvailable: true, booking: undefined } : s)
-      );
-      setDetailSlot((prev) => (prev?.id === id ? null : prev));
+    try {
+      const res = await fetch(`/api/timeslots/${id}/release`, { method: "PUT" });
+      if (res.ok) {
+        showToast(
+          "success",
+          isConfirmed ? "Turno cancelado" : "Turno liberado",
+          isConfirmed ? "La reserva fue cancelada y el turno está disponible nuevamente" : "El turno está disponible nuevamente",
+          4000
+        );
+        setDetailSlot((prev) => (prev?.id === id ? null : prev));
+        reloadSlots();
+      } else {
+        showToast("error", "Error", isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno");
+      }
+    } catch (error) {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      logError(error);
+    }
+  };
+
+  const confirmarTurno = async (bookingId: number, booking?: Booking, slotStartDateTime?: string) => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/confirm`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: booking?.email,
+          customerName: booking?.customerName,
+          subject: booking?.subject,
+          service: booking?.service,
+          startDateTime: slotStartDateTime,
+        }),
+      });
+      if (res.ok) {
+        showToast("success", "Turno confirmado", "La reserva fue marcada como confirmada", 4000);
+        setDetailSlot((prev) =>
+          prev?.booking ? { ...prev, booking: { ...prev.booking, status: "Confirmed" } } : prev
+        );
+        setSlots((prev) =>
+          prev.map((s) => (s.booking?.id === bookingId ? { ...s, booking: { ...s.booking!, status: "Confirmed" } } : s))
+        );
+        return true;
+      }
+      showToast("error", "Error", "No se pudo confirmar el turno");
+      return false;
+    } catch (error) {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      logError(error);
+      return false;
+    }
+  };
+
+  const confirmarYEnviarWhatsApp = async (slot: Slot) => {
+    if (!slot.booking) return;
+    if (slot.booking.status !== "Confirmed") {
+      const ok = await confirmarTurno(slot.booking.id, slot.booking, slot.startDateTime);
+      if (!ok) return;
+    }
+    const url = buildBookingWhatsAppUrl(slot);
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDeleteExpired = async (id: number) => {
+    try {
+      const res = await fetch(`/api/timeslots/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        showToast("warning", "Turno eliminado", "El turno expirado fue eliminado", 3500);
+        setDetailSlot(null);
+        reloadSlots();
+      } else {
+        showToast("error", "Error", "No se pudo eliminar el turno");
+      }
+    } catch (error) {
+      showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
+      logError(error);
     }
   };
 
@@ -468,76 +509,19 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Modal detalle de turno */}
+      {/* Modal detalle de turno — mismo componente que usa /admin/turnos, para
+          que "confirmar" se comporte igual en todos lados y no reinventarlo acá. */}
       {detailSlot?.booking && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-          onClick={() => setDetailSlot(null)}
-        >
-          <div
-            className="bg-ivory border border-mauve/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
-              <div>
-                <h2 className="text-charcoal font-semibold text-lg">Detalle de turno</h2>
-                <p className="text-charcoal/40 text-xs mt-0.5">
-                  {(() => { const { day, date, time } = formatDate(detailSlot.startDateTime); return `${day} ${date} · ${time}`; })()}
-                </p>
-              </div>
-              <button onClick={() => setDetailSlot(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <Row label="Estado" value={
-                detailSlot.booking.status === "Confirmed" ? "Confirmado" : "Reservado"
-              } />
-              <Row label="Cliente" value={detailSlot.booking.customerName} />
-              <Row label="Teléfono" value={
-                <a href={`tel:${detailSlot.booking.customerPhone}`} className="text-blue-700 hover:underline">
-                  {detailSlot.booking.customerPhone}
-                </a>
-              } />
-              <Row label="Detalle" value={detailSlot.booking.subject || "—"} />
-              <Row label="Servicio" value={detailSlot.booking.service || "—"} />
-              {detailSlot.booking.professionalName && (
-                <Row label="Especialista" value={detailSlot.booking.professionalName} />
-              )}
-              {detailSlot.booking.paymentStatus && (
-                <Row label="Pago" value={
-                  `${detailSlot.booking.paymentStatus}${detailSlot.booking.paymentAmount ? ` · $${detailSlot.booking.paymentAmount}` : ""}`
-                } />
-              )}
-              {detailSlot.booking.message && (
-                <Row label="Mensaje" value={detailSlot.booking.message} />
-              )}
-            </div>
-            <div className="px-6 py-4 border-t border-mauve/5 flex gap-3">
-              <a
-                href={buildBookingWhatsAppUrl(detailSlot)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-center bg-green-600 hover:bg-green-500 text-charcoal py-2.5 rounded-lg text-sm font-semibold transition"
-              >
-                WhatsApp
-              </a>
-              {detailSlot.booking.email && (
-                <a
-                  href={buildBookingMailtoUrl(detailSlot)}
-                  className="flex-1 text-center bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 py-2.5 rounded-lg text-sm font-semibold transition"
-                >
-                  Email
-                </a>
-              )}
-              <Button
-                onClick={() => handleLiberar(detailSlot.id, detailSlot.booking?.status === "Confirmed")}
-                variant="danger"
-                className="flex-1"
-              >
-                {detailSlot.booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <BookingDetailModal
+          slot={detailSlot}
+          booking={detailSlot.booking}
+          onClose={() => setDetailSlot(null)}
+          onConfirmAndWhatsApp={confirmarYEnviarWhatsApp}
+          onConfirm={confirmarTurno}
+          onRelease={handleLiberar}
+          onDeleteExpired={handleDeleteExpired}
+          emailHref={detailSlot.booking.email ? buildBookingMailtoUrl(detailSlot) : undefined}
+        />
       )}
 
       {reserveSlot && (
@@ -549,6 +533,7 @@ export default function AdminDashboard() {
       )}
 
       {ConfirmDialog}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }

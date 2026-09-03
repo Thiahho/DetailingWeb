@@ -71,6 +71,7 @@ export default function BookingDetailModal({
   onConfirm,
   onRelease,
   onDeleteExpired,
+  emailHref,
 }: {
   slot: TimeSlot;
   booking: Booking;
@@ -79,6 +80,9 @@ export default function BookingDetailModal({
   onConfirm: (bookingId: number, booking: Booking, startDateTime: string) => void;
   onRelease: (id: number, isConfirmed: boolean) => void;
   onDeleteExpired: (id: number) => void;
+  // Link "mailto:" ya armado por el caller — opcional, solo algunas pantallas
+  // (Panel principal) ofrecen contacto directo por email además de WhatsApp.
+  emailHref?: string;
 }) {
   useModalHotkeys(true, { onClose });
   const slotExpired = isExpired(slot.startDateTime);
@@ -186,6 +190,14 @@ export default function BookingDetailModal({
                   </Button>
                 )}
               </div>
+              {emailHref && (
+                <a
+                  href={emailHref}
+                  className="w-full text-center bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 py-2.5 rounded-lg text-sm font-semibold transition"
+                >
+                  Enviar email
+                </a>
+              )}
               <Button
                 onClick={() => { onClose(); onRelease(slot.id, booking.status === "Confirmed"); }}
                 variant="danger"
