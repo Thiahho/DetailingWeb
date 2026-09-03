@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getSiteConfig } from "@/src/lib/siteConfig";
 import { usePermissions, type PermissionModuleKey } from "@/src/hooks/usePermissions";
+import { useTeamMode } from "@/src/hooks/useTeamMode";
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
@@ -17,7 +18,11 @@ import {
 // permisos (Estadísticas/Empresa/Permisos tocan datos sensibles del negocio
 // completo, no de un módulo puntual) — solo Admin real, ni con todos los
 // permisos de Staff alcanza.
-type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; module?: PermissionModuleKey; adminOnly?: boolean };
+// `soloHidden`: se oculta cuando el tenant no tiene ningún profesional activo
+// (negocio de una sola persona) — "Equipo"/"Permisos" no aplican hasta que
+// haya alguien más a quien gestionar. Reaparece solo al sumar el primer
+// profesional, sin ningún toggle manual (ver useTeamMode).
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; module?: PermissionModuleKey; adminOnly?: boolean; soloHidden?: boolean };
 type NavGroup = { title: string; items: NavItem[] };
 
 // Panel queda suelto arriba (es el home). El resto se agrupa por dominio en vez
@@ -38,7 +43,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/clientes", label: "Clientes", icon: Users, module: "Clientes" },
       { href: "/admin/solicitudes-privacidad", label: "Privacidad", icon: ShieldAlert, module: "Clientes" },
-      { href: "/admin/profesionales", label: "Equipo", icon: UserCog, module: "Profesionales" },
+      { href: "/admin/profesionales", label: "Equipo", icon: UserCog, module: "Profesionales", soloHidden: true },
       { href: "/admin/servicios", label: "Servicios", icon: Wrench, module: "Servicios" },
       { href: "/admin/productos", label: "Productos", icon: Package, module: "Productos" },
       { href: "/admin/insumos", label: "Insumos", icon: Boxes, module: "Insumos" },
@@ -61,7 +66,7 @@ const groups: NavGroup[] = [
     title: "Cuenta",
     items: [
       { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2, adminOnly: true },
-      { href: "/admin/permisos", label: "Permisos", icon: ShieldCheck, adminOnly: true },
+      { href: "/admin/permisos", label: "Permisos", icon: ShieldCheck, adminOnly: true, soloHidden: true },
       { href: "/admin/cuenta", label: "Cuenta", icon: KeyRound },
     ],
   },
@@ -77,6 +82,7 @@ export default function AdminSidebar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState("/img/logo.png");
   const { role, isAdmin, can, loading: loadingPermissions } = usePermissions();
+  const { hasTeam } = useTeamMode();
 
   useEffect(() => {
     getSiteConfig().then((config) => { if (config.logoUrl) setLogoUrl(config.logoUrl); });
@@ -84,7 +90,12 @@ export default function AdminSidebar() {
 
   // Mientras cargan los permisos de un Staff, no mostrar nada todavía (evita el
   // parpadeo de ver todo el menú y que un ítem sin permiso desaparezca después).
+  // El chequeo de soloHidden va primero y aplica también a Admin — es
+  // justamente a la dueña sola a quien hay que ocultarle Equipo/Permisos.
+  // useTeamMode arranca con professionals=[] hasta que resuelve el fetch, así
+  // que el ítem ya queda oculto durante esa carga sin lógica extra.
   const visible = (item: NavItem) => {
+    if (item.soloHidden && !hasTeam) return false;
     if (isAdmin) return true;
     if (item.adminOnly) return false;
     if (!item.module) return true;

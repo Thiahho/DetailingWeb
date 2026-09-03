@@ -83,6 +83,11 @@ function ReminderForm({
     }).finally(() => setLoadingData(false));
   }, []);
 
+  // Sin ningún profesional activo en el tenant, no hay nada que elegir — el
+  // turno queda sin asignar (ProfessionalId null), que es como el sistema ya
+  // representa "lo hace la dueña sola" (ver TimeSlotsController.CreateSlot).
+  const hasTeam = professionals.length > 0;
+
   const selectedServiceObj = services.find((s) => s.title === serviceLabel) ?? null;
 
   // Sin servicio seleccionado todavía: mostrar todos. Con servicio elegido:
@@ -156,7 +161,7 @@ function ReminderForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!serviceLabel.trim()) { setError("Seleccioná un servicio."); return; }
-    if (manualMode && !selectedProfessionalId) { setError("Elegí a qué profesional pertenece el turno."); return; }
+    if (manualMode && hasTeam && !selectedProfessionalId) { setError("Elegí a qué profesional pertenece el turno."); return; }
     if (!resolvedDateTime)    { setError("Seleccioná un turno o ingresá una fecha."); return; }
     setSaving(true);
     setError("");
@@ -282,46 +287,49 @@ function ReminderForm({
         )}
       </div>
 
-      {/* Profesional */}
-      <div>
-        <label className="block text-charcoal/50 text-xs mb-1">Profesional</label>
-        {availableProfessionals.length === 0 ? (
-          <p className="text-charcoal/30 text-xs">
-            {professionals.length === 0 ? "No hay profesionales cargados todavía." : "Seleccioná un servicio para ver quién lo ofrece."}
-          </p>
-        ) : (
-          <div className="flex gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => { setSelectedProfessionalId(null); setSelectedSlot(null); }}
-              className={`px-2.5 py-1 rounded-lg text-xs transition ${
-                selectedProfessionalId === null
-                  ? "bg-champagne/20 text-champagne border border-champagne/30"
-                  : "bg-porcelain/5 text-charcoal/50 hover:bg-porcelain/10 hover:text-charcoal"
-              }`}
-            >
-              Sin preferencia
-            </button>
-            {availableProfessionals.map((p) => (
+      {/* Profesional — sin ningún profesional activo en el tenant, no hay nada
+          que elegir acá (ver hasTeam más arriba). */}
+      {hasTeam && (
+        <div>
+          <label className="block text-charcoal/50 text-xs mb-1">Profesional</label>
+          {availableProfessionals.length === 0 ? (
+            <p className="text-charcoal/30 text-xs">
+              Seleccioná un servicio para ver quién lo ofrece.
+            </p>
+          ) : (
+            <div className="flex gap-2 flex-wrap">
               <button
-                key={p.id}
                 type="button"
-                onClick={() => { setSelectedProfessionalId(p.id); setSelectedSlot(null); }}
+                onClick={() => { setSelectedProfessionalId(null); setSelectedSlot(null); }}
                 className={`px-2.5 py-1 rounded-lg text-xs transition ${
-                  selectedProfessionalId === p.id
+                  selectedProfessionalId === null
                     ? "bg-champagne/20 text-champagne border border-champagne/30"
                     : "bg-porcelain/5 text-charcoal/50 hover:bg-porcelain/10 hover:text-charcoal"
                 }`}
               >
-                {p.firstName} {p.lastName}
+                Sin preferencia
               </button>
-            ))}
-          </div>
-        )}
-        {manualMode && !selectedProfessionalId && (
-          <p className="text-amber-700/70 text-[10px] mt-1">Para crear un turno manual hay que elegir a qué profesional pertenece.</p>
-        )}
-      </div>
+              {availableProfessionals.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { setSelectedProfessionalId(p.id); setSelectedSlot(null); }}
+                  className={`px-2.5 py-1 rounded-lg text-xs transition ${
+                    selectedProfessionalId === p.id
+                      ? "bg-champagne/20 text-champagne border border-champagne/30"
+                      : "bg-porcelain/5 text-charcoal/50 hover:bg-porcelain/10 hover:text-charcoal"
+                  }`}
+                >
+                  {p.firstName} {p.lastName}
+                </button>
+              ))}
+            </div>
+          )}
+          {manualMode && !selectedProfessionalId && (
+            <p className="text-amber-700/70 text-[10px] mt-1">Para crear un turno manual hay que elegir a qué profesional pertenece.</p>
+          )}
+        </div>
+      )}
 
       {/* Detalle del turno */}
       <div>

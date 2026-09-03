@@ -118,20 +118,22 @@ function CustomerForm({
           <input data-testid="customer-form-instagram" value={form.instagram} onChange={set("instagram")} className="form-input" placeholder="@usuario" />
         </div>
       </div>
-      <div>
-        <label className="block text-charcoal/50 text-xs mb-1">Profesional favorito</label>
-        <select
-          data-testid="customer-form-favorite-professional"
-          value={form.favoriteProfessionalId ?? ""}
-          onChange={(e) => setForm((f) => ({ ...f, favoriteProfessionalId: e.target.value ? parseInt(e.target.value) : null }))}
-          className="form-input"
-        >
-          <option value="">— Sin preferencia —</option>
-          {professionals.map((p) => (
-            <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
-          ))}
-        </select>
-      </div>
+      {professionals.length > 0 && (
+        <div>
+          <label className="block text-charcoal/50 text-xs mb-1">Profesional favorito</label>
+          <select
+            data-testid="customer-form-favorite-professional"
+            value={form.favoriteProfessionalId ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, favoriteProfessionalId: e.target.value ? parseInt(e.target.value) : null }))}
+            className="form-input"
+          >
+            <option value="">— Sin preferencia —</option>
+            {professionals.map((p) => (
+              <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label className="block text-charcoal/50 text-xs mb-1">Notas</label>
         <textarea data-testid="customer-form-notes" value={form.notes} onChange={set("notes")} className="form-input h-16 resize-none" placeholder="Alergias, preferencias, tratamientos anteriores, etc." />

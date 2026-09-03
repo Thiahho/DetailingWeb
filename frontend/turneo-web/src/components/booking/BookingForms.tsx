@@ -631,8 +631,9 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
         </div>
       )}
 
-      {/* Selector de Profesional (opcional) — antes de elegir turno, filtra qué horarios se muestran */}
-      {selectedServiceObj && (
+      {/* Selector de Profesional (opcional) — antes de elegir turno, filtra qué horarios se muestran.
+          Sin ningún profesional cargado en el negocio, no hay nada que elegir acá. */}
+      {selectedServiceObj && professionals.length > 0 && (
         <div>
           <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
             Especialista (opcional)

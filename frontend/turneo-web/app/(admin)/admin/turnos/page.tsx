@@ -682,48 +682,44 @@ export default function TurnosPage() {
   }
 
   // Selector de profesionales — compartido entre "Turno puntual" y "Generar disponibilidad".
-  const professionalSelector = (
+  // Sin ningún profesional cargado (negocio unipersonal) no hay nada que elegir —
+  // los dos call-sites toleran professionalSelector === null sin cambios.
+  const professionalSelector = professionals.length === 0 ? null : (
     <div>
       <div className="flex items-center justify-between">
         <label className="text-charcoal/70 text-sm font-medium">
           Profesional{formData.professionalIds.length > 1 ? "es" : ""}
         </label>
-        {professionals.length > 0 && (
-          <button
-            type="button"
-            data-testid="slot-form-professional-select-all"
-            onClick={toggleAllProfessionals}
-            className="text-xs text-blush hover:text-blushdark font-medium transition"
-          >
-            {formData.professionalIds.length === professionals.length
-              ? "Deseleccionar todos"
-              : "Seleccionar todos"}
-          </button>
-        )}
+        <button
+          type="button"
+          data-testid="slot-form-professional-select-all"
+          onClick={toggleAllProfessionals}
+          className="text-xs text-blush hover:text-blushdark font-medium transition"
+        >
+          {formData.professionalIds.length === professionals.length
+            ? "Deseleccionar todos"
+            : "Seleccionar todos"}
+        </button>
       </div>
       <p className="text-charcoal/40 text-xs mt-0.5">
         Elegí uno o más — se crea un turno igual para cada profesional seleccionado
       </p>
-      {professionals.length === 0 ? (
-        <p className="text-charcoal/30 text-xs italic mt-1.5">No hay profesionales cargados todavía.</p>
-      ) : (
-        <div
-          data-testid="slot-form-professional"
-          className="mt-2 grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto bg-cream border border-mauve/10 rounded-lg p-3"
-        >
-          {professionals.map((p) => (
-            <label key={p.id} className="flex items-center gap-1.5 text-charcoal/70 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.professionalIds.includes(String(p.id))}
-                onChange={() => toggleProfessional(String(p.id))}
-                className="accent-green-500"
-              />
-              {p.firstName} {p.lastName}
-            </label>
-          ))}
-        </div>
-      )}
+      <div
+        data-testid="slot-form-professional"
+        className="mt-2 grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto bg-cream border border-mauve/10 rounded-lg p-3"
+      >
+        {professionals.map((p) => (
+          <label key={p.id} className="flex items-center gap-1.5 text-charcoal/70 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.professionalIds.includes(String(p.id))}
+              onChange={() => toggleProfessional(String(p.id))}
+              className="accent-green-500"
+            />
+            {p.firstName} {p.lastName}
+          </label>
+        ))}
+      </div>
     </div>
   );
 

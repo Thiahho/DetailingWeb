@@ -8,6 +8,7 @@ import ReserveSlotModal from "@/src/components/calendar/ReserveSlotModal";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { logError } from "@/src/lib/logger";
+import { useTeamMode } from "@/src/hooks/useTeamMode";
 import type { Booking, TimeSlot as Slot } from "./turnos/_components/BookingDetailModal";
 
 const BookingDetailModal = dynamic(() => import("./turnos/_components/BookingDetailModal"), { ssr: false });
@@ -95,6 +96,7 @@ export default function AdminDashboard() {
   const [reserveSlot, setReserveSlot] = useState<Slot | null>(null);
   const { confirm, ConfirmDialog } = useConfirm();
   const { toasts, showToast, removeToast } = useToast();
+  const { hasTeam } = useTeamMode();
 
   const reloadSlots = () =>
     fetch("/api/timeslots")
@@ -421,7 +423,7 @@ export default function AdminDashboard() {
                     <th className="text-left px-5 py-3 font-medium">Cliente</th>
                     <th className="text-left px-5 py-3 font-medium">Detalle</th>
                     <th className="text-left px-5 py-3 font-medium">Servicio</th>
-                    <th className="text-left px-5 py-3 font-medium">Especialista</th>
+                    {hasTeam && <th className="text-left px-5 py-3 font-medium">Especialista</th>}
                     <th className="px-5 py-3" />
                   </tr>
                 </thead>
@@ -479,9 +481,11 @@ export default function AdminDashboard() {
                         <td className="px-5 py-4 text-charcoal/60">
                           {slot.booking?.service ?? <span className="text-charcoal/20">—</span>}
                         </td>
-                        <td className="px-5 py-4 text-charcoal/60">
-                          {slot.booking?.professionalName ?? <span className="text-charcoal/20">—</span>}
-                        </td>
+                        {hasTeam && (
+                          <td className="px-5 py-4 text-charcoal/60">
+                            {slot.booking?.professionalName ?? <span className="text-charcoal/20">—</span>}
+                          </td>
+                        )}
                         <td className="px-5 py-4 text-right">
                           {slot.isAvailable ? (
                             <button

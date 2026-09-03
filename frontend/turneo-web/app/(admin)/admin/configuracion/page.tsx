@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { extractMapEmbedSrc, clearSiteConfigCache } from "@/src/lib/siteConfig";
 import { Button } from "@/src/components/shared/Button";
+import { useTeamMode } from "@/src/hooks/useTeamMode";
 
 type MessageType = "success" | "error";
 
@@ -37,6 +39,7 @@ export default function ConfiguracionPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<MessageType>("success");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const { hasTeam } = useTeamMode();
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -378,6 +381,28 @@ export default function ConfiguracionPage() {
               </div>
             )}
           </div>
+
+          {/* Equipo — solo visible en modo solo (0 profesionales activos): el
+              sidebar oculta "Equipo"/"Permisos" en ese caso (ver AdminSidebar),
+              así que hace falta una puerta de entrada visible para cuando la
+              dueña sume gente. Las rutas siguen accesibles por URL directa
+              siempre, esto es solo el link. */}
+          {!hasTeam && (
+            <div className="bg-ivory border border-mauve/5 rounded-2xl p-5 md:p-6 space-y-3">
+              <h2 className="text-charcoal font-semibold text-sm uppercase tracking-wider">Equipo</h2>
+              <p className="text-charcoal/50 text-xs">
+                ¿Trabajás con más gente? Sumá a tu equipo y vas a poder asignar turnos y comisiones por persona.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/admin/profesionales" className="text-blush hover:text-blushdark text-xs font-medium transition">
+                  Sumar profesional →
+                </Link>
+                <Link href="/admin/permisos" className="text-blush hover:text-blushdark text-xs font-medium transition">
+                  Gestionar permisos →
+                </Link>
+              </div>
+            </div>
+          )}
 
           <Button
             type="submit"

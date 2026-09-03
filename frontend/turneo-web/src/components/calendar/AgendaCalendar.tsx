@@ -309,7 +309,16 @@ export default function AgendaCalendar({
       color: professionalColor(p.id),
     }));
     const hasUnassigned = filteredSlots.some((s) => !s.professionalId);
-    if (hasUnassigned) list.push({ resourceId: UNASSIGNED, resourceTitle: "Sin asignar", color: "#9C7C88" });
+    // "Sin asignar" solo tiene sentido cuando hay equipo (algunos turnos sí
+    // tienen profesional). Con cero profesionales en el tenant, todo turno
+    // no asignado es simplemente el negocio — no hay ninguna "asignación" que mencionar.
+    if (hasUnassigned) {
+      list.push({
+        resourceId: UNASSIGNED,
+        resourceTitle: professionals.length === 0 ? "Agenda" : "Sin asignar",
+        color: "#9C7C88",
+      });
+    }
     return professionalFilter === "all" ? list : list.filter((r) => r.resourceId === professionalFilter);
   }, [professionals, filteredSlots, professionalFilter, professionalColor]);
 
