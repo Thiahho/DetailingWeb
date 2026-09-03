@@ -237,9 +237,9 @@ export default function EstadisticasPage() {
             sub={`${data.cancellationRate}% cancelación`}
           />
           <StatCard
-            label="Lead time prom."
+            label="Anticipación promedio"
             value={`${data.avgLeadTimeHours}h`}
-            sub="Desde reserva a turno"
+            sub="Cuánto antes reservan, en promedio"
           />
         </div>
 
@@ -389,6 +389,7 @@ export default function EstadisticasPage() {
               }`
             }
             extractBreakdown={(json) => (json as { breakdown?: EarningsPeriod[] })?.breakdown ?? []}
+            showCommission={hasTeam}
           />
         </div>
 

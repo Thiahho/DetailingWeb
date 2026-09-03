@@ -250,11 +250,16 @@ public class AnalyticsRepository : IAnalyticsRepository
             .Select(p => new { p.Id, p.Commission })
             .ToDictionaryAsync(p => p.Id, p => p.Commission);
 
+        // Sin filtrar por ProfessionalId != null: un tenant sin equipo (modo
+        // solo) tiene TODOS sus movimientos con ProfessionalId null, y este
+        // desglose es justamente "todo el negocio" — filtrarlos dejaba
+        // chargedTotal en $0 en cada bucket para una dueña sola, aunque
+        // GetCommissionsSummaryAsync (el KPI de arriba) sí los contaba bien.
         var movements = await _context.CajaMovements
-            .Where(m => m.Booking != null && m.Booking.ProfessionalId != null
+            .Where(m => m.Booking != null
                 && m.CreatedAt >= from && m.CreatedAt < to
                 && (m.Type == CajaMovementType.Charge || m.Type == CajaMovementType.Deposit || m.Type == CajaMovementType.Refund))
-            .Select(m => new { m.CreatedAt, m.Amount, m.Type, ProfessionalId = m.Booking!.ProfessionalId!.Value })
+            .Select(m => new { m.CreatedAt, m.Amount, m.Type, ProfessionalId = m.Booking!.ProfessionalId })
             .ToListAsync();
 
         // Igual que GetEarningsBreakdownAsync (Professionals), pero agregando por
@@ -270,9 +275,12 @@ public class AnalyticsRepository : IAnalyticsRepository
                     .GroupBy(m => m.ProfessionalId)
                     .Sum(byProfessional =>
                     {
+                        // Sin profesional asignado no hay tasa de comisión que aplicar
+                        // (nadie le paga comisión a la dueña por su propio trabajo).
+                        if (byProfessional.Key is not int professionalId) return 0m;
                         var professionalCharged = byProfessional.Where(m => m.Type != CajaMovementType.Refund).Sum(m => m.Amount)
                             - byProfessional.Where(m => m.Type == CajaMovementType.Refund).Sum(m => m.Amount);
-                        var rate = professionalRates.TryGetValue(byProfessional.Key, out var r) ? r : 0m;
+                        var rate = professionalRates.TryGetValue(professionalId, out var r) ? r : 0m;
                         return professionalCharged * (rate / 100m);
                     });
 
