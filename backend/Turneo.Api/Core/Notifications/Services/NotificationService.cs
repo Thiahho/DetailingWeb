@@ -411,7 +411,24 @@ public class NotificationService
         log.LastAttemptAt = DateTime.Now;
         log.RetryCount += 1;
 
-        var result = await provider.SendAsync(booking, message, cancellationToken);
+        // provider.SendAsync no debe tirar (los providers deberían devolver
+        // Success=false), pero si algo se escapa (ej. WhatsAppProvider no
+        // envuelve su HttpClient.SendAsync) hay que atajarlo acá: sin este
+        // try/catch, la excepción sube hasta BookingNotificationJob, Hangfire
+        // reintenta TODO el job desde cero, y como DispatchForBookingAsync no
+        // es idempotente, un canal que ya mandó bien (ej. Email) se vuelve a
+        // mandar en cada reintento — de ahí los duplicados de "creado"/"confirmado".
+        NotificationSendResult result;
+        try
+        {
+            result = await provider.SendAsync(booking, message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[Notification] {Channel} lanzó excepción para booking {BookingId} ({EventType})",
+                log.Channel, log.BookingId, log.EventType);
+            result = new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = true };
+        }
 
         if (result.Success)
         {
