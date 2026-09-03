@@ -42,6 +42,13 @@ public class NotificationMessage
     // aviso de cancelación en sí ni para los avisos a admin/profesional.
     public string? CancelCtaLabel { get; set; }
     public string? CancelCtaUrl { get; set; }
+
+    // Card de detalles del turno (servicio/fecha/ubicación) — solo se completa
+    // para BookingReminder24h. EmailHtmlBuilder la renderiza aparte del body de
+    // texto plano; WhatsApp/Telegram la ignoran (siguen mandando solo message.Body).
+    public string? DetailsService { get; set; }
+    public DateTime? DetailsStartDateTime { get; set; }
+    public string? DetailsLocation { get; set; }
 }
 
 public class NotificationSendResult

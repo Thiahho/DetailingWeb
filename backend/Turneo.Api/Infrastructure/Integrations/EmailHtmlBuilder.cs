@@ -35,6 +35,9 @@ public static class EmailHtmlBuilder
         _ => ("Aviso", AccentColor),
     };
 
+    private static string EscapeHtml(string value) =>
+        value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
     public static string Build(NotificationMessage message)
     {
         var bodyLines = message.Body
@@ -76,6 +79,10 @@ public static class EmailHtmlBuilder
                 </div>
                 """;
 
+        var detailsHtml = string.IsNullOrWhiteSpace(message.DetailsService) || message.DetailsStartDateTime is null
+            ? ""
+            : DetailsCard(message.DetailsService!, message.DetailsStartDateTime.Value, message.DetailsLocation);
+
         return $"""
             <!DOCTYPE html>
             <html lang="es">
@@ -105,6 +112,7 @@ public static class EmailHtmlBuilder
                         <td style="padding:16px 32px 8px">
                           <h2 style="margin:0 0 18px;color:{TextColor};font-size:19px;font-weight:700">{message.Subject}</h2>
                           {bodyHtml}
+                          {detailsHtml}
                           {actionsHtml}
                         </td>
                       </tr>
@@ -123,6 +131,47 @@ public static class EmailHtmlBuilder
               </table>
             </body>
             </html>
+            """;
+    }
+
+    // Card de detalles del turno (servicio/fecha/hora/ubicación) — usada en el
+    // recordatorio para que el horario salte a la vista sin tener que leer el
+    // párrafo. Cultura "es-AR" a mano (no CultureInfo.CurrentCulture): el proceso
+    // corre en Render con la culture del sistema, no necesariamente es-AR.
+    private static string DetailsCard(string service, DateTime startDateTime, string? location)
+    {
+        var culture = new System.Globalization.CultureInfo("es-AR");
+        var dateLabel = startDateTime.ToString("dddd d 'de' MMMM", culture);
+        dateLabel = char.ToUpper(dateLabel[0], culture) + dateLabel[1..];
+        var timeLabel = startDateTime.ToString("HH:mm", culture);
+
+        var rows = new List<(string Icon, string Label, string Value)>
+        {
+            ("💇", "Servicio", EscapeHtml(service)),
+            ("🗓️", "Fecha", dateLabel),
+            ("🕒", "Hora", timeLabel),
+        };
+        if (!string.IsNullOrWhiteSpace(location))
+            rows.Add(("📍", "Ubicación", EscapeHtml(location)));
+
+        var rowsHtml = string.Join("", rows.Select(r => $"""
+            <tr>
+              <td style="padding:7px 0;width:26px;font-size:16px;vertical-align:top">{r.Icon}</td>
+              <td style="padding:7px 0;color:{MutedColor};font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;width:90px;vertical-align:top">{r.Label}</td>
+              <td style="padding:7px 0;color:{TextColor};font-size:14px;font-weight:600;vertical-align:top">{r.Value}</td>
+            </tr>
+            """));
+
+        return $"""
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 18px;background:{BgColor};border:1px solid {AccentColor}33;border-radius:12px">
+              <tr>
+                <td style="padding:16px 20px">
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                    {rowsHtml}
+                  </table>
+                </td>
+              </tr>
+            </table>
             """;
     }
 }

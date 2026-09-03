@@ -82,6 +82,15 @@ public class NotificationService
             message.CancelCtaUrl = templateData.CancellationLink;
         }
 
+        // Card de detalles (ver EmailHtmlBuilder) solo para el recordatorio — es
+        // el email donde más importa que el horario salte a la vista de un vistazo.
+        if (eventType == NotificationEventType.BookingReminder24h)
+        {
+            message.DetailsService = templateData.Service;
+            message.DetailsStartDateTime = templateData.StartDateTime;
+            message.DetailsLocation = templateData.Location;
+        }
+
         foreach (var provider in _providers)
         {
             // Tenant explícito (no _currentTenant): este método corre tanto en
@@ -381,6 +390,13 @@ public class NotificationService
             {
                 message.CancelCtaLabel = "Cancelar turno";
                 message.CancelCtaUrl = cancellationLink;
+            }
+
+            if (log.EventType == NotificationEventType.BookingReminder24h)
+            {
+                message.DetailsService = booking.Service ?? "Servicio no informado";
+                message.DetailsStartDateTime = booking.TimeSlot.StartDateTime;
+                message.DetailsLocation = _configuration["Notifications:Location"] ?? "Sucursal principal";
             }
 
             await TrySendAsync(log.Id, booking, message, cancellationToken);
