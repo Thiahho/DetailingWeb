@@ -6,6 +6,7 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import CategoryCombobox, { distinctCategories } from "@/src/components/forms/CategoryCombobox";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 interface Insumo {
@@ -14,6 +15,7 @@ interface Insumo {
   stock: number;
   lowStockThreshold: number;
   unitCost: number;
+  category?: string | null;
   isActive: boolean;
   order: number;
 }
@@ -23,6 +25,7 @@ const emptyForm = {
   stock: 0,
   lowStockThreshold: 0,
   unitCost: 0,
+  category: "",
   isActive: true,
   order: 0,
 };
@@ -92,6 +95,7 @@ export default function InsumosAdminPage() {
       stock: insumo.stock,
       lowStockThreshold: insumo.lowStockThreshold,
       unitCost: insumo.unitCost,
+      category: insumo.category ?? "",
       isActive: insumo.isActive,
       order: insumo.order,
     });
@@ -192,6 +196,7 @@ export default function InsumosAdminPage() {
               <thead>
                 <tr className="border-b border-mauve/5 text-charcoal/30 text-xs uppercase tracking-wider">
                   <th className="text-left px-5 py-3 font-medium">Nombre</th>
+                  <th className="text-left px-5 py-3 font-medium">Categoría</th>
                   <th className="text-left px-5 py-3 font-medium">Stock</th>
                   <th className="text-left px-5 py-3 font-medium">Costo unitario</th>
                   <th className="text-left px-5 py-3 font-medium">Estado</th>
@@ -202,6 +207,7 @@ export default function InsumosAdminPage() {
                 {insumos.map((insumo) => (
                   <tr key={insumo.id} data-testid="insumo-row" data-insumo-name={insumo.name} className="border-b border-mauve/5 last:border-0">
                     <td className="px-5 py-4 text-charcoal font-medium">{insumo.name}</td>
+                    <td className="px-5 py-4 text-charcoal/60">{insumo.category || "—"}</td>
                     <td className="px-5 py-4 text-charcoal/60">
                       <div className="flex items-center gap-2">
                         <span>{insumo.stock}</span>
@@ -286,6 +292,17 @@ export default function InsumosAdminPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder="Esmalte rojo"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Categoría</label>
+                <CategoryCombobox
+                  testId="insumo-form-category"
+                  value={formData.category}
+                  onChange={(category) => setFormData((prev) => ({ ...prev, category }))}
+                  suggestions={distinctCategories(insumos.map((i) => i.category))}
+                  placeholder="Esmaltes"
                 />
               </div>
 

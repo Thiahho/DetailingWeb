@@ -18,6 +18,7 @@ public class Insumo : ITenantScoped
     // canal (Telegram) que también avisa turnos nuevos.
     public DateTime? LowStockAlertedSince { get; set; }
     public decimal UnitCost { get; set; }
+    public string? Category { get; set; }
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

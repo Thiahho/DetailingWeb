@@ -8,6 +8,7 @@ import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
 import type { Service, InsumoOption } from "./_components/ServiceFormModal";
+import { distinctCategories } from "@/src/components/forms/CategoryCombobox";
 
 // El formulario (imagen, receta de insumos, campos dinámicos) es el bloque
 // más pesado de la página y solo hace falta al crear/editar un servicio:
@@ -227,6 +228,11 @@ export default function ServiciosAdminPage() {
         <ServiceFormModal
           initial={editingService}
           insumosCatalog={insumosCatalog}
+          categorySuggestions={distinctCategories(services.map((s) => s.category))}
+          categoryDefaults={[...services]
+            .filter((s) => s.category?.trim())
+            .sort((a, b) => b.id - a.id)
+            .map((s) => ({ category: s.category!, color: s.color, bufferMinutes: s.bufferMinutes }))}
           onClose={closeForm}
           onSaved={handleSaved}
           onError={handleFormError}

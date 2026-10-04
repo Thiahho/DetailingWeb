@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { MapPin } from "lucide-react";
-import BookingForm from "@/src/components/booking/BookingForms";
+import BookingForm, { type BookingPreselection } from "@/src/components/booking/BookingForms";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
 import RouletteFloat from "@/src/components/shared/RouletteFloat";
 import ReviewsSection, { type NativeReview, type GoogleReview } from "@/src/components/public/ReviewsSection";
 import GalleryCarousel from "@/src/components/public/GalleryCarousel";
-import AboutSection from "@/src/components/public/AboutSection";
+import AboutSection, { type TeamSlot } from "@/src/components/public/AboutSection";
 import FaqSection from "@/src/components/public/FaqSection";
 import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "@/src/lib/siteConfig";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
@@ -49,7 +49,17 @@ interface Professional {
   bio?: string | null;
   yearsOfExperience?: number | null;
   skills?: string | null;
+  services?: { id: number; title: string }[];
 }
+
+interface PublicSlot {
+  id: number;
+  label: string;
+  professionalId?: number | null;
+}
+
+// Cuántos horarios muestra cada card de profesional
+const SLOTS_PER_PROFESSIONAL = 6;
 
 interface PublicData {
   services: Service[];
@@ -73,6 +83,8 @@ export default function Home() {
   const [reviews, setReviews] = useState<NativeReview[]>([]);
   const [googleReviews, setGoogleReviews] = useState<GoogleReview[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [slotsByProfessional, setSlotsByProfessional] = useState<Record<number, TeamSlot[]>>({});
+  const [preselection, setPreselection] = useState<BookingPreselection | null>(null);
 
   const packsToShow = services.slice(0, visiblePacks);
 
@@ -102,6 +114,31 @@ export default function Home() {
       })
       .catch(() => {});
   }, []);
+
+  // Próximos horarios por profesional para las cards de Equipo. Aparte de
+  // public-data a propósito: los slots cambian seguido y no deben quedar en el
+  // cache de 6h de localStorage. El endpoint ya viene ordenado por fecha.
+  useEffect(() => {
+    fetch("/api/timeslots/available", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: PublicSlot[]) => {
+        const grouped: Record<number, TeamSlot[]> = {};
+        for (const s of Array.isArray(data) ? data : []) {
+          if (!s.professionalId) continue;
+          const list = (grouped[s.professionalId] ??= []);
+          if (list.length < SLOTS_PER_PROFESSIONAL) list.push({ id: s.id, label: s.label });
+        }
+        setSlotsByProfessional(grouped);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleBookWithProfessional = (professionalId: number, slotId?: number) => {
+    setPreselection({ professionalId, slotId: slotId ?? null, key: Date.now() });
+    setTimeout(() => {
+      document.getElementById("contacto")?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
 
   const reels =
     contentVideos.length > 0
@@ -271,7 +308,12 @@ export default function Home() {
       )}
 
       {/* SOBRE NOSOTROS */}
-      <AboutSection siteConfig={siteConfig} professionals={professionals} />
+      <AboutSection
+        siteConfig={siteConfig}
+        professionals={professionals}
+        slotsByProfessional={slotsByProfessional}
+        onBook={handleBookWithProfessional}
+      />
 
       {/* REELS */}
       <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
@@ -404,7 +446,7 @@ export default function Home() {
             </p>
           )}
         </div>
-        <BookingForm preselectedService={preselectedService} />
+        <BookingForm preselectedService={preselectedService} preselection={preselection} />
       </section>
 
       <footer className="border-t border-mauve/10 px-6 py-10 text-center text-xs text-charcoal/50">

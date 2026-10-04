@@ -3,10 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
+import CategoryCombobox from "@/src/components/forms/CategoryCombobox";
+import Autocomplete, { normalize } from "@/src/components/forms/Autocomplete";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 
 const DIACRITICS_RE = new RegExp("[" + String.fromCharCode(0x0300) + "-" + String.fromCharCode(0x036f) + "]", "g");
+
+// "45000" -> "45.000"; "Desde $1500000" -> "Desde $1.500.000". Solo toca las rachas de dígitos.
+const formatPriceInput = (value: string) =>
+  value.replace(/\d[\d.]*/g, (run) => run.replace(/\./g, "").replace(/\B(?=(\d{3})+(?!\d))/g, "."));
 
 export interface Service {
   id: number;
@@ -56,12 +62,16 @@ const emptyForm = {
 export default function ServiceFormModal({
   initial,
   insumosCatalog,
+  categorySuggestions,
+  categoryDefaults,
   onClose,
   onSaved,
   onError,
 }: {
   initial: Service | null;
   insumosCatalog: InsumoOption[];
+  categorySuggestions: string[];
+  categoryDefaults: { category: string; color: string; bufferMinutes: number }[];
   onClose: () => void;
   onSaved: (message?: string) => void;
   onError: (message?: string) => void;
@@ -93,7 +103,12 @@ export default function ServiceFormModal({
     }
   });
   const [recipe, setRecipe] = useState<RecipeItem[]>([]);
-  const [newRecipeItem, setNewRecipeItem] = useState({ insumoId: 0, quantity: 1 });
+  const [newRecipeItem, setNewRecipeItem] = useState({ name: "", quantity: 1 });
+  const [createdInsumos, setCreatedInsumos] = useState<InsumoOption[]>([]);
+  const [addingInsumo, setAddingInsumo] = useState(false);
+  const catalog = [...insumosCatalog, ...createdInsumos];
+  const typedInsumo = newRecipeItem.name.trim();
+  const matchedInsumo = catalog.find((i) => normalize(i.name) === normalize(typedInsumo));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -107,17 +122,53 @@ export default function ServiceFormModal({
   const formRef = useRef<HTMLFormElement>(null);
   useModalHotkeys(true, { onClose, onSubmit: () => formRef.current?.requestSubmit() });
 
-  const addRecipeItem = () => {
-    if (!newRecipeItem.insumoId) return;
-    const insumo = insumosCatalog.find((i) => i.id === newRecipeItem.insumoId);
-    if (!insumo) return;
-    setRecipe((prev) => [...prev, { insumoId: insumo.id, insumoName: insumo.name, quantity: newRecipeItem.quantity }]);
-    setNewRecipeItem({ insumoId: 0, quantity: 1 });
+  const addRecipeItem = async () => {
+    if (!typedInsumo || addingInsumo) return;
+    let insumo = matchedInsumo;
+    if (!insumo) {
+      // No existe en el catálogo: se crea (stock 0) y se agrega a la receta.
+      setAddingInsumo(true);
+      try {
+        const res = await fetch("/api/insumos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: typedInsumo, stock: 0, lowStockThreshold: 0, unitCost: 0, isActive: true, order: 0 }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          onError(data.message || "No se pudo crear el insumo");
+          return;
+        }
+        insumo = { id: data.id, name: data.name, stock: data.stock };
+        setCreatedInsumos((prev) => [...prev, insumo!]);
+      } catch {
+        onError("No se pudo conectar con el servidor");
+        return;
+      } finally {
+        setAddingInsumo(false);
+      }
+    }
+    if (recipe.some((r) => r.insumoId === insumo!.id)) {
+      onError("Ese insumo ya está en la receta");
+      return;
+    }
+    setRecipe((prev) => [...prev, { insumoId: insumo!.id, insumoName: insumo!.name, quantity: newRecipeItem.quantity }]);
+    setNewRecipeItem({ name: "", quantity: 1 });
   };
 
   const removeRecipeItem = (idx: number) => setRecipe((prev) => prev.filter((_, i) => i !== idx));
 
-  const updateCustomField = (index: number, patch: Partial<CustomFieldDef>) => {
+  // Al elegir una categoría ya usada, se copian color y buffer del último servicio de esa categoría.
+  const handleCategoryChange = (category: string) => {
+    setFormData((prev) => {
+      const next = { ...prev, category };
+      const changed = normalize(category) !== normalize(prev.category);
+      const match = changed && categoryDefaults.find((d) => normalize(d.category) === normalize(category));
+      return match ? { ...next, color: match.color, bufferMinutes: match.bufferMinutes } : next;
+    });
+  };
+
+  const updateCustomField =(index: number, patch: Partial<CustomFieldDef>) => {
     setCustomFields((prev) => prev.map((f, i) => i === index ? { ...f, ...patch } : f));
   };
 
@@ -228,14 +279,19 @@ export default function ServiceFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Precio</label>
-              <input
-                className="form-input mt-1.5"
-                data-testid="service-form-price"
-                value={formData.price}
-                onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
-                placeholder="Desde $45.000"
-                required
-              />
+              <div className="relative mt-1.5">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-blush/20 text-sm font-bold text-blushdark">$</span>
+                <input
+                  className="form-input !border-blush/50 !bg-blush/5 !py-3.5 !pl-12 text-lg font-semibold tracking-tight text-blushdark placeholder:font-normal placeholder:text-warmgray/50"
+                  data-testid="service-form-price"
+                  inputMode="decimal"
+                  value={formData.price}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, price: formatPriceInput(e.target.value) }))}
+                  placeholder="Desde 45.000"
+                  required
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-charcoal/40">Los miles se separan solos con punto. Podés agregar texto, ej. “Desde 45.000”.</p>
             </div>
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Duración</label>
@@ -295,11 +351,11 @@ export default function ServiceFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Categoría</label>
-              <input
-                className="form-input mt-1.5"
-                data-testid="service-form-category"
+              <CategoryCombobox
+                testId="service-form-category"
                 value={formData.category}
-                onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
+                onChange={handleCategoryChange}
+                suggestions={categorySuggestions}
                 placeholder="Peluquería"
               />
             </div>
@@ -373,17 +429,16 @@ export default function ServiceFormModal({
               </div>
             )}
             <div className="flex gap-1.5 items-center">
-              <select
-                value={newRecipeItem.insumoId}
-                onChange={(e) => setNewRecipeItem((prev) => ({ ...prev, insumoId: parseInt(e.target.value) || 0 }))}
-                data-testid="service-recipe-select"
-                className="flex-1 min-w-0 bg-cream border border-mauve/10 rounded-lg px-1.5 py-1.5 text-xs text-charcoal focus:outline-none"
-              >
-                <option value={0}>Elegir insumo...</option>
-                {insumosCatalog.map((i) => (
-                  <option key={i.id} value={i.id}>{i.name} (Stock: {i.stock})</option>
-                ))}
-              </select>
+              <div className="flex-1 min-w-0">
+                <Autocomplete
+                  value={newRecipeItem.name}
+                  onChange={(name) => setNewRecipeItem((prev) => ({ ...prev, name }))}
+                  options={catalog.map((i) => ({ value: i.name, hint: `Stock: ${i.stock}` }))}
+                  testId="service-recipe-select"
+                  placeholder="Escribir insumo..."
+                  className="w-full bg-cream border border-mauve/10 rounded-lg px-2 py-1.5 text-xs text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none"
+                />
+              </div>
               <input
                 type="number"
                 min={1}
@@ -392,8 +447,8 @@ export default function ServiceFormModal({
                 data-testid="service-recipe-quantity"
                 className="w-14 bg-cream border border-mauve/10 rounded-lg px-1 py-1.5 text-xs text-charcoal text-center focus:outline-none"
               />
-              <Button type="button" onClick={addRecipeItem} data-testid="service-recipe-add" variant="secondary" size="sm" className="shrink-0">
-                +
+              <Button type="button" onClick={addRecipeItem} data-testid="service-recipe-add" variant="secondary" size="sm" disabled={!typedInsumo || addingInsumo} className="shrink-0">
+                {typedInsumo && !matchedInsumo ? "Agregar +" : "+"}
               </Button>
             </div>
           </div>

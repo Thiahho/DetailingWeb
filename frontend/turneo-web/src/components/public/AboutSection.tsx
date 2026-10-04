@@ -1,5 +1,6 @@
 import { Wallet, MapPin, Banknote, CreditCard, Landmark } from "lucide-react";
 import { type SiteConfig } from "@/src/lib/siteConfig";
+import TeamCarousel from "@/src/components/public/TeamCarousel";
 
 interface Professional {
   id: number;
@@ -11,6 +12,12 @@ interface Professional {
   bio?: string | null;
   yearsOfExperience?: number | null;
   skills?: string | null;
+  services?: { id: number; title: string }[];
+}
+
+export interface TeamSlot {
+  id: number;
+  label: string;
 }
 
 // El backend guarda Skills como JSON (mismo criterio que Schedule) — se parsea acá.
@@ -27,6 +34,8 @@ function parseSkills(raw?: string | null): string[] {
 interface AboutSectionProps {
   siteConfig: SiteConfig | null;
   professionals: Professional[];
+  slotsByProfessional?: Record<number, TeamSlot[]>;
+  onBook?: (professionalId: number, slotId?: number) => void;
 }
 
 // Formas de pago genéricas del rubro — no hay un campo propio en SiteConfig
@@ -40,7 +49,7 @@ const PAYMENT_METHODS = [
   { label: "Mercado Pago", icon: Wallet },
 ];
 
-export default function AboutSection({ siteConfig, professionals }: AboutSectionProps) {
+export default function AboutSection({ siteConfig, professionals, slotsByProfessional, onBook }: AboutSectionProps) {
   const businessName = siteConfig?.businessName || "Nuestro equipo";
 
   return (
@@ -86,62 +95,107 @@ export default function AboutSection({ siteConfig, professionals }: AboutSection
           <span className="text-xs font-semibold uppercase tracking-widest text-blushdark">
             03 · Equipo
           </span>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <TeamCarousel>
             {professionals.map((pro) => {
               const skills = parseSkills(pro.skills);
+              const slots = slotsByProfessional?.[pro.id] ?? [];
+              const fullName = `${pro.firstName} ${pro.lastName}`;
               return (
-                <div key={pro.id} className="glass-card flex flex-col gap-3 p-5">
-                  <div className="flex items-center gap-3">
+                <article
+                  key={pro.id}
+                  data-testid="team-professional-card"
+                  className="glass-card flex h-full w-full flex-col overflow-hidden"
+                >
+                  <div className="relative h-52 w-full shrink-0">
                     {pro.photoUrl ? (
                       <img
                         src={pro.photoUrl}
-                        alt={`${pro.firstName} ${pro.lastName}`}
-                        className="h-14 w-14 shrink-0 rounded-full object-cover"
+                        alt={fullName}
+                        className="absolute inset-0 h-full w-full object-cover"
                       />
                     ) : (
                       <span
-                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-base font-bold text-white"
+                        className="absolute inset-0 flex items-center justify-center text-5xl font-bold text-white"
                         style={{ backgroundColor: pro.calendarColor || "#D69AA6" }}
                       >
                         {pro.firstName?.[0]}
                         {pro.lastName?.[0]}
                       </span>
                     )}
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-charcoal">
-                        {pro.firstName} {pro.lastName}
-                      </p>
+                  </div>
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-3 p-5">
+                    <div>
+                      <h4 className="text-lg font-semibold text-charcoal">{fullName}</h4>
                       {pro.specialty && (
-                        <p className="truncate text-xs text-charcoal/50">{pro.specialty}</p>
+                        <p className="text-sm text-charcoal/60">{pro.specialty}</p>
                       )}
                       {pro.yearsOfExperience != null && (
-                        <p className="truncate text-xs font-medium text-champagne">
+                        <p className="text-xs font-medium text-champagne">
                           {pro.yearsOfExperience} {pro.yearsOfExperience === 1 ? "año" : "años"} de experiencia
                         </p>
                       )}
                     </div>
-                  </div>
 
-                  {pro.bio && (
-                    <p className="text-sm leading-relaxed text-charcoal/70">{pro.bio}</p>
-                  )}
+                    {pro.bio && (
+                      <p className="line-clamp-3 text-sm leading-relaxed text-charcoal/70">{pro.bio}</p>
+                    )}
 
-                  {skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="rounded-full bg-blush/10 px-2.5 py-1 text-xs text-blushdark"
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                    {skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {skills.slice(0, 4).map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded-full bg-blush/10 px-2.5 py-1 text-xs text-blushdark"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {pro.services && pro.services.length > 0 && (
+                      <p className="line-clamp-2 text-xs text-charcoal/50">
+                        <span className="font-medium text-charcoal/60">Servicios: </span>
+                        {pro.services.map((s) => s.title).join(" · ")}
+                      </p>
+                    )}
+
+                    <div className="mt-auto space-y-3 border-t border-mauve/10 pt-3">
+                      <span className="text-xs font-semibold uppercase tracking-widest text-blushdark">
+                        Próximos horarios
+                      </span>
+                      {slots.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {slots.slice(0, 4).map((slot) => (
+                            <button
+                              key={slot.id}
+                              type="button"
+                              data-testid="team-slot-chip"
+                              onClick={() => onBook?.(pro.id, slot.id)}
+                              className="rounded-full border border-mauve/15 bg-white px-2.5 py-1 text-[11px] text-charcoal/70 transition hover:border-blush hover:text-blushdark"
+                            >
+                              {slot.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-charcoal/50">Sin horarios cargados por el momento.</p>
+                      )}
+                      <button
+                        type="button"
+                        data-testid="team-book-button"
+                        onClick={() => onBook?.(pro.id)}
+                        className="w-full rounded-full bg-blush px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
+                      >
+                        {slots.length > 0 ? "Ver más horarios" : `Reservar con ${pro.firstName}`}
+                      </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                </article>
               );
             })}
-          </div>
+          </TeamCarousel>
         </div>
       )}
 

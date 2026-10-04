@@ -35,13 +35,13 @@ test.describe("Admin: login y CRUD de Servicios", () => {
 
     const card = page.locator('[data-testid="service-card"]').filter({ hasText: title });
     await expect(card).toBeVisible();
-    await expect(card.getByText("20000", { exact: false })).toBeVisible();
+    await expect(card.getByText("20.000", { exact: false })).toBeVisible();
 
     // Editar
     await card.getByTestId("service-edit-button").click();
     await page.getByTestId("service-form-price").fill("30000");
     await page.getByTestId("service-form-submit").click();
-    await expect(card.getByText("30000", { exact: false })).toBeVisible();
+    await expect(card.getByText("30.000", { exact: false })).toBeVisible();
 
     // Borrar
     await card.getByTestId("service-delete-button").click();

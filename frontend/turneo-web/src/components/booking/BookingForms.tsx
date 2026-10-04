@@ -40,8 +40,17 @@ interface CustomFieldDef {
   required?: boolean;
 }
 
+// Entrada "directo con un profesional" desde las cards de Equipo. `key` cambia en
+// cada click para que volver a elegir el mismo profesional re-dispare la preselección.
+export interface BookingPreselection {
+  professionalId: number;
+  slotId?: number | null;
+  key: number;
+}
+
 interface BookingFormProps {
   preselectedService?: string;
+  preselection?: BookingPreselection | null;
   // Presentes cuando el form se embebe en el flujo público de Smart Tag
   // (docs/NFC.md): la página vive en el dominio compartido turneo.app/s/{token},
   // no en el subdominio propio del tenant, así que hay que pasarle el tenant
@@ -208,7 +217,7 @@ function ClientToast({ toast, onClose }: { toast: Toast; onClose: () => void }) 
   );
 }
 
-export default function BookingForm({ preselectedService, tenantSlugOverride, smartTagToken }: BookingFormProps) {
+export default function BookingForm({ preselectedService, preselection, tenantSlugOverride, smartTagToken }: BookingFormProps) {
   const withTenant = useCallback(
     (path: string) => {
       if (!tenantSlugOverride) return path;
@@ -238,6 +247,18 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
   const [loadingProfessionals, setLoadingProfessionals] = useState(false);
   const [completedBooking, setCompletedBooking] = useState<{ id: number; service: string } | null>(null);
   const serviceListRef = useRef<HTMLDivElement>(null);
+  // Profesional elegido desde su card: limita los servicios a los suyos hasta que el
+  // usuario lo suelte. pendingSlotId es el horario a marcar cuando carguen sus slots.
+  const [lockedProfessionalId, setLockedProfessionalId] = useState<number | null>(null);
+  const [pendingSlotId, setPendingSlotId] = useState<number | null>(null);
+  const [slotsProfessionalId, setSlotsProfessionalId] = useState<number | null>(null);
+
+  const lockedProfessional = lockedProfessionalId
+    ? professionals.find((p) => p.id === lockedProfessionalId) ?? null
+    : null;
+  const visibleServices = lockedProfessional
+    ? services.filter((s) => lockedProfessional.services?.some((ps) => ps.id === s.id))
+    : services;
 
   const selectedServiceObj = services.find((s) => s.slug === formData.selectedService) ?? null;
   const customFieldDefs: CustomFieldDef[] = (() => {
@@ -296,10 +317,29 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
     setCustomFieldValues({});
   }, [formData.selectedService]);
 
-  // Cambiar de servicio invalida la elección de especialista (puede no ofrecer el nuevo servicio)
+  // Cambiar de servicio invalida la elección de especialista (puede no ofrecer el nuevo servicio),
+  // salvo que venga fijado desde su card: ahí solo se ofrecen servicios que él hace.
   useEffect(() => {
+    if (lockedProfessionalId) return;
     setFormData((prev) => ({ ...prev, selectedProfessionalId: null }));
   }, [formData.selectedService]);
+
+  // Click en "Reservar con X" / en un horario de su card (ver AboutSection)
+  useEffect(() => {
+    if (!preselection) return;
+    setLockedProfessionalId(preselection.professionalId);
+    setPendingSlotId(preselection.slotId ?? null);
+    setFormData((prev) => ({ ...prev, selectedProfessionalId: preselection.professionalId }));
+  }, [preselection?.key]);
+
+  // Con profesional fijado: si el servicio actual no es suyo se limpia, y con uno solo se elige directo
+  useEffect(() => {
+    if (!lockedProfessional) return;
+    setFormData((prev) => {
+      if (visibleServices.some((s) => s.slug === prev.selectedService)) return prev;
+      return { ...prev, selectedService: visibleServices.length === 1 ? visibleServices[0].slug : "" };
+    });
+  }, [lockedProfessional, services]);
 
   // Cargar turnos disponibles: de todos los profesionales, o solo del elegido ("sin preferencia" = null)
   useEffect(() => {
@@ -307,6 +347,17 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
     setCurrentPage(1);
     loadAvailableSlots(formData.selectedProfessionalId);
   }, [formData.selectedProfessionalId]);
+
+  // Marca el horario elegido en la card una vez cargados los slots de ese profesional
+  useEffect(() => {
+    if (!pendingSlotId || slotsProfessionalId !== (formData.selectedProfessionalId ?? null)) return;
+    const idx = timeSlots.findIndex((s) => s.id === pendingSlotId);
+    if (idx >= 0) {
+      setFormData((prev) => ({ ...prev, selectedSlotId: pendingSlotId }));
+      setCurrentPage(Math.floor(idx / ITEMS_PER_PAGE) + 1);
+    }
+    setPendingSlotId(null);
+  }, [timeSlots, slotsProfessionalId, pendingSlotId]);
 
   const loadProfessionals = async () => {
     try {
@@ -328,6 +379,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
       if (response.ok) {
         const data = await response.json();
         setTimeSlots(data);
+        setSlotsProfessionalId(professionalId ?? null);
       }
     } catch (error) {
       logError(error);
@@ -424,6 +476,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
           acceptedTerms: false,
         });
         setCustomFieldValues({});
+        setLockedProfessionalId(null);
 
         // Resetear paginación y recargar turnos
         setCurrentPage(1);
@@ -544,6 +597,29 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
 
       {/* Selector de Servicio (Igual a tu original) */}
       <div>
+        {lockedProfessional && (
+          <div
+            data-testid="booking-locked-professional"
+            className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-blush/40 bg-blush/10 px-4 py-2.5 text-sm text-blushdark"
+          >
+            <span>
+              Reservando con{" "}
+              <strong>
+                {lockedProfessional.firstName} {lockedProfessional.lastName}
+              </strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setLockedProfessionalId(null);
+                setFormData((prev) => ({ ...prev, selectedProfessionalId: null }));
+              }}
+              className="text-xs underline underline-offset-2 hover:text-charcoal"
+            >
+              Ver todos los servicios
+            </button>
+          </div>
+        )}
         <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 mb-3 block">
           Seleccioná el servicio
         </label>
@@ -556,7 +632,7 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
             // fijo sin importar cuántos servicios tenga el catálogo.
             className="grid max-h-80 gap-2 overflow-y-auto rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2"
           >
-            {services.map((pack) => (
+            {visibleServices.map((pack) => (
               <button
                 key={pack.slug}
                 type="button"
@@ -647,9 +723,10 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
             <div className="grid gap-2 rounded-xl border border-mauve/15 bg-white p-4 md:grid-cols-2">
               <button
                 type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, selectedProfessionalId: null }))
-                }
+                onClick={() => {
+                  setLockedProfessionalId(null);
+                  setFormData((prev) => ({ ...prev, selectedProfessionalId: null }));
+                }}
                 className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
                   formData.selectedProfessionalId === null
                     ? "border-blush bg-blush/15 text-blushdark"
@@ -666,9 +743,10 @@ export default function BookingForm({ preselectedService, tenantSlugOverride, sm
                 <button
                   key={pro.id}
                   type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({ ...prev, selectedProfessionalId: pro.id }))
-                  }
+                  onClick={() => {
+                    setLockedProfessionalId(null);
+                    setFormData((prev) => ({ ...prev, selectedProfessionalId: pro.id }));
+                  }}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition ${
                     formData.selectedProfessionalId === pro.id
                       ? "border-blush bg-blush/15 text-blushdark"

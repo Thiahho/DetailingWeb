@@ -54,6 +54,11 @@ export default function CloudinaryUpload({
       return;
     }
 
+    if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+      setError("Falta configurar NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME y NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET en .env.local (y reiniciar el dev server)");
+      return;
+    }
+
     setError("");
     setUploading(true);
 
@@ -81,7 +86,10 @@ export default function CloudinaryUpload({
         const url = isImage ? data.secure_url : data.secure_url.replace(/\.\w+$/, ".mp4");
         onChange(url);
       } else {
-        setError(isImage ? "Error al subir la imagen" : "Error al subir el video");
+        // Cloudinary explica la causa en data.error.message (preset inexistente o
+        // "Unsigned", cloud name incorrecto, etc.): mostrarla evita adivinar.
+        const reason = data?.error?.message ? ` (${data.error.message})` : "";
+        setError((isImage ? "Error al subir la imagen" : "Error al subir el video") + reason);
       }
     } catch {
       setError("Error de conexión con Cloudinary");

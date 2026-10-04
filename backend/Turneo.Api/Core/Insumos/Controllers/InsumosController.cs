@@ -30,6 +30,7 @@ public class InsumosController : ControllerBase
             i.Stock,
             i.LowStockThreshold,
             i.UnitCost,
+            i.Category,
             i.IsActive,
             i.Order,
             i.CreatedAt,
@@ -48,6 +49,7 @@ public class InsumosController : ControllerBase
             Stock = request.Stock,
             LowStockThreshold = request.LowStockThreshold,
             UnitCost = request.UnitCost,
+            Category = string.IsNullOrWhiteSpace(request.Category) ? null : request.Category.Trim(),
             IsActive = request.IsActive,
             Order = request.Order
         };
@@ -62,6 +64,7 @@ public class InsumosController : ControllerBase
             insumo.Stock,
             insumo.LowStockThreshold,
             insumo.UnitCost,
+            insumo.Category,
             insumo.IsActive,
             insumo.Order
         });
@@ -80,6 +83,7 @@ public class InsumosController : ControllerBase
         insumo.Stock = request.Stock;
         insumo.LowStockThreshold = request.LowStockThreshold;
         insumo.UnitCost = request.UnitCost;
+        insumo.Category = string.IsNullOrWhiteSpace(request.Category) ? null : request.Category.Trim();
         insumo.IsActive = request.IsActive;
         insumo.Order = request.Order;
         insumo.UpdatedAt = DateTime.UtcNow;
@@ -118,6 +122,9 @@ public class InsumoRequest
 
     [Range(0, 9_999_999)]
     public decimal UnitCost { get; set; }
+
+    [StringLength(100)]
+    public string? Category { get; set; }
 
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
