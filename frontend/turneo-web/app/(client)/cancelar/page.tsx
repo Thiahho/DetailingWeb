@@ -2,8 +2,8 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { CalendarDays, Clock, AlertTriangle } from "lucide-react";
 import { getSiteConfig, DEFAULT_SITE_CONFIG } from "@/src/lib/siteConfig";
-import { Button } from "@/src/components/shared/Button";
 
 interface BookingDetail {
   id: number;
@@ -17,20 +17,40 @@ interface BookingDetail {
 
 type PageState = "loading" | "confirm" | "cancelled" | "already_cancelled" | "expired" | "error";
 
-function formatDateFriendly(iso: string) {
+// Parseo sin conversión UTC: el backend manda la hora ya en horario de
+// Argentina (ver ArgentinaClock), un new Date(iso) directo la corre por la
+// timezone del navegador y desfasa la hora mostrada.
+function parseLocal(iso: string) {
   const clean = iso.replace("Z", "");
   const [datePart, timePart] = clean.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
   const [hours, minutes] = timePart.split(":").map(Number);
-  const date = new Date(year, month - 1, day, hours, minutes);
-  return date.toLocaleString("es-AR", {
+  return new Date(year, month - 1, day, hours, minutes);
+}
+
+function formatDateFriendly(iso: string) {
+  return parseLocal(iso).toLocaleString("es-AR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
+}
+
+// Fecha y hora por separado para el bloque destacado del turno — es el dato
+// que más le importa al cliente al decidir si cancela, así que va en grande
+// en vez de mezclado en una fila más como el resto de los datos.
+function formatAppointmentPieces(iso: string) {
+  const date = parseLocal(iso);
+  const dateLabel = date.toLocaleString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+  const timeLabel = date.toLocaleString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return {
+    dateLabel: dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1),
+    timeLabel,
+  };
 }
 
 function CancelarContent() {
@@ -121,46 +141,62 @@ function CancelarContent() {
           )}
 
           {/* Confirm */}
-          {state === "confirm" && booking && (
-            <>
-              <div className="bg-amber-50 border-b border-amber-100 px-6 py-5 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
+          {state === "confirm" && booking && (() => {
+            const { dateLabel, timeLabel } = formatAppointmentPieces(booking.startDateTime);
+            return (
+              <>
+                <div className="bg-champagne/10 border-b border-champagne/20 px-6 py-5 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-champagne/15 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-champagne" strokeWidth={2} />
+                  </div>
+                  <div>
+                    <p className="text-charcoal font-semibold text-sm">¿Cancelar este turno?</p>
+                    <p className="text-charcoal/40 text-xs mt-0.5">Esta acción no se puede deshacer</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-charcoal font-semibold text-sm">¿Cancelar este turno?</p>
-                  <p className="text-charcoal/40 text-xs mt-0.5">Esta acción no se puede deshacer</p>
+
+                <div className="px-6 py-6 space-y-5">
+                  <div>
+                    <p className="text-charcoal/40 text-xs font-medium uppercase tracking-wide">Reservado por</p>
+                    <p className="text-charcoal font-semibold text-base mt-1">{booking.customerName}</p>
+                    {booking.subject && (
+                      <p className="text-charcoal/60 text-sm mt-0.5">{booking.subject}</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl bg-cream border border-blush/25 px-5 py-4 flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-full bg-blush/15 flex items-center justify-center shrink-0">
+                      <CalendarDays className="w-5 h-5 text-blushdark" strokeWidth={2} />
+                    </div>
+                    <div>
+                      <p className="text-charcoal font-semibold text-sm">{dateLabel}</p>
+                      <p className="text-charcoal/60 text-sm mt-0.5 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+                        {timeLabel} hs
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="px-6 py-6 space-y-4">
-                <Row label="Nombre" value={booking.customerName} />
-                <Row label="Detalle" value={booking.subject || "—"} />
-                <Row label="Servicio" value={booking.service || "—"} />
-                <Row label="Fecha y hora" value={formatDateFriendly(booking.startDateTime)} />
-              </div>
-
-              <div className="px-6 pb-6 flex flex-col gap-2">
-                <Button
-                  onClick={handleCancel}
-                  disabled={cancelling}
-                  data-testid="cancel-confirm-button"
-                  variant="danger"
-                  className="w-full"
-                >
-                  {cancelling ? "Cancelando..." : "Sí, cancelar mi turno"}
-                </Button>
-                <a
-                  href="/reservar"
-                  className="w-full text-center text-charcoal/40 hover:text-charcoal/70 py-2 text-sm transition"
-                >
-                  No, mantener mi turno
-                </a>
-              </div>
-            </>
-          )}
+                <div className="px-6 pb-6 flex flex-col gap-2">
+                  <button
+                    onClick={handleCancel}
+                    disabled={cancelling}
+                    data-testid="cancel-confirm-button"
+                    className="w-full rounded-lg bg-mauve px-6 py-3 text-sm font-semibold text-white transition hover:bg-mauve/85 disabled:opacity-50"
+                  >
+                    {cancelling ? "Cancelando..." : "Sí, cancelar mi turno"}
+                  </button>
+                  <a
+                    href="/reservar"
+                    className="w-full text-center text-charcoal/40 hover:text-charcoal/70 py-2 text-sm transition"
+                  >
+                    No, mantener mi turno
+                  </a>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Cancelled (success) */}
           {state === "cancelled" && (
@@ -242,15 +278,6 @@ function CancelarContent() {
           ¿Necesitás ayuda? Contactanos por WhatsApp.
         </p>
       </div>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-start gap-4">
-      <span className="text-charcoal/40 text-sm shrink-0">{label}</span>
-      <span className="text-charcoal text-sm text-right">{value}</span>
     </div>
   );
 }

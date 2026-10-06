@@ -149,6 +149,12 @@ export default function EstadisticasPage() {
     );
   }
 
+  // Mismo criterio que el resto de la app: negocio de una sola persona =
+  // 0 profesionales activos. El total del negocio (arriba) ya incluye su
+  // trabajo (ProfessionalId null) — lo único que no aplica es el DESGLOSE
+  // por profesional, redundante cuando hay una sola persona.
+  const hasTeam = professionals.length > 0;
+
   const trend = data.bookingsLastMonth > 0
     ? Math.round(((data.bookingsThisMonth - data.bookingsLastMonth) / data.bookingsLastMonth) * 100)
     : null;
@@ -169,19 +175,22 @@ export default function EstadisticasPage() {
           <p className="text-charcoal/50 text-sm mt-1">Resumen de actividad del negocio</p>
         </div>
 
-        {/* KPIs de negocio (comisiones, nivel jefe) */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* KPIs de negocio (comisiones, nivel jefe) — "Comisiones a pagar" no
+            aplica en modo solo (nadie le paga comisión a sí misma). */}
+        <div className={`grid gap-4 mb-6 ${hasTeam ? "grid-cols-2" : "grid-cols-1"}`}>
           <StatCard
             label="Ingresos totales (mes)"
             value={commissions ? formatMoney(commissions.businessChargedTotal) : "—"}
             sub="Cobrado en caja por todo el negocio"
             accent
           />
-          <StatCard
-            label="Comisiones a pagar (mes)"
-            value={commissions ? formatMoney(commissions.businessCommissionAmount) : "—"}
-            sub="Suma de comisiones de todo el equipo"
-          />
+          {hasTeam && (
+            <StatCard
+              label="Comisiones a pagar (mes)"
+              value={commissions ? formatMoney(commissions.businessCommissionAmount) : "—"}
+              sub="Suma de comisiones de todo el equipo"
+            />
+          )}
         </div>
 
         {/* KPIs principales */}
@@ -228,9 +237,9 @@ export default function EstadisticasPage() {
             sub={`${data.cancellationRate}% cancelación`}
           />
           <StatCard
-            label="Lead time prom."
+            label="Anticipación promedio"
             value={`${data.avgLeadTimeHours}h`}
-            sub="Desde reserva a turno"
+            sub="Cuánto antes reservan, en promedio"
           />
         </div>
 
@@ -296,70 +305,79 @@ export default function EstadisticasPage() {
           </div>
         </div>
 
-        {/* Estadísticas por profesional */}
-        <div className="mt-6 bg-ivory border border-mauve/5 rounded-xl p-6">
-          <h2 className="text-charcoal font-semibold mb-1">Por profesional</h2>
-          <p className="text-charcoal/40 text-xs mb-5">Ventas, ocupación y ausencias del mes actual</p>
-          {data.professionalStats.length === 0 ? (
-            <p className="text-charcoal/30 text-sm">No hay profesionales activos</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[560px]">
-                <thead>
-                  <tr className="text-left text-charcoal/40 text-xs uppercase tracking-wider border-b border-mauve/10">
-                    <th className="pb-2 pr-3 font-medium">Profesional</th>
-                    <th className="pb-2 pr-3 font-medium">Ventas</th>
-                    <th className="pb-2 pr-3 font-medium">Ocupación</th>
-                    <th className="pb-2 pr-3 font-medium">Hs. ocupadas / libres</th>
-                    <th className="pb-2 font-medium">Ausencias</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.professionalStats.map((p) => (
-                    <tr key={p.professionalId} className="border-b border-mauve/5 last:border-0">
-                      <td className="py-3 pr-3 text-charcoal font-medium whitespace-nowrap">{p.professionalName}</td>
-                      <td className="py-3 pr-3 text-charcoal/80 whitespace-nowrap">
-                        ${p.revenueThisMonth.toLocaleString("es-AR")}
-                        <span className="text-charcoal/40 text-xs ml-1">({p.paidBookingsThisMonth})</span>
-                      </td>
-                      <td className="py-3 pr-3 text-charcoal/80">{p.occupancyRate}%</td>
-                      <td className="py-3 pr-3 text-charcoal/60 font-mono text-xs whitespace-nowrap">
-                        {p.occupiedHours}h / {p.freeHours}h
-                      </td>
-                      <td className="py-3">
-                        {p.upcomingAbsences > 0 ? (
-                          <span className="text-orange-700 font-medium">{p.upcomingAbsences}</span>
-                        ) : (
-                          <span className="text-charcoal/30">—</span>
-                        )}
-                      </td>
+        {/* Estadísticas por profesional — redundante en modo solo: una sola
+            persona, su total ya es el total del negocio (arriba). */}
+        {hasTeam && (
+          <div className="mt-6 bg-ivory border border-mauve/5 rounded-xl p-6">
+            <h2 className="text-charcoal font-semibold mb-1">Por profesional</h2>
+            <p className="text-charcoal/40 text-xs mb-5">Ventas, ocupación y ausencias del mes actual</p>
+            {data.professionalStats.length === 0 ? (
+              <p className="text-charcoal/30 text-sm">No hay datos todavía</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[560px]">
+                  <thead>
+                    <tr className="text-left text-charcoal/40 text-xs uppercase tracking-wider border-b border-mauve/10">
+                      <th className="pb-2 pr-3 font-medium">Profesional</th>
+                      <th className="pb-2 pr-3 font-medium">Ventas</th>
+                      <th className="pb-2 pr-3 font-medium">Ocupación</th>
+                      <th className="pb-2 pr-3 font-medium">Hs. ocupadas / libres</th>
+                      <th className="pb-2 font-medium">Ausencias</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {data.professionalStats.map((p) => (
+                      <tr key={p.professionalId} className="border-b border-mauve/5 last:border-0">
+                        <td className="py-3 pr-3 text-charcoal font-medium whitespace-nowrap">{p.professionalName}</td>
+                        <td className="py-3 pr-3 text-charcoal/80 whitespace-nowrap">
+                          ${p.revenueThisMonth.toLocaleString("es-AR")}
+                          <span className="text-charcoal/40 text-xs ml-1">({p.paidBookingsThisMonth})</span>
+                        </td>
+                        <td className="py-3 pr-3 text-charcoal/80">{p.occupancyRate}%</td>
+                        <td className="py-3 pr-3 text-charcoal/60 font-mono text-xs whitespace-nowrap">
+                          {p.occupiedHours}h / {p.freeHours}h
+                        </td>
+                        <td className="py-3">
+                          {p.upcomingAbsences > 0 ? (
+                            <span className="text-orange-700 font-medium">{p.upcomingAbsences}</span>
+                          ) : (
+                            <span className="text-charcoal/30">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Día Trabajado / desglose de comisiones, a nivel negocio o por empleado */}
+        {/* Día Trabajado / desglose de comisiones, a nivel negocio o por empleado.
+            Sin equipo, selectedProfessionalId queda siempre null (todo el
+            negocio) — es el mismo dato, es su propio trabajo. */}
         <div className="mt-6 bg-ivory border border-mauve/5 rounded-xl p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div>
-              <h2 className="text-charcoal font-semibold">Día Trabajado y comisiones</h2>
-              <p className="text-charcoal/40 text-xs mt-1">Mismo detalle que ve cada profesional, a nivel negocio o por empleado</p>
+              <h2 className="text-charcoal font-semibold">{hasTeam ? "Día Trabajado y comisiones" : "Día trabajado"}</h2>
+              <p className="text-charcoal/40 text-xs mt-1">
+                {hasTeam ? "Mismo detalle que ve cada profesional, a nivel negocio o por empleado" : "Detalle de lo cobrado, día a día"}
+              </p>
             </div>
-            <select
-              value={selectedProfessionalId ?? ""}
-              onChange={(e) => setSelectedProfessionalId(e.target.value ? Number(e.target.value) : null)}
-              className="bg-cream border border-mauve/10 rounded-lg px-3 py-2 text-sm text-charcoal"
-            >
-              <option value="">Todo el negocio</option>
-              {professionals.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.firstName} {p.lastName}
-                </option>
-              ))}
-            </select>
+            {hasTeam && (
+              <select
+                value={selectedProfessionalId ?? ""}
+                onChange={(e) => setSelectedProfessionalId(e.target.value ? Number(e.target.value) : null)}
+                className="bg-cream border border-mauve/10 rounded-lg px-3 py-2 text-sm text-charcoal"
+              >
+                <option value="">Todo el negocio</option>
+                {professionals.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <EarningsTabs
@@ -371,6 +389,7 @@ export default function EstadisticasPage() {
               }`
             }
             extractBreakdown={(json) => (json as { breakdown?: EarningsPeriod[] })?.breakdown ?? []}
+            showCommission={hasTeam}
           />
         </div>
 

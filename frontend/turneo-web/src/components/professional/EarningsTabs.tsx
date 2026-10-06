@@ -38,6 +38,10 @@ interface EarningsTabsProps {
   // propio profesional). El endpoint admin devuelve un objeto envolvente con
   // totales de negocio además del array — este transform lo extrae.
   extractBreakdown?: (json: unknown) => EarningsPeriod[];
+  // false solo en Estadísticas (admin) cuando el negocio no tiene equipo — "Comisión"
+  // no significa nada cuando la única persona trabajando es la dueña. La vista del
+  // propio profesional (profesional/comisiones) nunca pasa esto, siempre la ve.
+  showCommission?: boolean;
 }
 
 function formatCurrency(amount: number) {
@@ -165,10 +169,12 @@ function BreakdownTab({
   granularity,
   breakdownUrl,
   extractBreakdown,
+  showCommission,
 }: {
   granularity: Granularity;
   breakdownUrl: (granularity: Granularity, fromIso: string, toIso: string) => string;
   extractBreakdown: (json: unknown) => EarningsPeriod[];
+  showCommission: boolean;
 }) {
   const bucketCount = granularity === "day" ? 7 : granularity === "week" ? 8 : 6;
   const [offset, setOffset] = useState(0); // 0 = ventana actual; negativo = ventanas anteriores
@@ -234,9 +240,9 @@ function BreakdownTab({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className={`grid gap-3 ${showCommission ? "grid-cols-2" : "grid-cols-1"}`}>
         <MiniStat label="Total cobrado" value={formatCurrency(totalCharged)} />
-        <MiniStat label="Comisión" value={formatCurrency(totalCommission)} />
+        {showCommission && <MiniStat label="Comisión" value={formatCurrency(totalCommission)} />}
       </div>
 
       <div className="bg-ivory border border-mauve/10 rounded-xl p-6">
@@ -272,7 +278,7 @@ const TABS: { key: "hoy" | Granularity; label: string }[] = [
 
 const identityExtract = (json: unknown) => (Array.isArray(json) ? (json as EarningsPeriod[]) : []);
 
-export default function EarningsTabs({ dayUrl, breakdownUrl, extractBreakdown = identityExtract }: EarningsTabsProps) {
+export default function EarningsTabs({ dayUrl, breakdownUrl, extractBreakdown = identityExtract, showCommission = true }: EarningsTabsProps) {
   const [tab, setTab] = useState<"hoy" | Granularity>("hoy");
 
   return (
@@ -294,7 +300,7 @@ export default function EarningsTabs({ dayUrl, breakdownUrl, extractBreakdown = 
       {tab === "hoy" ? (
         <HoyTab dayUrl={dayUrl} />
       ) : (
-        <BreakdownTab granularity={tab} breakdownUrl={breakdownUrl} extractBreakdown={extractBreakdown} />
+        <BreakdownTab granularity={tab} breakdownUrl={breakdownUrl} extractBreakdown={extractBreakdown} showCommission={showCommission} />
       )}
     </div>
   );

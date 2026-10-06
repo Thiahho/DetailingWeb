@@ -82,6 +82,15 @@ public class NotificationService
             message.CancelCtaUrl = templateData.CancellationLink;
         }
 
+        // Card de detalles (ver EmailHtmlBuilder) solo para el recordatorio — es
+        // el email donde más importa que el horario salte a la vista de un vistazo.
+        if (eventType == NotificationEventType.BookingReminder24h)
+        {
+            message.DetailsService = templateData.Service;
+            message.DetailsStartDateTime = templateData.StartDateTime;
+            message.DetailsLocation = templateData.Location;
+        }
+
         foreach (var provider in _providers)
         {
             // Tenant explícito (no _currentTenant): este método corre tanto en
@@ -383,6 +392,13 @@ public class NotificationService
                 message.CancelCtaUrl = cancellationLink;
             }
 
+            if (log.EventType == NotificationEventType.BookingReminder24h)
+            {
+                message.DetailsService = booking.Service ?? "Servicio no informado";
+                message.DetailsStartDateTime = booking.TimeSlot.StartDateTime;
+                message.DetailsLocation = _configuration["Notifications:Location"] ?? "Sucursal principal";
+            }
+
             await TrySendAsync(log.Id, booking, message, cancellationToken);
         }
     }
@@ -395,7 +411,24 @@ public class NotificationService
         log.LastAttemptAt = DateTime.Now;
         log.RetryCount += 1;
 
-        var result = await provider.SendAsync(booking, message, cancellationToken);
+        // provider.SendAsync no debe tirar (los providers deberían devolver
+        // Success=false), pero si algo se escapa (ej. WhatsAppProvider no
+        // envuelve su HttpClient.SendAsync) hay que atajarlo acá: sin este
+        // try/catch, la excepción sube hasta BookingNotificationJob, Hangfire
+        // reintenta TODO el job desde cero, y como DispatchForBookingAsync no
+        // es idempotente, un canal que ya mandó bien (ej. Email) se vuelve a
+        // mandar en cada reintento — de ahí los duplicados de "creado"/"confirmado".
+        NotificationSendResult result;
+        try
+        {
+            result = await provider.SendAsync(booking, message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[Notification] {Channel} lanzó excepción para booking {BookingId} ({EventType})",
+                log.Channel, log.BookingId, log.EventType);
+            result = new NotificationSendResult { Success = false, Error = ex.Message, IsTransientFailure = true };
+        }
 
         if (result.Success)
         {

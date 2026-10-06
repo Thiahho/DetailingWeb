@@ -315,25 +315,27 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
                 ))}
               </select>
             </div>
-            <div>
-              <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Especialista</label>
-              {slot.professionalId ? (
-                <p className="w-full mt-1.5 bg-porcelain/10 border border-mauve/10 rounded-lg p-3 text-charcoal text-sm">
-                  👤 {slot.professionalName} <span className="text-charcoal/40">(el turno ya es de este profesional)</span>
-                </p>
-              ) : (
-                <select
-                  className="form-input mt-1.5"
-                  value={professionalId}
-                  onChange={(e) => setProfessionalId(e.target.value)}
-                >
-                  <option value="">Sin preferencia</option>
-                  {professionals.map((pro) => (
-                    <option key={pro.id} value={pro.id}>{pro.firstName} {pro.lastName}</option>
-                  ))}
-                </select>
-              )}
-            </div>
+            {(slot.professionalId || professionals.length > 0) && (
+              <div>
+                <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Especialista</label>
+                {slot.professionalId ? (
+                  <p className="w-full mt-1.5 bg-porcelain/10 border border-mauve/10 rounded-lg p-3 text-charcoal text-sm">
+                    👤 {slot.professionalName} <span className="text-charcoal/40">(el turno ya es de este profesional)</span>
+                  </p>
+                ) : (
+                  <select
+                    className="form-input mt-1.5"
+                    value={professionalId}
+                    onChange={(e) => setProfessionalId(e.target.value)}
+                  >
+                    <option value="">Sin preferencia</option>
+                    {professionals.map((pro) => (
+                      <option key={pro.id} value={pro.id}>{pro.firstName} {pro.lastName}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
             <div>
               <label className="text-charcoal/50 text-xs font-medium uppercase tracking-wider">Notas (opcional)</label>
               <textarea

@@ -278,12 +278,21 @@ limitación del entorno, no del cambio; ningún test existente dependía del
 comportamiento modificado. Pendiente correrlos en un entorno con Docker antes de
 mergear, junto con la suite e2e de Playwright.
 
-**Pendiente (fuera de esta sesión)**: Fases 1 a 3 del plan — "modo solo" en el
-sidebar y en el flujo de reserva pública (ocultar Equipo/Permisos/selector de
-especialista cuando hay ≤1 profesional), onboarding self-service (signup público,
-wizard de primer login, defaults de `BusinessSettings`), y credenciales/cobro por
-negocio (MercadoPago, WhatsApp, `SaaS/Billing`). Detalle completo en el plan
-`binary-dazzling-crown.md` de esta sesión.
+**Actualización (sesión posterior, "modo solo" completo)**: se resolvió la parte
+de "modo solo" que quedaba pendiente acá — sidebar (oculta Equipo/Permisos),
+selectores de especialista (turnos, calendario, CRM, reserva pública) y
+Estadísticas (desglose "por profesional" y comisiones ocultos, no aplican a una
+sola persona). El criterio usado en toda la app es **`0 profesionales activos`**
+(no un flag de plan nuevo, no vincular `User.ProfessionalId` en el Admin — ver
+`ProfessionalId` nullable en `TimeSlot`/`Booking`, ya soportaba el caso sin
+cambios de modelo). Plan: `snoopy-juggling-clover.md`. También se corrigió un bug
+real que bloqueaba por completo la carga manual de turnos sin equipo desde
+`/admin/clientes` (`ReminderFormModal.tsx` exigía profesional sin el escape de
+`professionals.length > 0` que ya tenía el resto de la app).
+
+**Sigue pendiente (fuera de esta sesión)**: onboarding self-service (signup
+público, wizard de primer login, defaults de `BusinessSettings`), y
+credenciales/cobro por negocio (MercadoPago, WhatsApp, `SaaS/Billing`).
 
 ### UX pública de `/reservar` — inspirada en attbarber.com (misma sesión, 01/09)
 
