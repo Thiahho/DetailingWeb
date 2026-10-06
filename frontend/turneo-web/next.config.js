@@ -1,7 +1,7 @@
 // CSP + headers de seguridad — allowlist basado en un audit real de a qué
 // dominios pega el frontend (ver decision_security_hardening en memoria):
 // API propia (detailing-api.onrender.com), uploads/imágenes de Cloudinary,
-// y el iframe de Google Maps (ahora validado server-side en
+// fotos de perfil de reseñas de Google, y el iframe de Google Maps (ahora validado server-side en
 // src/lib/siteConfig.ts para que no pueda ser cualquier URL). No hay scripts
 // ni estilos de terceros — Google Fonts se sirve self-hosted vía next/font.
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -20,7 +20,10 @@ const CSP_DIRECTIVES = [
   // runtime — no hay forma de evitar 'unsafe-inline' acá sin migrar de
   // styled-jsx a otra solución de CSS-in-JS con soporte de nonce.
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: https://res.cloudinary.com",
+  // *.googleusercontent.com: fotos de perfil de las reseñas de Google Maps
+  // (`profile_photo_url` de Places, servidas desde lh3–lh6.googleusercontent.com).
+  // Sin esto el <img> del autor queda roto en la sección de reseñas.
+  "img-src 'self' data: https://res.cloudinary.com https://*.googleusercontent.com",
   // Sin esto, <video>/<audio> caen al fallback de default-src 'self' y
   // bloquean silenciosamente cualquier video de Cloudinary — el navegador no
   // tira error visible, el <video> simplemente nunca carga (solo se ve el
