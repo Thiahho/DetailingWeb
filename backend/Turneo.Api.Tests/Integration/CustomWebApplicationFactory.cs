@@ -33,6 +33,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 // ver PaymentsController) — prendido acá para poder seguir probando
                 // el comportamiento real del controller.
                 ["Payments:Enabled"] = "true",
+                // POST /api/auth/register solo admite anónimos con este flag (apagado
+                // por defecto, nunca en producción). Prendido acá igual que en
+                // appsettings.Testing.json; RegisterLockTests lo apaga en un host aparte.
+                ["Auth:AllowOpenRegistration"] = "true",
             });
         });
 
@@ -42,12 +46,28 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.RemoveAll<INotificationProvider>();
             services.AddSingleton<INotificationProvider, FakeNotificationProvider>();
 
+            // Ni a Google para validar ID tokens.
+            services.RemoveAll<IGoogleTokenValidator>();
+            services.AddSingleton<IGoogleTokenValidator, FakeGoogleTokenValidator>();
+
             // Sin hosted services en tests (recordatorios, reintentos, Hangfire
             // server): los controllers se ejercitan directo vía HTTP, y un
             // background job corriendo en paralelo solo agrega flakiness.
             services.RemoveAll<IHostedService>();
         });
     }
+
+    // Host aparte contra la misma base del contenedor, con claves de config
+    // pisadas (null = "no configurada"): para probar comportamiento que depende
+    // de configuración sin tocar el host compartido por el resto de la suite.
+    // No disponer el host devuelto desde el test: Hangfire guarda su storage en un
+    // estático global (JobStorage.Current) que pasa a ser el del último host
+    // levantado, y disponerlo deja sin storage a BackgroundJob.Enqueue en el resto
+    // de la suite (los POST de reservas responden 500). Esta factory los dispone
+    // todos juntos al final.
+    public WebApplicationFactory<Program> WithConfigOverrides(Dictionary<string, string?> overrides) =>
+        WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configBuilder) =>
+            configBuilder.AddInMemoryCollection(overrides)));
 
     public async Task InitializeAsync()
     {

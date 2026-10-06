@@ -40,7 +40,7 @@ public class SmartTagsEndpointsTests
         var token = body.GetProperty("token").GetString();
         Assert.NotNull(token);
         // Alfabeto Crockford Base32 sin 0/O/1/I/L, 12 caracteres (ver SmartTagTokenGenerator).
-        Assert.Matches(new Regex("^[2-9A-HJ-KM-NP-TV-Z]{12}$"), token!);
+        Assert.Matches(new Regex("^[2-9A-HJ-KM-NP-Z]{12}$"), token!);
         Assert.Contains($"/s/{token}", body.GetProperty("smartLinkUrl").GetString());
     }
 

@@ -390,6 +390,16 @@ namespace Turneo.Api.Migrations
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("ClientAccess");
+
                     b.Property<int>("TenantId")
                         .HasColumnType("integer");
 
@@ -615,6 +625,9 @@ namespace Turneo.Api.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LinkUrl")
+                        .HasColumnType("text");
 
                     b.Property<int>("Order")
                         .HasColumnType("integer");
@@ -1028,6 +1041,10 @@ namespace Turneo.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1070,7 +1087,8 @@ namespace Turneo.Api.Migrations
 
                     b.HasIndex("Order");
 
-                    b.HasIndex("TenantId");
+                    b.HasIndex("TenantId", "Email")
+                        .IsUnique();
 
                     b.ToTable("Professionals");
                 });
@@ -1226,6 +1244,9 @@ namespace Turneo.Api.Migrations
                     b.Property<int?>("ProfessionalId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ServiceId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("StartDateTime")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("StartDateTime");
@@ -1238,6 +1259,8 @@ namespace Turneo.Api.Migrations
                     b.HasIndex("IsAvailable");
 
                     b.HasIndex("ProfessionalId");
+
+                    b.HasIndex("ServiceId");
 
                     b.HasIndex("TenantId", "StartDateTime", "ProfessionalId")
                         .IsUnique();
@@ -1393,6 +1416,10 @@ namespace Turneo.Api.Migrations
                     b.Property<string>("InstagramUrl")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("LocalPhotos")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("Location")
                         .IsRequired()
@@ -2573,6 +2600,11 @@ namespace Turneo.Api.Migrations
                         .HasForeignKey("ProfessionalId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Turneo.Api.Core.Services.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -2580,6 +2612,8 @@ namespace Turneo.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Professional");
+
+                    b.Navigation("Service");
 
                     b.Navigation("Tenant");
                 });

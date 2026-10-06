@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Turneo.Api.Tests.Integration;
 
@@ -115,5 +116,34 @@ public class AuthEndpointsTests
         var response = await client.GetAsync("/api/auth/me");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    // El token del link "Mis turnos" (booking_access, 7 días, viaja en una URL) solo
+    // existe para canjearse en client/session/exchange: como bearer se rechaza.
+    [Fact]
+    public async Task GetCurrentUser_WithClientPortalLinkToken_ReturnsUnauthorized_ButTokenStillExchanges()
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var email = $"portal-{Guid.NewGuid():N}@test.com";
+        // Con un usuario real detrás del email: sin el rechazo, /me devolvería 200.
+        await TestDataFactory.CreateAdminUserAsync(_factory, tenantId, email, "Password123");
+
+        using var scope = _factory.Services.CreateScope();
+        var authService = scope.ServiceProvider.GetRequiredService<AuthService>();
+        var linkToken = authService.CreateClientPortalAccessToken(email, tenantId);
+
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", linkToken);
+        var response = await client.GetAsync("/api/auth/me");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+        // El canje (AuthService directo, para no gastar el balde "auth") sigue andando
+        // y la sesión de cliente que emite sí autentica.
+        var session = authService.ExchangeClientPortalToken(linkToken);
+        Assert.Equal("Client", session.Role);
+
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", session.Token);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me")).StatusCode);
     }
 }

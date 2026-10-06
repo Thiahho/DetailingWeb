@@ -1,6 +1,6 @@
 # Roadmap y estado del proyecto
 
-> No confundir con [`TTurnosRoadmap.md`](TTurnosRoadmap.md) — ese es el PRD funcional del vertical Belleza (qué pantallas, qué flujos). Este documento es sobre la arquitectura de plataforma (Core/Modules/SaaS/Enterprise). Para el estado operativo/de seguridad más reciente, ver siempre [`auditoria_0109.md`](auditoria_0109.md) primero — este documento se actualiza con menos frecuencia.
+> No confundir con [`TTurnosRoadmap.md`](TTurnosRoadmap.md) — ese es el PRD funcional del vertical Belleza (qué pantallas, qué flujos). Este documento es sobre la arquitectura de plataforma (Core/Modules/SaaS/Enterprise). Para el estado operativo/de seguridad más reciente, ver siempre [`auditoria_0410.md`](auditoria_0410.md) primero — este documento se actualiza con menos frecuencia.
 
 ## Estado actual
 

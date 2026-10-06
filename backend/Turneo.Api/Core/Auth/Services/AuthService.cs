@@ -13,12 +13,17 @@ public class AuthService
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ICurrentTenant _currentTenant;
+    private readonly IGoogleTokenValidator _googleTokenValidator;
 
-    public AuthService(ApplicationDbContext context, IConfiguration configuration, ICurrentTenant currentTenant)
+    private const int MaxAccessCodeAttempts = 5;
+    private const int SelfRegistrationMinPasswordLength = 8;
+
+    public AuthService(ApplicationDbContext context, IConfiguration configuration, ICurrentTenant currentTenant, IGoogleTokenValidator googleTokenValidator)
     {
         _context = context;
         _configuration = configuration;
         _currentTenant = currentTenant;
+        _googleTokenValidator = googleTokenValidator;
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -39,11 +44,7 @@ public class AuthService
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
         var token = GenerateJwtToken(user.Id, user.Email, user.Role, "admin_access", TimeSpan.FromMinutes(expiryMinutes), user.ProfessionalId);
 
-        // Admin/Staff siempre tienen panel. Un profesional lo tiene solo si el admin
-        // le otorgó algún módulo desde Permisos (ver PermissionsController).
-        var hasPanelAccess = user.Role is "Admin" or "Staff"
-            || (user.Role == "Professional" && await _context.ModulePermissions.AnyAsync(p =>
-                p.UserId == user.Id && (p.CanView || p.CanCreate || p.CanEdit || p.CanDelete)));
+        var hasPanelAccess = await HasPanelAccessAsync(user);
 
         return new LoginResponse
         {
@@ -94,15 +95,164 @@ public class AuthService
         account.ProfessionalId = professionalId;
         await _context.SaveChangesAsync();
 
+        return await BuildProfessionalLoginResponseAsync(account);
+    }
+
+    // Admin/Staff siempre tienen panel. Un profesional lo tiene solo si el admin
+    // le otorgó algún módulo desde Permisos (ver PermissionsController).
+    public async Task<bool> HasPanelAccessAsync(User user) =>
+        user.Role is "Admin" or "Staff"
+        || (user.Role == "Professional" && await _context.ModulePermissions.AnyAsync(p =>
+            p.UserId == user.Id && (p.CanView || p.CanCreate || p.CanEdit || p.CanDelete)));
+
+    private async Task<LoginResponse> BuildProfessionalLoginResponseAsync(User account)
+    {
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"]!);
         return new LoginResponse
         {
-            Token = GenerateJwtToken(account.Id, account.Email, "Professional", "admin_access", TimeSpan.FromMinutes(expiryMinutes), professionalId),
+            Token = GenerateJwtToken(account.Id, account.Email, "Professional", "admin_access", TimeSpan.FromMinutes(expiryMinutes), account.ProfessionalId),
             Email = account.Email,
             Role = "Professional",
             ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
-            ProfessionalId = professionalId
+            ProfessionalId = account.ProfessionalId,
+            HasPanelAccess = await HasPanelAccessAsync(account)
         };
+    }
+
+    // ---- Auto-registro de profesionales (solo invitados) ----
+    // El admin carga Professional.Email en la ficha; únicamente ese correo puede
+    // crear la cuenta, por código + contraseña o por Google.
+
+    // Ficha activa invitada con ese email y todavía sin cuenta. Null también si el
+    // email ya lo usa otra cuenta del tenant (Users.Email es único por tenant).
+    private async Task<Professional?> FindInvitedProfessionalAsync(string normalizedEmail)
+    {
+        var professional = await _context.Professionals.FirstOrDefaultAsync(p => p.IsActive && p.Email == normalizedEmail);
+        if (professional == null)
+            return null;
+
+        var emailOrFichaTaken = await _context.Users.AnyAsync(u =>
+            u.Email == normalizedEmail || (u.ProfessionalId == professional.Id && u.Role == "Professional"));
+        return emailOrFichaTaken ? null : professional;
+    }
+
+    private async Task<User> CreateInvitedProfessionalUserAsync(Professional professional, string normalizedEmail, string passwordHash)
+    {
+        var account = new User
+        {
+            Email = normalizedEmail,
+            PasswordHash = passwordHash,
+            Role = "Professional",
+            ProfessionalId = professional.Id
+        };
+        _context.Users.Add(account);
+        await _context.SaveChangesAsync();
+        return account;
+    }
+
+    // Devuelve el código a enviar por email, o null si el correo no está invitado
+    // (el controller responde igual en ambos casos para no revelar qué emails lo están).
+    public async Task<string?> RequestProfessionalRegistrationAsync(string email)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        if (await FindInvitedProfessionalAsync(normalizedEmail) == null)
+            return null;
+
+        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        _context.ClientAccessCodes.Add(new ClientAccessCode
+        {
+            Email = normalizedEmail,
+            CodeHash = BCrypt.Net.BCrypt.HashPassword(code),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15),
+            Purpose = AccessCodePurposes.ProfessionalRegistration
+        });
+        await _context.SaveChangesAsync();
+        return code;
+    }
+
+    // Valida el código y devuelve un token corto que habilita el paso siguiente (elegir contraseña).
+    public async Task<string> VerifyProfessionalRegistrationCodeAsync(string email, string otpCode)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var entry = await _context.ClientAccessCodes
+            .Where(c => c.Email == normalizedEmail
+                && c.Purpose == AccessCodePurposes.ProfessionalRegistration
+                && c.UsedAt == null
+                && c.ExpiresAt > DateTime.UtcNow)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (entry == null || entry.FailedAttempts >= MaxAccessCodeAttempts)
+            throw new UnauthorizedAccessException("Código inválido o expirado");
+
+        if (!BCrypt.Net.BCrypt.Verify(otpCode.Trim(), entry.CodeHash))
+        {
+            entry.FailedAttempts++;
+            await _context.SaveChangesAsync();
+            throw new UnauthorizedAccessException("Código inválido o expirado");
+        }
+
+        entry.UsedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return GenerateJwtToken(0, normalizedEmail, "ProfessionalRegistration", "professional_registration", TimeSpan.FromMinutes(10));
+    }
+
+    public async Task<LoginResponse> CompleteProfessionalRegistrationAsync(ProfessionalRegistrationCompleteRequest request)
+    {
+        ClaimsPrincipal principal;
+        try
+        {
+            principal = ValidateToken(request.RegistrationToken);
+        }
+        catch (Exception ex) when (ex is SecurityTokenException or ArgumentException)
+        {
+            throw new UnauthorizedAccessException("El registro expiró. Pedí un código nuevo.");
+        }
+
+        var email = principal.FindFirst(ClaimTypes.Email)?.Value;
+        if (principal.FindFirst("token_type")?.Value != "professional_registration"
+            || string.IsNullOrWhiteSpace(email)
+            || principal.FindFirst("tenant_id")?.Value != _currentTenant.TenantId.ToString())
+            throw new UnauthorizedAccessException("El registro expiró. Pedí un código nuevo.");
+
+        if (request.Password != request.ConfirmPassword)
+            throw new ArgumentException("Las contraseñas no coinciden");
+
+        if (request.Password.Length < SelfRegistrationMinPasswordLength)
+            throw new ArgumentException($"La contraseña debe tener al menos {SelfRegistrationMinPasswordLength} caracteres");
+
+        // Se vuelve a chequear: entre el código y este paso el admin pudo quitar la
+        // invitación o crearle la cuenta a mano.
+        var professional = await FindInvitedProfessionalAsync(email)
+            ?? throw new ArgumentException("Esta cuenta ya fue activada o la invitación ya no está vigente");
+
+        var account = await CreateInvitedProfessionalUserAsync(professional, email, BCrypt.Net.BCrypt.HashPassword(request.Password));
+        return await BuildProfessionalLoginResponseAsync(account);
+    }
+
+    // Login con Google: entra si ya existe la cuenta de profesional con ese correo,
+    // o la crea si el correo está invitado. Cualquier otro caso se rechaza.
+    public async Task<LoginResponse> LoginProfessionalWithGoogleAsync(string idToken)
+    {
+        var identity = await _googleTokenValidator.ValidateAsync(idToken);
+        if (identity == null || !identity.EmailVerified || string.IsNullOrWhiteSpace(identity.Email))
+            throw new UnauthorizedAccessException("No se pudo validar tu cuenta de Google");
+
+        var email = identity.Email.Trim().ToLowerInvariant();
+
+        var account = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.Role == "Professional");
+        if (account == null)
+        {
+            var professional = await FindInvitedProfessionalAsync(email)
+                ?? throw new UnauthorizedAccessException("Tu correo no está invitado. Pedile al administrador que lo cargue en tu ficha.");
+
+            // Contraseña aleatoria inutilizable: esta cuenta entra solo por Google
+            // hasta que el admin le defina una desde la ficha.
+            account = await CreateInvitedProfessionalUserAsync(professional, email, BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()));
+        }
+
+        return await BuildProfessionalLoginResponseAsync(account);
     }
 
     // Crea una cuenta Staff (empleado/encargado con acceso limitado por permisos —
@@ -310,7 +460,7 @@ public class AuthService
         var email = request.Email.Trim().ToLowerInvariant();
         var otp = request.OtpCode.Trim();
         var entry = await _context.ClientAccessCodes
-            .Where(c => c.Email == email && c.UsedAt == null && c.ExpiresAt > DateTime.UtcNow)
+            .Where(c => c.Email == email && c.Purpose == AccessCodePurposes.ClientAccess && c.UsedAt == null && c.ExpiresAt > DateTime.UtcNow)
             .OrderByDescending(c => c.CreatedAt)
             .FirstOrDefaultAsync();
 

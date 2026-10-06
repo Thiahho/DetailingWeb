@@ -9,6 +9,9 @@
      document.documentElement. Los floats fijos (WhatsApp, Ruleta) la usan
      para correrse hacia arriba y no quedar tapados. */
   --consent-bar-h: 0px;
+  /* Alto de la barra fija "Reservar turno" de /reservar en mobile
+     (src/components/public/MobileBookBar.tsx), mismo mecanismo. */
+  --mobile-bar-h: 0px;
 }
 
 body {
@@ -35,6 +38,55 @@ body {
 
 .form-input {
   @apply w-full rounded-xl border border-mauve/15 bg-white px-4 py-3 text-sm text-charcoal placeholder:text-warmgray/60 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40;
+}
+
+/* Palabra de acento en los títulos del sitio público */
+.accent-serif {
+  @apply font-serif font-normal italic tracking-normal;
+}
+
+/* Entrada al hacer scroll (src/components/public/Reveal.tsx). El estado
+   oculto solo aplica cuando el componente ya montó (data-reveal="armed"):
+   sin JS, o antes de hidratar, el contenido se ve normal. */
+[data-reveal="armed"] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-reveal="armed"].is-in {
+  opacity: 1;
+  transform: none;
+}
+[data-reveal-stagger="armed"] > * {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-reveal-stagger="armed"].is-in > * {
+  opacity: 1;
+  transform: none;
+}
+[data-reveal-stagger="armed"].is-in > *:nth-child(2) { transition-delay: 0.08s; }
+[data-reveal-stagger="armed"].is-in > *:nth-child(3) { transition-delay: 0.16s; }
+[data-reveal-stagger="armed"].is-in > *:nth-child(4) { transition-delay: 0.24s; }
+[data-reveal-stagger="armed"].is-in > *:nth-child(5) { transition-delay: 0.32s; }
+[data-reveal-stagger="armed"].is-in > *:nth-child(6) { transition-delay: 0.4s; }
+
+/* Cinta en movimiento: se pausa con el mouse o el foco encima */
+.marquee-wrap:hover .animate-marquee,
+.marquee-wrap:focus-within .animate-marquee {
+  animation-play-state: paused;
+}
+
+/* Fila deslizable sin barra de scroll visible. En @layer components para que
+   las utilidades responsive (sm:grid, md:flex-wrap…) puedan pisarla. */
+@layer components {
+  .snap-row {
+    @apply flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden;
+  }
+  .snap-row > * {
+    @apply shrink-0 snap-start;
+  }
 }
 
 /* Menos y más suave, no cero — dejamos passar transiciones de color/opacidad

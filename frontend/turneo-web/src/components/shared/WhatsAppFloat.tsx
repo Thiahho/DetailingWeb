@@ -116,7 +116,7 @@ export default function WhatsAppFloat({
       className="fixed right-6 z-50"
       // Se corre hacia arriba mientras la barra de cookies está visible
       // (--consent-bar-h, seteada por CookieConsent.tsx) para no quedar tapado.
-      style={{ bottom: "calc(1.5rem + var(--consent-bar-h, 0px))" }}
+      style={{ bottom: "calc(1.5rem + var(--consent-bar-h, 0px) + var(--mobile-bar-h, 0px))" }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

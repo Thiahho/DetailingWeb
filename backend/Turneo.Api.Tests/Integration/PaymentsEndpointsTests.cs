@@ -1,21 +1,19 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Turneo.Api.Tests.Integration;
 
 // El AccessToken de MercadoPago está vacío en appsettings.json (sistema en
 // demo, ver auditoría hallazgo a) y CustomWebApplicationFactory no lo
-// sobreescribe a propósito: estos tests corren contra el mismo estado de
-// config "sin pasarela habilitada" que producción hoy.
+// sobreescribe a propósito: los tests sobre _factory corren contra el mismo
+// estado de config "sin pasarela habilitada" que producción hoy.
 //
-// Hallazgo encontrado al escribir esta suite (no estaba en la auditoría):
-// el webhook lee la clave de configuración "MP_ACCESS_TOKEN:AccessToken"
-// (PaymentsController.cs:141), que no existe en ningún appsettings — la
-// clave real es "MercadoPago:AccessToken". Como consecuencia, el webhook
-// devuelve 500 para *cualquier* notificación de MercadoPago, sin importar
-// si la firma es válida o no; el hallazgo (a) de la auditoría (firma HMAC
-// opcional) es hoy inalcanzable en la práctica porque el webhook nunca
-// llega a evaluarla. Reportado aparte al usuario, no corregido acá.
+// Los tests del webhook que necesitan token/secreto levantan un host aparte
+// (WithConfigOverrides) con valores falsos y solo mandan notificaciones que
+// no son de tipo "payment": el controller nunca llega a llamar a la API real
+// de MercadoPago.
 [Collection("Integration")]
 public class PaymentsEndpointsTests
 {
@@ -77,6 +75,85 @@ public class PaymentsEndpointsTests
         var response = await client.PostAsJsonAsync("/api/payments/webhook/mercadopago", new { type = "payment", data = new { id = "123" } });
 
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+    }
+
+    private const string WebhookUrl = "/api/payments/webhook/mercadopago";
+    private const string FakeAccessToken = "TEST-fake-access-token";
+    private const string FakeWebhookSecret = "fake-webhook-secret";
+
+    private static string SignatureHeader(string secret, string dataId, string requestId, string ts)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        var v1 = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes($"id:{dataId};request-id:{requestId};ts:{ts};"))).ToLower();
+        return $"ts={ts},v1={v1}";
+    }
+
+    [Fact]
+    public async Task Webhook_WithAccessTokenButNoWebhookSecret_IsRejected()
+    {
+        // Token en la clave legacy (MP_ACCESS_TOKEN:AccessToken): sigue valiendo como fallback.
+        var host = _factory.WithConfigOverrides(new Dictionary<string, string?>
+        {
+            ["MP_ACCESS_TOKEN:AccessToken"] = FakeAccessToken,
+            ["MercadoPago:WebhookSecret"] = null,
+        });
+
+        var response = await host.CreateClient().PostAsJsonAsync(WebhookUrl, new { type = "test", data = new { id = "123" } });
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Webhook_WithSecret_MissingOrInvalidSignature_ReturnsUnauthorized()
+    {
+        var host = _factory.WithConfigOverrides(new Dictionary<string, string?>
+        {
+            ["MercadoPago:AccessToken"] = FakeAccessToken,
+            ["MercadoPago:WebhookSecret"] = FakeWebhookSecret,
+        });
+        var client = host.CreateClient();
+        var payload = new { type = "test", data = new { id = "123" } };
+
+        var unsigned = await client.PostAsJsonAsync(WebhookUrl, payload);
+        Assert.Equal(HttpStatusCode.Unauthorized, unsigned.StatusCode);
+
+        // Firma bien formada pero calculada con otro secreto.
+        var forged = new HttpRequestMessage(HttpMethod.Post, $"{WebhookUrl}?data.id=123&type=test") { Content = JsonContent.Create(payload) };
+        forged.Headers.Add("x-request-id", "req-1");
+        forged.Headers.Add("x-signature", SignatureHeader("otro-secreto", "123", "req-1", "1700000000"));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(forged)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Webhook_WithSecret_ValidSignature_IsAccepted()
+    {
+        var host = _factory.WithConfigOverrides(new Dictionary<string, string?>
+        {
+            ["MercadoPago:AccessToken"] = FakeAccessToken,
+            ["MercadoPago:WebhookSecret"] = FakeWebhookSecret,
+        });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{WebhookUrl}?data.id=123&type=test")
+        {
+            Content = JsonContent.Create(new { type = "test", data = new { id = "123" } })
+        };
+        request.Headers.Add("x-request-id", "req-1");
+        request.Headers.Add("x-signature", SignatureHeader(FakeWebhookSecret, "123", "req-1", "1700000000"));
+
+        var response = await host.CreateClient().SendAsync(request);
+
+        // Firmada pero no es "payment": se acusa recibo sin procesar nada.
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Webhook_WithPaymentsDisabled_ReturnsOkWithoutValidatingAnything()
+    {
+        var host = _factory.WithConfigOverrides(new Dictionary<string, string?> { ["Payments:Enabled"] = "false" });
+
+        var response = await host.CreateClient().PostAsJsonAsync(WebhookUrl, new { type = "payment", data = new { id = "123" } });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]

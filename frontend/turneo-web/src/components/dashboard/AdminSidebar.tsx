@@ -8,7 +8,7 @@ import { usePermissions, type PermissionModuleKey } from "@/src/hooks/usePermiss
 import {
   CalendarDays, BarChart2, Wrench, LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
-  MoreHorizontal, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star,
+  MoreHorizontal, ChevronDown, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star,
 } from "lucide-react";
 
 // `module`: a qué PermissionModule pertenece este link — un Staff sin permiso
@@ -20,8 +20,8 @@ import {
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; module?: PermissionModuleKey; adminOnly?: boolean };
 type NavGroup = { title: string; items: NavItem[] };
 
-// Panel queda suelto arriba (es el home). El resto se agrupa por dominio en vez
-// de una lista plana de 11 links — así se lee de un vistazo, no se escanea entero.
+// Panel queda suelto arriba (es el home). El resto se agrupa por dominio, con
+// secciones chicas (2-4 links) — así se lee de un vistazo, no se escanea entero.
 const topItem: NavItem = { href: "/admin", label: "Panel", icon: LayoutDashboard };
 
 const groups: NavGroup[] = [
@@ -34,40 +34,55 @@ const groups: NavGroup[] = [
     ],
   },
   {
-    title: "Negocio",
+    title: "Clientes",
     items: [
       { href: "/admin/clientes", label: "Clientes", icon: Users, module: "Clientes" },
+      { href: "/admin/resenas", label: "Reseñas", icon: Star, module: "Resenas" },
       { href: "/admin/solicitudes-privacidad", label: "Privacidad", icon: ShieldAlert, module: "Clientes" },
-      { href: "/admin/profesionales", label: "Equipo", icon: UserCog, module: "Profesionales" },
-      { href: "/admin/servicios", label: "Servicios", icon: Wrench, module: "Servicios" },
-      { href: "/admin/productos", label: "Productos", icon: Package, module: "Productos" },
-      { href: "/admin/insumos", label: "Insumos", icon: Boxes, module: "Insumos" },
-      { href: "/admin/caja", label: "Caja", icon: Wallet, module: "Caja" },
-      { href: "/admin/automatizaciones", label: "Automatizaciones", icon: Zap, module: "Automatizaciones" },
-      { href: "/admin/smart-tags", label: "Smart Tags", icon: Nfc, module: "SmartTags" },
-      { href: "/admin/ruleta", label: "Ruleta", icon: Gift, module: "Ruleta" },
-      { href: "/admin/configuracion", label: "Empresa", icon: Building2, adminOnly: true },
     ],
   },
   {
-    title: "Contenido",
+    title: "Catálogo",
+    items: [
+      { href: "/admin/servicios", label: "Servicios", icon: Wrench, module: "Servicios" },
+      { href: "/admin/productos", label: "Productos", icon: Package, module: "Productos" },
+      { href: "/admin/insumos", label: "Insumos", icon: Boxes, module: "Insumos" },
+    ],
+  },
+  {
+    title: "Finanzas",
+    items: [
+      { href: "/admin/caja", label: "Caja", icon: Wallet, module: "Caja" },
+      { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2, adminOnly: true },
+    ],
+  },
+  {
+    title: "Marketing",
+    items: [
+      { href: "/admin/automatizaciones", label: "Automatizaciones", icon: Zap, module: "Automatizaciones" },
+      { href: "/admin/smart-tags", label: "Smart Tags", icon: Nfc, module: "SmartTags" },
+      { href: "/admin/ruleta", label: "Ruleta", icon: Gift, module: "Ruleta" },
+    ],
+  },
+  {
+    title: "Sitio web",
     items: [
       { href: "/admin/galeria", label: "Galería", icon: Image, module: "Galeria" },
-      { href: "/admin/resenas", label: "Reseñas", icon: Star, module: "Resenas" },
       { href: "/admin/contenido", label: "Contenido", icon: Clapperboard, module: "Contenido" },
     ],
   },
   {
-    title: "Cuenta",
+    title: "Administración",
     items: [
-      { href: "/admin/estadisticas", label: "Estadísticas", icon: BarChart2, adminOnly: true },
+      { href: "/admin/configuracion", label: "Empresa", icon: Building2, adminOnly: true },
+      { href: "/admin/profesionales", label: "Equipo", icon: UserCog, module: "Profesionales" },
       { href: "/admin/permisos", label: "Permisos", icon: ShieldCheck, adminOnly: true },
       { href: "/admin/cuenta", label: "Cuenta", icon: KeyRound },
     ],
   },
 ];
 
-const allItems: NavItem[] = [topItem, ...groups.flatMap((g) => g.items)];
+const COLLAPSED_STORAGE_KEY = "admin-sidebar-collapsed";
 
 // Los 4 de uso diario van fijos en la barra mobile; el resto vive atrás del botón "Más".
 const mobilePrimaryHrefs = ["/admin", "/admin/turnos", "/admin/calendario", "/admin/historial"];
@@ -78,9 +93,25 @@ export default function AdminSidebar() {
   const [logoUrl, setLogoUrl] = useState("/img/logo.png");
   const { role, isAdmin, can, loading: loadingPermissions } = usePermissions();
 
+  // Secciones plegadas por el usuario (por título). Todas abiertas por defecto;
+  // se lee de localStorage después del mount para no romper la hidratación.
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     getSiteConfig().then((config) => { if (config.logoUrl) setLogoUrl(config.logoUrl); });
+    try {
+      const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+      if (stored) setCollapsed(JSON.parse(stored));
+    } catch {}
   }, []);
+
+  const toggleGroup = (title: string) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [title]: !prev[title] };
+      try { localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   // Mientras cargan los permisos de un Staff, no mostrar nada todavía (evita el
   // parpadeo de ver todo el menú y que un ítem sin permiso desaparezca después).
@@ -104,7 +135,7 @@ export default function AdminSidebar() {
   };
 
   const isActive = (href: string) =>
-    href === "/admin" ? pathname === "/admin" : pathname === href;
+    href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`);
 
   const isMoreActive = visibleAllItems
     .filter((i) => !mobilePrimaryHrefs.includes(i.href))
@@ -116,6 +147,44 @@ export default function AdminSidebar() {
         ? "bg-blush/12 text-blushdark font-medium"
         : "text-charcoal/50 hover:text-charcoal hover:bg-porcelain"
     }`;
+
+  // Mismo árbol para el sidebar desktop y el drawer mobile. La sección que
+  // contiene la página actual se muestra siempre, aunque esté plegada.
+  const renderNav = (onNavigate?: () => void) => (
+    <nav className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
+      <Link href={topItem.href} onClick={onNavigate} className={linkClasses(isActive(topItem.href))}>
+        <topItem.icon size={17} />
+        {topItem.label}
+      </Link>
+
+      {visibleGroups.map((group) => {
+        const open = !collapsed[group.title] || group.items.some((i) => isActive(i.href));
+        return (
+          <div key={group.title} className="pt-3 border-t border-mauve/10">
+            <button
+              type="button"
+              onClick={() => toggleGroup(group.title)}
+              aria-expanded={open}
+              className="flex items-center justify-between w-full px-3 py-1 mb-1 text-[10px] font-semibold uppercase tracking-wider text-charcoal/40 hover:text-charcoal/70 transition"
+            >
+              {group.title}
+              <ChevronDown size={13} className={`transition-transform ${open ? "" : "-rotate-90"}`} />
+            </button>
+            {open && (
+              <div className="space-y-0.5">
+                {group.items.map(({ href, label, icon: Icon }) => (
+                  <Link key={href} href={href} onClick={onNavigate} className={linkClasses(isActive(href))}>
+                    <Icon size={17} />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
 
   return (
     <>
@@ -132,28 +201,7 @@ export default function AdminSidebar() {
           </Link>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-          <Link href={topItem.href} className={linkClasses(isActive(topItem.href))}>
-            <topItem.icon size={17} />
-            {topItem.label}
-          </Link>
-
-          {visibleGroups.map((group) => (
-            <div key={group.title}>
-              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-charcoal/30">
-                {group.title}
-              </p>
-              <div className="space-y-1">
-                {group.items.map(({ href, label, icon: Icon }) => (
-                  <Link key={href} href={href} className={linkClasses(isActive(href))}>
-                    <Icon size={17} />
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </nav>
+        {renderNav()}
 
         <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
           {role === "Professional" && (
@@ -243,37 +291,7 @@ export default function AdminSidebar() {
               </button>
             </div>
 
-            <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-              <Link
-                href={topItem.href}
-                onClick={() => setMenuOpen(false)}
-                className={linkClasses(isActive(topItem.href))}
-              >
-                <topItem.icon size={17} />
-                {topItem.label}
-              </Link>
-
-              {visibleGroups.map((group) => (
-                <div key={group.title}>
-                  <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-charcoal/30">
-                    {group.title}
-                  </p>
-                  <div className="space-y-1">
-                    {group.items.map(({ href, label, icon: Icon }) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setMenuOpen(false)}
-                        className={linkClasses(isActive(href))}
-                      >
-                        <Icon size={17} />
-                        {label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </nav>
+            {renderNav(() => setMenuOpen(false))}
 
             <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
               {role === "Professional" && (

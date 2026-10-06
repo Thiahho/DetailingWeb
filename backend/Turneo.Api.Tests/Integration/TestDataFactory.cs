@@ -49,6 +49,42 @@ public static class TestDataFactory
         return user;
     }
 
+    public static async Task<User> CreateStaffUserAsync(CustomWebApplicationFactory factory, int tenantId, string email, string password)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = new User
+        {
+            TenantId = tenantId,
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+            Role = "Staff"
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user;
+    }
+
+    // Fila de ModulePermission tal como la deja PermissionsController al guardar
+    // la matriz de permisos de un Staff/Profesional.
+    public static async Task GrantModulePermissionAsync(CustomWebApplicationFactory factory, int tenantId, int userId, string module,
+        bool canView = false, bool canCreate = false, bool canEdit = false, bool canDelete = false)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.ModulePermissions.Add(new Turneo.Api.Core.Roles.ModulePermission
+        {
+            TenantId = tenantId,
+            UserId = userId,
+            Module = module,
+            CanView = canView,
+            CanCreate = canCreate,
+            CanEdit = canEdit,
+            CanDelete = canDelete
+        });
+        await db.SaveChangesAsync();
+    }
+
     public static async Task<User> CreateProfessionalUserAsync(CustomWebApplicationFactory factory, int tenantId, int professionalId, string email, string password)
     {
         using var scope = factory.Services.CreateScope();

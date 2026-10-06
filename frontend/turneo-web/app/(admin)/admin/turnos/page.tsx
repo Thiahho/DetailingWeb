@@ -25,6 +25,11 @@ interface Professional {
   lastName: string;
 }
 
+interface ServiceOption {
+  id: number;
+  title: string;
+}
+
 const normalizeBookingStatus = (status: string) => {
   if (status === "Reservado") return "Pending";
   return status;
@@ -74,6 +79,11 @@ export default function TurnosPage() {
   const [creating, setCreating] = useState(false);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [professionalFilter, setProfessionalFilter] = useState<string>("all");
+  // Opcionales del "Turno puntual": servicio precargado y hora de fin. Vacíos =
+  // turno sin servicio y con la duración por defecto (2 h), como hasta ahora.
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [slotServiceId, setSlotServiceId] = useState("");
+  const [slotEndTime, setSlotEndTime] = useState("");
 
   // Estados del generador de disponibilidad ("Generar disponibilidad")
   const [formMode, setFormMode] = useState<"single" | "generate">("single");
@@ -117,6 +127,7 @@ export default function TurnosPage() {
     // /all incluye inactivos — al crear turnos el admin puede querer agendar
     // para alguien que está temporalmente desactivado, no solo los activos.
     fetch("/api/professionals/all").then((r) => r.json()).then((d) => setProfessionals(Array.isArray(d) ? d : [])).catch(() => {});
+    fetch("/api/services/all").then((r) => r.json()).then((d) => setServices(Array.isArray(d) ? d : [])).catch(() => {});
   }, [router]);
 
   // --- Lógica de Carga y CRUD (Igual que tu código original) ---
@@ -143,6 +154,7 @@ export default function TurnosPage() {
   // Calcula start/end (string local, sin conversión UTC) para una fecha puntual.
   const computeRange = (dateStr: string) => {
     const startDateTime = `${dateStr}T${formData.hour}:${formData.minute}:00`;
+    if (slotEndTime) return { startDateTime, endDateTime: `${dateStr}T${slotEndTime}:00` };
     let endHour = parseInt(formData.hour) + 2;
     let endDate = dateStr;
     if (endHour >= 24) {
@@ -169,6 +181,10 @@ export default function TurnosPage() {
       showToast("error", "Error al crear turno", "Elegí al menos una fecha");
       return;
     }
+    if (slotEndTime && slotEndTime <= `${formData.hour}:${formData.minute}`) {
+      showToast("error", "Error al crear turno", "La hora de fin debe ser posterior a la de inicio");
+      return;
+    }
     setCreating(true);
     try {
       // Un turno idéntico por cada combinación fecha × profesional elegido: el
@@ -187,6 +203,7 @@ export default function TurnosPage() {
                 startDateTime,
                 endDateTime,
                 professionalId: professionalId === null ? null : Number(professionalId),
+                serviceId: slotServiceId ? Number(slotServiceId) : null,
               }),
             });
             const data = await response.json();
@@ -220,6 +237,8 @@ export default function TurnosPage() {
       }
       if (okCount > 0) {
         setFormData({ date: "", dates: [], hour: "09", minute: "00", professionalIds: formData.professionalIds });
+        setSlotServiceId("");
+        setSlotEndTime("");
         loadSlots();
       }
     } catch (error) {
@@ -945,6 +964,42 @@ export default function TurnosPage() {
                 </div>
               </div>
 
+              {!editingSlot && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-charcoal/70 text-sm font-medium">
+                      Hora fin <span className="text-charcoal/40 font-normal">(opcional)</span>
+                    </label>
+                    <input
+                      type="time"
+                      data-testid="slot-form-end-time"
+                      className="form-input mt-2"
+                      value={slotEndTime}
+                      onChange={(e) => setSlotEndTime(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-charcoal/70 text-sm font-medium">
+                      Servicio <span className="text-charcoal/40 font-normal">(opcional)</span>
+                    </label>
+                    <select
+                      data-testid="slot-form-service"
+                      className="form-input mt-2"
+                      value={slotServiceId}
+                      onChange={(e) => setSlotServiceId(e.target.value)}
+                    >
+                      <option value="">Sin servicio</option>
+                      {services.map((s) => (
+                        <option key={s.id} value={s.id}>{s.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="col-span-2 text-charcoal/40 text-xs">
+                    Sin hora de fin, el turno dura 2 horas. El servicio queda precargado al reservar.
+                  </p>
+                </div>
+              )}
+
               {!editingSlot && professionalSelector}
 
               <div className="flex gap-3 pt-2">
@@ -1343,9 +1398,10 @@ export default function TurnosPage() {
                     </div>
 
                     {/* Profesional dueño del turno, aunque todavía no esté reservado */}
-                    {slot.isAvailable && slot.professionalName && (
-                      <div className="mt-3 pt-3 border-t border-mauve/5 text-xs text-charcoal/50">
-                        👤 {slot.professionalName}
+                    {slot.isAvailable && (slot.professionalName || slot.serviceTitle) && (
+                      <div className="mt-3 pt-3 border-t border-mauve/5 text-xs text-charcoal/50 flex flex-wrap gap-x-3 gap-y-1">
+                        {slot.professionalName && <span>👤 {slot.professionalName}</span>}
+                        {slot.serviceTitle && <span data-testid="slot-item-service">🔧 {slot.serviceTitle}</span>}
                       </div>
                     )}
 

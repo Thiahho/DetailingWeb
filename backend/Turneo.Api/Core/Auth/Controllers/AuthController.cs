@@ -6,6 +6,7 @@ using System.Security.Claims;
 
 namespace Turneo.Api.Core.Auth;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -38,6 +39,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/login
     [HttpPost("login")]
+    [AllowAnonymous]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
@@ -76,11 +78,24 @@ public class AuthController : ControllerBase
         }
     }
 
-    // POST: api/auth/register
+    // POST: api/auth/register — crea un Admin en el tenant actual.
+    // Anónimo solo con Auth:AllowOpenRegistration=true (entorno Testing: seed de e2e
+    // y tests de integración); sin ese flag — el default, y lo que corre en
+    // producción — lo puede llamar únicamente un Admin ya autenticado.
     [HttpPost("register")]
+    [AllowAnonymous]
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
+        if (!_configuration.GetValue<bool>("Auth:AllowOpenRegistration"))
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return Unauthorized();
+
+            if (!User.IsInRole("Admin"))
+                return Forbid();
+        }
+
         try
         {
             var response = await _authService.RegisterAsync(request);
@@ -116,6 +131,8 @@ public class AuthController : ControllerBase
             id = user.Id,
             email = user.Email,
             role = user.Role,
+            professionalId = user.ProfessionalId,
+            hasPanelAccess = await _authService.HasPanelAccessAsync(user),
             telegramChatId = user.TelegramChatId
         });
     }
@@ -167,6 +184,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("logout")]
+    [AllowAnonymous]
     public IActionResult Logout()
     {
         Response.Cookies.Delete("admin_token");
@@ -287,6 +305,99 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = ex.Message });
         }
     }
+
+    // ---- Auto-registro de profesionales invitados (ver AuthService) ----
+
+    // POST: api/auth/professional/register/request — manda el código al correo invitado.
+    // Responde igual esté o no invitado el email: no revela qué correos lo están.
+    [HttpPost("professional/register/request")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> RequestProfessionalRegistration([FromBody] ProfessionalRegistrationRequest request)
+    {
+        var code = await _authService.RequestProfessionalRegistrationAsync(request.Email);
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        // pendingOtpCode lo consume el proxy de Next.js para enviar el mail y lo
+        // quita antes de responderle al navegador (mismo patrón que client/access/request).
+        return code == null
+            ? Ok(new { email, requiresOtp = true })
+            : Ok(new { email, requiresOtp = true, pendingOtpCode = code });
+    }
+
+    // POST: api/auth/professional/register/verify — código correcto → token corto para elegir contraseña
+    [HttpPost("professional/register/verify")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerifyProfessionalRegistration([FromBody] ProfessionalRegistrationVerifyRequest request)
+    {
+        try
+        {
+            var registrationToken = await _authService.VerifyProfessionalRegistrationCodeAsync(request.Email, request.OtpCode);
+            return Ok(new { registrationToken });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    // POST: api/auth/professional/register/complete — crea la cuenta y deja la sesión iniciada
+    [HttpPost("professional/register/complete")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> CompleteProfessionalRegistration([FromBody] ProfessionalRegistrationCompleteRequest request)
+    {
+        try
+        {
+            return ProfessionalSession(await _authService.CompleteProfessionalRegistrationAsync(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // POST: api/auth/professional/google — login (o alta, si el correo está invitado) con Google
+    [HttpPost("professional/google")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> LoginProfessionalWithGoogle([FromBody] ProfessionalGoogleLoginRequest request)
+    {
+        try
+        {
+            return ProfessionalSession(await _authService.LoginProfessionalWithGoogleAsync(request.IdToken));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    // Misma cookie y mismo cuerpo que el login por contraseña de un profesional.
+    private IActionResult ProfessionalSession(LoginResponse response)
+    {
+        Response.Cookies.Append("token", response.Token, new CookieOptions
+        {
+            HttpOnly = true,
+            Expires = DateTime.UtcNow.AddHours(1),
+            SameSite = SameSiteMode.None,
+            Secure = true,
+            Path = "/"
+        });
+        return Ok(new
+        {
+            email = response.Email,
+            role = response.Role,
+            professionalId = response.ProfessionalId,
+            hasPanelAccess = response.HasPanelAccess,
+        });
+    }
+
     // POST: api/auth/change-password
     [Authorize]
     [HttpPost("change-password")]

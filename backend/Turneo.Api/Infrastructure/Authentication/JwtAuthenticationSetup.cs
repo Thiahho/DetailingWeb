@@ -6,6 +6,20 @@ namespace Turneo.Api.Infrastructure.Authentication;
 
 public static class JwtAuthenticationSetup
 {
+    // Tokens firmados con la misma clave que los de sesión pero que no son una
+    // sesión: se validan a mano desde el body del único endpoint que los consume
+    // (AuthService.ValidateToken) y nunca deben autenticar una llamada a la API.
+    //   - professional_registration: 10 minutos, solo para register/complete.
+    //   - booking_access: link "Mis turnos" del email (7 días, viaja en una URL),
+    //     solo para canjearse en client/session/exchange.
+    // Lista de rechazo y no de permitidos a propósito: los de sesión (admin_access,
+    // client_access, platform_access) y cualquier token sin token_type siguen pasando.
+    private static readonly HashSet<string> NonSessionTokenTypes = new(StringComparer.Ordinal)
+    {
+        "professional_registration",
+        "booking_access"
+    };
+
     public static IServiceCollection AddJwtAuthentication(
         this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
@@ -42,6 +56,14 @@ public static class JwtAuthenticationSetup
                     }
 
                     context.Token = token;
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    var tokenType = context.Principal?.FindFirst("token_type")?.Value;
+                    if (tokenType != null && NonSessionTokenTypes.Contains(tokenType))
+                        context.Fail("Este tipo de token no autentica llamadas a la API");
+
                     return Task.CompletedTask;
                 }
             };

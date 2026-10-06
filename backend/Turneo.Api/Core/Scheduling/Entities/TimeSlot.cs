@@ -27,5 +27,10 @@ public class TimeSlot : ITenantScoped
     public int? ProfessionalId { get; set; }
     public Professional? Professional { get; set; }
 
+    // Opcional: servicio precargado al crear el turno. Solo preselecciona el
+    // servicio al reservar — no restringe qué servicio se termina reservando.
+    public int? ServiceId { get; set; }
+    public Service? Service { get; set; }
+
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

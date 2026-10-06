@@ -32,6 +32,9 @@ export interface TimeSlot {
   booking?: Booking;
   professionalId?: number | null;
   professionalName?: string | null;
+  serviceId?: number | null;
+  serviceTitle?: string | null;
+  serviceSlug?: string | null;
 }
 
 function isExpired(isoString: string): boolean {

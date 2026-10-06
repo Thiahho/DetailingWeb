@@ -61,4 +61,34 @@ public class ContentVideosEndpointsTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Create_WithInstagramLink_ExposesLinkUrlPublicly()
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var admin = await CreateAdminClientAsync(tenantId);
+        var linkUrl = $"https://www.instagram.com/reel/{Guid.NewGuid():N}/";
+
+        var create = await admin.PostAsJsonAsync("/api/content-videos",
+            new { title = $"con-link-{Guid.NewGuid():N}", videoUrl = "https://example.com/a.mp4", thumbnailUrl = "", linkUrl, isActive = true });
+        Assert.Equal(HttpStatusCode.OK, create.StatusCode);
+
+        var raw = await _factory.CreateClient().GetStringAsync("/api/content-videos");
+        Assert.Contains(linkUrl, raw);
+    }
+
+    [Theory]
+    [InlineData("https://evil.example.com/reel/1")]
+    [InlineData("http://www.instagram.com/reel/1")]
+    [InlineData("javascript:alert(1)")]
+    public async Task Create_WithLinkOutsideInstagramOrTikTok_ReturnsBadRequest(string linkUrl)
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var client = await CreateAdminClientAsync(tenantId);
+
+        var response = await client.PostAsJsonAsync("/api/content-videos",
+            new { title = "link inválido", videoUrl = "https://example.com/a.mp4", thumbnailUrl = "", linkUrl });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 }

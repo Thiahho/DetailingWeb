@@ -25,6 +25,9 @@ public class SiteConfig : ITenantScoped
     // el default anterior de tomar los primeros 2 Services (se volvía un choclo con
     // muchos servicios cargados). Vacío => el frontend cae de nuevo a ese default.
     public List<string> HeroHighlights { get; set; } = new();
+    // Fotos del local (URLs de Cloudinary, en el orden que eligió el admin) para el
+    // bloque "El local" de "Sobre nosotros" en el sitio público.
+    public List<string> LocalPhotos { get; set; } = new();
     public string MetaDescription { get; set; } = string.Empty;
     // Destino de la acción REVIEW de Smart Tag para calificaciones altas (docs/NFC.md CU-03).
     public string? GoogleReviewUrl { get; set; }

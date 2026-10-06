@@ -1,0 +1,37 @@
+{
+  "cookies": [
+    {
+      "name": "admin_token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwiZW1haWwiOiJhdXJvcmFAZXhhbXBsZS5jb20iLCJyb2xlIjoiQWRtaW4iLCJ0b2tlbl90eXBlIjoiYWRtaW5fYWNjZXNzIiwidGVuYW50X2lkIjoiMSIsIm5iZiI6MTc5MTI0MzYzMywiZXhwIjoxNzkxMzMwMDMzLCJpYXQiOjE3OTEyNDM2MzMsImlzcyI6IlR1cm5lby5BcGkiLCJhdWQiOiJUdXJuZW9DbGllbnQifQ.MxcrI4_2uG0TSfshGKa4Jm55IMrYSleL-WjQ8QqxlHI",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3100",
+      "localStorage": [
+        {
+          "name": "isLoggedIn",
+          "value": "true"
+        },
+        {
+          "name": "hasPanelAccess",
+          "value": "true"
+        },
+        {
+          "name": "email",
+          "value": "aurora@example.com"
+        },
+        {
+          "name": "role",
+          "value": "Admin"
+        }
+      ]
+    }
+  ]
+}

@@ -71,6 +71,7 @@ public class ProfessionalsController : ControllerBase
                 p.Id,
                 p.FirstName,
                 p.LastName,
+                p.Email,
                 p.PhotoUrl,
                 p.CalendarColor,
                 p.Specialty,
@@ -329,12 +330,18 @@ public class ProfessionalsController : ControllerBase
             });
         }
 
+        var email = NormalizeEmail(request.Email);
+        var emailError = await ValidateInviteEmailAsync(email, professionalId: null);
+        if (emailError != null)
+            return BadRequest(new { message = emailError });
+
         var services = await _repository.GetServicesByIdsAsync(request.ServiceIds);
 
         var professional = new Professional
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
+            Email = email,
             PhotoUrl = request.PhotoUrl ?? string.Empty,
             CalendarColor = request.CalendarColor,
             Specialty = request.Specialty,
@@ -382,8 +389,14 @@ public class ProfessionalsController : ControllerBase
         if (professional == null)
             return NotFound(new { message = "Profesional no encontrado" });
 
+        var email = NormalizeEmail(request.Email);
+        var emailError = await ValidateInviteEmailAsync(email, professionalId: id);
+        if (emailError != null)
+            return BadRequest(new { message = emailError });
+
         professional.FirstName = request.FirstName;
         professional.LastName = request.LastName;
+        professional.Email = email;
         professional.PhotoUrl = request.PhotoUrl ?? string.Empty;
         professional.CalendarColor = request.CalendarColor;
         professional.Specialty = request.Specialty;
@@ -405,6 +418,25 @@ public class ProfessionalsController : ControllerBase
         await _repository.SaveChangesAsync();
 
         return Ok(new { message = "Profesional actualizado correctamente" });
+    }
+
+    private static string? NormalizeEmail(string? email) =>
+        string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();
+
+    // El email invitado habilita el auto-registro (ver AuthService): no puede
+    // repetirse en otra ficha ni pertenecer a la cuenta de otra persona.
+    private async Task<string?> ValidateInviteEmailAsync(string? email, int? professionalId)
+    {
+        if (email == null)
+            return null;
+
+        if (await _context.Professionals.AnyAsync(p => p.Email == email && p.Id != professionalId))
+            return "Ese email ya está cargado en otro profesional";
+
+        if (await _context.Users.AnyAsync(u => u.Email == email && (professionalId == null || u.ProfessionalId != professionalId)))
+            return "Ese email ya está en uso por otra cuenta";
+
+        return null;
     }
 
     // DELETE: api/professionals/{id} (admin)
@@ -438,6 +470,10 @@ public class ProfessionalRequest
 
     [Required, StringLength(100, MinimumLength = 1)]
     public string LastName { get; set; } = string.Empty;
+
+    // Opcional: correo invitado a auto-registrarse como este profesional.
+    [EmailAddress, StringLength(256)]
+    public string? Email { get; set; }
 
     [StringLength(500)]
     public string? PhotoUrl { get; set; }

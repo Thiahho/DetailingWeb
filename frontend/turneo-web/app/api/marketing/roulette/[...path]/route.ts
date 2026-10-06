@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientIpHeaders } from "@/src/lib/tenantHeader";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -15,6 +16,7 @@ export async function GET(
 
   try {
     const response = await fetch(`${API_URL}/api/marketing/roulette/${path}`, {
+      headers: clientIpHeaders(request),
       cache: "no-store",
     });
     const data = await response.json();
@@ -35,7 +37,7 @@ export async function POST(
   try {
     const response = await fetch(`${API_URL}/api/marketing/roulette/${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...clientIpHeaders(request) },
       body,
     });
     const data = await response.json();
@@ -56,7 +58,7 @@ export async function PATCH(
   try {
     const response = await fetch(`${API_URL}/api/marketing/roulette/${path}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...clientIpHeaders(request) },
       body,
     });
     const data = await response.json().catch(() => ({}));

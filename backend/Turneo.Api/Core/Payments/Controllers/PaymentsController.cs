@@ -30,9 +30,9 @@ public class PaymentsController : ControllerBase
     [EnableRateLimiting("public-booking")]
     public async Task<IActionResult> CreateMercadoPagoPreference([FromBody] CreatePaymentRequest request)
     {
-        // Piloto: pagos online apagados a propósito (webhook con firma HMAC opcional
-        // y clave de config rota, ver docs/auditoriabelleza_0507.md hallazgos a/g).
-        // Apagar acá evita depender de esos dos fixes hasta que se necesiten señas reales.
+        // Piloto: pagos online apagados a propósito hasta que se necesiten señas reales
+        // (antecedente: docs/auditoriabelleza_0507.md hallazgos a/g, ya corregidos —
+        // firma HMAC obligatoria y clave de config unificada, ver más abajo).
         if (!_configuration.GetValue<bool>("Payments:Enabled"))
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { success = false, message = "Pagos online no disponibles por el momento" });
 
@@ -53,7 +53,7 @@ public class PaymentsController : ControllerBase
         if (!await _planLimits.IsFeatureEnabledAsync(booking.TenantId, "CanUseMercadoPago"))
             return StatusCode(StatusCodes.Status402PaymentRequired, new { success = false, message = "Este negocio no tiene pagos online habilitados en su plan actual" });
 
-        var accessToken = _configuration["MercadoPago:AccessToken"];
+        var accessToken = GetMercadoPagoAccessToken();
         if (string.IsNullOrEmpty(accessToken))
             return StatusCode(500, new { success = false, message = "Pasarela de pago no configurada" });
 
@@ -156,9 +156,19 @@ public class PaymentsController : ControllerBase
         if (!_configuration.GetValue<bool>("Payments:Enabled"))
             return Ok(); // 200 vacío: evita que MercadoPago reintente un webhook que no vamos a procesar
 
-        var accessToken = _configuration["MP_ACCESS_TOKEN:AccessToken"];
+        var accessToken = GetMercadoPagoAccessToken();
         if (string.IsNullOrEmpty(accessToken))
             return StatusCode(500);
+
+        // Sin secreto no hay forma de saber si la notificación viene de MercadoPago:
+        // se rechaza en vez de procesarla sin firma. 503 (y no 200) para que la mala
+        // configuración se vea en los reintentos/panel de MercadoPago y en los logs.
+        var webhookSecret = _configuration["MercadoPago:WebhookSecret"];
+        if (string.IsNullOrEmpty(webhookSecret))
+        {
+            Console.WriteLine("[MP Webhook] ADVERTENCIA: MercadoPago:WebhookSecret no está configurado — notificación rechazada sin procesar");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
 
         MercadoPagoConfig.AccessToken = accessToken;
 
@@ -167,43 +177,39 @@ public class PaymentsController : ControllerBase
         using (var reader = new StreamReader(Request.Body))
             body = await reader.ReadToEndAsync();
 
-        // Validate webhook signature (HMAC-SHA256) if secret is configured
-        var webhookSecret = _configuration["MercadoPago:WebhookSecret"];
-        if (!string.IsNullOrEmpty(webhookSecret))
+        // Validate webhook signature (HMAC-SHA256) — siempre: sin secreto ya se rechazó arriba
+        var xSignature = Request.Headers["x-signature"].ToString();
+        var xRequestId = Request.Headers["x-request-id"].ToString();
+        var sigDataId = Request.Query["data.id"].ToString();
+
+        if (string.IsNullOrEmpty(xSignature))
+            return Unauthorized(new { message = "Missing signature" });
+
+        // Extract ts and v1 from x-signature header: "ts=...,v1=..."
+        string? ts = null, v1 = null;
+        foreach (var part in xSignature.Split(','))
         {
-            var xSignature = Request.Headers["x-signature"].ToString();
-            var xRequestId = Request.Headers["x-request-id"].ToString();
-            var sigDataId = Request.Query["data.id"].ToString();
-
-            if (string.IsNullOrEmpty(xSignature))
-                return Unauthorized(new { message = "Missing signature" });
-
-            // Extract ts and v1 from x-signature header: "ts=...,v1=..."
-            string? ts = null, v1 = null;
-            foreach (var part in xSignature.Split(','))
+            var kv = part.Trim().Split('=', 2);
+            if (kv.Length == 2)
             {
-                var kv = part.Trim().Split('=', 2);
-                if (kv.Length == 2)
-                {
-                    if (kv[0] == "ts") ts = kv[1];
-                    else if (kv[0] == "v1") v1 = kv[1];
-                }
+                if (kv[0] == "ts") ts = kv[1];
+                else if (kv[0] == "v1") v1 = kv[1];
             }
+        }
 
-            if (ts == null || v1 == null)
-                return Unauthorized(new { message = "Invalid signature format" });
+        if (ts == null || v1 == null)
+            return Unauthorized(new { message = "Invalid signature format" });
 
-            var manifest = $"id:{sigDataId};request-id:{xRequestId};ts:{ts};";
-            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(webhookSecret));
-            var computed = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(manifest))).ToLower();
+        var manifest = $"id:{sigDataId};request-id:{xRequestId};ts:{ts};";
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(webhookSecret));
+        var computed = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(manifest))).ToLower();
 
-            if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(computed),
-                Encoding.UTF8.GetBytes(v1.ToLower())))
-            {
-                Console.WriteLine("[MP Webhook] Firma inválida — posible solicitud falsa");
-                return Unauthorized(new { message = "Invalid signature" });
-            }
+        if (!CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(computed),
+            Encoding.UTF8.GetBytes(v1.ToLower())))
+        {
+            Console.WriteLine("[MP Webhook] Firma inválida — posible solicitud falsa");
+            return Unauthorized(new { message = "Invalid signature" });
         }
 
         // Read query params (MP sends type and data.id)
@@ -302,6 +308,15 @@ public class PaymentsController : ControllerBase
             Console.WriteLine($"[MercadoPago Webhook] Error: {ex.Message}");
             return Ok(); // Always return 200 to prevent MP from retrying excessively
         }
+    }
+
+    // Clave única para los dos endpoints: MercadoPago:AccessToken. La legacy
+    // MP_ACCESS_TOKEN:AccessToken (la que leía antes solo el webhook) queda como
+    // fallback para no romper un despliegue que la tenga cargada.
+    private string? GetMercadoPagoAccessToken()
+    {
+        var accessToken = _configuration["MercadoPago:AccessToken"];
+        return string.IsNullOrEmpty(accessToken) ? _configuration["MP_ACCESS_TOKEN:AccessToken"] : accessToken;
     }
 
     // GET: api/payments/{bookingId}

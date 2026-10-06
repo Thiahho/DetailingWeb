@@ -37,9 +37,9 @@ test.describe("Portal Mis Turnos (búsqueda por email)", () => {
     await expect(cancelCard).toBeVisible();
     await expect(rescheduleCard).toBeVisible();
 
-    // Cancelar: la página usa confirm() nativo del navegador.
-    page.once("dialog", (dialog) => dialog.accept());
+    // Cancelar: la página pide confirmación con el diálogo propio de la app.
     await cancelCard.getByTestId("mis-turnos-cancel-button").click();
+    await page.getByTestId("confirm-dialog-confirm").click();
     await expect(cancelCard.getByText("Cancelado")).toBeVisible();
     await expect(cancelCard.getByTestId("mis-turnos-cancel-button")).toBeDisabled();
 

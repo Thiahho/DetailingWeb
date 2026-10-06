@@ -27,6 +27,8 @@ interface TimeSlot {
   booking?: Booking;
 }
 
+const ITEMS_PER_PAGE = 8;
+
 function isExpired(startDateTime: string) {
   return new Date(startDateTime) < new Date();
 }
@@ -54,11 +56,25 @@ function ProfessionalAgendaContent() {
     loadSlots();
   }, [router]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // El turno resaltado puede no estar en la primera página: saltar a la suya.
+  useEffect(() => {
+    if (loading || !highlightedBookingId) return;
+    const index = slots
+      .filter((s) => !isExpired(s.startDateTime))
+      .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime))
+      .findIndex((s) => s.booking?.id === highlightedBookingId);
+    if (index >= 0) setCurrentPage(Math.floor(index / ITEMS_PER_PAGE) + 1);
+    // Solo al terminar la carga inicial — después el usuario pagina libremente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, highlightedBookingId]);
+
   useEffect(() => {
     if (!loading && highlightedBookingId && highlightedRef.current) {
       highlightedRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [loading, highlightedBookingId]);
+  }, [loading, highlightedBookingId, currentPage]);
 
   const loadSlots = async () => {
     try {
@@ -159,6 +175,11 @@ function ProfessionalAgendaContent() {
     .filter((s) => !isExpired(s.startDateTime))
     .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
 
+  // Clamp: al eliminar el último turno de una página, se vuelve a la anterior.
+  const totalPages = Math.max(1, Math.ceil(upcoming.length / ITEMS_PER_PAGE));
+  const page = Math.min(currentPage, totalPages);
+  const pageSlots = upcoming.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
@@ -236,7 +257,7 @@ function ProfessionalAgendaContent() {
               <p className="text-charcoal/40 text-sm py-8 text-center">No tenés turnos cargados todavía.</p>
             ) : (
               <div className="space-y-2">
-                {upcoming.map((slot) => {
+                {pageSlots.map((slot) => {
                   const isHighlighted = highlightedBookingId != null && slot.booking?.id === highlightedBookingId;
                   return (
                   <div
@@ -302,6 +323,29 @@ function ProfessionalAgendaContent() {
                   </div>
                   );
                 })}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div data-testid="agenda-pagination" className="mt-4 pt-4 border-t border-mauve/10 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page - 1)}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-charcoal/70 hover:text-charcoal hover:bg-porcelain transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  ← Anterior
+                </button>
+                <span className="text-charcoal/50 text-xs">
+                  Página {page} de {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page + 1)}
+                  disabled={page === totalPages}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-charcoal/70 hover:text-charcoal hover:bg-porcelain transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Siguiente →
+                </button>
               </div>
             )}
           </div>

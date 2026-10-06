@@ -7,12 +7,15 @@ import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { VideoPreview, PlatformIcon } from "@/src/components/public/FeaturedContent";
+import { SOCIAL_LABEL, socialPlatform } from "@/src/lib/cloudinaryMedia";
 
 interface ContentVideo {
   id: number;
   title: string;
   videoUrl: string;
   thumbnailUrl: string;
+  linkUrl?: string | null;
   isActive: boolean;
   order: number;
   createdAt: string;
@@ -22,6 +25,7 @@ const emptyForm = {
   title: "",
   videoUrl: "",
   thumbnailUrl: "",
+  linkUrl: "",
   isActive: true,
   order: 0,
 };
@@ -68,11 +72,14 @@ export default function ContenidoAdminPage() {
       title: video.title,
       videoUrl: video.videoUrl,
       thumbnailUrl: video.thumbnailUrl,
+      linkUrl: video.linkUrl ?? "",
       isActive: video.isActive,
       order: video.order,
     });
     setShowForm(true);
   };
+
+  const linkIsInvalid = formData.linkUrl.trim() !== "" && !socialPlatform(formData.linkUrl);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,26 +126,54 @@ export default function ContenidoAdminPage() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-charcoal">Gestión de Contenido</h1>
-            <p className="text-charcoal/50 text-sm">Administrá los videos destacados del home.</p>
+            <p className="text-charcoal/50 text-sm">Videos destacados del sitio: se ve una preview de 5 segundos que lleva a tu posteo de Instagram o TikTok.</p>
           </div>
           <Button onClick={openCreate} variant="primary">
             + Nuevo video
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {videos.map((video) => (
-            <div key={video.id} data-testid="video-card" data-video-title={video.title} className="rounded-xl border border-mauve/10 bg-ivory p-4">
-              <video src={video.videoUrl} className="h-56 w-full rounded-lg object-cover" muted loop autoPlay playsInline />
-              <p className="mt-3 text-sm font-semibold text-charcoal">{video.title}</p>
-              <p className="text-xs text-charcoal/60">Orden: {video.order}</p>
-              <p className="text-xs text-charcoal/60">{video.isActive ? "Activo" : "Inactivo"}</p>
-              <div className="mt-3 flex gap-2">
-                <Button onClick={() => openEdit(video)} data-testid="video-edit-button" variant="secondary" size="sm" className="flex-1">Editar</Button>
-                <Button onClick={() => handleDelete(video.id)} data-testid="video-delete-button" variant="danger" size="sm">Eliminar</Button>
+        {/* Una sola superficie por card: el video va a sangre arriba (sin marco
+            ni redondeo propio) y los datos debajo, en vez de una caja dentro de otra. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+          {videos.map((video) => {
+            const platform = socialPlatform(video.linkUrl);
+            return (
+            <div key={video.id} data-testid="video-card" data-video-title={video.title} className="flex flex-col overflow-hidden rounded-xl border border-mauve/10 bg-ivory">
+              <div className="relative aspect-[9/16] bg-porcelain">
+                <VideoPreview video={video} />
+                <span
+                  className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    video.isActive ? "bg-green-600 text-white" : "bg-charcoal/70 text-white"
+                  }`}
+                >
+                  {video.isActive ? "Activo" : "Inactivo"}
+                </span>
+                {platform ? (
+                  <span
+                    data-testid="video-platform"
+                    className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-charcoal"
+                  >
+                    <PlatformIcon platform={platform} size={11} />
+                    {SOCIAL_LABEL[platform]}
+                  </span>
+                ) : (
+                  <span className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                    Sin link al posteo
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-1 flex-col p-3">
+                <p className="line-clamp-2 text-sm font-semibold text-charcoal">{video.title}</p>
+                <p className="mt-0.5 text-xs text-charcoal/60">Orden: {video.order}</p>
+                <div className="mt-auto flex flex-wrap gap-2 pt-3">
+                  <Button onClick={() => openEdit(video)} data-testid="video-edit-button" variant="secondary" size="sm" className="flex-1">Editar</Button>
+                  <Button onClick={() => handleDelete(video.id)} data-testid="video-delete-button" variant="danger" size="sm" className="flex-1">Eliminar</Button>
+                </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -153,21 +188,32 @@ export default function ContenidoAdminPage() {
             </div>
 
             <div>
-              <label className="text-xs text-charcoal/60">Video URL</label>
+              <label className="text-xs text-charcoal/60">Link del posteo (Instagram o TikTok)</label>
+              <input
+                data-testid="video-form-link"
+                type="url"
+                inputMode="url"
+                className="form-input mt-1"
+                value={formData.linkUrl}
+                onChange={(e) => setFormData((p) => ({ ...p, linkUrl: e.target.value }))}
+                placeholder="https://www.instagram.com/reel/..."
+              />
+              {linkIsInvalid ? (
+                <p className="mt-1 text-xs text-red-600">El link tiene que ser de Instagram o TikTok y empezar con https://</p>
+              ) : (
+                <p className="mt-1 text-xs text-charcoal/40">
+                  Al tocar la preview en el sitio se abre este posteo. Si lo dejás vacío, el video se muestra sin link.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-xs text-charcoal/60">Video</label>
               <CloudinaryUpload
                 value={formData.videoUrl}
                 onChange={(url) => setFormData((p) => ({ ...p, videoUrl: url }))}
                 resourceType="video"
-                hint="Recomendado: 1080×1920 px (vertical, 9:16 — formato reel/story). Se muestra siempre en ese recorte vertical."
-              />
-            </div>
-
-            <div>
-              <label className="text-xs text-charcoal/60">Thumbnail URL (opcional)</label>
-              <CloudinaryUpload
-                value={formData.thumbnailUrl}
-                onChange={(url) => setFormData((p) => ({ ...p, thumbnailUrl: url }))}
-                hint="Misma proporción que el video: 1080×1920 px (vertical, 9:16)."
+                hint="Subí el video completo, el mismo que publicaste: el sitio muestra solo los primeros 5 segundos y arma la portada solo. Recomendado: vertical 9:16."
               />
             </div>
 
@@ -184,7 +230,7 @@ export default function ContenidoAdminPage() {
 
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={closeForm} variant="secondary">Cancelar</Button>
-              <Button type="submit" data-testid="video-form-submit" variant="primary">Guardar</Button>
+              <Button type="submit" data-testid="video-form-submit" variant="primary" disabled={linkIsInvalid}>Guardar</Button>
             </div>
           </form>
         </div>

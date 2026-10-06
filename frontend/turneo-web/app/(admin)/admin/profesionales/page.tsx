@@ -19,6 +19,7 @@ interface Professional {
   id: number;
   firstName: string;
   lastName: string;
+  email?: string | null;
   photoUrl: string;
   calendarColor: string;
   specialty: string | null;
@@ -55,6 +56,7 @@ const defaultSchedule = (): WeeklyScheduleDay[] =>
 const emptyForm = {
   firstName: "",
   lastName: "",
+  email: "",
   photoUrl: "",
   calendarColor: "#7c3aed",
   specialty: "",
@@ -143,6 +145,7 @@ export default function ProfesionalesAdminPage() {
     setFormData({
       firstName: professional.firstName,
       lastName: professional.lastName,
+      email: professional.email ?? "",
       photoUrl: professional.photoUrl,
       calendarColor: professional.calendarColor,
       specialty: professional.specialty ?? "",
@@ -250,6 +253,7 @@ export default function ProfesionalesAdminPage() {
 
     const payload = {
       ...formData,
+      email: formData.email.trim() || null,
       bio: formData.bio.trim() || null,
       yearsOfExperience: formData.yearsOfExperience.trim() ? parseInt(formData.yearsOfExperience, 10) : null,
       skills: skillsInputToJson(skillsInput),
@@ -480,6 +484,24 @@ export default function ProfesionalesAdminPage() {
                 </div>
               </div>
 
+              {/* Email invitado: habilita el auto-registro del profesional */}
+              <div>
+                <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
+                  Email <span className="normal-case tracking-normal text-charcoal/40">(opcional)</span>
+                </label>
+                <input
+                  type="email"
+                  className="form-input mt-1.5"
+                  data-testid="professional-form-email"
+                  value={formData.email}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                  placeholder="juan@gmail.com"
+                />
+                <p className="text-charcoal/40 text-xs mt-1">
+                  Con este correo el profesional puede activar su propia cuenta en /profesional/registro (con Google o con un código que le llega por mail).
+                </p>
+              </div>
+
               {/* Foto */}
               <div>
                 <label className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Foto</label>
@@ -671,7 +693,9 @@ export default function ProfesionalesAdminPage() {
                 <p className="text-charcoal/50 text-xs mb-3">
                   {editingProfessional.accountEmail
                     ? `Ya tiene acceso con ${editingProfessional.accountEmail}. Podés cambiarle la contraseña acá.`
-                    : "Activá el login para que este profesional pueda entrar a su propia agenda en /profesional/login."}
+                    : editingProfessional.email
+                    ? `Invitación pendiente: ${editingProfessional.email} todavía no activó su cuenta en /profesional/registro. También podés crearle el acceso vos acá.`
+                    : "Activá el login para que este profesional pueda entrar a su propia agenda en /profesional/login, o cargale un email arriba para que lo active por su cuenta."}
                 </p>
                 <form onSubmit={handleCreateAccess} className="space-y-3">
                   <div>

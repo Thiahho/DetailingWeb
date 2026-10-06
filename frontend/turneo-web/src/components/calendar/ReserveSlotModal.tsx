@@ -22,6 +22,7 @@ interface ReserveSlot {
   startDateTime: string;
   professionalId?: number | null;
   professionalName?: string | null;
+  serviceSlug?: string | null;
 }
 
 interface Service {
@@ -62,7 +63,8 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
 
-  const [service, setService] = useState("");
+  // Si el turno se creó con un servicio precargado, arranca seleccionado (se puede cambiar).
+  const [service, setService] = useState(slot.serviceSlug ?? "");
   const [professionalId, setProfessionalId] = useState("");
   const [message, setMessage] = useState("");
 
@@ -78,7 +80,11 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
       fetch("/api/reminders/customers").then((r) => r.json()),
     ])
       .then(([svcData, proData, custData]) => {
-        if (Array.isArray(svcData)) setServices(svcData);
+        if (Array.isArray(svcData)) {
+          setServices(svcData);
+          // El servicio precargado puede haberse desactivado después de crear el turno.
+          if (!svcData.some((s: Service) => s.slug === slot.serviceSlug)) setService("");
+        }
         if (Array.isArray(proData)) setProfessionals(proData);
         if (Array.isArray(custData)) setCustomers(custData);
       })

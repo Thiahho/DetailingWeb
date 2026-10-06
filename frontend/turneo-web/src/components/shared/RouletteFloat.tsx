@@ -11,7 +11,7 @@ export default function RouletteFloat() {
       href="/beneficios"
       aria-label="Girá la ruleta de beneficios"
       className="fixed right-6 z-50 flex items-center gap-2 rounded-full bg-blush px-4 py-3 text-sm font-semibold uppercase tracking-wide text-cream shadow-glow transition-transform hover:scale-110"
-      style={{ bottom: "calc(6rem + var(--consent-bar-h, 0px))" }}
+      style={{ bottom: "calc(6rem + var(--consent-bar-h, 0px) + var(--mobile-bar-h, 0px))" }}
     >
       <Gift className="h-5 w-5" strokeWidth={2.25} />
       <span className="hidden sm:inline">¡Girá y ganá!</span>

@@ -3,7 +3,17 @@
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { setLoggedIn, verifySession } from "@/src/lib/auth";
+import Link from "next/link";
 import PasswordInput from "@/src/components/ui/PasswordInput";
+import GoogleSignInButton, { AuthDivider } from "@/src/components/professional/GoogleSignInButton";
+
+// Códigos de ?error= con los que vuelve el flujo de Google (app/api/auth/google/*).
+const SSO_ERRORS: Record<string, string> = {
+  not_invited: "Esa cuenta de Google no está habilitada. Pedile al administrador que cargue tu correo en tu ficha.",
+  google_cancelled: "Cancelaste el ingreso con Google.",
+  google_unavailable: "El ingreso con Google no está disponible en este momento.",
+  google_failed: "No se pudo iniciar sesión con Google. Probá de nuevo.",
+};
 
 export default function ProfessionalLoginPage() {
   const router = useRouter();
@@ -15,6 +25,26 @@ export default function ProfessionalLoginPage() {
   // Verificar con el backend si hay sesión activa
   useEffect(() => {
     const checkSession = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const ssoError = params.get("error");
+      if (ssoError) setError(SSO_ERRORS[ssoError] ?? SSO_ERRORS.google_failed);
+
+      // Vuelta del login con Google: la cookie de sesión ya está puesta, falta
+      // marcar la sesión en el cliente. Va antes de verifySession() porque en una
+      // ventana nueva esa función cierra la sesión en vez de validarla.
+      if (params.get("sso") === "1") {
+        const res = await fetch("/api/auth/me", { credentials: "include" }).catch(() => null);
+        const data = res?.ok ? await res.json() : null;
+        if (data?.role === "Professional") {
+          setLoggedIn(data.email, data.role, data.hasPanelAccess);
+          router.replace("/profesional/agenda");
+          return;
+        }
+        setError(SSO_ERRORS.google_failed);
+        setChecking(false);
+        return;
+      }
+
       const isValid = await verifySession();
       if (isValid) {
         router.push("/profesional/agenda");
@@ -120,6 +150,17 @@ export default function ProfessionalLoginPage() {
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>
         </form>
+
+        <div className="mt-6 space-y-6">
+          <AuthDivider />
+          <GoogleSignInButton />
+          <p className="text-center text-sm text-charcoal/60">
+            ¿Primera vez?{" "}
+            <Link href="/profesional/registro" data-testid="professional-register-link" className="font-medium text-blushdark hover:text-blush transition">
+              Activá tu cuenta
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

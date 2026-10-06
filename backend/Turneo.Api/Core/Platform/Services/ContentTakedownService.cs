@@ -75,6 +75,15 @@ public class ContentTakedownService
         foreach (var config in siteConfigs) config.LogoUrl = string.Empty;
         if (siteConfigs.Count > 0) result.ReferencesRemoved.Add($"Logo removido de {siteConfigs.Count} negocio(s)");
 
+        // LocalPhotos usa un value converter (List<string> <-> jsonb), así que el
+        // Contains no se traduce a SQL: se filtra en memoria. Hay una fila por tenant.
+        var configsWithLocalPhoto = (await _context.SiteConfigs.IgnoreQueryFilters().ToListAsync())
+            .Where(s => s.LocalPhotos.Contains(url)).ToList();
+        foreach (var config in configsWithLocalPhoto)
+            config.LocalPhotos = config.LocalPhotos.Where(u => u != url).ToList();
+        if (configsWithLocalPhoto.Count > 0)
+            result.ReferencesRemoved.Add($"Fotos del local: foto removida de {configsWithLocalPhoto.Count} negocio(s)");
+
         var customers = await _context.CustomerProfiles.IgnoreQueryFilters()
             .Where(c => c.PhotoUrls != null && c.PhotoUrls.Contains(url)).ToListAsync();
         var customersUpdated = 0;

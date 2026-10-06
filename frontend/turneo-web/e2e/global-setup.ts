@@ -250,6 +250,7 @@ export default async function globalSetup() {
     title: videoTitle,
     videoUrl: "https://res.cloudinary.com/demo/video/upload/dog.mp4",
     thumbnailUrl: "",
+    linkUrl: "https://www.instagram.com/reel/e2e-seed/",
     isActive: true,
     order: 0,
   });

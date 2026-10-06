@@ -1,42 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin } from "lucide-react";
-import BookingForm, { type BookingPreselection } from "@/src/components/booking/BookingForms";
+import { Instagram, MapPin, MessageCircle } from "lucide-react";
+import BookingWizard from "@/src/components/booking/BookingWizard";
+import { type BookingPreselection } from "@/src/components/booking/useBookingFlow";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
 import RouletteFloat from "@/src/components/shared/RouletteFloat";
 import ReviewsSection, { type NativeReview, type GoogleReview } from "@/src/components/public/ReviewsSection";
-import GalleryCarousel from "@/src/components/public/GalleryCarousel";
 import AboutSection, { type TeamSlot } from "@/src/components/public/AboutSection";
 import FaqSection from "@/src/components/public/FaqSection";
-import { type SiteConfig, getWhatsAppLink, extractMapEmbedSrc } from "@/src/lib/siteConfig";
+import HeroSection from "@/src/components/public/HeroSection";
+import MobileBookBar from "@/src/components/public/MobileBookBar";
+import Reveal from "@/src/components/public/Reveal";
+import ServicesSection, { type PublicService } from "@/src/components/public/ServicesSection";
+import WorkSection, { type GalleryItem } from "@/src/components/public/WorkSection";
+import { type SiteConfig, getWhatsAppLink } from "@/src/lib/siteConfig";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 import { getCached, setCached } from "@/src/lib/publicDataCache";
 
-interface Service {
-  id: number;
-  title: string;
-  slug: string;
-  price: string;
-  duration: string | null;
-  imageUrl: string;
-  description: string;
-  details: string[];
-  customFieldsSchema?: string;
-}
-
-interface GalleryItem {
-  id: number;
-  title: string;
-  tag: string;
-  imageUrl: string;
-}
+type Service = PublicService;
 
 interface ContentVideo {
   id: number;
   title: string;
   videoUrl: string;
   thumbnailUrl: string;
+  linkUrl?: string | null;
 }
 
 interface Professional {
@@ -75,8 +64,9 @@ export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [visiblePacks, setVisiblePacks] = useState(3);
   const [preselectedService, setPreselectedService] = useState("");
+  const [preselectedServiceKey, setPreselectedServiceKey] = useState(0);
+  const [nextSlotLabel, setNextSlotLabel] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   useModalHotkeys(!!selectedService, { onClose: () => setSelectedService(null) });
   const [contentVideos, setContentVideos] = useState<ContentVideo[]>([]);
@@ -86,7 +76,6 @@ export default function Home() {
   const [slotsByProfessional, setSlotsByProfessional] = useState<Record<number, TeamSlot[]>>({});
   const [preselection, setPreselection] = useState<BookingPreselection | null>(null);
 
-  const packsToShow = services.slice(0, visiblePacks);
 
   useEffect(() => {
     const applyPublicData = (d: Partial<PublicData>) => {
@@ -122,6 +111,8 @@ export default function Home() {
     fetch("/api/timeslots/available", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : []))
       .then((data: PublicSlot[]) => {
+        const list = Array.isArray(data) ? data : [];
+        setNextSlotLabel(list[0]?.label ?? null);
         const grouped: Record<number, TeamSlot[]> = {};
         for (const s of Array.isArray(data) ? data : []) {
           if (!s.professionalId) continue;
@@ -140,16 +131,9 @@ export default function Home() {
     }, 100);
   };
 
-  const reels =
-    contentVideos.length > 0
-      ? contentVideos
-      : [
-          // { id: 1, title: "Video destacado 1", videoUrl: "/video/V1.mp4", thumbnailUrl: "" },
-          // { id: 2, title: "Video destacado 2", videoUrl: "/video/V2.mp4", thumbnailUrl: "" },
-        ];
-
   const handlePresupuestar = (slug: string) => {
     setPreselectedService(slug);
+    setPreselectedServiceKey(Date.now());
     setTimeout(() => {
       document.getElementById("contacto")?.scrollIntoView({ behavior: "smooth" });
     }, 100);
@@ -172,6 +156,35 @@ export default function Home() {
     ? getWhatsAppLink(siteConfig.whatsAppNumber)
     : "#";
 
+  // Fotos reales del negocio para el collage de portada: trabajos y, si hay, el local.
+  const heroImages = Array.from(
+    new Set([gallery[0]?.imageUrl, siteConfig?.localPhotos?.[0], gallery[1]?.imageUrl].filter((u): u is string => !!u))
+  );
+
+  const contactCards = [
+    siteConfig?.whatsAppNumber && {
+      label: "WhatsApp",
+      value: siteConfig.whatsAppNumber,
+      href: waLink,
+      icon: MessageCircle,
+      dark: false,
+    },
+    siteConfig?.instagramUrl && {
+      label: "Instagram",
+      value: siteConfig.instagramHandle || "Ver perfil",
+      href: siteConfig.instagramUrl,
+      icon: Instagram,
+      dark: false,
+    },
+    siteConfig?.location && {
+      label: "Dónde estamos",
+      value: siteConfig.location,
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`,
+      icon: MapPin,
+      dark: true,
+    },
+  ].filter((card): card is Exclude<typeof card, false | "" | undefined | null> => Boolean(card));
+
   return (
     <main className="min-h-screen bg-cream text-charcoal">
       {jsonLd && (
@@ -184,128 +197,20 @@ export default function Home() {
         />
       )}
 
-      {/* HERO */}
-      <div className="hero-grid">
-        <section className="mx-auto grid max-w-6xl gap-12 px-6 pb-16 pt-10 md:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            {siteConfig?.heroBadge && (
-              <span className="badge">{siteConfig.heroBadge}</span>
-            )}
-            {siteConfig?.heroTitle && (
-              <h1 className="text-4xl font-semibold leading-tight tracking-tight text-charcoal md:text-5xl">
-                {siteConfig.heroTitle}
-              </h1>
-            )}
-            {siteConfig?.heroSubtitle && (
-              <p className="text-base text-charcoal/70 md:text-lg">
-                {siteConfig.heroSubtitle}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-3">
-              <a
-                className="rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Reservar por WhatsApp
-              </a>
-              <a
-                className="rounded-full border border-mauve/20 px-6 py-3 text-sm text-charcoal/80 transition hover:border-blush hover:text-charcoal"
-                href="#contacto"
-              >
-                Consulta online
-              </a>
-            </div>
-          </div>
+      <HeroSection
+        siteConfig={siteConfig}
+        serviceTitles={services.slice(0, 6).map((service) => service.title)}
+        images={heroImages}
+        nextSlotLabel={nextSlotLabel}
+        waLink={siteConfig?.whatsAppNumber ? waLink : null}
+      />
 
-          <div className="glass-card space-y-6 p-6">
-            <h3 className="text-2xl font-semibold text-charcoal">
-              {siteConfig?.businessName || "Nuestros servicios"}
-            </h3>
-            <div className="space-y-3 text-sm text-charcoal/70">
-              {(siteConfig?.heroHighlights?.length
-                ? siteConfig.heroHighlights
-                : services.slice(0, 2).map((s) => s.title)
-              ).map((highlight) => (
-                <p key={highlight}>✓ {highlight}</p>
-              ))}
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* SERVICIOS */}
-      <section id="servicios" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="space-y-3">
-            <span className="badge">Servicios</span>
-            <h3 className="text-3xl font-semibold text-charcoal">Servicios disponibles</h3>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          {packsToShow.map((pack) => (
-            <article key={pack.id} data-testid="reservar-service-card" className="glass-card flex h-full flex-col gap-4 p-6">
-              <div className="overflow-hidden rounded-xl border border-mauve/10">
-                <img
-                  alt={pack.title}
-                  className="h-40 w-full object-cover transition-transform duration-500 hover:scale-105"
-                  src={pack.imageUrl}
-                />
-              </div>
-              <h4 className="text-xl font-semibold text-charcoal">{pack.title}</h4>
-              <ul className="space-y-2 text-sm text-charcoal/60 mb-4">
-                {pack.details?.map((detail, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="text-champagne text-xs">✓</span> {detail}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-auto pt-4 border-t border-mauve/10 space-y-2">
-                <span className="text-lg font-semibold text-blushdark block">${pack.price}</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSelectedService(pack)}
-                    className="flex-1 text-center rounded-full border border-mauve/15 px-3 py-2 text-xs uppercase text-charcoal/60 hover:text-charcoal hover:border-mauve/30 transition-all"
-                  >
-                    Ver detalle
-                  </button>
-                  <button
-                    onClick={() => handlePresupuestar(pack.slug)}
-                    className="flex-1 rounded-full bg-blush/10 border border-blush/40 px-3 py-2 text-xs uppercase text-blushdark hover:bg-blush/20 transition-all"
-                  >
-                    Presupuestar
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {visiblePacks < services.length && (
-          <div className="text-center pt-8">
-            <button
-              onClick={() => setVisiblePacks((p) => p + 3)}
-              className="rounded-full border border-mauve/15 bg-white px-8 py-3 text-sm font-medium text-charcoal/70 transition-all hover:border-mauve/30 hover:text-charcoal"
-            >
-              Ver más servicios ({services.length - visiblePacks} restantes)
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* GALERÍA */}
-      {gallery.length > 0 && (
-        <section id="trabajos" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-          <div className="space-y-3">
-            <span className="badge">Galería</span>
-            <h3 className="text-3xl font-semibold text-charcoal">Nuestros Trabajos</h3>
-          </div>
-
-          <GalleryCarousel items={gallery} />
-        </section>
+      {services.length > 0 && (
+        <ServicesSection services={services} onBook={handlePresupuestar} onDetail={setSelectedService} />
       )}
+
+      {/* GALERÍA + CONTENIDO (fotos de trabajos y reels en una sola sección) */}
+      <WorkSection gallery={gallery} videos={contentVideos} profileUrl={siteConfig?.instagramUrl} />
 
       {/* SOBRE NOSOTROS */}
       <AboutSection
@@ -315,139 +220,63 @@ export default function Home() {
         onBook={handleBookWithProfessional}
       />
 
-      {/* REELS */}
-      <section className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-        <div>
-          <span className="badge">Contenido</span>
-          <h3 className="text-3xl font-semibold text-charcoal">Contenido destacado</h3>
-        </div>
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {reels.map((video) => (
-            <div key={video.id} className="glass-card overflow-hidden p-4">
-              <p className="mb-4 text-xs uppercase tracking-[0.2em] text-charcoal/60">
-                Video destacado
-              </p>
-              <div className="flex justify-center bg-porcelain rounded-xl overflow-hidden aspect-[9/16] w-full">
-                <video
-                  src={video.videoUrl}
-                  className="w-full h-full object-cover"
-                  playsInline
-                  preload="metadata"
-                  loop
-                  muted
-                  autoPlay
-                  poster={video.thumbnailUrl || undefined}
-                />
-              </div>
-              <p className="mt-3 text-sm text-charcoal/80">{video.title}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* RESEÑAS */}
       <ReviewsSection nativeReviews={reviews} googleReviews={googleReviews} />
 
       {/* FAQ */}
-      <FaqSection />
+      <FaqSection waLink={siteConfig?.whatsAppNumber ? waLink : null} />
 
-      {/* CONTACTO */}
-      <section
-        id="contacto"
-        className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 py-16 md:grid-cols-[1.1fr_0.9fr]"
-      >
-        <div className="space-y-6">
-          <span className="badge">Contacto directo</span>
-          <h3 className="text-3xl font-semibold text-charcoal">Reservá tu turno en minutos</h3>
-          <p className="text-charcoal/70">
-            Completa el formulario y nos pondremos en contacto para confirmar tu turno.
-          </p>
-          {siteConfig?.whatsAppNumber && (
-            <p className="text-charcoal/70">
-              <strong>
-                <a
-                  href={getWhatsAppLink(siteConfig.whatsAppNumber)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-blushdark transition"
-                >
-                  También podés reservar por WhatsApp
-                </a>
-              </strong>
-            </p>
-          )}
-          {siteConfig?.location && (
-            <div className="glass-card overflow-hidden">
-              <div className="flex flex-wrap items-start justify-between gap-3 p-5 pb-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blush/15 text-blushdark">
-                    <MapPin className="h-4 w-4" strokeWidth={2.25} />
-                  </span>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-semibold uppercase tracking-widest text-blushdark">Ubicación</h4>
-                    <p className="mt-1 text-sm text-charcoal/70">{siteConfig.location}</p>
-                  </div>
-                </div>
-                {/* Botón propio AL LADO del mapa, no encima: el embed gratuito
-                    de Google ("maps?q=...&output=embed") pinta su propio
-                    "chrome" (link "Open in Maps", atajos de teclado, Street
-                    View) en una capa de composición que en Chromium ignora el
-                    z-index de hermanos — no hay forma confiable de taparlo con
-                    CSS. En vez de pelear contra eso, el mapa queda interactivo
-                    normal y este botón, con los colores del sitio, es la
-                    forma clara de abrir la ubicación en la app de Maps. */}
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex shrink-0 items-center gap-1.5 rounded-full bg-blush/15 px-4 py-2 text-xs font-semibold text-blushdark transition hover:bg-blush/25"
-                >
-                  <MapPin className="h-3.5 w-3.5" strokeWidth={2.25} />
-                  Abrir en Maps
-                </a>
-              </div>
-              <div className="group relative mx-5 mb-5 overflow-hidden rounded-xl border border-mauve/10">
-                <iframe
-                  src={extractMapEmbedSrc(siteConfig.mapEmbedUrl, siteConfig.location)}
-                  className="h-48 w-full"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Ubicación en el mapa"
-                />
-                {/* Hover puramente cosmético: el botón del header de arriba ya
-                    cubre la interacción real. Esto es solo un tinte + pill al
-                    pasar el mouse — pointer-events-none para no bloquear el
-                    mapa interactivo de abajo. En Chromium el iframe puede
-                    seguir pintando su propio "chrome" (link "Open in Maps",
-                    etc.) por encima de este tinte en algunos casos — es un
-                    bug de compositing de iframes que no se puede evitar del
-                    todo con CSS, se acepta como costo de este efecto extra. */}
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-charcoal/0 transition-colors duration-300 group-hover:bg-charcoal/40">
-                  <span className="flex translate-y-1 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-charcoal opacity-0 shadow-lg transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                    <MapPin className="h-4 w-4 text-blushdark" strokeWidth={2.25} />
-                    Abrir en Maps
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-          {siteConfig?.instagramUrl && (
-            <p className="text-charcoal/70">
-              Instagram:{" "}
-              <a
-                href={siteConfig.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-blushdark transition"
-              >
-                {siteConfig.instagramHandle || siteConfig.instagramUrl}
-              </a>
-            </p>
-          )}
+      {/* RESERVAR — conserva el id "contacto" al que apuntan el Navbar y los CTA */}
+      <section id="contacto" className="scroll-mt-20 bg-ink py-20 text-cream md:py-28">
+        <div className="mx-auto max-w-6xl space-y-10 px-6 md:space-y-12">
+          <Reveal className="space-y-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-blush">Reservá tu turno</span>
+            <h2 className="text-4xl font-semibold leading-[1.04] tracking-tight md:text-6xl">
+              Cuatro pasos y <span className="accent-serif text-blush">listo.</span>
+            </h2>
+          </Reveal>
+          <BookingWizard
+            preselectedService={preselectedService}
+            preselectedServiceKey={preselectedServiceKey}
+            preselection={preselection}
+          />
         </div>
-        <BookingForm preselectedService={preselectedService} preselection={preselection} />
       </section>
+
+      {/* CONTACTO DIRECTO */}
+      {contactCards.length > 0 && (
+        <section className="mx-auto max-w-6xl space-y-10 px-6 pb-12 pt-20 md:pt-28">
+          <Reveal className="space-y-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-rosewood">Contacto directo</span>
+            <h2 className="text-4xl font-semibold leading-[1.05] tracking-tight text-charcoal md:text-[3.25rem]">
+              Hablemos <span className="accent-serif">cuando quieras</span>
+            </h2>
+          </Reveal>
+          <Reveal stagger className="grid gap-4 md:grid-cols-3 md:gap-5">
+            {contactCards.map(({ label, value, href, icon: Icon, dark }) => (
+              <div key={label}>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group flex min-h-[88px] items-center gap-4 rounded-3xl p-5 transition duration-500 ease-out md:min-h-[220px] md:flex-col md:items-start md:justify-between md:p-7 [@media(hover:hover)]:hover:-translate-y-1.5 [@media(hover:hover)]:hover:shadow-elevated ${
+                    dark ? "bg-ink text-cream" : "bg-ivory text-charcoal"
+                  }`}
+                >
+                  <Icon size={28} strokeWidth={1.8} className={`shrink-0 ${dark ? "text-blush" : "text-rosewood"}`} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1 md:flex-none">
+                    <span className={`text-sm ${dark ? "text-mist" : "text-charcoal/70"}`}>{label}</span>
+                    <span className="break-words text-lg font-semibold tracking-tight md:text-[1.35rem]">{value}</span>
+                  </span>
+                  <span aria-hidden="true" className="transition-transform group-hover:translate-x-1 md:hidden">
+                    →
+                  </span>
+                </a>
+              </div>
+            ))}
+          </Reveal>
+        </section>
+      )}
 
       <footer className="border-t border-mauve/10 px-6 py-10 text-center text-xs text-charcoal/50">
         <p>
@@ -487,6 +316,7 @@ export default function Home() {
         <WhatsAppFloat whatsappNumber={siteConfig.whatsAppNumber.replace(/\D/g, "")} />
       )}
       <RouletteFloat />
+      <MobileBookBar targetId="contacto" />
 
       {/* MODAL DETALLE SERVICIO */}
       {selectedService && (
@@ -528,7 +358,7 @@ export default function Home() {
                 onClick={() => { setSelectedService(null); handlePresupuestar(selectedService.slug); }}
                 className="w-full rounded-full bg-blush px-6 py-3 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
               >
-                Presupuestar
+                Reservar este servicio
               </button>
             </div>
           </div>

@@ -1,0 +1,33 @@
+{
+  "professional": {
+    "email": "valentina@example.com",
+    "password": "AuroraDemo2026",
+    "name": "Valentina Rossi"
+  },
+  "heroProfessionalId": 1,
+  "heroProfessionalName": "Valentina Rossi",
+  "featuredCustomer": {
+    "id": 35,
+    "name": "Micaela Olmos"
+  },
+  "misTurnosEmail": "macarena.perez@example.com",
+  "staffEmail": "recepcion@example.com",
+  "bookingServiceTitle": "Color completo",
+  "bookingProfessionalName": "Valentina Rossi",
+  "counts": {
+    "servicios": 10,
+    "profesionales": 4,
+    "clientes": 562,
+    "turnos": 3136,
+    "reservas": 2889,
+    "movimientosDeCaja": 2276,
+    "insumos": 14,
+    "productos": 7,
+    "resenas": 8,
+    "automatizaciones": 4,
+    "enviosDeAutomatizaciones": 105,
+    "premiosDeRuleta": 6,
+    "girosDeRuleta": 22
+  },
+  "skipped": []
+}

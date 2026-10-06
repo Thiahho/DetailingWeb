@@ -49,6 +49,7 @@ interface TimeSlot {
   booking?: Booking;
   professionalId?: number | null;
   professionalName?: string | null;
+  serviceSlug?: string | null;
 }
 
 interface BookingItemRecord {

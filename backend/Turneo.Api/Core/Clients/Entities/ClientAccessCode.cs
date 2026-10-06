@@ -2,7 +2,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Turneo.Api.Core.Clients;
 
-[Table("ClientAccessCodes")] 
+public static class AccessCodePurposes
+{
+    public const string ClientAccess = "ClientAccess";
+    public const string ProfessionalRegistration = "ProfessionalRegistration";
+}
+
+[Table("ClientAccessCodes")]
 public class ClientAccessCode : ITenantScoped
 {
     public int Id { get; set; }
@@ -13,4 +19,9 @@ public class ClientAccessCode : ITenantScoped
     public DateTime ExpiresAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UsedAt { get; set; }
+    // Para qué sirve el código: un OTP de "Mis turnos" no debe poder usarse para
+    // registrar un profesional, ni al revés. Ver AccessCodePurposes.
+    public string Purpose { get; set; } = AccessCodePurposes.ClientAccess;
+    // Verificaciones fallidas contra este código: al llegar al máximo queda inservible.
+    public int FailedAttempts { get; set; }
 }

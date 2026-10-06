@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Turneo.Api.Infrastructure.Security;
 
 namespace Turneo.Api.Marketing.Roulette;
 
@@ -45,7 +46,7 @@ public class RouletteController : ControllerBase
     {
         try
         {
-            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var ip = ClientIpResolver.GetClientIp(HttpContext);
             var result = await _rouletteService.SpinAsync(request, ip);
             return Ok(result);
         }

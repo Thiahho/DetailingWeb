@@ -1,4 +1,8 @@
-import { ChevronDown } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import Reveal from "@/src/components/public/Reveal";
 
 // Preguntas frecuentes genéricas del flujo de reserva — resuelven objeciones
 // antes de que el cliente llegue al formulario, mismo criterio que el resto
@@ -26,28 +30,73 @@ const FAQS = [
   },
 ];
 
-export default function FaqSection() {
-  return (
-    <section id="preguntas" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-      <div className="space-y-3">
-        <span className="badge">Preguntas frecuentes</span>
-        <h3 className="text-3xl font-semibold text-charcoal">¿Tenés dudas?</h3>
-      </div>
+export default function FaqSection({ waLink }: { waLink?: string | null }) {
+  const [open, setOpen] = useState<number | null>(0);
 
-      <div className="space-y-3">
-        {FAQS.map(({ q, a }) => (
-          <details key={q} className="group glass-card overflow-hidden">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 text-sm font-medium text-charcoal">
-              {q}
-              <ChevronDown
-                size={18}
-                className="shrink-0 text-charcoal/40 transition-transform duration-200 group-open:rotate-180"
-              />
-            </summary>
-            <p className="px-6 pb-5 text-sm leading-relaxed text-charcoal/60">{a}</p>
-          </details>
-        ))}
-      </div>
+  return (
+    <section
+      id="preguntas"
+      className="scroll-mt-20 mx-auto flex max-w-6xl flex-col gap-10 px-6 py-20 md:flex-row md:items-start md:gap-16 md:py-28"
+    >
+      <Reveal className="space-y-4 md:sticky md:top-28 md:flex-1">
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-rosewood">Preguntas frecuentes</span>
+        <h2 className="text-4xl font-semibold leading-[1.05] tracking-tight text-charcoal md:text-[3.25rem]">
+          Antes de <span className="accent-serif">reservar</span>
+        </h2>
+        {waLink && (
+          <>
+            <p className="leading-relaxed text-charcoal/70">¿No encontrás lo que buscás? Escribinos y te respondemos.</p>
+            <a
+              href={waLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex min-h-[48px] items-center gap-2 rounded-full border border-mauve/40 px-6 text-sm font-semibold text-charcoal transition hover:-translate-y-0.5 hover:border-mauve/80"
+            >
+              Preguntar por WhatsApp <span className="transition-transform group-hover:translate-x-1">→</span>
+            </a>
+          </>
+        )}
+      </Reveal>
+
+      <Reveal className="md:flex-[1.5]">
+        {FAQS.map(({ q, a }, i) => {
+          const isOpen = open === i;
+          return (
+            <div key={q} className="border-t border-mauve/30 last:border-b">
+              <h3 className="m-0">
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-${i}`}
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  className="flex min-h-[64px] w-full items-center justify-between gap-5 py-5 text-left text-lg font-semibold tracking-tight text-charcoal md:py-6 md:text-xl"
+                >
+                  {q}
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition duration-500 ease-out ${
+                      isOpen ? "rotate-45 bg-ink text-cream" : "bg-ivory text-charcoal"
+                    }`}
+                  >
+                    <Plus size={16} strokeWidth={2.2} />
+                  </span>
+                </button>
+              </h3>
+              {/* Altura animada con grid 0fr -> 1fr: no hace falta medir el contenido. */}
+              <div
+                id={`faq-${i}`}
+                className={`grid transition-[grid-template-rows] duration-500 ease-out ${
+                  isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <p className="pb-7 pr-2 leading-relaxed text-charcoal/70 md:pr-14">{a}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </Reveal>
     </section>
   );
 }

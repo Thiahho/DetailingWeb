@@ -1,6 +1,8 @@
-import { Wallet, MapPin, Banknote, CreditCard, Landmark } from "lucide-react";
+import { Wallet, Banknote, CreditCard, Landmark } from "lucide-react";
 import { type SiteConfig } from "@/src/lib/siteConfig";
 import TeamCarousel from "@/src/components/public/TeamCarousel";
+import LocalShowcase from "@/src/components/public/LocalShowcase";
+import Reveal from "@/src/components/public/Reveal";
 
 interface Professional {
   id: number;
@@ -51,50 +53,46 @@ const PAYMENT_METHODS = [
 
 export default function AboutSection({ siteConfig, professionals, slotsByProfessional, onBook }: AboutSectionProps) {
   const businessName = siteConfig?.businessName || "Nuestro equipo";
+  // siteConfig puede venir de localStorage (cache de public-data) guardado antes
+  // de que existiera el campo: no asumir que es un array.
+  const localPhotos = Array.isArray(siteConfig?.localPhotos) ? siteConfig.localPhotos : [];
 
   return (
-    <section id="nosotros" className="mx-auto max-w-6xl space-y-10 px-6 py-16">
-      <div className="space-y-3">
-        <span className="badge">Sobre nosotros</span>
-        <h3 className="text-3xl font-semibold text-charcoal">Conocé {businessName}</h3>
-      </div>
-
-      <div className="grid gap-10 md:grid-cols-2">
-        {/* Historia */}
-        <div className="glass-card space-y-3 p-6">
-          <span className="text-xs font-semibold uppercase tracking-widest text-blushdark">01 · Historia</span>
-          <p className="text-sm leading-relaxed text-charcoal/70">
+    <section id="nosotros" className="scroll-mt-20 mx-auto max-w-6xl space-y-16 px-6 py-20 md:space-y-20 md:py-28">
+      <Reveal className="flex flex-col gap-10 md:flex-row md:items-start md:gap-16">
+        <div className="space-y-3 md:flex-[1.3]">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-rosewood">Sobre nosotros</span>
+          <h2 className="text-4xl font-semibold leading-[1.04] tracking-tight text-charcoal md:text-6xl">
+            Un lugar pensado para que quieras <span className="accent-serif text-rosewood">volver.</span>
+          </h2>
+        </div>
+        <div className="space-y-6 md:flex-1 md:pt-2">
+          <p className="text-[17px] leading-relaxed text-charcoal/70">
             {businessName} nació con una idea simple: que cada visita se sienta cuidada, de principio a
             fin. Con el tiempo eso se tradujo en un equipo propio, una agenda pensada para no hacerte
             esperar, y un espacio donde volver es lo más fácil de todo.
           </p>
-        </div>
-
-        {/* Formas de pago */}
-        <div className="glass-card space-y-4 p-6">
-          <span className="text-xs font-semibold uppercase tracking-widest text-blushdark">
-            02 · Formas de pago
-          </span>
-          <div className="grid grid-cols-2 gap-3">
-            {PAYMENT_METHODS.map(({ label, icon: Icon }) => (
-              <div
-                key={label}
-                className="flex items-center gap-2 rounded-xl border border-mauve/10 bg-white px-3 py-2.5 text-sm text-charcoal/70"
-              >
-                <Icon size={16} className="shrink-0 text-champagne" />
-                {label}
-              </div>
-            ))}
+          <div className="space-y-3">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-charcoal/60">Formas de pago</span>
+            <ul className="flex flex-wrap gap-2">
+              {PAYMENT_METHODS.map(({ label, icon: Icon }) => (
+                <li
+                  key={label}
+                  className="flex items-center gap-2 rounded-full border border-mauve/20 bg-ivory px-4 py-2.5 text-sm text-charcoal"
+                >
+                  <Icon size={16} className="shrink-0 text-champagne" />
+                  {label}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </div>
+      </Reveal>
 
       {/* Equipo */}
       {professionals.length > 0 && (
         <div className="space-y-4">
-          <span className="text-xs font-semibold uppercase tracking-widest text-blushdark">
-            03 · Equipo
-          </span>
+          <h3 className="text-2xl font-semibold tracking-tight text-charcoal md:text-[1.7rem]">El equipo</h3>
           <TeamCarousel>
             {professionals.map((pro) => {
               const skills = parseSkills(pro.skills);
@@ -104,7 +102,7 @@ export default function AboutSection({ siteConfig, professionals, slotsByProfess
                 <article
                   key={pro.id}
                   data-testid="team-professional-card"
-                  className="glass-card flex h-full w-full flex-col overflow-hidden"
+                  className="flex h-full w-full flex-col overflow-hidden rounded-[1.75rem] bg-ivory shadow-soft transition duration-500 ease-out [@media(hover:hover)]:hover:shadow-elevated"
                 >
                   <div className="relative h-52 w-full shrink-0">
                     {pro.photoUrl ? (
@@ -186,7 +184,7 @@ export default function AboutSection({ siteConfig, professionals, slotsByProfess
                         type="button"
                         data-testid="team-book-button"
                         onClick={() => onBook?.(pro.id)}
-                        className="w-full rounded-full bg-blush px-5 py-2.5 text-sm font-semibold text-white shadow-glow transition [@media(hover:hover)_and_(pointer:fine)]:hover:scale-[1.02]"
+                        className="min-h-[44px] w-full rounded-full bg-ink px-5 text-sm font-semibold text-cream transition [@media(hover:hover)]:hover:-translate-y-0.5"
                       >
                         {slots.length > 0 ? "Ver más horarios" : `Reservar con ${pro.firstName}`}
                       </button>
@@ -199,26 +197,17 @@ export default function AboutSection({ siteConfig, professionals, slotsByProfess
         </div>
       )}
 
-      {/* Ubicación */}
-      {siteConfig?.location && (
-        <div className="glass-card flex flex-wrap items-center justify-between gap-4 p-6">
-          <div className="flex items-start gap-3">
-            <MapPin size={20} className="mt-0.5 shrink-0 text-champagne" />
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-blushdark">
-                04 · Ubicación
-              </span>
-              <p className="mt-1 text-sm text-charcoal/70">{siteConfig.location}</p>
-            </div>
-          </div>
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full border border-mauve/20 px-5 py-2.5 text-sm text-charcoal/80 transition hover:border-blush hover:text-charcoal"
-          >
-            Cómo llegar →
-          </a>
+      {/* El local: foto y mapa en un mismo escenario, recorrido por pasos */}
+      {(localPhotos.length > 0 || siteConfig?.location) && (
+        <div className="space-y-4">
+          <h3 className="text-2xl font-semibold tracking-tight text-charcoal md:text-[1.7rem]">El local</h3>
+          <LocalShowcase
+            photos={localPhotos}
+            businessName={businessName}
+            location={siteConfig?.location}
+            mapEmbedUrl={siteConfig?.mapEmbedUrl}
+            whatsAppNumber={siteConfig?.whatsAppNumber}
+          />
         </div>
       )}
     </section>

@@ -44,6 +44,7 @@ public class SiteConfigController : ControllerBase
             config.HeroSubtitle,
             config.HeroBadge,
             config.HeroHighlights,
+            config.LocalPhotos,
             config.MetaDescription,
             config.GoogleReviewUrl,
             config.GooglePlaceId,
@@ -75,6 +76,7 @@ public class SiteConfigController : ControllerBase
         config.HeroSubtitle = request.HeroSubtitle;
         config.HeroBadge = request.HeroBadge;
         config.HeroHighlights = request.HeroHighlights ?? new List<string>();
+        config.LocalPhotos = SanitizeLocalPhotos(request.LocalPhotos);
         config.MetaDescription = request.MetaDescription;
         config.GoogleReviewUrl = request.GoogleReviewUrl;
         config.GooglePlaceId = request.GooglePlaceId;
@@ -83,6 +85,18 @@ public class SiteConfigController : ControllerBase
         await _repository.SaveChangesAsync();
         return Ok(config);
     }
+
+    private const int MaxLocalPhotos = 8;
+
+    // Estas URLs terminan en un <img> del sitio público: solo https absolutas
+    // (la CSP ya limita img-src, esto evita guardar basura tipo "javascript:").
+    private static List<string> SanitizeLocalPhotos(List<string>? photos) =>
+        (photos ?? new List<string>())
+            .Select(p => p?.Trim() ?? string.Empty)
+            .Where(p => Uri.TryCreate(p, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+            .Distinct()
+            .Take(MaxLocalPhotos)
+            .ToList();
 }
 
 public record SiteConfigRequest(
@@ -101,5 +115,6 @@ public record SiteConfigRequest(
     string MetaDescription,
     string? GoogleReviewUrl,
     List<string>? HeroHighlights = null,
-    string? GooglePlaceId = null
+    string? GooglePlaceId = null,
+    List<string>? LocalPhotos = null
 );

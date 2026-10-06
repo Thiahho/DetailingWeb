@@ -27,7 +27,11 @@ const emptyForm = {
   heroBadge: "",
   heroHighlights: "",
   metaDescription: "",
+  localPhotos: [] as string[],
 };
+
+// Mismo tope que aplica el backend (SiteConfigController.MaxLocalPhotos).
+const MAX_LOCAL_PHOTOS = 8;
 
 export default function ConfiguracionPage() {
   const router = useRouter();
@@ -71,6 +75,7 @@ export default function ConfiguracionPage() {
               heroBadge: data.heroBadge || "",
               heroHighlights: Array.isArray(data.heroHighlights) ? data.heroHighlights.join("\n") : "",
               metaDescription: data.metaDescription || "",
+              localPhotos: Array.isArray(data.localPhotos) ? data.localPhotos : [],
             });
           }
         }
@@ -121,7 +126,20 @@ export default function ConfiguracionPage() {
     }
   };
 
-  const mapPreviewSrc = extractMapEmbedSrc(formData.mapEmbedUrl, formData.location);
+  const moveLocalPhoto = (from: number, to: number) => {
+    setFormData((prev) => {
+      if (to < 0 || to >= prev.localPhotos.length) return prev;
+      const next = [...prev.localPhotos];
+      [next[from], next[to]] = [next[to], next[from]];
+      return { ...prev, localPhotos: next };
+    });
+  };
+
+  const removeLocalPhoto = (index: number) => {
+    setFormData((prev) => ({ ...prev, localPhotos: prev.localPhotos.filter((_, i) => i !== index) }));
+  };
+
+  const mapPreviewSrc =extractMapEmbedSrc(formData.mapEmbedUrl, formData.location);
 
   if (loading) {
     return (
@@ -226,6 +244,74 @@ export default function ConfiguracionPage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Fotos del local */}
+          <div className="bg-ivory border border-mauve/5 rounded-2xl p-5 md:p-6 space-y-4">
+            <div>
+              <h2 className="text-charcoal font-semibold text-sm uppercase tracking-wider">Fotos del local</h2>
+              <p className="text-charcoal/40 text-xs mt-1">
+                Hasta {MAX_LOCAL_PHOTOS} fotos. Recomendado: horizontal 4:3, 1600×1200 px. Se muestran en "Sobre
+                nosotros" junto a la ubicación, en este orden.
+              </p>
+            </div>
+
+            {formData.localPhotos.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {formData.localPhotos.map((url, index) => (
+                  <div
+                    key={url}
+                    data-testid="config-local-photo"
+                    className="overflow-hidden rounded-xl border border-mauve/10 bg-white"
+                  >
+                    <img src={url} alt={`Foto ${index + 1} del local`} className="aspect-[4/3] w-full object-cover" />
+                    <div className="flex items-center justify-between gap-1 p-2">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveLocalPhoto(index, index - 1)}
+                          disabled={index === 0}
+                          aria-label="Mover antes"
+                          className="h-7 w-7 rounded-lg border border-mauve/15 text-charcoal/60 transition hover:text-charcoal disabled:opacity-30"
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveLocalPhoto(index, index + 1)}
+                          disabled={index === formData.localPhotos.length - 1}
+                          aria-label="Mover después"
+                          className="h-7 w-7 rounded-lg border border-mauve/15 text-charcoal/60 transition hover:text-charcoal disabled:opacity-30"
+                        >
+                          →
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        data-testid="config-local-photo-remove"
+                        onClick={() => removeLocalPhoto(index)}
+                        className="text-xs font-medium text-red-600 hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {formData.localPhotos.length < MAX_LOCAL_PHOTOS && (
+              <CloudinaryUpload
+                value=""
+                onChange={(url) =>
+                  setFormData((prev) =>
+                    !url || prev.localPhotos.includes(url) || prev.localPhotos.length >= MAX_LOCAL_PHOTOS
+                      ? prev
+                      : { ...prev, localPhotos: [...prev.localPhotos, url] }
+                  )
+                }
+              />
+            )}
           </div>
 
           {/* Redes */}

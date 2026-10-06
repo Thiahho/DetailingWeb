@@ -10,6 +10,9 @@ public class Professional : ITenantScoped
     public Tenant? Tenant { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    // Email invitado (en minúsculas): solo este correo puede auto-registrarse como
+    // este profesional, por Google o por código (ver AuthService). Null = sin invitación.
+    public string? Email { get; set; }
     public string PhotoUrl { get; set; } = string.Empty;
     public string CalendarColor { get; set; } = "#7c3aed";
     public string? Specialty { get; set; }

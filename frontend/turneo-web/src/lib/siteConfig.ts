@@ -15,6 +15,8 @@ export interface SiteConfig {
   heroSubtitle: string;
   heroBadge: string;
   heroHighlights: string[];
+  // Fotos del local para el bloque "El local" de "Sobre nosotros".
+  localPhotos: string[];
   metaDescription: string;
   // Viaja solo en la respuesta cruda de GET /api/siteconfig (no pasa por
   // getSiteConfig() de abajo, que solo whitelistea los campos editables del
@@ -37,6 +39,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   heroSubtitle: "",
   heroBadge: "",
   heroHighlights: [],
+  localPhotos: [],
   metaDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION || "",
 };
 
@@ -94,6 +97,9 @@ function buildConfig(data: Record<string, unknown>): SiteConfig {
     heroHighlights: Array.isArray(data.heroHighlights)
       ? (data.heroHighlights as string[])
       : DEFAULT_SITE_CONFIG.heroHighlights,
+    localPhotos: Array.isArray(data.localPhotos)
+      ? (data.localPhotos as string[])
+      : DEFAULT_SITE_CONFIG.localPhotos,
     metaDescription: (data.metaDescription as string) || DEFAULT_SITE_CONFIG.metaDescription,
   };
 }

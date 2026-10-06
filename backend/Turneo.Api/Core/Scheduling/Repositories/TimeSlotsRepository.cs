@@ -16,6 +16,7 @@ public class TimeSlotsRepository : ITimeSlotsRepository
             .Where(t => t.IsAvailable && !t.IsBlocked && t.StartDateTime > after)
             .Where(t => professionalId == null || t.ProfessionalId == professionalId)
             .Include(t => t.Professional)
+            .Include(t => t.Service)
             .OrderBy(t => t.StartDateTime)
             .ToListAsync();
 
@@ -29,6 +30,7 @@ public class TimeSlotsRepository : ITimeSlotsRepository
     public Task<List<TimeSlot>> GetAllWithBookingsAsync() =>
         _context.TimeSlots
             .Include(t => t.Professional)
+            .Include(t => t.Service)
             .Include(t => t.Bookings)
                 .ThenInclude(b => b.Professional)
             .OrderBy(t => t.StartDateTime)
@@ -36,6 +38,9 @@ public class TimeSlotsRepository : ITimeSlotsRepository
 
     public Task<bool> ProfessionalIsActiveAsync(int professionalId) =>
         _context.Professionals.AnyAsync(p => p.Id == professionalId && p.IsActive);
+
+    public Task<bool> ServiceExistsAsync(int serviceId) =>
+        _context.Services.AnyAsync(s => s.Id == serviceId);
 
     public Task<bool> AnyActiveProfessionalExistsAsync() =>
         _context.Professionals.AnyAsync(p => p.IsActive);

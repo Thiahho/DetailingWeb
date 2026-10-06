@@ -5,9 +5,10 @@ import ProfessionalSidebar from "@/src/components/dashboard/ProfessionalSidebar"
 
 export default function ProfessionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLogin = pathname === "/profesional/login";
+  // Pantallas sin sesión (login y alta): sin sidebar.
+  const isPublic = pathname === "/profesional/login" || pathname === "/profesional/registro";
 
-  if (isLogin) return <>{children}</>;
+  if (isPublic) return <>{children}</>;
 
   return (
     <div className="flex min-h-screen bg-cream">

@@ -21,9 +21,31 @@ export default {
         warmgray: "#8A7A7E",
         // Texto principal — marrón muy oscuro, no negro puro
         charcoal: "#2E2328",
+        // Rediseño de /reservar: secciones oscuras (ciruela casi negro) que
+        // alternan con las crema. mist = texto secundario sobre ink;
+        // rosewood = acento de texto sobre fondos claros (blush no llega a
+        // contraste AA como texto chico).
+        ink: "#2A2025",
+        inksoft: "#33272D",
+        mist: "#CDBFC4",
+        rosewood: "#8F4C5D",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        // Solo como acento itálico en títulos (ver .accent-serif en globals.css)
+        serif: ["var(--font-serif)", "ui-serif", "Georgia", "serif"],
+      },
+      keyframes: {
+        marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
+        floaty: { "0%, 100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-14px)" } },
+        rise: { from: { opacity: "0", transform: "translateY(28px)" }, to: { opacity: "1", transform: "none" } },
+        pane: { from: { opacity: "0", transform: "translateX(18px)" }, to: { opacity: "1", transform: "none" } },
+      },
+      animation: {
+        marquee: "marquee 46s linear infinite",
+        floaty: "floaty 7s ease-in-out infinite",
+        rise: "rise .9s cubic-bezier(.2,.7,.2,1) both",
+        pane: "pane .5s cubic-bezier(.2,.7,.2,1) both",
       },
       boxShadow: {
         glow: "0 0 40px rgba(214, 154, 166, 0.25)",

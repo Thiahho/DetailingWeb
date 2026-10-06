@@ -27,10 +27,14 @@ test.describe("Admin: Contenido (videos)", () => {
     const updatedTitle = `${seed.videoTitle} editado`;
     await card.getByTestId("video-edit-button").click();
     await page.getByTestId("video-form-title").fill(updatedTitle);
+    // El link sembrado (Instagram) viene cargado; se cambia por uno de TikTok.
+    await expect(page.getByTestId("video-form-link")).toHaveValue("https://www.instagram.com/reel/e2e-seed/");
+    await page.getByTestId("video-form-link").fill("https://www.tiktok.com/@e2e/video/123");
     await page.getByTestId("video-form-submit").click();
 
     const updatedCard = page.locator(`[data-testid="video-card"][data-video-title="${updatedTitle}"]`);
     await expect(updatedCard).toBeVisible();
+    await expect(updatedCard.getByTestId("video-platform")).toHaveText("TikTok");
 
     // Sin diálogo de confirmación nativo acá (a diferencia de otros CRUD admin).
     await updatedCard.getByTestId("video-delete-button").click();

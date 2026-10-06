@@ -17,22 +17,28 @@ test.describe("Flujo público de reserva", () => {
     await seedConsent(page);
     await page.goto("/reservar");
 
-    // Elegir el servicio sembrado en global-setup
+    // La reserva es un asistente de cuatro pasos (BookingWizard).
+    // 1 · Servicio: el sembrado en global-setup
     await page
       .locator('[data-testid="booking-service-option"]')
       .filter({ hasText: seed.serviceTitle })
       .click();
+    await page.getByTestId("booking-next").click();
 
-    // Datos del cliente
+    // 2 · Profesional: se deja "sin preferencia"
+    await page.getByTestId("booking-next").click();
+
+    // 3 · Día y hora: el primer turno disponible
+    const slotOptions = page.getByTestId("booking-slot-option");
+    await expect(slotOptions.first()).toBeVisible();
+    await slotOptions.first().click();
+    await page.getByTestId("booking-next").click();
+
+    // 4 · Datos del cliente
     await page.getByTestId("booking-name-input").fill("Cliente E2E");
     await page.getByTestId("booking-whatsapp-input").fill("+5491100000000");
     const email = `e2e-${Date.now()}@example.com`;
     await page.getByTestId("booking-email-input").fill(email);
-
-    // Elegir el primer turno disponible
-    const slotOptions = page.getByTestId("booking-slot-option");
-    await expect(slotOptions.first()).toBeVisible();
-    await slotOptions.first().click();
 
     // Aceptar Términos y Condiciones (checkbox obligatorio, deshabilita el submit si no está tildado)
     await page.getByTestId("booking-accept-terms").check();

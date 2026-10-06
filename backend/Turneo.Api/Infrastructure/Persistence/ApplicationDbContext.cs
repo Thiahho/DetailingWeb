@@ -294,6 +294,11 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(t => t.ProfessionalId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(t => t.Service)
+                .WithMany()
+                .HasForeignKey(t => t.ServiceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });
 
@@ -331,6 +336,8 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => e.Email);
             entity.HasIndex(e => e.ExpiresAt);
+            // Default en la base: las filas previas a la columna pasan a ser códigos de cliente.
+            entity.Property(e => e.Purpose).HasMaxLength(40).HasDefaultValue(AccessCodePurposes.ClientAccess);
 
             entity.HasOne(e => e.Tenant)
                 .WithMany()
@@ -431,6 +438,10 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasIndex(e => e.IsActive);
             entity.HasIndex(e => e.Order);
+            // Único por tenant; Postgres trata NULL como distinto de NULL, así que
+            // las fichas sin email invitado no chocan entre sí.
+            entity.HasIndex(e => new { e.TenantId, e.Email }).IsUnique();
+            entity.Property(e => e.Email).HasMaxLength(256);
             entity.Property(e => e.Commission).HasColumnType("decimal(5,2)");
             entity.Property(e => e.Schedule).HasColumnType("jsonb");
 
@@ -611,6 +622,13 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<SiteConfig>(entity =>
         {
             entity.Property(e => e.HeroHighlights)
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>()
+                );
+
+            entity.Property(e => e.LocalPhotos)
                 .HasColumnType("jsonb")
                 .HasConversion(
                     v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),

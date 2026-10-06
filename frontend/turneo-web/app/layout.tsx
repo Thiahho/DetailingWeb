@@ -2,11 +2,20 @@
 import "./globals.css";
 import SiteChrome from "@/src/components/shared/SiteChrome";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
 
 const sans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+// Acento itálico de los títulos del sitio público (clase .accent-serif).
+const serif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: "italic",
+  variable: "--font-serif",
   display: "swap",
 });
 
@@ -70,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`scroll-smooth ${sans.variable}`}>
+    <html lang="es" className={`scroll-smooth ${sans.variable} ${serif.variable}`}>
       <body className="bg-cream font-sans antialiased text-charcoal">
         <SiteChrome>{children}</SiteChrome>
       </body>

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Turneo.Api.Infrastructure.Security;
 
 // Evita que el host arranque un FileSystemWatcher sobre appsettings.json: en contenedores
 // con inotify limitado (p. ej. Render) esto tira IOException y mata el proceso antes de arrancar.
@@ -74,6 +75,7 @@ builder.Services.AddControllers();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<TimeSlotGeneratorService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddScoped<PlatformAuthService>();
 builder.Services.AddHttpClient<NotificationTemplateService>();
 builder.Services.AddScoped<NotificationService>();
@@ -141,6 +143,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Rate limiting: solo en los endpoints públicos/anónimos identificados en la
 // auditoría (login, OTP, alta de reservas) — no aplica un límite global para
 // no afectar al panel admin autenticado.
+// Todas las políticas particionan por la IP del visitante (ver ClientIpResolver:
+// la que informa el proxy de Next.js si se autentica con Proxy:SharedSecret, o
+// RemoteIpAddress en cualquier otro caso).
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -155,7 +160,7 @@ builder.Services.AddRateLimiter(options =>
     // Login, registro y flujo de acceso/OTP del cliente: objetivo de fuerza bruta.
     options.AddPolicy("auth", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
@@ -166,7 +171,7 @@ builder.Services.AddRateLimiter(options =>
     // Creación/cancelación/reprogramación de turnos y búsqueda por email: público, anónimo.
     options.AddPolicy("public-booking", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 20,
@@ -178,7 +183,7 @@ builder.Services.AddRateLimiter(options =>
     // login, blanco fácil de scripts que giren en loop para juntar códigos.
     options.AddPolicy("roulette", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,
@@ -190,7 +195,7 @@ builder.Services.AddRateLimiter(options =>
     // que "roulette" — endpoint público sin login, blanco fácil de spam/bots.
     options.AddPolicy("review-submit", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,
@@ -205,7 +210,7 @@ builder.Services.AddRateLimiter(options =>
     // notificaciones de pago.
     options.AddPolicy("payments-webhook", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 60,
@@ -219,7 +224,7 @@ builder.Services.AddRateLimiter(options =>
     // generación masiva de eventos (docs/NFC.md sección 11).
     options.AddPolicy("smart-tag", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 30,
@@ -235,7 +240,7 @@ builder.Services.AddRateLimiter(options =>
     // scrollear la galería).
     options.AddPolicy("public-read", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 60,

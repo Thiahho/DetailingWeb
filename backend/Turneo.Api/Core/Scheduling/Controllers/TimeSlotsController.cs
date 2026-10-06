@@ -46,7 +46,10 @@ public class TimeSlotsController : ControllerBase
             professionalId = s.ProfessionalId,
             professionalName = s.Professional != null
                 ? s.Professional.FirstName + " " + s.Professional.LastName
-                : null
+                : null,
+            serviceId = s.ServiceId,
+            serviceTitle = s.Service?.Title,
+            serviceSlug = s.Service?.Slug
         }));
     }
 
@@ -106,6 +109,9 @@ public class TimeSlotsController : ControllerBase
             professionalName = s.Professional != null
                 ? s.Professional.FirstName + " " + s.Professional.LastName
                 : null,
+            serviceId = s.ServiceId,
+            serviceTitle = s.Service?.Title,
+            serviceSlug = s.Service?.Slug,
             // Info de la reserva si existe
             booking = s.Bookings
                 .Where(b => b.Status != BookingStatus.Cancelled)
@@ -168,6 +174,11 @@ public class TimeSlotsController : ControllerBase
             }
         }
 
+        if (request.ServiceId.HasValue && !await _repository.ServiceExistsAsync(request.ServiceId.Value))
+        {
+            return BadRequest(new { message = "El servicio seleccionado no existe" });
+        }
+
         var exists = await _repository.SlotExistsAsync(request.StartDateTime, professionalId);
 
         if (exists)
@@ -181,7 +192,8 @@ public class TimeSlotsController : ControllerBase
             EndDateTime = request.EndDateTime,
             IsAvailable = true,
             MaxBookings = 1,
-            ProfessionalId = professionalId
+            ProfessionalId = professionalId,
+            ServiceId = request.ServiceId
         };
 
         _repository.Add(slot);
@@ -196,7 +208,8 @@ public class TimeSlotsController : ControllerBase
                 id = slot.Id,
                 startDateTime = slot.StartDateTime,
                 endDateTime = slot.EndDateTime,
-                professionalId = slot.ProfessionalId
+                professionalId = slot.ProfessionalId,
+                serviceId = slot.ServiceId
             }
         });
     }
@@ -402,4 +415,5 @@ public class CreateTimeSlotRequest
     public DateTime StartDateTime { get; set; }
     public DateTime EndDateTime { get; set; }
     public int? ProfessionalId { get; set; }
+    public int? ServiceId { get; set; }
 }

@@ -103,4 +103,5 @@ Construir una única plataforma capaz de operar bajo tres modelos — **SaaS**, 
 | [docs/API.md](docs/API.md) | Patrón de proxy del frontend, grupos de endpoints |
 | [docs/Roadmap.md](docs/Roadmap.md) | Estado del proyecto (implementado / en desarrollo / roadmap), historial de fases |
 | [docs/adr/](docs/adr/) | Decisiones de arquitectura (Core/Modules, Multi-tenancy, TenantId, Feature flags, Modelos comerciales) |
-| [docs/auditoria_0109.md](docs/auditoria_0109.md) | Auditoría vigente: inventario, seguridad, estado del modelo comercial y del segmento de mercado |
+| [docs/auditoria_0510.md](docs/auditoria_0510.md) | Auditoría vigente (05/10): inventario, seguridad, correcciones aplicadas y pendientes por prioridad |
+| [docs/auditoria_0109.md](docs/auditoria_0109.md) | Auditoría anterior (01/09): sigue vigente para modelo comercial y segmento de mercado |
