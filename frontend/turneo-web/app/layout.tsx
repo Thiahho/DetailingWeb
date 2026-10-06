@@ -2,21 +2,36 @@
 import "./globals.css";
 import SiteChrome from "@/src/components/shared/SiteChrome";
 import type { Metadata } from "next";
-import { Instrument_Serif, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 
-const sans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+// Las fuentes van como archivos dentro del repo (app/fonts/) y no por
+// next/font/google. Con Google, el nombre de clase que genera Next sale de la
+// hoja de estilos que Google devuelve en el momento del build: en un deploy de
+// Vercel con caché de build, el HTML quedó con un nombre viejo y el CSS con el
+// nuevo, --font-sans quedó vacía y todo el sitio cayó a Times New Roman. Con
+// el archivo local el nombre depende solo de lo que está commiteado.
+//
+// Son los subconjuntos "latin" de Google Fonts (cubren español y el resto de
+// Europa occidental), ambas con licencia SIL Open Font License.
+
+// Plus Jakarta Sans, variable (pesos 200 a 800).
+const sans = localFont({
+  src: "./fonts/PlusJakartaSans-latin.woff2",
+  weight: "200 800",
+  style: "normal",
   variable: "--font-sans",
   display: "swap",
+  adjustFontFallback: "Arial",
 });
 
-// Acento itálico de los títulos del sitio público (clase .accent-serif).
-const serif = Instrument_Serif({
-  subsets: ["latin"],
+// Instrument Serif itálica: acento de los títulos del sitio público (clase .accent-serif).
+const serif = localFont({
+  src: "./fonts/InstrumentSerif-Italic-latin.woff2",
   weight: "400",
   style: "italic",
   variable: "--font-serif",
   display: "swap",
+  adjustFontFallback: "Times New Roman",
 });
 
 const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo";
