@@ -28,7 +28,20 @@ export async function GET(
       ...(tenantSlug ? { cache: "no-store" as const } : {}),
     });
 
-    const data = await response.json();
+    // El rate limiter del backend responde 429 con texto plano: parsearlo
+    // como JSON tiraba al catch y el cliente veía un 500 "Error de conexión".
+    const data = await response.json().catch(() => null);
+    if (data === null) {
+      return NextResponse.json(
+        {
+          message:
+            response.status === 429
+              ? "Demasiadas solicitudes. Intentá de nuevo en un minuto."
+              : "Error de conexión con el servidor",
+        },
+        { status: response.ok ? 502 : response.status }
+      );
+    }
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     return NextResponse.json(

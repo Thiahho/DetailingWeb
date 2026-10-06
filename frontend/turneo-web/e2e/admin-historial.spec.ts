@@ -53,8 +53,13 @@ test.describe("Admin: Historial de reservas", () => {
     const modal = page.getByTestId("historial-detail-modal");
     await expect(modal).toBeVisible();
 
-    // Servicio (precio manual: Service.Price es texto libre, no numérico)
-    await modal.getByTestId("historial-item-select").selectOption({ label: seed.serviceTitle });
+    // Servicio (precio manual: Service.Price es texto libre, no numérico).
+    // La opción se muestra como "Título — precio", así que se ubica por el
+    // título y se selecciona por value en vez de por label exacto.
+    const itemSelect = modal.getByTestId("historial-item-select");
+    const serviceOption = itemSelect.locator("option", { hasText: seed.serviceTitle });
+    await expect(serviceOption).toBeAttached();
+    await itemSelect.selectOption((await serviceOption.getAttribute("value")) ?? "");
     await modal.getByTestId("historial-item-quantity").fill("2");
     await modal.getByTestId("historial-item-price").fill("5000");
     await modal.getByTestId("historial-item-add").click();

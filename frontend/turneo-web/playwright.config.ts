@@ -36,7 +36,13 @@ export default defineConfig({
       url: "http://localhost:5048/api/services",
       timeout: 120_000,
       reuseExistingServer: false,
-      env: { ASPNETCORE_ENVIRONMENT: "Testing" },
+      env: {
+        ASPNETCORE_ENVIRONMENT: "Testing",
+        // Toda la suite le pega al backend desde la misma IP (el proxy de
+        // Next.js local): con el límite real de "public-read" (60/min) los
+        // GET públicos empiezan a devolver 429 a mitad de la corrida.
+        RateLimiting__PublicReadPermitLimit: "2000",
+      },
     },
     {
       command: "npm run dev",

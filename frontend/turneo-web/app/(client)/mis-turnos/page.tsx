@@ -181,8 +181,12 @@ export default function MisTurnosPage() {
     try {
       const res = await fetch("/api/timeslots/available");
       const data = await res.json();
-      setAvailableSlots(Array.isArray(data) ? data : []);
+      // Un 429/500 del proxy llega como { message } — sin este chequeo se
+      // mostraba como "No hay horarios disponibles", que es falso.
+      if (!res.ok || !Array.isArray(data)) throw new Error("slots unavailable");
+      setAvailableSlots(data);
     } catch {
+      setAvailableSlots([]);
       setRescheduleError("No se pudieron cargar los horarios disponibles");
     } finally {
       setLoadingSlots(false);
@@ -601,7 +605,7 @@ export default function MisTurnosPage() {
 
             {loadingSlots && <p className="py-8 text-center text-sm text-mist">Cargando horarios...</p>}
 
-            {!loadingSlots && !activeDay && (
+            {!loadingSlots && !activeDay && !rescheduleError && (
               <p className="py-8 text-center text-sm text-mist">No hay horarios disponibles por ahora.</p>
             )}
 

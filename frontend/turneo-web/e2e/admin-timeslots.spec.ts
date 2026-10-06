@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { ADMIN_STORAGE_STATE } from "./global-setup";
+import { pickSlotFormDate } from "./slotForm";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,7 +27,7 @@ test.describe("Admin: gestión de Turnos", () => {
     future.setDate(future.getDate() + 40);
     const dateValue = future.toISOString().slice(0, 10);
 
-    await page.getByTestId("slot-form-date").fill(dateValue);
+    await pickSlotFormDate(page, dateValue);
     await page.getByTestId("slot-form-hour").fill("11");
     await page.getByTestId("slot-form-minute").fill("00");
     await page
@@ -47,8 +48,8 @@ test.describe("Admin: gestión de Turnos", () => {
     await expect(slot).toBeVisible();
     await expect(slot.getByText("HABILITADO")).toBeVisible();
 
-    page.once("dialog", (dialog) => dialog.accept());
     await slot.getByTestId("slot-delete-button").click();
+    await page.getByTestId("confirm-dialog-confirm").click();
     await expect(page.getByText("Turno Eliminado")).toBeVisible();
   });
 });

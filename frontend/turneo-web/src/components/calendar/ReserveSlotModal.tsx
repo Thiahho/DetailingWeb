@@ -83,7 +83,12 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
         if (Array.isArray(svcData)) {
           setServices(svcData);
           // El servicio precargado puede haberse desactivado después de crear el turno.
-          if (!svcData.some((s: Service) => s.slug === slot.serviceSlug)) setService("");
+          // Solo se limpia si sigue seleccionado ese mismo: en dev (StrictMode) este
+          // efecto corre dos veces y el segundo fetch puede resolver con el formulario
+          // ya visible, pisando el servicio que el usuario acaba de elegir.
+          if (slot.serviceSlug && !svcData.some((s: Service) => s.slug === slot.serviceSlug)) {
+            setService((current) => (current === slot.serviceSlug ? "" : current));
+          }
         }
         if (Array.isArray(proData)) setProfessionals(proData);
         if (Array.isArray(custData)) setCustomers(custData);

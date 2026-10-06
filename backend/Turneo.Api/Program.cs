@@ -238,12 +238,16 @@ builder.Services.AddRateLimiter(options =>
     // "public-booking" porque un visitante real puede disparar varias de
     // estas por segundo solo navegando la página (cambiar de profesional,
     // scrollear la galería).
+    // Configurable solo para la suite de e2e (ver playwright.config.ts): ahí
+    // todos los workers salen por el mismo proxy de Next.js sin
+    // Proxy:SharedSecret, comparten una única IP y agotan los 60/min.
+    var publicReadPermitLimit = builder.Configuration.GetValue("RateLimiting:PublicReadPermitLimit", 60);
     options.AddPolicy("public-read", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 60,
+                PermitLimit = publicReadPermitLimit,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));

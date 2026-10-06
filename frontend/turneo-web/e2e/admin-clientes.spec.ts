@@ -74,14 +74,14 @@ test.describe("Admin: Clientes y avisos", () => {
     // El turno reservado junto con el aviso aparece en el historial del cliente
     await expect(page.getByTestId("customer-history-item").first()).toContainText(seed.serviceTitle);
 
-    // Cancelar el aviso (confirm() nativo del navegador)
-    page.once("dialog", (dialog) => dialog.accept());
+    // Cancelar el aviso (ConfirmDialog propio de la app)
     await reminderItem.getByTestId("reminder-cancel-button").click();
+    await page.getByTestId("confirm-dialog-confirm").click();
     await expect(reminderItem.getByText("Cancelado")).toBeVisible();
 
-    // Borrar el cliente (confirm() nativo del navegador)
-    page.once("dialog", (dialog) => dialog.accept());
+    // Borrar el cliente (ConfirmDialog propio de la app)
     await page.getByTestId("customer-delete-button").click();
+    await page.getByTestId("confirm-dialog-confirm").click();
     await expect(
       page.locator(`[data-testid="customer-list-item"][data-customer-name="${customerName}"]`)
     ).toHaveCount(0);

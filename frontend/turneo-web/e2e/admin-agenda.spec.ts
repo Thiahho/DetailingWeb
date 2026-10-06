@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { ADMIN_STORAGE_STATE } from "./global-setup";
+import { pickSlotFormDate } from "./slotForm";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -39,7 +40,7 @@ test.describe("Admin: Agenda semanal (multi-profesional)", () => {
     await page.goto("/admin/turnos");
 
     const createSlot = async (hour: string) => {
-      await page.getByTestId("slot-form-date").fill(dateValue);
+      await pickSlotFormDate(page, dateValue);
       await page.getByTestId("slot-form-hour").fill(hour);
       await page.getByTestId("slot-form-minute").fill("00");
       await page.getByTestId("slot-form-professional").getByLabel(seed.professionalFullName).check();
@@ -101,6 +102,11 @@ test.describe("Admin: Agenda semanal (multi-profesional)", () => {
       // --- Arrastrar el turno reservado (09:00) al turno libre (14:00) ---
       const availableB = page.locator(`[data-testid="agenda-event-available"][data-slot-id="${slotBId}"]`);
       await expect(availableB).toBeVisible();
+
+      // El turno de las 14:00 queda debajo del borde del viewport (720px):
+      // page.mouse trabaja en coordenadas de viewport, así que sin traerlo a
+      // la vista el "soltar" cae fuera de la página y nunca dispara el drop.
+      await availableB.scrollIntoViewIfNeeded();
 
       const sourceBox = await bookingA.boundingBox();
       const targetBox = await availableB.boundingBox();

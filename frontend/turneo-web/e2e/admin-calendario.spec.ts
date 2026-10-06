@@ -70,9 +70,9 @@ test.describe("Admin: Calendario", () => {
     await expect(detailModal).toBeVisible();
     await expect(detailModal.getByText(customerName)).toBeVisible();
 
-    // Liberar el turno (confirm() nativo)
-    page.once("dialog", (d) => d.accept());
+    // Liberar el turno (ConfirmDialog propio de la app)
     await page.getByTestId("calendario-liberar-button").click();
+    await page.getByTestId("confirm-dialog-confirm").click();
     await expect(detailModal).not.toBeVisible();
     await expect(page.getByText(customerName)).not.toBeVisible();
   });
