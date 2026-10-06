@@ -19,6 +19,9 @@ test.describe("Profesional: login y agenda propia", () => {
       page.getByTestId("professional-login-submit").click(),
     ]);
 
+    // El panel del profesional también tiene que ofrecer la vuelta al sitio público.
+    await expect(page.getByTestId("panel-site-link")).toHaveAttribute("href", "/reservar");
+
     // Fecha lejos de los turnos que siembran otros specs, para no pisarse.
     const future = new Date();
     future.setDate(future.getDate() + 25);
@@ -32,8 +35,8 @@ test.describe("Profesional: login y agenda propia", () => {
     const slot = page.locator('[data-testid="agenda-slot-item"]').filter({ hasText: "LIBRE" }).first();
     await expect(slot).toBeVisible();
 
-    page.once("dialog", (dialog) => dialog.accept());
     await slot.getByTestId("agenda-slot-delete").click();
+    await page.getByTestId("confirm-dialog-confirm").click();
     await expect(page.getByText("Turno eliminado")).toBeVisible();
   });
 });

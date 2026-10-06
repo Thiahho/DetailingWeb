@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart2, CalendarDays, History, LayoutDashboard, LogOut, UserCog, Wallet } from "lucide-react";
+import { BarChart2, CalendarDays, Globe, History, LayoutDashboard, LogOut, UserCog, Wallet } from "lucide-react";
 import { getSiteConfig } from "@/src/lib/siteConfig";
 import { isAdminAuthenticated } from "@/src/lib/auth";
 
@@ -65,6 +65,16 @@ export default function ProfessionalSidebar() {
         </nav>
 
         <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
+          {/* Vuelta al sitio público: el panel no lleva el Navbar del negocio
+              (ver SiteChrome), así que este es el acceso explícito. */}
+          <Link
+            href="/reservar"
+            data-testid="panel-site-link"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-charcoal/50 hover:text-charcoal hover:bg-porcelain transition-all"
+          >
+            <Globe size={17} />
+            Ver sitio web
+          </Link>
           {hasPanelAccess && (
             <Link
               href="/admin"
@@ -93,6 +103,14 @@ export default function ProfessionalSidebar() {
           <span className="text-charcoal text-sm font-semibold">Mi Agenda</span>
         </Link>
         <div className="flex items-center gap-1">
+          <Link
+            href="/reservar"
+            data-testid="panel-site-link-mobile"
+            className="flex min-h-[40px] items-center gap-1.5 rounded-full border border-mauve/20 px-3 text-xs font-medium text-charcoal/70 transition hover:text-charcoal"
+          >
+            <Globe size={15} />
+            Ver sitio
+          </Link>
           {hasPanelAccess && (
             <Link
               href="/admin"

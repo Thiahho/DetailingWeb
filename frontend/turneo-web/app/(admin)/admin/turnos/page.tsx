@@ -785,6 +785,16 @@ export default function TurnosPage() {
           width: fit-content;
           max-width: 100%;
         }
+        /* En celulares angostos la grilla de 7 × 44px (308px + padding) no
+           entra en la card y estiraba toda la página: scroll horizontal. */
+        @media (max-width: 420px) {
+          .rdp-root {
+            --rdp-day-width: 40px;
+            --rdp-day-height: 40px;
+            --rdp-day_button-width: 38px;
+            --rdp-day_button-height: 38px;
+          }
+        }
         .rdp-selected .rdp-day_button {
           background-color: #D69AA6;
           color: #FFFFFF;

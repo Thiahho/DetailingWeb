@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { getSiteConfig } from "@/src/lib/siteConfig";
 import { usePermissions, type PermissionModuleKey } from "@/src/hooks/usePermissions";
 import {
-  CalendarDays, BarChart2, Wrench, LogOut,
+  CalendarDays, BarChart2, Wrench, Globe,
+  LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
   MoreHorizontal, ChevronDown, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star,
 } from "lucide-react";
@@ -204,6 +205,12 @@ export default function AdminSidebar() {
         {renderNav()}
 
         <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
+          {/* Vuelta al sitio público: el panel no lleva el Navbar del negocio
+              (ver SiteChrome), así que este es el acceso explícito. */}
+          <Link href="/reservar" data-testid="panel-site-link" className={linkClasses(false)}>
+            <Globe size={17} />
+            Ver sitio web
+          </Link>
           {role === "Professional" && (
             <Link href="/profesional/agenda" className={linkClasses(false)}>
               <CalendarDays size={17} />
@@ -230,13 +237,23 @@ export default function AdminSidebar() {
           </div>
           <span className="text-charcoal text-sm font-semibold">Panel Admin</span>
         </Link>
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="p-2 text-charcoal/60 hover:text-charcoal transition"
-          aria-label="Abrir menú"
-        >
-          <Menu size={22} />
-        </button>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/reservar"
+            data-testid="panel-site-link-mobile"
+            className="flex min-h-[40px] items-center gap-1.5 rounded-full border border-mauve/20 px-3 text-xs font-medium text-charcoal/70 transition hover:text-charcoal"
+          >
+            <Globe size={15} />
+            Ver sitio
+          </Link>
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="p-2 text-charcoal/60 hover:text-charcoal transition"
+            aria-label="Abrir menú"
+          >
+            <Menu size={22} />
+          </button>
+        </div>
       </header>
 
       {/* ════════════════════════════════════
@@ -294,6 +311,10 @@ export default function AdminSidebar() {
             {renderNav(() => setMenuOpen(false))}
 
             <div className="px-3 py-4 border-t border-mauve/10 space-y-1">
+              <Link href="/reservar" onClick={() => setMenuOpen(false)} className={linkClasses(false)}>
+                <Globe size={17} />
+                Ver sitio web
+              </Link>
               {role === "Professional" && (
                 <Link href="/profesional/agenda" onClick={() => setMenuOpen(false)} className={linkClasses(false)}>
                   <CalendarDays size={17} />

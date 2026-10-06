@@ -23,11 +23,27 @@ function isBackOffice(pathname: string) {
   return pathname.startsWith("/admin") || pathname.startsWith("/profesional") || pathname.startsWith("/platform");
 }
 
+// Pantallas del back-office sin sesión: no tienen sidebar propio (ver
+// AdminLayout / ProfessionalLayout), así que conservan el Navbar del negocio
+// como única forma de volver al sitio.
+const PANEL_ENTRY_PATHS = ["/admin/login", "/profesional/login", "/profesional/registro"];
+
+// El panel admin y el del profesional traen su propia navegación
+// (AdminSidebar / ProfessionalSidebar: sidebar en desktop; barra superior,
+// barra inferior y drawer en mobile). El Navbar del negocio es `fixed` con
+// z-50 y quedaba encima: tapaba la cabecera del sidebar y, en mobile, toda la
+// barra superior del panel — el menú hamburguesa visible abría el menú del
+// sitio público en vez del drawer del panel.
+function hasOwnPanelChrome(pathname: string) {
+  const inPanel = pathname.startsWith("/admin") || pathname.startsWith("/profesional");
+  return inPanel && !PANEL_ENTRY_PATHS.includes(pathname);
+}
+
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const showCookieConsent = !isBackOffice(pathname);
 
-  if (isTurneoOwnPage(pathname)) {
+  if (isTurneoOwnPage(pathname) || hasOwnPanelChrome(pathname)) {
     return (
       <>
         {children}
