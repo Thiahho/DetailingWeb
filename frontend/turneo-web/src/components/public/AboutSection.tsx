@@ -92,7 +92,7 @@ export default function AboutSection({ siteConfig, professionals, slotsByProfess
       {/* Equipo */}
       {professionals.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-2xl font-semibold tracking-tight text-charcoal md:text-[1.7rem]">El equipo</h3>
+          <h3 className="text-2xl font-semibold tracking-tight text-charcoal md:text-[1.7rem]">Nuestro equipo</h3>
           <TeamCarousel>
             {professionals.map((pro) => {
               const skills = parseSkills(pro.skills);
@@ -200,7 +200,7 @@ export default function AboutSection({ siteConfig, professionals, slotsByProfess
       {/* El local: foto y mapa en un mismo escenario, recorrido por pasos */}
       {(localPhotos.length > 0 || siteConfig?.location) && (
         <div className="space-y-4">
-          <h3 className="text-2xl font-semibold tracking-tight text-charcoal md:text-[1.7rem]">El local</h3>
+          <h3 className="text-2xl font-semibold tracking-tight text-charcoal md:text-[1.7rem]">Nuestro local</h3>
           <LocalShowcase
             photos={localPhotos}
             businessName={businessName}
