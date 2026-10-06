@@ -1,0 +1,116 @@
+# Promueve TurnosD-Belleza a TurnosP-Belleza (producción/demo).
+#
+# Se lanza a mano desde la pestaña Actions ("Run workflow"), eligiendo la rama
+# TurnosD-Belleza. Hace tres cosas, en orden:
+#
+#   1. Corre la verificación completa (ci.yml) sobre el commit elegido.
+#   2. Si pasa, avanza TurnosP-Belleza hasta ese mismo commit.
+#   3. Lo sube. Vercel y Render despliegan por su cuenta al ver el push.
+#
+# El avance es SOLO "fast-forward": producción queda exactamente en el commit
+# que se verificó, sin un merge nuevo que nadie probó. Si TurnosP-Belleza tiene
+# commits que TurnosD-Belleza no tiene, el workflow falla y pide traerlos antes
+# (git merge origin/TurnosP-Belleza en TurnosD-Belleza, y volver a subir).
+#
+# Requisitos en GitHub:
+#   - Para que aparezca el botón "Run workflow", este archivo tiene que existir
+#     en la rama por defecto del repositorio.
+#   - Si TurnosP-Belleza tiene protección de rama que exige pull request, el
+#     push de este workflow se rechaza: hay que permitir a GitHub Actions
+#     saltear esa regla, o promover por pull request en vez de con este botón.
+
+name: Promover a producción
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Escribí "TurnosP-Belleza" para confirmar que querés subir a producción/demo'
+        required: true
+        type: string
+
+# Una promoción a la vez; una segunda espera a que termine la primera.
+concurrency:
+  group: promover-TurnosP-Belleza
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  ORIGEN: TurnosD-Belleza
+  DESTINO: TurnosP-Belleza
+
+jobs:
+  validar:
+    name: Validar el pedido
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Rama de origen y confirmación
+        env:
+          CONFIRMAR: ${{ inputs.confirmar }}
+          RAMA: ${{ github.ref_name }}
+        run: |
+          if [ "$RAMA" != "$ORIGEN" ]; then
+            echo "::error::Este workflow se lanza desde $ORIGEN (se lanzó desde '$RAMA')."
+            exit 1
+          fi
+          if [ "$CONFIRMAR" != "$DESTINO" ]; then
+            echo "::error::Confirmación incorrecta: hay que escribir exactamente $DESTINO."
+            exit 1
+          fi
+          echo "Se va a promover $ORIGEN ($GITHUB_SHA) a $DESTINO."
+
+  verificar:
+    name: Verificar
+    needs: validar
+    uses: ./.github/workflows/ci.yml
+
+  promover:
+    name: Subir a TurnosP-Belleza
+    needs: verificar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # Historial completo: hace falta para saber si el avance es fast-forward.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Comprobar que producción no tenga commits propios
+        run: |
+          git fetch origin "$DESTINO"
+          if git merge-base --is-ancestor "$GITHUB_SHA" "origin/$DESTINO"; then
+            echo "::notice::$DESTINO ya contiene este commit: no hay nada que subir."
+            echo "NADA_QUE_SUBIR=true" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if ! git merge-base --is-ancestor "origin/$DESTINO" "$GITHUB_SHA"; then
+            echo "::error::$DESTINO tiene commits que $ORIGEN no tiene. Traelos primero: en $ORIGEN, 'git merge origin/$DESTINO', resolvé conflictos, subí y volvé a lanzar."
+            git log --oneline "$GITHUB_SHA..origin/$DESTINO" | head -n 20
+            exit 1
+          fi
+          echo "Commits que entran a $DESTINO:"
+          git log --oneline "origin/$DESTINO..$GITHUB_SHA"
+
+      # Se sube el commit exacto que pasó la verificación (GITHUB_SHA), no la
+      # punta de la rama: si alguien pusheó a TurnosD-Belleza mientras corría
+      # la suite, ese commit nuevo no entra sin verificar. Sin --force: si
+      # producción cambió en el medio, el push se rechaza en vez de pisarla.
+      - name: Subir
+        if: env.NADA_QUE_SUBIR != 'true'
+        run: git push origin "$GITHUB_SHA:refs/heads/$DESTINO"
+
+      - name: Resumen
+        if: env.NADA_QUE_SUBIR != 'true'
+        run: |
+          {
+            echo "### Promoción completada"
+            echo ""
+            echo "\`$DESTINO\` quedó en \`${GITHUB_SHA::7}\`."
+            echo ""
+            echo "Vercel y Render despliegan solos. El backend aplica las migraciones pendientes al arrancar."
+          } >> "$GITHUB_STEP_SUMMARY"
