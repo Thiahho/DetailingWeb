@@ -91,7 +91,8 @@ const PREVIEWS: Record<string, ReactNode> = {
 };
 
 // Retención: ruleta de fidelidad, reseñas y Smart Tags. Tres columnas, cada una
-// con un preview distinto arriba y el texto debajo.
+// con un preview distinto arriba y el texto debajo. Smart Tags va como
+// "Próximamente" (ver `comingSoon` en content.ts).
 export default function RetentionSection() {
   return (
     <section id="fidelizacion" className="scroll-mt-16 mx-auto max-w-6xl space-y-12 px-6 py-20 md:space-y-16 md:py-28">
@@ -99,17 +100,38 @@ export default function RetentionSection() {
         <SectionHeading eyebrow={RETENTION.eyebrow} title={RETENTION.title} tone="cream" />
       </Reveal>
       <Reveal stagger className="grid gap-x-7 gap-y-12 md:grid-cols-3">
-        {RETENTION.items.map(({ id, title, detail }) => (
-          <article key={id} className="flex flex-col gap-5">
-            <div aria-hidden="true" className="h-44 select-none">
-              {PREVIEWS[id]}
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-semibold tracking-tight text-charcoal">{title}</h3>
-              <p className="text-[15px] leading-relaxed text-charcoal/70">{detail}</p>
-            </div>
-          </article>
-        ))}
+        {RETENTION.items.map(({ id, title, detail, comingSoon, hint }) =>
+          comingSoon ? (
+            // Todavía no disponible: el bloque entero queda desenfocado (y fuera
+            // del árbol de accesibilidad, para que no se lea un texto que no se
+            // ve) y encima va el rótulo con una pista corta.
+            <article key={id} data-testid={`retention-${id}`} data-coming-soon="true" className="relative">
+              <div aria-hidden="true" className="pointer-events-none flex select-none flex-col gap-5 opacity-70 blur-[7px]">
+                <div className="h-44">{PREVIEWS[id]}</div>
+                <div className="space-y-2">
+                  <p className="text-2xl font-semibold tracking-tight text-charcoal">{title}</p>
+                  <p className="text-[15px] leading-relaxed text-charcoal/70">{detail}</p>
+                </div>
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
+                <h3 className="rounded-full bg-ink px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cream shadow-elevated">
+                  Próximamente
+                </h3>
+                {hint && <p className="max-w-[16rem] text-[15px] font-medium leading-snug text-charcoal">{hint}</p>}
+              </div>
+            </article>
+          ) : (
+            <article key={id} data-testid={`retention-${id}`} className="flex flex-col gap-5">
+              <div aria-hidden="true" className="h-44 select-none">
+                {PREVIEWS[id]}
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-semibold tracking-tight text-charcoal">{title}</h3>
+                <p className="text-[15px] leading-relaxed text-charcoal/70">{detail}</p>
+              </div>
+            </article>
+          )
+        )}
       </Reveal>
     </section>
   );

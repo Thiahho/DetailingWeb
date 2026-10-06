@@ -14,6 +14,40 @@ test.describe("Home comercial de Turneo", () => {
     await seedConsent(page);
   });
 
+  test("la barra superior muestra el logo de Turneo", async ({ page }) => {
+    await page.goto("/");
+
+    const logo = page.locator('header a[href="#inicio"] img');
+    await expect(logo).toBeVisible();
+    // Que el <img> exista no alcanza: tiene que haber cargado la imagen.
+    await expect.poll(() => logo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await expect(page.locator('header a[href="#inicio"]')).toContainText("Turneo");
+  });
+
+  test("el botón de la barra lleva a la reserva online", async ({ page }) => {
+    await page.goto("/");
+
+    const cta = page.getByTestId("nav-booking-cta");
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveText("Reservar turno");
+    await Promise.all([page.waitForURL("**/reservar"), cta.click()]);
+  });
+
+  test("Smart Tags se anuncia como próximamente, con una pista y sin el detalle", async ({ page }) => {
+    await page.goto("/");
+
+    const block = page.getByTestId("retention-smart-tags");
+    await block.scrollIntoViewIfNeeded();
+    await expect(block.getByRole("heading", { name: "Próximamente" })).toBeVisible();
+    await expect(block.getByText("Algo para tu mostrador")).toBeVisible();
+    // El detalle sigue en el DOM (desenfocado) pero no para lectores de pantalla.
+    await expect(block.getByRole("heading", { name: "Smart Tags" })).toHaveCount(0);
+
+    // Los otros dos bloques de la sección no cambian.
+    await expect(page.getByTestId("retention-ruleta").getByRole("heading", { name: "Ruleta de fidelidad" })).toBeVisible();
+    await expect(page.getByTestId("retention-resenas").getByRole("heading", { name: "Reseñas" })).toBeVisible();
+  });
+
   test("muestra un único h1 y el CTA principal lleva a WhatsApp", async ({ page }) => {
     await page.goto("/");
 

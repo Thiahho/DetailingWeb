@@ -39,12 +39,20 @@ export default {
         marquee: { from: { transform: "translateX(0)" }, to: { transform: "translateX(-50%)" } },
         floaty: { "0%, 100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-14px)" } },
         rise: { from: { opacity: "0", transform: "translateY(28px)" }, to: { opacity: "1", transform: "none" } },
+        // Halo que late alrededor de un botón. Con box-shadow y no con un
+        // elemento escalado (animate-ping): la sombra no agranda el área
+        // desplazable, así que no provoca scroll horizontal en celular.
+        halo: {
+          "0%": { boxShadow: "0 0 0 0 rgba(214, 154, 166, 0.6)" },
+          "70%, 100%": { boxShadow: "0 0 0 14px rgba(214, 154, 166, 0)" },
+        },
         pane: { from: { opacity: "0", transform: "translateX(18px)" }, to: { opacity: "1", transform: "none" } },
       },
       animation: {
         marquee: "marquee 46s linear infinite",
         floaty: "floaty 7s ease-in-out infinite",
         rise: "rise .9s cubic-bezier(.2,.7,.2,1) both",
+        halo: "halo 2.4s ease-out infinite",
         pane: "pane .5s cubic-bezier(.2,.7,.2,1) both",
       },
       boxShadow: {

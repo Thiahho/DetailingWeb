@@ -115,3 +115,16 @@ redesigned `/reservar`, illustrated with real product screenshots.
 Parent reviews the two screenshots; re-run `npx next build` and
 `npx playwright test e2e/home.spec.ts` in the repo with ports 3000/5048 free.
 No commits were made.
+
+## Follow-up 2026-10-06 — home changes
+
+- Turneo logo and a "Reservar turno" button (links to `/reservar`) in the nav.
+- Smart Tags in "Después del turno" shown blurred as "Próximamente" with a short
+  hint (`comingSoon` / `hint` in `content.ts`).
+- Reminders FAQ and the "ausencias" note now mention manual WhatsApp sending
+  from the panel (wa.me links with a prefilled message).
+- **Reverted the same day:** the coded UI previews were briefly replaced by real
+  screenshots in a moving viewer. That was a misreading of a request that was
+  actually about the Galería / Contenido strips of `/reservar`. The home is back
+  on the coded previews; the "coded previews instead of screenshots" decision
+  stands. `public/landing/*.png` remain unused.

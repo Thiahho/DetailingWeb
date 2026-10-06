@@ -6,7 +6,9 @@ import { buildWhatsAppUrl } from "@/src/lib/contact";
 // - Sin métricas, testimonios, cantidad de clientes ni logos inventados.
 // - Solo se afirma lo que hoy está en producción. Lo que no lo está (cobro
 //   online con Mercado Pago, avisos automáticos por WhatsApp a clientes) va
-//   rotulado "próximamente". Los recordatorios a clientes salen por email.
+//   rotulado "próximamente". Los recordatorios a clientes salen por email;
+//   por WhatsApp se mandan a mano desde el panel (links wa.me con el mensaje
+//   precargado en Panel, Turnos, Calendario e Historial).
 // - Sin precios ni selección de planes.
 
 // Título con una parte en .accent-serif (itálica serif), igual que /reservar.
@@ -22,6 +24,10 @@ export const WHATSAPP = {
   faq: buildWhatsAppUrl("Hola! Tengo una consulta sobre Turneo."),
   closing: buildWhatsAppUrl("Hola! Quiero más información sobre Turneo."),
 };
+
+// Acceso directo a la reserva online desde la barra: quien llega a la home
+// buscando sacar un turno (y no contratar Turneo) lo tiene a un toque.
+export const BOOKING_CTA = { href: "/reservar", label: "Reservar turno" };
 
 export const NAV_LINKS = [
   { href: "#problemas", label: "Qué resuelve" },
@@ -74,7 +80,7 @@ export const PROBLEMAS: ProblemContent[] = [
       "Si no puede ir, cancela o reprograma desde su link y el horario vuelve a quedar libre.",
       "Reactivación automática: a quien hace tiempo que no viene le llega un mensaje para volver. También el saludo de cumpleaños.",
     ],
-    note: "Recordatorios por WhatsApp: próximamente.",
+    note: "Por WhatsApp hoy los mandás vos con un toque desde el panel. El envío automático: próximamente.",
   },
   {
     id: "reservas",
@@ -137,9 +143,19 @@ export const OWN_SITE = {
   demoLabel: "Ver una web en vivo",
 };
 
-export const RETENTION = {
+// `comingSoon`: el bloque se muestra desenfocado con el rótulo "Próximamente"
+// encima y solo se lee `hint`, una pista corta de lo que viene.
+export interface RetentionItem {
+  id: string;
+  title: string;
+  detail: string;
+  comingSoon?: boolean;
+  hint?: string;
+}
+
+export const RETENTION: { eyebrow: string; title: AccentTitle; items: RetentionItem[] } = {
   eyebrow: "Después del turno",
-  title: { before: "Que vuelvan, y que ", accent: "te recomienden." } as AccentTitle,
+  title: { before: "Que vuelvan, y que ", accent: "te recomienden." },
   items: [
     {
       id: "ruleta",
@@ -155,6 +171,8 @@ export const RETENTION = {
       id: "smart-tags",
       title: "Smart Tags",
       detail: "Etiquetas NFC o QR para el mostrador o el espejo. Acercan el celular y se abre la reserva, la reseña o tu Instagram.",
+      comingSoon: true,
+      hint: "Algo para tu mostrador: se acerca el celular y listo.",
     },
   ],
 };
@@ -186,7 +204,7 @@ export const FAQ = {
     },
     {
       q: "¿Cómo les llegan los recordatorios?",
-      a: "Hoy por email, de forma automática. Los recordatorios por WhatsApp están en preparación: próximamente.",
+      a: "Por email, de forma automática. Y si preferís WhatsApp, lo mandás vos con un toque: el panel abre el chat con tu clienta y el mensaje ya escrito, solo queda enviarlo. El envío automático por WhatsApp está en preparación: próximamente.",
     },
     {
       q: "¿Se puede cobrar la seña online?",
