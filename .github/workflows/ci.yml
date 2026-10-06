@@ -1,0 +1,188 @@
+# Verificación previa al merge hacia producción/demo.
+#
+# Corre en cada pull request contra TurnosP-Belleza y en cada push a
+# TurnosD-Belleza. No despliega nada: Vercel y Render despliegan por su cuenta
+# cuando cambia la rama. Este workflow solo dice si el código está en
+# condiciones de mergearse.
+#
+# El job final "CI" resume a los otros tres: es el único que hay que marcar
+# como requerido en la protección de la rama TurnosP-Belleza.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [TurnosP-Belleza]
+  push:
+    branches: [TurnosD-Belleza]
+  workflow_dispatch:
+
+# Un push nuevo a la misma rama o PR cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  NODE_VERSION: "24"
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  backend:
+    name: Backend (tests de integración)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Los tests levantan su propio Postgres con Testcontainers (Docker ya
+      # viene instalado en ubuntu-latest): no hace falta un servicio acá.
+      - name: Tests
+        working-directory: backend
+        run: dotnet test Turneo.Api.Tests -c Release --logger "console;verbosity=minimal"
+
+  frontend:
+    name: Frontend (tipos y build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend/turneo-web
+    steps:
+      - uses: actions/checkout@v4
+
+      # Toma la versión de pnpm del campo "packageManager" de package.json.
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/turneo-web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/turneo-web/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Tipos
+        run: pnpm exec tsc --noEmit -p .
+
+      # Atrapa lo que tsc no ve: useSearchParams sin Suspense, límites
+      # server/client mal puestos y páginas que fallan al prerenderizar.
+      - name: Build de producción
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://turneo.app
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bd_turnos_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # El backend de la suite arranca en entorno Testing; esta variable pisa
+      # la cadena de conexión de appsettings.Testing.json (que apunta a la base
+      # local del desarrollador) con el Postgres de este job.
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=bd_turnos_e2e;Username=postgres;Password=postgres;
+      # IMPRESCINDIBLE: sin esto las rutas proxy de Next.js caen al valor por
+      # defecto del código, que es la API de producción.
+      NEXT_PUBLIC_API_URL: http://localhost:5048
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:5048
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/turneo-web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/turneo-web/pnpm-lock.yaml
+
+      - name: Verificar que la suite no apunte a producción
+        run: |
+          case "$NEXT_PUBLIC_API_URL" in
+            http://localhost:*) echo "API de la suite: $NEXT_PUBLIC_API_URL" ;;
+            *) echo "::error::NEXT_PUBLIC_API_URL debe ser localhost en CI (valor: '$NEXT_PUBLIC_API_URL')"; exit 1 ;;
+          esac
+
+      # Playwright levanta el backend con "dotnet run" y espera hasta 120 s:
+      # compilar antes evita que la primera compilación se coma ese margen.
+      - name: Compilar backend
+        run: dotnet build backend/Turneo.Api
+
+      - name: Instalar dependencias del frontend
+        working-directory: frontend/turneo-web
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Chromium de Playwright
+        working-directory: frontend/turneo-web
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Un reintento: la suite comparte un único backend entre workers y en un
+      # runner chico puede aparecer algún timeout aislado. Un test que pasa
+      # recién al reintentar queda marcado como "flaky" en el reporte.
+      - name: Suite e2e
+        working-directory: frontend/turneo-web
+        run: pnpm exec playwright test --retries=1
+
+      - name: Subir reporte de Playwright
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/turneo-web/playwright-report/
+            frontend/turneo-web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # Resumen único para la protección de rama: falla si cualquiera de los tres
+  # falla o se cancela. "if: always()" hace que corra aunque uno falle (un job
+  # salteado contaría como aprobado para GitHub).
+  ci:
+    name: CI
+    if: ${{ always() }}
+    needs: [backend, frontend, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Resultado
+        env:
+          BACKEND: ${{ needs.backend.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+          E2E: ${{ needs.e2e.result }}
+        run: |
+          echo "backend=$BACKEND frontend=$FRONTEND e2e=$E2E"
+          if [ "$BACKEND" != "success" ] || [ "$FRONTEND" != "success" ] || [ "$E2E" != "success" ]; then
+            echo "::error::Hay verificaciones que no pasaron."
+            exit 1
+          fi
