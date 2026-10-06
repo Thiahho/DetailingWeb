@@ -45,4 +45,65 @@ test.describe("Admin: Configuración del negocio", () => {
       timeout: 15_000,
     });
   });
+
+  test("un admin agrega una red y se ve en el contacto del sitio público", async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem("Turneo_session_active", "true"));
+
+    const runId = Date.now();
+    const linkName = `Red E2E ${runId}`;
+    const linkUrl = `https://example.com/${runId}`;
+    // Posición de la fila de esta corrida (-1 si no está): el tenant de e2e es
+    // compartido y puede tener otras redes cargadas.
+    const ownRowIndex = () =>
+      page
+        .getByTestId("social-link-url")
+        .evaluateAll((inputs, url) => inputs.findIndex((input) => (input as HTMLInputElement).value === url), linkUrl);
+
+    try {
+      await page.goto("/admin/configuracion");
+      await page.getByTestId("social-link-add").click();
+      const newRow = page.getByTestId("social-link-row").last();
+      await newRow.getByTestId("social-link-name").fill(linkName);
+      await newRow.getByTestId("social-link-url").fill(linkUrl);
+      await page.getByTestId("config-submit").click();
+      await expect(page.getByTestId("config-message")).toContainText("Configuración guardada", { timeout: 15_000 });
+
+      // Recargar y confirmar que persistió del lado del backend, no solo en el estado local.
+      await page.reload();
+      await expect.poll(ownRowIndex, { timeout: 15_000 }).toBeGreaterThanOrEqual(0);
+      const savedRow = page.getByTestId("social-link-row").nth(await ownRowIndex());
+      await expect(savedRow.getByTestId("social-link-name")).toHaveValue(linkName);
+
+      await page.goto("/reservar");
+      const publicLink = page.getByRole("link", { name: linkName });
+      await expect(publicLink).toHaveAttribute("href", linkUrl, { timeout: 15_000 });
+      await expect(publicLink).toHaveAttribute("target", "_blank");
+      await expect(publicLink).toHaveAttribute("rel", "noopener noreferrer");
+
+      // Quitarla desde el formulario y guardar.
+      await page.goto("/admin/configuracion");
+      await expect.poll(ownRowIndex, { timeout: 15_000 }).toBeGreaterThanOrEqual(0);
+      await page.getByTestId("social-link-row").nth(await ownRowIndex()).getByTestId("social-link-remove").click();
+      await page.getByTestId("config-submit").click();
+      await expect(page.getByTestId("config-message")).toContainText("Configuración guardada", { timeout: 15_000 });
+      await page.reload();
+      await expect(page.getByTestId("config-business-name")).toBeVisible({ timeout: 15_000 });
+      expect(await ownRowIndex()).toBe(-1);
+    } finally {
+      // Red de seguridad si algo falló antes de quitarla por la UI: se limpia por
+      // el mismo proxy que usa el formulario, conservando el resto de la config,
+      // para no dejar basura en el tenant compartido de e2e.
+      const current = await (await page.request.get("/api/siteconfig")).json();
+      const links: { url?: string }[] = Array.isArray(current.socialLinks) ? current.socialLinks : [];
+      if (links.some((link) => link.url === linkUrl)) {
+        await page.request.put("/api/siteconfig", {
+          data: {
+            ...current,
+            mapEmbedUrl: current.mapEmbedUrl ?? null,
+            socialLinks: links.filter((link) => link.url !== linkUrl),
+          },
+        });
+      }
+    }
+  });
 });

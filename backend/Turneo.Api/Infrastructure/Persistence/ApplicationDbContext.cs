@@ -635,6 +635,13 @@ public class ApplicationDbContext : DbContext
                     v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>()
                 );
 
+            entity.Property(e => e.SocialLinks)
+                .HasColumnType("jsonb")
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<SocialLink>>(v, (JsonSerializerOptions?)null) ?? new List<SocialLink>()
+                );
+
             entity.HasOne(e => e.Tenant)
                 .WithMany()
                 .HasForeignKey(e => e.TenantId)

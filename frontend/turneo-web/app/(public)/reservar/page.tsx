@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Instagram, MapPin, MessageCircle } from "lucide-react";
+import {
+  Facebook,
+  Globe,
+  Instagram,
+  Linkedin,
+  MapPin,
+  MessageCircle,
+  Send,
+  Twitter,
+  Youtube,
+  type LucideIcon,
+} from "lucide-react";
 import BookingWizard from "@/src/components/booking/BookingWizard";
 import { type BookingPreselection } from "@/src/components/booking/useBookingFlow";
 import WhatsAppFloat from "@/src/components/shared/WhatsAppFloat";
@@ -14,7 +25,13 @@ import MobileBookBar from "@/src/components/public/MobileBookBar";
 import Reveal from "@/src/components/public/Reveal";
 import ServicesSection, { type PublicService } from "@/src/components/public/ServicesSection";
 import WorkSection, { type GalleryItem } from "@/src/components/public/WorkSection";
-import { type SiteConfig, getWhatsAppLink } from "@/src/lib/siteConfig";
+import {
+  type SiteConfig,
+  formatSocialLinkValue,
+  getWhatsAppLink,
+  isSafeSocialUrl,
+  parseSocialLinks,
+} from "@/src/lib/siteConfig";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 import { getCached, setCached } from "@/src/lib/publicDataCache";
 
@@ -49,6 +66,32 @@ interface PublicSlot {
 
 // Cuántos horarios muestra cada card de profesional
 const SLOTS_PER_PROFESSIONAL = 6;
+
+// Insignia de la red sobre la foto de perfil en "Contacto directo": verde de
+// WhatsApp y degradé de Instagram, que es como se reconoce cada canal.
+const WHATSAPP_BADGE = { backgroundColor: "#1FA855" };
+const INSTAGRAM_BADGE = { backgroundImage: "linear-gradient(45deg, #F9CE34, #EE2A7B 55%, #6228D7)" };
+
+// Ícono de una red cargada por el admin según el dominio del link; lo que no
+// se reconoce (TikTok, Pinterest, un sitio propio...) usa el globo genérico.
+const SOCIAL_ICONS: { hosts: string[]; icon: LucideIcon }[] = [
+  { hosts: ["facebook.com", "fb.com", "fb.me"], icon: Facebook },
+  { hosts: ["instagram.com"], icon: Instagram },
+  { hosts: ["youtube.com", "youtu.be"], icon: Youtube },
+  { hosts: ["linkedin.com"], icon: Linkedin },
+  { hosts: ["twitter.com", "x.com"], icon: Twitter },
+  { hosts: ["t.me", "telegram.me", "telegram.org"], icon: Send },
+];
+
+function socialIconFor(url: string): LucideIcon {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    const match = SOCIAL_ICONS.find(({ hosts }) => hosts.some((h) => host === h || host.endsWith(`.${h}`)));
+    return match?.icon ?? Globe;
+  } catch {
+    return Globe;
+  }
+}
 
 interface PublicData {
   services: Service[];
@@ -139,6 +182,13 @@ export default function Home() {
     }, 100);
   };
 
+  // siteConfig llega crudo de /api/public-data (o de una copia vieja en
+  // localStorage, sin el campo): se valida la forma y se deja solo https. Un
+  // link igual al Instagram de los campos fijos no se repite.
+  const socialLinks = parseSocialLinks(siteConfig?.socialLinks).filter(
+    (link) => isSafeSocialUrl(link.url) && link.url.toLowerCase() !== siteConfig?.instagramUrl?.toLowerCase()
+  );
+
   const jsonLd = siteConfig
     ? {
         "@context": "https://schema.org",
@@ -148,7 +198,7 @@ export default function Home() {
         description: siteConfig.metaDescription,
         areaServed: siteConfig.location,
         telephone: siteConfig.whatsAppNumber,
-        sameAs: siteConfig.instagramUrl ? [siteConfig.instagramUrl] : [],
+        sameAs: [...(siteConfig.instagramUrl ? [siteConfig.instagramUrl] : []), ...socialLinks.map((link) => link.url)],
       }
     : null;
 
@@ -161,6 +211,12 @@ export default function Home() {
     new Set([gallery[0]?.imageUrl, siteConfig?.localPhotos?.[0], gallery[1]?.imageUrl].filter((u): u is string => !!u))
   );
 
+  // WhatsApp e Instagram muestran el logo del negocio como "foto de perfil",
+  // con el ícono de la red como insignia. No se puede traer la foto real del
+  // perfil: WhatsApp no la expone y la de Instagram exige su API con la cuenta
+  // conectada. En la práctica el logo es la foto de perfil de casi todos los salones.
+  const profilePhoto = siteConfig?.logoUrl || "/img/logo.png";
+
   const contactCards = [
     siteConfig?.whatsAppNumber && {
       label: "WhatsApp",
@@ -168,6 +224,8 @@ export default function Home() {
       href: waLink,
       icon: MessageCircle,
       dark: false,
+      avatar: profilePhoto,
+      badgeStyle: WHATSAPP_BADGE,
     },
     siteConfig?.instagramUrl && {
       label: "Instagram",
@@ -175,13 +233,26 @@ export default function Home() {
       href: siteConfig.instagramUrl,
       icon: Instagram,
       dark: false,
+      avatar: profilePhoto,
+      badgeStyle: INSTAGRAM_BADGE,
     },
+    ...socialLinks.map((link) => ({
+      label: link.name,
+      value: formatSocialLinkValue(link.url),
+      href: link.url,
+      icon: socialIconFor(link.url),
+      dark: false,
+      avatar: null,
+      badgeStyle: undefined,
+    })),
     siteConfig?.location && {
       label: "Dónde estamos",
       value: siteConfig.location,
       href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(siteConfig.location)}`,
       icon: MapPin,
       dark: true,
+      avatar: null,
+      badgeStyle: undefined,
     },
   ].filter((card): card is Exclude<typeof card, false | "" | undefined | null> => Boolean(card));
 
@@ -253,8 +324,8 @@ export default function Home() {
             </h2>
           </Reveal>
           <Reveal stagger className="grid gap-4 md:grid-cols-3 md:gap-5">
-            {contactCards.map(({ label, value, href, icon: Icon, dark }) => (
-              <div key={label}>
+            {contactCards.map(({ label, value, href, icon: Icon, dark, avatar, badgeStyle }) => (
+              <div key={`${label}|${href}`}>
                 <a
                   href={href}
                   target="_blank"
@@ -263,10 +334,34 @@ export default function Home() {
                     dark ? "bg-ink text-cream" : "bg-ivory text-charcoal"
                   }`}
                 >
-                  <Icon size={28} strokeWidth={1.8} className={`shrink-0 ${dark ? "text-blush" : "text-rosewood"}`} />
+                  {avatar ? (
+                    <span className="relative shrink-0" data-testid="contact-card-avatar">
+                      <img
+                        src={avatar}
+                        alt=""
+                        loading="lazy"
+                        className="h-14 w-14 rounded-full border border-mauve/15 bg-white object-contain md:h-16 md:w-16"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full text-white ring-2 ring-ivory"
+                        style={badgeStyle}
+                      >
+                        <Icon size={13} strokeWidth={2.4} />
+                      </span>
+                    </span>
+                  ) : (
+                    <Icon size={28} strokeWidth={1.8} className={`shrink-0 ${dark ? "text-blush" : "text-rosewood"}`} />
+                  )}
                   <span className="flex min-w-0 flex-1 flex-col gap-1 md:flex-none">
-                    <span className={`text-sm ${dark ? "text-mist" : "text-charcoal/70"}`}>{label}</span>
-                    <span className="break-words text-lg font-semibold tracking-tight md:text-[1.35rem]">{value}</span>
+                    {/* overflow-wrap:anywhere (y no break-words): un link largo sin espacios
+                        también tiene que poder cortarse al medir el ancho mínimo de la card. */}
+                    <span className={`text-sm [overflow-wrap:anywhere] ${dark ? "text-mist" : "text-charcoal/70"}`}>
+                      {label}
+                    </span>
+                    <span className="text-lg font-semibold tracking-tight [overflow-wrap:anywhere] md:text-[1.35rem]">
+                      {value}
+                    </span>
                   </span>
                   <span aria-hidden="true" className="transition-transform group-hover:translate-x-1 md:hidden">
                     →

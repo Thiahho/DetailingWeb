@@ -1,5 +1,10 @@
 import { getCached, setCached, removeCached } from "@/src/lib/publicDataCache";
 
+export interface SocialLink {
+  name: string;
+  url: string;
+}
+
 export interface SiteConfig {
   id?: number;
   businessName: string;
@@ -17,6 +22,8 @@ export interface SiteConfig {
   heroHighlights: string[];
   // Fotos del local para el bloque "El local" de "Sobre nosotros".
   localPhotos: string[];
+  // Redes que carga el admin (nombre libre + link https), en su orden.
+  socialLinks: SocialLink[];
   metaDescription: string;
   // Viaja solo en la respuesta cruda de GET /api/siteconfig (no pasa por
   // getSiteConfig() de abajo, que solo whitelistea los campos editables del
@@ -40,8 +47,39 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   heroBadge: "",
   heroHighlights: [],
   localPhotos: [],
+  socialLinks: [],
   metaDescription: process.env.NEXT_PUBLIC_META_DESCRIPTION || "",
 };
+
+// La respuesta de la API (o una copia vieja en localStorage) puede no traer el
+// campo o traerlo con otra forma: solo pasan items con name y url de texto.
+export function parseSocialLinks(value: unknown): SocialLink[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (item): item is SocialLink =>
+        !!item && typeof item === "object" && typeof item.name === "string" && typeof item.url === "string"
+    )
+    .map(({ name, url }) => ({ name, url }));
+}
+
+// El backend ya garantiza https (SiteConfigController.SanitizeSocialLinks); se
+// vuelve a chequear antes de armar un <a href> por si llega una copia cacheada
+// o una respuesta con otra forma.
+export function isSafeSocialUrl(url: string): boolean {
+  return url.startsWith("https://");
+}
+
+// Forma corta y legible de un link para mostrarlo como texto:
+// "https://www.facebook.com/mi.salon/" => "facebook.com/mi.salon".
+export function formatSocialLinkValue(url: string): string {
+  try {
+    const { hostname, pathname } = new URL(url);
+    return `${hostname.replace(/^www\./i, "")}${pathname}`.replace(/\/+$/, "");
+  } catch {
+    return url.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  }
+}
 
 // El admin puede pegar el <iframe> completo que da Google Maps ("Insertar un
 // mapa") o directamente una URL. Si no cargó nada, se arma un mapa de mínima
@@ -100,6 +138,7 @@ function buildConfig(data: Record<string, unknown>): SiteConfig {
     localPhotos: Array.isArray(data.localPhotos)
       ? (data.localPhotos as string[])
       : DEFAULT_SITE_CONFIG.localPhotos,
+    socialLinks: parseSocialLinks(data.socialLinks),
     metaDescription: (data.metaDescription as string) || DEFAULT_SITE_CONFIG.metaDescription,
   };
 }

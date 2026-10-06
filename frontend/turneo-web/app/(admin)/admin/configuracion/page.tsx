@@ -5,10 +5,23 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
-import { extractMapEmbedSrc, clearSiteConfigCache } from "@/src/lib/siteConfig";
+import { extractMapEmbedSrc, clearSiteConfigCache, isSafeSocialUrl, parseSocialLinks } from "@/src/lib/siteConfig";
 import { Button } from "@/src/components/shared/Button";
 
 type MessageType = "success" | "error";
+
+// Fila del editor de redes. `key` es solo para React (reordenar sin perder el
+// foco ni mezclar inputs); no viaja al backend.
+interface SocialLinkRow {
+  key: number;
+  name: string;
+  url: string;
+}
+
+let nextSocialLinkKey = 0;
+const toSocialLinkRow = (name = "", url = ""): SocialLinkRow => ({ key: nextSocialLinkKey++, name, url });
+const toSocialLinkRows = (value: unknown): SocialLinkRow[] =>
+  parseSocialLinks(value).map((link) => toSocialLinkRow(link.name, link.url));
 
 const emptyForm = {
   businessName: "",
@@ -28,10 +41,29 @@ const emptyForm = {
   heroHighlights: "",
   metaDescription: "",
   localPhotos: [] as string[],
+  socialLinks: [] as SocialLinkRow[],
 };
 
 // Mismo tope que aplica el backend (SiteConfigController.MaxLocalPhotos).
 const MAX_LOCAL_PHOTOS = 8;
+
+// Mismos topes que aplica el backend (SiteConfigController.MaxSocialLinks y compañía).
+const MAX_SOCIAL_LINKS = 12;
+const MAX_SOCIAL_LINK_NAME_LENGTH = 40;
+const MAX_SOCIAL_LINK_URL_LENGTH = 300;
+
+// Solo sugerencias del <datalist>: el nombre de la red es texto libre.
+const SOCIAL_NAME_SUGGESTIONS = [
+  "Facebook",
+  "TikTok",
+  "YouTube",
+  "X",
+  "LinkedIn",
+  "Pinterest",
+  "Telegram",
+  "Threads",
+  "Sitio web",
+];
 
 export default function ConfiguracionPage() {
   const router = useRouter();
@@ -76,6 +108,7 @@ export default function ConfiguracionPage() {
               heroHighlights: Array.isArray(data.heroHighlights) ? data.heroHighlights.join("\n") : "",
               metaDescription: data.metaDescription || "",
               localPhotos: Array.isArray(data.localPhotos) ? data.localPhotos : [],
+              socialLinks: toSocialLinkRows(data.socialLinks),
             });
           }
         }
@@ -101,7 +134,10 @@ export default function ConfiguracionPage() {
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean),
+      socialLinks: formData.socialLinks.map(({ name, url }) => ({ name, url })),
     };
+    // Las filas que quedaron totalmente vacías no cuentan como "descartadas".
+    const sentSocialLinks = payload.socialLinks.filter((link) => link.name.trim() || link.url.trim()).length;
 
     try {
       const res = await fetch("/api/siteconfig", {
@@ -111,8 +147,23 @@ export default function ConfiguracionPage() {
       });
       if (res.ok) {
         clearSiteConfigCache();
+        // El servidor descarta las redes inválidas (sin nombre, link que no es
+        // https, repetidas): se recarga la lista con lo que realmente guardó.
+        // Si la respuesta no trae la lista, se deja el formulario como estaba.
+        const saved = await res.json().catch(() => null);
+        let dropped = 0;
+        if (Array.isArray(saved?.socialLinks)) {
+          const storedSocialLinks = toSocialLinkRows(saved.socialLinks);
+          setFormData((prev) => ({ ...prev, socialLinks: storedSocialLinks }));
+          dropped = sentSocialLinks - storedSocialLinks.length;
+        }
         setMessageType("success");
-        setMessage("Configuración guardada. Los cambios se ven en el sitio en unos minutos.");
+        setMessage(
+          "Configuración guardada. Los cambios se ven en el sitio en unos minutos." +
+            (dropped > 0
+              ? ` ${dropped === 1 ? "Una red no se guardó" : `${dropped} redes no se guardaron`}: revisá que tengan nombre y un link que empiece con https://, sin repetir.`
+              : "")
+        );
       } else {
         const data = await res.json().catch(() => ({}));
         setMessageType("error");
@@ -137,6 +188,34 @@ export default function ConfiguracionPage() {
 
   const removeLocalPhoto = (index: number) => {
     setFormData((prev) => ({ ...prev, localPhotos: prev.localPhotos.filter((_, i) => i !== index) }));
+  };
+
+  const addSocialLink = () => {
+    setFormData((prev) =>
+      prev.socialLinks.length >= MAX_SOCIAL_LINKS
+        ? prev
+        : { ...prev, socialLinks: [...prev.socialLinks, toSocialLinkRow()] }
+    );
+  };
+
+  const updateSocialLink = (index: number, field: "name" | "url", value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      socialLinks: prev.socialLinks.map((link, i) => (i === index ? { ...link, [field]: value } : link)),
+    }));
+  };
+
+  const moveSocialLink = (from: number, to: number) => {
+    setFormData((prev) => {
+      if (to < 0 || to >= prev.socialLinks.length) return prev;
+      const next = [...prev.socialLinks];
+      [next[from], next[to]] = [next[to], next[from]];
+      return { ...prev, socialLinks: next };
+    });
+  };
+
+  const removeSocialLink = (index: number) => {
+    setFormData((prev) => ({ ...prev, socialLinks: prev.socialLinks.filter((_, i) => i !== index) }));
   };
 
   const mapPreviewSrc =extractMapEmbedSrc(formData.mapEmbedUrl, formData.location);
@@ -336,6 +415,115 @@ export default function ConfiguracionPage() {
                   onChange={(e) => setFormData((prev) => ({ ...prev, instagramHandle: e.target.value }))}
                   placeholder="@mistudio"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t border-mauve/10 pt-4">
+              <div>
+                <h3 className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Otras redes</h3>
+                <p className="text-charcoal/40 text-xs mt-1">
+                  Facebook, TikTok, YouTube o la que quieras. Se muestran en el contacto del sitio, en este orden.
+                </p>
+              </div>
+
+              <datalist id="social-link-suggestions">
+                {SOCIAL_NAME_SUGGESTIONS.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+
+              {formData.socialLinks.map((link, index) => {
+                const hasContent = link.name.trim() !== "" || link.url.trim() !== "";
+                const invalidUrl = hasContent && !isSafeSocialUrl(link.url.trim());
+                return (
+                  <div
+                    key={link.key}
+                    data-testid="social-link-row"
+                    className="rounded-xl border border-mauve/10 bg-white p-3 space-y-2"
+                  >
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)]">
+                      <input
+                        className="form-input"
+                        data-testid="social-link-name"
+                        list="social-link-suggestions"
+                        aria-label={`Nombre de la red ${index + 1}`}
+                        value={link.name}
+                        maxLength={MAX_SOCIAL_LINK_NAME_LENGTH}
+                        onChange={(e) => updateSocialLink(index, "name", e.target.value)}
+                        placeholder="Facebook"
+                      />
+                      {/* type="text" a propósito: con type="url" el navegador frena todo el
+                          guardado por una sola fila mal cargada. */}
+                      <input
+                        className="form-input"
+                        data-testid="social-link-url"
+                        type="text"
+                        inputMode="url"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        aria-label={`Link de la red ${index + 1}`}
+                        aria-invalid={invalidUrl}
+                        value={link.url}
+                        maxLength={MAX_SOCIAL_LINK_URL_LENGTH}
+                        onChange={(e) => updateSocialLink(index, "url", e.target.value)}
+                        placeholder="https://facebook.com/mistudio"
+                      />
+                    </div>
+                    {invalidUrl && (
+                      <p className="text-xs text-red-600">
+                        El link tiene que empezar con https:// — si no, esta red no se guarda.
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          data-testid="social-link-up"
+                          onClick={() => moveSocialLink(index, index - 1)}
+                          disabled={index === 0}
+                          aria-label="Subir"
+                          className="h-7 w-7 rounded-lg border border-mauve/15 text-charcoal/60 transition hover:text-charcoal disabled:opacity-30"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="social-link-down"
+                          onClick={() => moveSocialLink(index, index + 1)}
+                          disabled={index === formData.socialLinks.length - 1}
+                          aria-label="Bajar"
+                          className="h-7 w-7 rounded-lg border border-mauve/15 text-charcoal/60 transition hover:text-charcoal disabled:opacity-30"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        data-testid="social-link-remove"
+                        onClick={() => removeSocialLink(index)}
+                        className="text-xs font-medium text-red-600 hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  data-testid="social-link-add"
+                  onClick={addSocialLink}
+                  disabled={formData.socialLinks.length >= MAX_SOCIAL_LINKS}
+                >
+                  + Agregar red
+                </Button>
+                {formData.socialLinks.length >= MAX_SOCIAL_LINKS && (
+                  <p className="text-charcoal/40 text-xs">Llegaste al máximo de {MAX_SOCIAL_LINKS} redes.</p>
+                )}
               </div>
             </div>
           </div>

@@ -28,6 +28,9 @@ public class SiteConfig : ITenantScoped
     // Fotos del local (URLs de Cloudinary, en el orden que eligió el admin) para el
     // bloque "El local" de "Sobre nosotros" en el sitio público.
     public List<string> LocalPhotos { get; set; } = new();
+    // Redes que carga el admin (nombre libre + link), en el orden que eligió. Se suman
+    // a los campos fijos de WhatsApp/Instagram en el bloque de contacto del sitio público.
+    public List<SocialLink> SocialLinks { get; set; } = new();
     public string MetaDescription { get; set; } = string.Empty;
     // Destino de la acción REVIEW de Smart Tag para calificaciones altas (docs/NFC.md CU-03).
     public string? GoogleReviewUrl { get; set; }
@@ -35,4 +38,11 @@ public class SiteConfig : ITenantScoped
     // Google Places API (GooglePlacesService) y mostrarlas en el sitio público.
     public string? GooglePlaceId { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// Item de SiteConfig.SocialLinks (se guarda dentro de la columna jsonb, no es una tabla).
+public class SocialLink
+{
+    public string Name { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
 }

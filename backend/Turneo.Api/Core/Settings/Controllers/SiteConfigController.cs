@@ -45,6 +45,7 @@ public class SiteConfigController : ControllerBase
             config.HeroBadge,
             config.HeroHighlights,
             config.LocalPhotos,
+            config.SocialLinks,
             config.MetaDescription,
             config.GoogleReviewUrl,
             config.GooglePlaceId,
@@ -77,6 +78,7 @@ public class SiteConfigController : ControllerBase
         config.HeroBadge = request.HeroBadge;
         config.HeroHighlights = request.HeroHighlights ?? new List<string>();
         config.LocalPhotos = SanitizeLocalPhotos(request.LocalPhotos);
+        config.SocialLinks = SanitizeSocialLinks(request.SocialLinks);
         config.MetaDescription = request.MetaDescription;
         config.GoogleReviewUrl = request.GoogleReviewUrl;
         config.GooglePlaceId = request.GooglePlaceId;
@@ -97,6 +99,28 @@ public class SiteConfigController : ControllerBase
             .Distinct()
             .Take(MaxLocalPhotos)
             .ToList();
+
+    private const int MaxSocialLinks = 12;
+    private const int MaxSocialLinkNameLength = 40;
+    private const int MaxSocialLinkUrlLength = 300;
+    private const string SocialLinkUrlPrefix = "https://";
+
+    // Estas URLs terminan en un <a href> del sitio público: solo https absolutas,
+    // así nunca se guarda un "javascript:" o "data:". Además del esquema se exige
+    // el prefijo literal "https://": Uri acepta "https:host" (sin barras), que un
+    // navegador resuelve como ruta relativa al sitio. Lo inválido se descarta en
+    // silencio, igual que en SanitizeLocalPhotos.
+    private static List<SocialLink> SanitizeSocialLinks(List<SocialLinkRequest>? links) =>
+        (links ?? new List<SocialLinkRequest>())
+            .Select(l => new SocialLink { Name = l?.Name?.Trim() ?? string.Empty, Url = l?.Url?.Trim() ?? string.Empty })
+            .Where(l => l.Name.Length is > 0 and <= MaxSocialLinkNameLength)
+            .Where(l => l.Url.Length <= MaxSocialLinkUrlLength
+                && l.Url.StartsWith(SocialLinkUrlPrefix, StringComparison.Ordinal)
+                && Uri.TryCreate(l.Url, UriKind.Absolute, out var uri)
+                && uri.Scheme == Uri.UriSchemeHttps)
+            .DistinctBy(l => l.Url, StringComparer.OrdinalIgnoreCase)
+            .Take(MaxSocialLinks)
+            .ToList();
 }
 
 public record SiteConfigRequest(
@@ -116,5 +140,10 @@ public record SiteConfigRequest(
     string? GoogleReviewUrl,
     List<string>? HeroHighlights = null,
     string? GooglePlaceId = null,
-    List<string>? LocalPhotos = null
+    List<string>? LocalPhotos = null,
+    List<SocialLinkRequest>? SocialLinks = null
 );
+
+// Nullable a propósito: un item con name/url en null se descarta en el
+// sanitizado en vez de rechazar todo el PUT con un 400 de validación.
+public record SocialLinkRequest(string? Name, string? Url);
