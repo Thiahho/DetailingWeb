@@ -6,6 +6,10 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 
 interface Review {
   id: number;
@@ -30,6 +34,9 @@ export default function ResenasAdminPage() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const { toasts, showToast, removeToast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+  const bulk = useBulkSelection(items.map((r) => r.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -93,6 +100,66 @@ export default function ResenasAdminPage() {
     }
   };
 
+  const selectedReviews = items.filter((r) => bulk.isSelected(r.id));
+
+  // Avisa el resultado de una acción masiva y deja marcadas solo las que
+  // fallaron, para poder reintentar sin volver a elegirlas.
+  const finishBulk = (done: Review[], failed: Review[], doneTitle: string) => {
+    bulk.setSelection(failed.map((r) => r.id));
+    if (failed.length === 0) {
+      showToast("success", doneTitle, countLabel(done.length, "reseña", "reseñas"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? `${doneTitle} con errores` : "No se pudo completar",
+        `${done.length} listas, ${failed.length} con error (quedaron seleccionadas).`
+      );
+    }
+    loadItems();
+  };
+
+  // Aprobar/ocultar manda el mismo PUT (y los mismos cinco campos) que el
+  // botón de cada reseña en updateReview, con isApproved cambiado.
+  const bulkSetApproved = async (isApproved: boolean) => {
+    const targets = selectedReviews.filter((r) => r.isApproved !== isApproved);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (r) => {
+      const res = await fetch(`/api/reviews/${r.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authorName: r.authorName,
+          rating: r.rating,
+          comment: r.comment,
+          isApproved,
+          order: r.order,
+        }),
+      });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, isApproved ? "Reseñas aprobadas" : "Reseñas ocultadas");
+  };
+
+  const bulkDelete = async () => {
+    const targets = selectedReviews;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar reseñas",
+      message: `¿Eliminar ${countLabel(targets.length, "reseña", "reseñas")}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (r) => {
+      const res = await fetch(`/api/reviews/${r.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, "Reseñas eliminadas");
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
@@ -104,6 +171,7 @@ export default function ResenasAdminPage() {
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 md:mb-8">
@@ -118,15 +186,42 @@ export default function ResenasAdminPage() {
             <p className="text-charcoal/40 text-lg">Todavía no hay reseñas</p>
           </div>
         ) : (
+          <>
+          <BulkActionBar
+            count={bulk.count}
+            total={items.length}
+            allSelected={bulk.allSelected}
+            someSelected={bulk.someSelected}
+            onToggleAll={bulk.toggleAll}
+            onClear={bulk.clear}
+            busy={bulkBusy}
+            singular="reseña"
+            plural="reseñas"
+            feminine
+            testIdPrefix="review"
+            actions={[
+              { key: "approve", label: "Aprobar", onClick: () => bulkSetApproved(true), hidden: selectedReviews.every((r) => r.isApproved) },
+              { key: "hide", label: "Ocultar", onClick: () => bulkSetApproved(false), hidden: selectedReviews.every((r) => !r.isApproved) },
+              { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+            ]}
+          />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
               <div
                 key={item.id}
                 data-testid="review-card"
-                className={`bg-ivory border rounded-xl p-4 transition ${item.isApproved ? "border-mauve/15" : "border-orange-200 opacity-90"}`}
+                className={`bg-ivory border rounded-xl p-4 transition ${item.isApproved ? "border-mauve/15" : "border-orange-200 opacity-90"} ${bulk.isSelected(item.id) ? "ring-2 ring-blush" : ""}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="text-champagne text-lg leading-none">
+                  <BulkCheckbox
+                    checked={bulk.isSelected(item.id)}
+                    onChange={() => bulk.toggle(item.id)}
+                    disabled={bulkBusy}
+                    label={`Seleccionar reseña de ${item.authorName || "Cliente anónimo"}`}
+                    data-testid="review-select"
+                    className="-ml-2.5 -mt-2.5"
+                  />
+                  <div className="text-champagne text-lg leading-none flex-1 min-w-0">
                     {"★".repeat(item.rating) + "☆".repeat(5 - item.rating)}
                   </div>
                   <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${item.isApproved ? "bg-green-500/20 text-green-700" : "bg-orange-500/20 text-orange-700"}`}>
@@ -186,6 +281,7 @@ export default function ResenasAdminPage() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
     </div>

@@ -7,6 +7,10 @@ import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 
 interface Product {
   id: number;
@@ -34,6 +38,9 @@ export default function ProductosAdminPage() {
   const { toasts, showToast, removeToast } = useToast();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+  const bulk = useBulkSelection(products.map((p) => p.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -121,6 +128,60 @@ export default function ProductosAdminPage() {
     }
   };
 
+  const selectedProducts = products.filter((p) => bulk.isSelected(p.id));
+
+  // Avisa el resultado de una acción masiva y deja marcados solo los que
+  // fallaron, para poder reintentar sin volver a elegirlos.
+  const finishBulk = (done: Product[], failed: Product[], doneTitle: string) => {
+    bulk.setSelection(failed.map((p) => p.id));
+    if (failed.length === 0) {
+      showToast("success", doneTitle, countLabel(done.length, "producto", "productos"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? `${doneTitle} con errores` : "No se pudo completar",
+        `${done.length} listos, ${failed.length} con error (quedaron seleccionados).`
+      );
+    }
+    loadProducts();
+  };
+
+  // Activar/desactivar reenvía el producto por el mismo PUT que el formulario
+  // de edición (mismos cuatro campos), con isActive cambiado.
+  const bulkSetActive = async (isActive: boolean) => {
+    const targets = selectedProducts.filter((p) => p.isActive !== isActive);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (p) => {
+      const res = await fetch(`/api/products/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: p.name, price: p.price, isActive, order: p.order }),
+      });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, isActive ? "Productos activados" : "Productos desactivados");
+  };
+
+  const bulkDelete = async () => {
+    const targets = selectedProducts;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar productos",
+      message: `¿Eliminar ${countLabel(targets.length, "producto", "productos")}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (p) => {
+      const res = await fetch(`/api/products/${p.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, "Productos eliminados");
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
@@ -133,6 +194,7 @@ export default function ProductosAdminPage() {
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       {/* Toasts */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-4xl">
         {/* Header */}
@@ -159,10 +221,29 @@ export default function ProductosAdminPage() {
             </button>
           </div>
         ) : (
+          <>
+          <BulkActionBar
+            count={bulk.count}
+            total={products.length}
+            allSelected={bulk.allSelected}
+            someSelected={bulk.someSelected}
+            onToggleAll={bulk.toggleAll}
+            onClear={bulk.clear}
+            busy={bulkBusy}
+            singular="producto"
+            plural="productos"
+            testIdPrefix="product"
+            actions={[
+              { key: "activate", label: "Activar", onClick: () => bulkSetActive(true), hidden: selectedProducts.every((p) => p.isActive) },
+              { key: "deactivate", label: "Desactivar", onClick: () => bulkSetActive(false), hidden: selectedProducts.every((p) => !p.isActive) },
+              { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+            ]}
+          />
           <div className="bg-ivory border border-mauve/5 rounded-2xl overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-mauve/5 text-charcoal/30 text-xs uppercase tracking-wider">
+                  <th className="w-10 pl-2" />
                   <th className="text-left px-5 py-3 font-medium">Nombre</th>
                   <th className="text-left px-5 py-3 font-medium">Precio</th>
                   <th className="text-left px-5 py-3 font-medium">Estado</th>
@@ -171,7 +252,21 @@ export default function ProductosAdminPage() {
               </thead>
               <tbody>
                 {products.map((product) => (
-                  <tr key={product.id} data-testid="product-row" data-product-name={product.name} className="border-b border-mauve/5 last:border-0">
+                  <tr
+                    key={product.id}
+                    data-testid="product-row"
+                    data-product-name={product.name}
+                    className={`border-b border-mauve/5 last:border-0 ${bulk.isSelected(product.id) ? "bg-blush/10" : ""}`}
+                  >
+                    <td className="pl-2">
+                      <BulkCheckbox
+                        checked={bulk.isSelected(product.id)}
+                        onChange={() => bulk.toggle(product.id)}
+                        disabled={bulkBusy}
+                        label={`Seleccionar ${product.name}`}
+                        data-testid="product-select"
+                      />
+                    </td>
                     <td className="px-5 py-4 text-charcoal font-medium">{product.name}</td>
                     <td className="px-5 py-4 text-charcoal/60">${product.price.toLocaleString("es-AR")}</td>
                     <td className="px-5 py-4">
@@ -224,6 +319,7 @@ export default function ProductosAdminPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

@@ -9,6 +9,10 @@ import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 import { VideoPreview, PlatformIcon } from "@/src/components/public/FeaturedContent";
 import { SOCIAL_LABEL, socialPlatform } from "@/src/lib/cloudinaryMedia";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 
 interface ContentVideo {
   id: number;
@@ -41,6 +45,9 @@ export default function ContenidoAdminPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const closeForm = () => setShowForm(false);
   useModalHotkeys(showForm, { onClose: closeForm, onSubmit: () => formRef.current?.requestSubmit() });
+  const { confirm, ConfirmDialog } = useConfirm();
+  const bulk = useBulkSelection(videos.map((v) => v.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const loadVideos = useCallback(async () => {
     try {
@@ -116,11 +123,73 @@ export default function ContenidoAdminPage() {
     }
   };
 
+  const selectedVideos = videos.filter((v) => bulk.isSelected(v.id));
+
+  // Avisa el resultado de una acción masiva y deja marcados solo los que
+  // fallaron, para poder reintentar sin volver a elegirlos.
+  const finishBulk = (done: ContentVideo[], failed: ContentVideo[], doneTitle: string) => {
+    bulk.setSelection(failed.map((v) => v.id));
+    if (failed.length === 0) {
+      showToast("success", doneTitle, countLabel(done.length, "video", "videos"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? `${doneTitle} con errores` : "No se pudo completar",
+        `${done.length} listos, ${failed.length} con error (quedaron seleccionados).`
+      );
+    }
+    loadVideos();
+  };
+
+  // Activar/desactivar reenvía el video por el mismo PUT que el formulario
+  // de edición (mismos seis campos), con isActive cambiado.
+  const bulkSetActive = async (isActive: boolean) => {
+    const targets = selectedVideos.filter((v) => v.isActive !== isActive);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (v) => {
+      const res = await fetch(`/api/content-videos/${v.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: v.title,
+          videoUrl: v.videoUrl,
+          thumbnailUrl: v.thumbnailUrl,
+          linkUrl: v.linkUrl ?? "",
+          isActive,
+          order: v.order,
+        }),
+      });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, isActive ? "Videos activados" : "Videos desactivados");
+  };
+
+  const bulkDelete = async () => {
+    const targets = selectedVideos;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar videos",
+      message: `¿Eliminar ${countLabel(targets.length, "video", "videos")}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (v) => {
+      const res = await fetch(`/api/content-videos/${v.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, "Videos eliminados");
+  };
+
   if (loading) return <div className="p-6 text-charcoal">Cargando contenido...</div>;
 
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between">
@@ -133,13 +202,31 @@ export default function ContenidoAdminPage() {
           </Button>
         </div>
 
+        <BulkActionBar
+          count={bulk.count}
+          total={videos.length}
+          allSelected={bulk.allSelected}
+          someSelected={bulk.someSelected}
+          onToggleAll={bulk.toggleAll}
+          onClear={bulk.clear}
+          busy={bulkBusy}
+          singular="video"
+          plural="videos"
+          testIdPrefix="content"
+          actions={[
+            { key: "activate", label: "Activar", onClick: () => bulkSetActive(true), hidden: selectedVideos.every((v) => v.isActive) },
+            { key: "deactivate", label: "Desactivar", onClick: () => bulkSetActive(false), hidden: selectedVideos.every((v) => !v.isActive) },
+            { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+          ]}
+        />
+
         {/* Una sola superficie por card: el video va a sangre arriba (sin marco
             ni redondeo propio) y los datos debajo, en vez de una caja dentro de otra. */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
           {videos.map((video) => {
             const platform = socialPlatform(video.linkUrl);
             return (
-            <div key={video.id} data-testid="video-card" data-video-title={video.title} className="flex flex-col overflow-hidden rounded-xl border border-mauve/10 bg-ivory">
+            <div key={video.id} data-testid="video-card" data-video-title={video.title} className={`flex flex-col overflow-hidden rounded-xl border border-mauve/10 bg-ivory ${bulk.isSelected(video.id) ? "ring-2 ring-blush" : ""}`}>
               <div className="relative aspect-[9/16] bg-porcelain">
                 <VideoPreview video={video} />
                 <span
@@ -164,8 +251,20 @@ export default function ContenidoAdminPage() {
                 )}
               </div>
               <div className="flex flex-1 flex-col p-3">
-                <p className="line-clamp-2 text-sm font-semibold text-charcoal">{video.title}</p>
-                <p className="mt-0.5 text-xs text-charcoal/60">Orden: {video.order}</p>
+                <div className="flex items-start gap-1">
+                  <BulkCheckbox
+                    checked={bulk.isSelected(video.id)}
+                    onChange={() => bulk.toggle(video.id)}
+                    disabled={bulkBusy}
+                    label={`Seleccionar ${video.title}`}
+                    data-testid="content-select"
+                    className="-ml-2.5 -mt-2.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="line-clamp-2 text-sm font-semibold text-charcoal">{video.title}</p>
+                    <p className="mt-0.5 text-xs text-charcoal/60">Orden: {video.order}</p>
+                  </div>
+                </div>
                 <div className="mt-auto flex flex-wrap gap-2 pt-3">
                   <Button onClick={() => openEdit(video)} data-testid="video-edit-button" variant="secondary" size="sm" className="flex-1">Editar</Button>
                   <Button onClick={() => handleDelete(video.id)} data-testid="video-delete-button" variant="danger" size="sm" className="flex-1">Eliminar</Button>

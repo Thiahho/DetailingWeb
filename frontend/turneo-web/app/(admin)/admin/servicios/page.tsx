@@ -7,6 +7,10 @@ import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 import type { Service, InsumoOption } from "./_components/ServiceFormModal";
 import { distinctCategories } from "@/src/components/forms/CategoryCombobox";
 
@@ -24,6 +28,9 @@ export default function ServiciosAdminPage() {
   const { toasts, showToast, removeToast } = useToast();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [insumosCatalog, setInsumosCatalog] = useState<InsumoOption[]>([]);
+  const { confirm, ConfirmDialog } = useConfirm();
+  const bulk = useBulkSelection(services.map((s) => s.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -85,6 +92,60 @@ export default function ServiciosAdminPage() {
     }
   };
 
+  const selectedServices = services.filter((s) => bulk.isSelected(s.id));
+
+  // Avisa el resultado de una acción masiva y deja marcados solo los que
+  // fallaron, para poder reintentar sin volver a elegirlos.
+  const finishBulk = (done: Service[], failed: Service[], doneTitle: string) => {
+    bulk.setSelection(failed.map((s) => s.id));
+    if (failed.length === 0) {
+      showToast("success", doneTitle, countLabel(done.length, "servicio", "servicios"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? `${doneTitle} con errores` : "No se pudo completar",
+        `${done.length} listos, ${failed.length} con error (quedaron seleccionados).`
+      );
+    }
+    loadServices();
+  };
+
+  // Activar/desactivar reenvía el servicio por el mismo PUT que el formulario
+  // de edición, con isActive cambiado. La receta de insumos va por otro
+  // endpoint y no se toca.
+  const bulkSetActive = async (isActive: boolean) => {
+    const targets = selectedServices.filter((s) => s.isActive !== isActive);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async ({ id, ...rest }) => {
+      const res = await fetch(`/api/services/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...rest, customFieldsSchema: rest.customFieldsSchema ?? null, isActive }),
+      });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, isActive ? "Servicios activados" : "Servicios desactivados");
+  };
+
+  const bulkDelete = async () => {
+    const targets = selectedServices;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar servicios",
+      message: `¿Eliminar ${countLabel(targets.length, "servicio", "servicios")}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (s) => {
+      const res = await fetch(`/api/services/${s.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, "Servicios eliminados");
+  };
 
   if (loading) {
     return (
@@ -97,6 +158,7 @@ export default function ServiciosAdminPage() {
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-6xl">
         {/* Header */}
@@ -123,6 +185,24 @@ export default function ServiciosAdminPage() {
             </button>
           </div>
         ) : (
+          <>
+          <BulkActionBar
+            count={bulk.count}
+            total={services.length}
+            allSelected={bulk.allSelected}
+            someSelected={bulk.someSelected}
+            onToggleAll={bulk.toggleAll}
+            onClear={bulk.clear}
+            busy={bulkBusy}
+            singular="servicio"
+            plural="servicios"
+            testIdPrefix="service"
+            actions={[
+              { key: "activate", label: "Activar", onClick: () => bulkSetActive(true), hidden: selectedServices.every((s) => s.isActive) },
+              { key: "deactivate", label: "Desactivar", onClick: () => bulkSetActive(false), hidden: selectedServices.every((s) => !s.isActive) },
+              { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+            ]}
+          />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {services.map((service) => (
               <div
@@ -131,7 +211,7 @@ export default function ServiciosAdminPage() {
                 data-service-title={service.title}
                 className={`bg-ivory border rounded-xl overflow-hidden transition ${
                   service.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"
-                }`}
+                } ${bulk.isSelected(service.id) ? "ring-2 ring-blush" : ""}`}
               >
                 {/* Imagen */}
                 {service.imageUrl && (
@@ -146,7 +226,15 @@ export default function ServiciosAdminPage() {
 
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-charcoal font-semibold text-[15px] leading-tight flex items-center gap-2">
+                    <BulkCheckbox
+                      checked={bulk.isSelected(service.id)}
+                      onChange={() => bulk.toggle(service.id)}
+                      disabled={bulkBusy}
+                      label={`Seleccionar ${service.title}`}
+                      data-testid="service-select"
+                      className="-ml-2.5 -mt-2.5"
+                    />
+                    <h3 className="text-charcoal font-semibold text-[15px] leading-tight flex items-center gap-2 flex-1 min-w-0">
                       <span
                         className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: service.color }}
@@ -221,6 +309,7 @@ export default function ServiciosAdminPage() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 

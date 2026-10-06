@@ -8,6 +8,10 @@ import CloudinaryUpload from "@/src/components/forms/CloudinaryUpload";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 
 interface GalleryItem {
   id: number;
@@ -30,6 +34,9 @@ export default function GaleriaAdminPage() {
   const [formData, setFormData] = useState(emptyForm);
   const { toasts, showToast, removeToast } = useToast();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+  const bulk = useBulkSelection(items.map((i) => i.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
@@ -109,6 +116,60 @@ export default function GaleriaAdminPage() {
     }
   };
 
+  const selectedItems = items.filter((i) => bulk.isSelected(i.id));
+
+  // Avisa el resultado de una acción masiva y deja marcadas solo las que
+  // fallaron, para poder reintentar sin volver a elegirlas.
+  const finishBulk = (done: GalleryItem[], failed: GalleryItem[], doneTitle: string) => {
+    bulk.setSelection(failed.map((i) => i.id));
+    if (failed.length === 0) {
+      showToast("success", doneTitle, countLabel(done.length, "imagen", "imágenes"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? `${doneTitle} con errores` : "No se pudo completar",
+        `${done.length} listas, ${failed.length} con error (quedaron seleccionadas).`
+      );
+    }
+    loadItems();
+  };
+
+  // Activar/desactivar reenvía la imagen por el mismo PUT que el formulario
+  // de edición (mismos cinco campos), con isActive cambiado.
+  const bulkSetActive = async (isActive: boolean) => {
+    const targets = selectedItems.filter((i) => i.isActive !== isActive);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (i) => {
+      const res = await fetch(`/api/gallery/${i.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: i.title, tag: i.tag, imageUrl: i.imageUrl, isActive, order: i.order }),
+      });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, isActive ? "Imágenes activadas" : "Imágenes desactivadas");
+  };
+
+  const bulkDelete = async () => {
+    const targets = selectedItems;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar imágenes",
+      message: `¿Eliminar ${countLabel(targets.length, "imagen", "imágenes")}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (i) => {
+      const res = await fetch(`/api/gallery/${i.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, "Imágenes eliminadas");
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
@@ -120,6 +181,7 @@ export default function GaleriaAdminPage() {
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 md:mb-8 flex items-center justify-between gap-4">
@@ -142,20 +204,47 @@ export default function GaleriaAdminPage() {
             </button>
           </div>
         ) : (
+          <>
+          <BulkActionBar
+            count={bulk.count}
+            total={items.length}
+            allSelected={bulk.allSelected}
+            someSelected={bulk.someSelected}
+            onToggleAll={bulk.toggleAll}
+            onClear={bulk.clear}
+            busy={bulkBusy}
+            singular="imagen"
+            plural="imágenes"
+            feminine
+            testIdPrefix="gallery"
+            actions={[
+              { key: "activate", label: "Activar", onClick: () => bulkSetActive(true), hidden: selectedItems.every((i) => i.isActive) },
+              { key: "deactivate", label: "Desactivar", onClick: () => bulkSetActive(false), hidden: selectedItems.every((i) => !i.isActive) },
+              { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+            ]}
+          />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
               <div
                 key={item.id}
                 data-testid="gallery-card"
                 data-item-title={item.title}
-                className={`bg-ivory border rounded-xl overflow-hidden transition ${item.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"}`}
+                className={`bg-ivory border rounded-xl overflow-hidden transition ${item.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"} ${bulk.isSelected(item.id) ? "ring-2 ring-blush" : ""}`}
               >
                 <div className="h-44 overflow-hidden">
                   <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="text-charcoal font-semibold text-[15px]">{item.title}</h3>
+                    <BulkCheckbox
+                      checked={bulk.isSelected(item.id)}
+                      onChange={() => bulk.toggle(item.id)}
+                      disabled={bulkBusy}
+                      label={`Seleccionar ${item.title}`}
+                      data-testid="gallery-select"
+                      className="-ml-2.5 -mt-2.5"
+                    />
+                    <h3 className="text-charcoal font-semibold text-[15px] flex-1 min-w-0">{item.title}</h3>
                     <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${item.isActive ? "bg-green-500/20 text-green-700" : "bg-orange-500/20 text-orange-700"}`}>
                       {item.isActive ? "ACTIVO" : "INACTIVO"}
                     </span>
@@ -184,6 +273,7 @@ export default function GaleriaAdminPage() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 

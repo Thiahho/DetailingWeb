@@ -9,6 +9,10 @@ import PasswordInput from "@/src/components/ui/PasswordInput";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 
 interface ServiceOption {
   id: number;
@@ -102,6 +106,9 @@ export default function ProfesionalesAdminPage() {
   const [savingAccess, setSavingAccess] = useState(false);
   const [telegramChatId, setTelegramChatId] = useState("");
   const [savingTelegram, setSavingTelegram] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
+  const bulk = useBulkSelection(professionals.map((p) => p.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -299,6 +306,78 @@ export default function ProfesionalesAdminPage() {
     }
   };
 
+  const selectedProfessionals = professionals.filter((p) => bulk.isSelected(p.id));
+
+  // Avisa el resultado de una acción masiva y deja marcados solo los que
+  // fallaron, para poder reintentar sin volver a elegirlos.
+  const finishBulk = (done: Professional[], failed: Professional[], doneTitle: string) => {
+    bulk.setSelection(failed.map((p) => p.id));
+    if (failed.length === 0) {
+      showToast("success", doneTitle, countLabel(done.length, "profesional", "profesionales"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? `${doneTitle} con errores` : "No se pudo completar",
+        `${done.length} listos, ${failed.length} con error (quedaron seleccionados).`
+      );
+    }
+    loadProfessionals();
+  };
+
+  // Activar/desactivar reenvía el profesional por el mismo PUT que el
+  // formulario de edición, con isActive cambiado. Horario y habilidades van
+  // con el JSON crudo del listado (sin pasar por el form, que rellenaría un
+  // horario por defecto) y los servicios se reenvían porque ese PUT los
+  // reemplaza. El acceso al sistema y Telegram van por otros endpoints.
+  const bulkSetActive = async (isActive: boolean) => {
+    const targets = selectedProfessionals.filter((p) => p.isActive !== isActive);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (p) => {
+      const res = await fetch(`/api/professionals/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email ?? null,
+          photoUrl: p.photoUrl,
+          calendarColor: p.calendarColor,
+          specialty: p.specialty,
+          bio: p.bio,
+          yearsOfExperience: p.yearsOfExperience,
+          skills: p.skills,
+          commission: p.commission,
+          schedule: p.schedule,
+          isActive,
+          order: p.order,
+          serviceIds: p.services.map((s) => s.id),
+        }),
+      });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, isActive ? "Profesionales activados" : "Profesionales desactivados");
+  };
+
+  const bulkDelete = async () => {
+    const targets = selectedProfessionals;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar profesionales",
+      message: `¿Eliminar ${countLabel(targets.length, "profesional", "profesionales")}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (p) => {
+      const res = await fetch(`/api/professionals/${p.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, "Profesionales eliminados");
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
@@ -310,6 +389,7 @@ export default function ProfesionalesAdminPage() {
   return (
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-6xl">
         {/* Header */}
@@ -336,6 +416,24 @@ export default function ProfesionalesAdminPage() {
             </button>
           </div>
         ) : (
+          <>
+          <BulkActionBar
+            count={bulk.count}
+            total={professionals.length}
+            allSelected={bulk.allSelected}
+            someSelected={bulk.someSelected}
+            onToggleAll={bulk.toggleAll}
+            onClear={bulk.clear}
+            busy={bulkBusy}
+            singular="profesional"
+            plural="profesionales"
+            testIdPrefix="professional"
+            actions={[
+              { key: "activate", label: "Activar", onClick: () => bulkSetActive(true), hidden: selectedProfessionals.every((p) => p.isActive) },
+              { key: "deactivate", label: "Desactivar", onClick: () => bulkSetActive(false), hidden: selectedProfessionals.every((p) => !p.isActive) },
+              { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+            ]}
+          />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {professionals.map((professional) => (
               <div
@@ -344,7 +442,7 @@ export default function ProfesionalesAdminPage() {
                 data-professional-name={`${professional.firstName} ${professional.lastName}`}
                 className={`bg-ivory border rounded-xl overflow-hidden transition ${
                   professional.isActive ? "border-mauve/15" : "border-orange-200 opacity-60"
-                }`}
+                } ${bulk.isSelected(professional.id) ? "ring-2 ring-blush" : ""}`}
               >
                 {/* Imagen */}
                 {professional.photoUrl && (
@@ -359,7 +457,15 @@ export default function ProfesionalesAdminPage() {
 
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <BulkCheckbox
+                      checked={bulk.isSelected(professional.id)}
+                      onChange={() => bulk.toggle(professional.id)}
+                      disabled={bulkBusy}
+                      label={`Seleccionar ${professional.firstName} ${professional.lastName}`}
+                      data-testid="professional-select"
+                      className="-ml-2.5 -mt-2.5"
+                    />
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span
                         className="shrink-0 h-3 w-3 rounded-full border border-mauve/20"
                         style={{ backgroundColor: professional.calendarColor }}
@@ -440,6 +546,7 @@ export default function ProfesionalesAdminPage() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 

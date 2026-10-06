@@ -8,6 +8,10 @@ import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { Button } from "@/src/components/shared/Button";
 import CategoryCombobox, { distinctCategories } from "@/src/components/forms/CategoryCombobox";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 
 interface Insumo {
   id: number;
@@ -62,6 +66,9 @@ export default function InsumosAdminPage() {
   const [formData, setFormData] = useState(emptyForm);
   const { toasts, showToast, removeToast } = useToast();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+  const bulk = useBulkSelection(insumos.map((i) => i.id));
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -153,6 +160,69 @@ export default function InsumosAdminPage() {
     }
   };
 
+  const selectedInsumos = insumos.filter((i) => bulk.isSelected(i.id));
+
+  // Avisa el resultado de una acción masiva y deja marcados solo los que
+  // fallaron, para poder reintentar sin volver a elegirlos.
+  const finishBulk = (done: Insumo[], failed: Insumo[], doneTitle: string) => {
+    bulk.setSelection(failed.map((i) => i.id));
+    if (failed.length === 0) {
+      showToast("success", doneTitle, countLabel(done.length, "insumo", "insumos"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? `${doneTitle} con errores` : "No se pudo completar",
+        `${done.length} listos, ${failed.length} con error (quedaron seleccionados).`
+      );
+    }
+    loadInsumos();
+  };
+
+  // Activar/desactivar reenvía el insumo por el mismo PUT que el formulario
+  // de edición, con isActive cambiado. El stock viaja tal cual está en el
+  // listado: ese PUT también lo pisa.
+  const bulkSetActive = async (isActive: boolean) => {
+    const targets = selectedInsumos.filter((i) => i.isActive !== isActive);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (i) => {
+      const res = await fetch(`/api/insumos/${i.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: i.name,
+          stock: i.stock,
+          lowStockThreshold: i.lowStockThreshold,
+          unitCost: i.unitCost,
+          category: i.category ?? "",
+          isActive,
+          order: i.order,
+        }),
+      });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, isActive ? "Insumos activados" : "Insumos desactivados");
+  };
+
+  const bulkDelete = async () => {
+    const targets = selectedInsumos;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar insumos",
+      message: `¿Eliminar ${countLabel(targets.length, "insumo", "insumos")}? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (i) => {
+      const res = await fetch(`/api/insumos/${i.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    finishBulk(done, failed, "Insumos eliminados");
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream">
@@ -165,6 +235,7 @@ export default function InsumosAdminPage() {
     <div className="min-h-screen bg-cream p-4 md:p-6 font-sans">
       {/* Toasts */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      {ConfirmDialog}
 
       <div className="mx-auto max-w-4xl">
         {/* Header */}
@@ -191,10 +262,29 @@ export default function InsumosAdminPage() {
             </button>
           </div>
         ) : (
+          <>
+          <BulkActionBar
+            count={bulk.count}
+            total={insumos.length}
+            allSelected={bulk.allSelected}
+            someSelected={bulk.someSelected}
+            onToggleAll={bulk.toggleAll}
+            onClear={bulk.clear}
+            busy={bulkBusy}
+            singular="insumo"
+            plural="insumos"
+            testIdPrefix="insumo"
+            actions={[
+              { key: "activate", label: "Activar", onClick: () => bulkSetActive(true), hidden: selectedInsumos.every((i) => i.isActive) },
+              { key: "deactivate", label: "Desactivar", onClick: () => bulkSetActive(false), hidden: selectedInsumos.every((i) => !i.isActive) },
+              { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+            ]}
+          />
           <div className="bg-ivory border border-mauve/5 rounded-2xl overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-mauve/5 text-charcoal/30 text-xs uppercase tracking-wider">
+                  <th className="w-10 pl-2" />
                   <th className="text-left px-5 py-3 font-medium">Nombre</th>
                   <th className="text-left px-5 py-3 font-medium">Categoría</th>
                   <th className="text-left px-5 py-3 font-medium">Stock</th>
@@ -205,7 +295,21 @@ export default function InsumosAdminPage() {
               </thead>
               <tbody>
                 {insumos.map((insumo) => (
-                  <tr key={insumo.id} data-testid="insumo-row" data-insumo-name={insumo.name} className="border-b border-mauve/5 last:border-0">
+                  <tr
+                    key={insumo.id}
+                    data-testid="insumo-row"
+                    data-insumo-name={insumo.name}
+                    className={`border-b border-mauve/5 last:border-0 ${bulk.isSelected(insumo.id) ? "bg-blush/10" : ""}`}
+                  >
+                    <td className="pl-2">
+                      <BulkCheckbox
+                        checked={bulk.isSelected(insumo.id)}
+                        onChange={() => bulk.toggle(insumo.id)}
+                        disabled={bulkBusy}
+                        label={`Seleccionar ${insumo.name}`}
+                        data-testid="insumo-select"
+                      />
+                    </td>
                     <td className="px-5 py-4 text-charcoal font-medium">{insumo.name}</td>
                     <td className="px-5 py-4 text-charcoal/60">{insumo.category || "—"}</td>
                     <td className="px-5 py-4 text-charcoal/60">
@@ -265,6 +369,7 @@ export default function InsumosAdminPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
 import { Plus, ChevronLeft, Bell, BellOff, Pencil, Trash2, X, Check, Clock, RefreshCw, Cake, Instagram as InstagramIcon, Star, History } from "lucide-react";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
+import { useToast, ToastContainer } from "@/src/components/shared/Toast";
+import BulkActionBar, { BulkCheckbox } from "@/src/components/dashboard/BulkActionBar";
+import { useBulkSelection } from "@/src/hooks/useBulkSelection";
+import { countLabel, runBulk } from "@/src/lib/bulk";
 import Modal from "./_components/Modal";
 import type { Customer } from "./_components/types";
 import type { CustomerFormData } from "./_components/CustomerFormModal";
@@ -152,6 +156,8 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const { confirm, ConfirmDialog } = useConfirm();
+  const { toasts, showToast, removeToast } = useToast();
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // detail view
   const [selected, setSelected] = useState<Customer | null>(null);
@@ -293,10 +299,47 @@ export default function ClientesPage() {
       (c.email ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
+  // ── bulk delete ────────────────────────────────────────────────
+  // La selección va sobre lo que deja ver el buscador: al cambiar la búsqueda,
+  // lo que queda fuera se desmarca solo.
+  const bulk = useBulkSelection(filtered.map((c) => c.id));
+  const selectedCustomers = filtered.filter((c) => bulk.isSelected(c.id));
+
+  async function bulkDelete() {
+    const targets = selectedCustomers;
+    if (targets.length === 0) return;
+    const ok = await confirm({
+      title: "Eliminar clientes",
+      message: `¿Eliminar ${countLabel(targets.length, "cliente", "clientes")}? Se borrarán también sus recordatorios. Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    const { done, failed } = await runBulk(targets, async (c) => {
+      const res = await fetch(`/api/reminders/customers/${c.id}`, { method: "DELETE" });
+      return res.ok;
+    });
+    setBulkBusy(false);
+    // Deja marcados solo los que fallaron, para poder reintentar.
+    bulk.setSelection(failed.map((c) => c.id));
+    if (selected && done.some((c) => c.id === selected.id)) setSelected(null);
+    if (failed.length === 0) {
+      showToast("success", "Clientes eliminados", countLabel(done.length, "cliente", "clientes"));
+    } else {
+      showToast(
+        done.length > 0 ? "warning" : "error",
+        done.length > 0 ? "Clientes eliminados con errores" : "No se pudo completar",
+        `${done.length} listos, ${failed.length} con error (quedaron seleccionados).`
+      );
+    }
+    loadCustomers();
+  }
+
   // ── render ─────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-cream text-charcoal">
       {ConfirmDialog}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       {/* ── modals ── */}
       {(showCustomerForm || editingCustomer) && (
         <CustomerFormModal
@@ -615,24 +658,53 @@ export default function ClientesPage() {
                   </p>
                 </div>
               ) : (
+                <>
+                <BulkActionBar
+                  count={bulk.count}
+                  total={filtered.length}
+                  allSelected={bulk.allSelected}
+                  someSelected={bulk.someSelected}
+                  onToggleAll={bulk.toggleAll}
+                  onClear={bulk.clear}
+                  busy={bulkBusy}
+                  singular="cliente"
+                  plural="clientes"
+                  testIdPrefix="customer"
+                  actions={[
+                    { key: "delete", label: "Eliminar", onClick: bulkDelete, variant: "danger" },
+                  ]}
+                />
                 <div className="space-y-2">
                   {filtered.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => selectCustomer(c)}
-                      data-testid="customer-list-item"
-                      data-customer-name={c.name}
-                      className="w-full text-left flex items-center justify-between bg-porcelain border border-mauve/15 hover:border-mauve/30 rounded-xl px-4 py-3 transition group"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-charcoal text-sm font-medium">{c.name}</p>
-                        <p className="text-charcoal/40 text-xs">{c.phone}{c.email ? ` · ${c.email}` : ""}</p>
-                        {c.notes && <p className="text-charcoal/25 text-xs truncate max-w-xs">{c.notes}</p>}
-                      </div>
-                      <ChevronLeft size={16} className="text-charcoal/20 group-hover:text-charcoal/50 rotate-180 transition" />
-                    </button>
+                    // La casilla va al lado y no adentro: toda la fila es un
+                    // <button> que abre la ficha del cliente.
+                    <div key={c.id} className="flex items-center gap-1">
+                      <BulkCheckbox
+                        checked={bulk.isSelected(c.id)}
+                        onChange={() => bulk.toggle(c.id)}
+                        disabled={bulkBusy}
+                        label={`Seleccionar ${c.name}`}
+                        data-testid="customer-select"
+                      />
+                      <button
+                        onClick={() => selectCustomer(c)}
+                        data-testid="customer-list-item"
+                        data-customer-name={c.name}
+                        className={`flex-1 min-w-0 text-left flex items-center justify-between bg-porcelain border border-mauve/15 hover:border-mauve/30 rounded-xl px-4 py-3 transition group ${
+                          bulk.isSelected(c.id) ? "ring-2 ring-blush" : ""
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-charcoal text-sm font-medium">{c.name}</p>
+                          <p className="text-charcoal/40 text-xs">{c.phone}{c.email ? ` · ${c.email}` : ""}</p>
+                          {c.notes && <p className="text-charcoal/25 text-xs truncate max-w-xs">{c.notes}</p>}
+                        </div>
+                        <ChevronLeft size={16} className="text-charcoal/20 group-hover:text-charcoal/50 rotate-180 transition" />
+                      </button>
+                    </div>
                   ))}
                 </div>
+                </>
               )}
             </div>
           )}
