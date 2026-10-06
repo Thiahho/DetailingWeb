@@ -148,6 +148,30 @@ export default async function globalSetup() {
     throw new Error(`No se pudo generar turnos de e2e: ${settingsRes.status} ${await settingsRes.text()}`);
   }
 
+  // La base de e2e no se resetea entre corridas (deliberado), y cada corrida
+  // deja varios turnos reservados. Tras unas 9 corridas el mismo día no
+  // quedaba ninguno libre y este setup fallaba con "No quedan turnos
+  // disponibles". Se liberan los turnos futuros que tomaron corridas
+  // anteriores: solo los de clientes de e2e (todos llevan "E2E" en el nombre).
+  const allSlotsRes = await fetch(`${API_URL}/api/timeslots`, { headers: authHeaders });
+  if (allSlotsRes.ok) {
+    const allSlots = (await allSlotsRes.json()) as {
+      id: number;
+      startDateTime: string;
+      isAvailable: boolean;
+      booking?: { customerName?: string | null } | null;
+    }[];
+    const stale = allSlots.filter(
+      (slot) =>
+        !slot.isAvailable &&
+        new Date(slot.startDateTime).getTime() > Date.now() &&
+        /e2e/i.test(slot.booking?.customerName ?? "")
+    );
+    for (const slot of stale) {
+      await fetch(`${API_URL}/api/timeslots/${slot.id}/release`, { method: "PUT", headers: authHeaders });
+    }
+  }
+
   // Reservas sembradas para el portal "Mis turnos" (búsqueda anónima por
   // email, sin OTP — ver docs/auditoriabelleza_0507.md sección 9): una para
   // cancelar, otra para reprogramar. Se crean vía POST /api/bookings público
