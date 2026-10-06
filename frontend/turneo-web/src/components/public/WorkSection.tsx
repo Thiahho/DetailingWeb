@@ -24,7 +24,8 @@ interface WorkSectionProps {
 }
 
 // Galería y Contenido en una sola sección: una cinta de fotos que se mueve
-// sola (se pausa con el mouse encima) y, debajo, la fila de reels.
+// sola (se pausa con el mouse encima) y, debajo, la cinta de reels, que se
+// mueve en sentido contrario.
 export default function WorkSection({ gallery, videos, profileUrl }: WorkSectionProps) {
   const [tab, setTab] = useState<Tab>("Todo");
   const hasPhotos = gallery.length > 0;

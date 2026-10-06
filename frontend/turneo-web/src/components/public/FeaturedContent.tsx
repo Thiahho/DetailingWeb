@@ -70,7 +70,11 @@ export function PlatformIcon({ platform, size = 14 }: { platform: "instagram" | 
 }
 
 const CARD =
-  "group relative block aspect-[9/16] w-40 overflow-hidden rounded-3xl bg-inksoft sm:w-52";
+  "group relative block aspect-[9/16] w-40 shrink-0 overflow-hidden rounded-3xl bg-inksoft sm:w-52";
+
+// La cinta necesita cards de sobra para llenar pantallas anchas: con pocos
+// videos se repite la lista hasta llegar a este mínimo (igual que la de fotos).
+const MIN_MARQUEE_ITEMS = 8;
 
 interface FeaturedContentProps {
   videos: FeaturedVideo[];
@@ -79,14 +83,20 @@ interface FeaturedContentProps {
   profileUrl?: string;
 }
 
-// Fila deslizable de reels (previews de 5 s que llevan al posteo en
-// Instagram/TikTok). Solo la fila: el encabezado lo pone WorkSection.
+// Cinta de reels (previews de 5 s que llevan al posteo en Instagram/TikTok)
+// que se mueve sola en sentido contrario a la cinta de fotos de WorkSection, y
+// se pausa con el mouse o el foco encima. Solo la cinta: el encabezado lo pone
+// WorkSection.
 export default function FeaturedContent({ videos, profileUrl }: FeaturedContentProps) {
   if (videos.length === 0) return null;
 
-  return (
-    <div className="snap-row gap-4 px-6 pb-2 [scroll-padding-left:1.5rem] lg:px-[calc((100vw-72rem)/2+1.5rem)] lg:[scroll-padding-left:calc((100vw-72rem)/2+1.5rem)]">
-      {videos.map((video) => {
+  const repeats = Math.ceil(MIN_MARQUEE_ITEMS / videos.length);
+  const strip = Array.from({ length: repeats }, () => videos).flat();
+
+  // `decorative`: copias que solo rellenan la cinta. Siguen siendo clickeables
+  // con el mouse, pero quedan fuera del orden de tabulación, de los lectores de
+  // pantalla y de los data-testid (los tests cuentan las cards reales).
+  const renderCard = (video: FeaturedVideo, key: string, decorative: boolean) => {
         // Solo se linkea a una red soportada (misma validación que el
         // backend): nunca se arma un href con un valor arbitrario.
         const postPlatform = socialPlatform(video.linkUrl);
@@ -126,22 +136,38 @@ export default function FeaturedContent({ videos, profileUrl }: FeaturedContentP
 
         return href && platform ? (
           <a
-            key={video.id}
+            key={key}
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            data-testid="featured-content-card"
+            data-testid={decorative ? undefined : "featured-content-card"}
             aria-label={`${video.title || "Contenido"} — ${cta}`}
+            tabIndex={decorative ? -1 : undefined}
             className={`${CARD} focus:outline-none focus-visible:ring-2 focus-visible:ring-blush`}
           >
             {inner}
           </a>
         ) : (
-          <div key={video.id} data-testid="featured-content-card" className={CARD}>
+          <div key={key} data-testid={decorative ? undefined : "featured-content-card"} className={CARD}>
             {inner}
           </div>
         );
-      })}
+  };
+
+  return (
+    // Con "reducir movimiento" la cinta no se mueve (globals.css corta las
+    // animaciones): ahí pasa a ser una fila que se desliza a mano.
+    <div className="marquee-wrap overflow-hidden pb-2 motion-reduce:overflow-x-auto" data-testid="featured-content-marquee">
+      {/* Mismo keyframe que la cinta de fotos, en reversa: aquella va hacia la
+          izquierda y esta hacia la derecha. La copia de relleno va PRIMERA en
+          el DOM porque en reversa la cinta arranca mostrando la segunda mitad:
+          así lo que se ve al cargar son las cards reales. */}
+      <div className="flex w-max animate-marquee gap-4 pl-4 [animation-direction:reverse] sm:gap-5 sm:pl-5">
+        <div aria-hidden="true" className="flex gap-4 sm:gap-5">
+          {strip.map((video, i) => renderCard(video, `b-${i}`, true))}
+        </div>
+        {strip.map((video, i) => renderCard(video, `a-${i}`, i >= videos.length))}
+      </div>
     </div>
   );
 }
