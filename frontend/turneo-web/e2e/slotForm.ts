@@ -10,7 +10,12 @@ import { expect, type Page } from "@playwright/test";
  * `isoDate` es YYYY-MM-DD, el mismo formato que DayPicker pone en `data-day`.
  */
 export async function pickSlotFormDate(page: Page, isoDate: string): Promise<void> {
-  const cell = page.locator(`[data-testid="slot-form-daypicker"] [data-day="${isoDate}"]`);
+  // Sin los días "outside": el día 1 del mes siguiente también existe, oculto,
+  // en la grilla del mes anterior (relleno de la última semana). Contarlo
+  // frenaba el avance un mes antes y el día nunca quedaba visible.
+  const cell = page.locator(
+    `[data-testid="slot-form-daypicker"] [data-day="${isoDate}"]:not([data-outside="true"])`
+  );
   const nextMonth = page.getByRole("button", { name: "Go to the Next Month" });
 
   // Los offsets que usan los specs (+40, +55 días) caen como mucho 2 meses
