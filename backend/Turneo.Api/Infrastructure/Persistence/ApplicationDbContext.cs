@@ -329,6 +329,14 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(b => b.ProfessionalId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Borrar una Smart Tag nunca borra reservas: la reserva queda sin
+            // etiqueta pero conserva Source (mismo criterio que Professional).
+            entity.HasOne<SmartTag>()
+                .WithMany()
+                .HasForeignKey(b => b.SmartTagId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.Source).HasMaxLength(SmartTagSource.MaxLength);
+
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });
 

@@ -546,6 +546,28 @@ REVIEW_COMPLETED
 
 ---
 
+## Atribución en Booking
+
+La reserva creada desde una etiqueta guarda su origen en la propia fila, para
+poder contar y filtrar reservas por placa y canal sin depender de los eventos:
+
+```text
+Booking
+──────────────
+...
+SmartTagId   (nullable, FK a SmartTag, ON DELETE SET NULL)
+Source       (nullable: nfc | qr)
+```
+
+Ambos se completan solo cuando `POST /api/bookings` recibe un `smartTagToken`
+de una etiqueta activa del mismo tenant; en ese caso el evento
+`BOOKING_COMPLETED` lleva el mismo `Source`. Con un token ausente,
+inexistente, inactivo o de otro tenant la reserva se crea igual y ambos campos
+quedan en `null`. Borrar la etiqueta no borra reservas: deja `SmartTagId` en
+`null` y conserva `Source`.
+
+---
+
 ## Relaciones
 
 ```text
@@ -585,6 +607,17 @@ GET /api/smart/{token}?src={nfc|qr}
 
 Este endpoint será público. `src` es opcional (ver "Canal de origen" en la
 sección 5): se normaliza y se guarda en el evento de interacción.
+
+La reserva que nace de una etiqueta se crea con el endpoint público de
+siempre, sumando dos campos opcionales al body:
+
+```http
+POST /api/bookings
+{ ..., "smartTagToken": "{token}", "smartTagSource": "nfc" | "qr" }
+```
+
+Ninguno de los dos puede hacer fallar la reserva (ver "Atribución en Booking"
+en la sección 8).
 
 Su responsabilidad será:
 

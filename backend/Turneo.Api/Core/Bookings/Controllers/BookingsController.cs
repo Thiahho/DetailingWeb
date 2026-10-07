@@ -19,8 +19,9 @@ public class BookingsController : ControllerBase
     private readonly IInsumosRepository _insumosRepository;
     private readonly IPlanLimitsService _planLimits;
     private readonly ISmartTagsRepository _smartTagsRepository;
+    private readonly ICurrentTenant _currentTenant;
 
-    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository)
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant)
     {
         _repository = repository;
         _authService = authService;
@@ -28,6 +29,20 @@ public class BookingsController : ControllerBase
         _insumosRepository = insumosRepository;
         _planLimits = planLimits;
         _smartTagsRepository = smartTagsRepository;
+        _currentTenant = currentTenant;
+    }
+
+    // Etiqueta a la que se atribuye una reserva pública: solo si el token
+    // corresponde a un tag activo del MISMO tenant de la reserva. Un token
+    // inexistente, inactivo o ajeno se descarta en silencio (no debe inflar
+    // métricas de otro tenant) y nunca bloquea la reserva.
+    private async Task<SmartTag?> ResolveAttributedSmartTagAsync(string? smartTagToken)
+    {
+        if (string.IsNullOrWhiteSpace(smartTagToken))
+            return null;
+
+        var smartTag = await _smartTagsRepository.FindActiveByTokenIgnoringTenantAsync(smartTagToken);
+        return smartTag is not null && smartTag.TenantId == _currentTenant.TenantId ? smartTag : null;
     }
 
     // POST: api/bookings (público - para clientes)
@@ -83,6 +98,12 @@ public class BookingsController : ControllerBase
         // el comportamiento anterior: el profesional lo elige el cliente al reservar).
         var professionalId = timeSlot.ProfessionalId ?? request.ProfessionalId;
 
+        // Se resuelve antes de guardar para que la atribución quede en la misma
+        // fila y en la misma transacción que la reserva. El canal solo cuenta
+        // si hay etiqueta válida: un src suelto no atribuye nada.
+        var smartTag = await ResolveAttributedSmartTagAsync(request.SmartTagToken);
+        var smartTagSource = smartTag is null ? null : SmartTagSource.Normalize(request.SmartTagSource);
+
         var booking = new Booking
         {
             TimeSlotId = request.TimeSlotId,
@@ -97,7 +118,9 @@ public class BookingsController : ControllerBase
             Message = request.Message,
             Status = BookingStatus.Pending,
             TermsAcceptedAt = DateTime.UtcNow,
-            TermsVersion = LegalTermsVersions.Customer
+            TermsVersion = LegalTermsVersions.Customer,
+            SmartTagId = smartTag?.Id,
+            Source = smartTagSource
         };
 
         _repository.Add(booking);
@@ -106,17 +129,10 @@ public class BookingsController : ControllerBase
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCreated, null));
 
-        if (!string.IsNullOrWhiteSpace(request.SmartTagToken))
+        if (smartTag is not null)
         {
-            var smartTag = await _smartTagsRepository.FindActiveByTokenIgnoringTenantAsync(request.SmartTagToken);
-            // Solo si el tag sigue activo y pertenece al MISMO tenant que la reserva —
-            // descarta en silencio un token ajeno (no debe inflar métricas de otro
-            // tenant) ni bloquea la reserva en ningún caso.
-            if (smartTag is not null && smartTag.TenantId == booking.TenantId)
-            {
-                await _smartTagsRepository.RecordEventAsync(
-                    smartTag.Id, smartTag.TenantId, smartTag.Action, SmartTagEventType.BookingCompleted);
-            }
+            await _smartTagsRepository.RecordEventAsync(
+                smartTag.Id, smartTag.TenantId, smartTag.Action, SmartTagEventType.BookingCompleted, smartTagSource);
         }
 
         return Ok(new
@@ -562,6 +578,11 @@ public class CreateBookingRequest
     // resolver el tenant de la reserva en sí.
     [StringLength(16)]
     public string? SmartTagToken { get; set; }
+
+    // Canal por el que se abrió ese Smart Tag ("nfc" | "qr"). Sin validación
+    // de formato a propósito: un valor desconocido se guarda como null en vez
+    // de rechazar la reserva (ver SmartTagSource.Normalize).
+    public string? SmartTagSource { get; set; }
 
     // Sin [Required]: en un bool no-nullable, RequiredAttribute solo rechaza
     // null, nunca false (el default del tipo) — la validación real de que

@@ -21,7 +21,7 @@ La columna "Acceso" es un resumen; la regla exacta de cada endpoint está en sus
 |---|---|---|
 | Auth | `/api/auth/*` | Público (login, acceso de cliente por OTP, auto-registro de profesionales) + autenticado (cuenta propia) — ver abajo |
 | Permissions (Roles) | `/api/permissions/*` | Admin (gestión) + cualquier cuenta del panel (leer sus propios permisos) |
-| Bookings | `/api/bookings/*` | Público (crear/cancelar/reprogramar) + Admin / Staff (listado, detalle, confirmación) |
+| Bookings | `/api/bookings/*` | Público (crear/cancelar/reprogramar) + Admin / Staff (listado, detalle, confirmación). `POST` acepta `smartTagToken` y `smartTagSource` opcionales: con una etiqueta activa del mismo tenant la reserva guarda `smartTagId` y `source` (ver [NFC](NFC.md)) |
 | Scheduling — TimeSlots | `/api/timeslots/*` | Público (`/available`) + Admin / Staff + Professional (sus propios turnos) |
 | Scheduling — BlockedDates | `/api/blockeddates/*` | Admin / Staff |
 | Professionals | `/api/professionals/*` | Público (lectura, disponibilidad) + Admin / Staff (CRUD) + Professional (`/me`) |

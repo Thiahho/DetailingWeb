@@ -31,4 +31,13 @@ public class Booking : ITenantScoped
     public ICollection<BookingItem> Items { get; set; } = new List<BookingItem>();
     public string? PhotoUrlsBefore { get; set; }
     public string? PhotoUrlsAfter { get; set; }
+
+    // Atribución a la placa (Smart Tag) que originó la reserva, guardada en la
+    // reserva misma para poder contarlas por origen sin depender de los
+    // SmartTagEvents. Ambos null si no vino de una etiqueta válida del mismo
+    // tenant. Sin propiedad de navegación a propósito: GET /api/bookings
+    // serializa la entidad y no debe arrastrar la etiqueta ni su Token.
+    public int? SmartTagId { get; set; }
+    // Canal de origen (SmartTagSource: "nfc" | "qr"); null si no se conoce.
+    public string? Source { get; set; }
 }

@@ -43,7 +43,34 @@ public class BookingsEndpointsTests
 
         var updatedSlot = await TestDataFactory.GetTimeSlotIgnoringTenantAsync(_factory, slot.Id);
         Assert.False(updatedSlot!.IsAvailable);
+
+        // Sin Smart Tag de por medio la reserva no queda atribuida a nada.
+        var booking = await ReadCreatedBookingAsync(response);
+        Assert.Null(booking.SmartTagId);
+        Assert.Null(booking.Source);
     }
+
+    // Relee de la base la reserva que devolvió POST /api/bookings.
+    private async Task<Booking> ReadCreatedBookingAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var bookingId = body.GetProperty("booking").GetProperty("id").GetInt32();
+        var booking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, bookingId);
+        Assert.NotNull(booking);
+        return booking!;
+    }
+
+    private static object CreateSmartTagBookingPayload(int timeSlotId, string? smartTagToken, string? smartTagSource) => new
+    {
+        timeSlotId,
+        customerName = "Cliente Smart Tag",
+        customerPhone = "1122334455",
+        email = $"smarttag-{Guid.NewGuid():N}@test.com",
+        subject = "Corte de pelo",
+        smartTagToken,
+        smartTagSource,
+        acceptedTerms = true,
+    };
 
     [Fact]
     public async Task CreateBooking_WithAlreadyTakenSlot_ReturnsConflict()
@@ -150,20 +177,16 @@ public class BookingsEndpointsTests
         var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(9), DateTime.UtcNow.AddDays(9).AddHours(1));
         var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Recepción", action: "BOOKING");
 
-        var payload = new
-        {
-            timeSlotId = slot.Id,
-            customerName = "Cliente Smart Tag",
-            customerPhone = "1122334455",
-            email = $"smarttag-{Guid.NewGuid():N}@test.com",
-            subject = "Corte de pelo",
-            smartTagToken = tag.Token,
-            acceptedTerms = true,
-        };
-
         var client = _factory.CreateClient();
-        var response = await client.PostAsJsonAsync("/api/bookings", payload);
+        var response = await client.PostAsJsonAsync("/api/bookings",
+            CreateSmartTagBookingPayload(slot.Id, tag.Token, smartTagSource: "QR"));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // La reserva queda atribuida a la etiqueta y al canal (normalizado a
+        // minúscula), no solo el evento.
+        var booking = await ReadCreatedBookingAsync(response);
+        Assert.Equal(tag.Id, booking.SmartTagId);
+        Assert.Equal("qr", booking.Source);
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -173,6 +196,68 @@ public class BookingsEndpointsTests
         Assert.Single(events);
         Assert.Equal(SmartTagEventType.BookingCompleted, events[0].EventType);
         Assert.Equal(tenantId, events[0].TenantId);
+        Assert.Equal("qr", events[0].Source);
+    }
+
+    [Fact]
+    public async Task CreateBooking_WithSmartTagTokenAndUnknownSource_AttributesTagWithNullSource()
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(10), DateTime.UtcNow.AddDays(10).AddHours(1));
+        var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Mostrador", action: "BOOKING");
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/bookings",
+            CreateSmartTagBookingPayload(slot.Id, tag.Token, smartTagSource: "facebook"));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var booking = await ReadCreatedBookingAsync(response);
+        Assert.Equal(tag.Id, booking.SmartTagId);
+        Assert.Null(booking.Source);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var recorded = await db.SmartTagEvents.IgnoreQueryFilters()
+            .SingleAsync(e => e.SmartTagId == tag.Id);
+        Assert.Null(recorded.Source);
+    }
+
+    [Fact]
+    public async Task CreateBooking_WithUnknownSmartTagToken_CreatesBookingWithoutAttribution()
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(11), DateTime.UtcNow.AddDays(11).AddHours(1));
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/bookings",
+            CreateSmartTagBookingPayload(slot.Id, "NOEXISTE1234", smartTagSource: "nfc"));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // Sin etiqueta válida tampoco se guarda el canal: un src suelto no atribuye nada.
+        var booking = await ReadCreatedBookingAsync(response);
+        Assert.Null(booking.SmartTagId);
+        Assert.Null(booking.Source);
+    }
+
+    [Fact]
+    public async Task CreateBooking_WithInactiveSmartTag_CreatesBookingWithoutAttribution()
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(12), DateTime.UtcNow.AddDays(12).AddHours(1));
+        var inactiveTag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Dada de baja", isActive: false);
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/bookings",
+            CreateSmartTagBookingPayload(slot.Id, inactiveTag.Token, smartTagSource: "nfc"));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var booking = await ReadCreatedBookingAsync(response);
+        Assert.Null(booking.SmartTagId);
+        Assert.Null(booking.Source);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Equal(0, await db.SmartTagEvents.IgnoreQueryFilters().CountAsync(e => e.SmartTagId == inactiveTag.Id));
     }
 
     [Fact]
@@ -184,22 +269,18 @@ public class BookingsEndpointsTests
         // El tag pertenece a OTRO tenant (B) que el de la reserva que se va a crear (A).
         var foreignTag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantB, "Recepción B", action: "BOOKING");
 
-        var payload = new
-        {
-            timeSlotId = slot.Id,
-            customerName = "Cliente Smart Tag",
-            customerPhone = "1122334455",
-            email = $"smarttag-cross-{Guid.NewGuid():N}@test.com",
-            subject = "Corte de pelo",
-            smartTagToken = foreignTag.Token,
-            acceptedTerms = true,
-        };
-
         var client = _factory.CreateClient();
-        var response = await client.PostAsJsonAsync("/api/bookings", payload);
+        var response = await client.PostAsJsonAsync("/api/bookings",
+            CreateSmartTagBookingPayload(slot.Id, foreignTag.Token, smartTagSource: "nfc"));
 
         // La reserva se crea igual — el token de otro tenant nunca bloquea la reserva.
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // Ni queda atribuida a una etiqueta ajena.
+        var booking = await ReadCreatedBookingAsync(response);
+        Assert.Equal(tenantA, booking.TenantId);
+        Assert.Null(booking.SmartTagId);
+        Assert.Null(booking.Source);
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
