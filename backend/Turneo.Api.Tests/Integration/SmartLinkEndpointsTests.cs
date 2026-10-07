@@ -39,6 +39,36 @@ public class SmartLinkEndpointsTests
         Assert.Equal(tenantId, events[0].TenantId);
     }
 
+    // src es input público: solo "nfc" y "qr" (sin distinguir mayúsculas) se
+    // guardan; cualquier otro valor, o su ausencia, queda null y nunca hace
+    // fallar la visita.
+    [Theory]
+    [InlineData("?src=nfc", "nfc")]
+    [InlineData("?src=qr", "qr")]
+    [InlineData("?src=NFC", "nfc")]
+    [InlineData("", null)]
+    [InlineData("?src=facebook", null)]
+    [InlineData("?src=nfc%27%3B--", null)]
+    public async Task ResolveSmartLink_StoresNormalizedSource_AndNeverRejectsTheVisit(string query, string? expectedSource)
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Mostrador", action: "BOOKING");
+
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync($"/api/smart/{tag.Token}{query}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var events = await db.SmartTagEvents.IgnoreQueryFilters()
+            .Where(e => e.SmartTagId == tag.Id).ToListAsync();
+
+        Assert.Single(events);
+        Assert.Equal(SmartTagEventType.Interaction, events[0].EventType);
+        Assert.Equal(expectedSource, events[0].Source);
+    }
+
     [Fact]
     public async Task ResolveSmartLink_WithNonexistentToken_ReturnsNotFound()
     {
@@ -139,5 +169,32 @@ public class SmartLinkEndpointsTests
         var response = await client.PostAsJsonAsync("/api/smart/NOEXISTE1234/review", new { rating = 5 });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}
+
+// Fuera de la colección "Integration" a propósito: es una función pura, no
+// necesita el Postgres de Testcontainers y corre aunque Docker no esté.
+public class SmartTagSourceTests
+{
+    [Theory]
+    [InlineData("nfc", "nfc")]
+    [InlineData("qr", "qr")]
+    [InlineData("NFC", "nfc")]
+    [InlineData(" Qr ", "qr")]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("facebook", null)]
+    [InlineData("nfc,qr", null)]
+    [InlineData("nfc'; DROP TABLE", null)]
+    public void Normalize_KeepsOnlyKnownChannels_Lowercased(string? raw, string? expected)
+    {
+        Assert.Equal(expected, SmartTagSource.Normalize(raw));
+    }
+
+    [Fact]
+    public void KnownChannels_FitTheColumnLength()
+    {
+        Assert.True(SmartTagSource.Nfc.Length <= SmartTagSource.MaxLength);
+        Assert.True(SmartTagSource.Qr.Length <= SmartTagSource.MaxLength);
     }
 }

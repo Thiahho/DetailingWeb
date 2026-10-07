@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import BookingForm from "@/src/components/booking/BookingForms";
+import type { SmartTagSource } from "@/src/components/booking/useBookingFlow";
 import RebookFlow from "@/src/components/smarttag/RebookFlow";
 import ReviewFlow from "@/src/components/smarttag/ReviewFlow";
 import { getWhatsAppLink } from "@/src/lib/siteConfig";
@@ -21,14 +22,23 @@ interface SmartLinkData {
 // token, no por Host (ver SmartLinkController.cs) — replicar este patrón
 // para cualquier otra llamada del sitio no sería multi-tenant-safe.
 // no-store: cada visita registra un evento de interacción en el backend.
-async function getSmartLink(token: string): Promise<SmartLinkData | null> {
+async function getSmartLink(token: string, source?: SmartTagSource): Promise<SmartLinkData | null> {
   try {
-    const res = await fetch(`${API_URL}/api/smart/${token}`, { cache: "no-store" });
+    const query = source ? `?src=${source}` : "";
+    const res = await fetch(`${API_URL}/api/smart/${token}${query}`, { cache: "no-store" });
     if (!res.ok) return null;
     return res.json();
   } catch {
     return null;
   }
+}
+
+// Canal por el que llegó la visita: el chip NFC lleva grabado ?src=nfc y el QR
+// impreso ?src=qr. Es input público: cualquier otro valor se descarta (el
+// backend vuelve a validarlo, ver SmartTagSource.Normalize).
+function parseSource(raw: string | string[] | undefined): SmartTagSource | undefined {
+  const value = (Array.isArray(raw) ? raw[0] : raw)?.trim().toLowerCase();
+  return value === "nfc" || value === "qr" ? value : undefined;
 }
 
 const ACTION_SUBTITLE: Record<SmartLinkData["action"], string> = {
@@ -57,8 +67,15 @@ async function getSiteConfigForTenant(tenantSlug: string): Promise<{ whatsAppNum
   }
 }
 
-export default async function SmartLinkPage({ params }: { params: { token: string } }) {
-  const data = await getSmartLink(params.token);
+export default async function SmartLinkPage({
+  params,
+  searchParams,
+}: {
+  params: { token: string };
+  searchParams?: { src?: string | string[] };
+}) {
+  const source = parseSource(searchParams?.src);
+  const data = await getSmartLink(params.token, source);
   if (!data) notFound();
 
   let redirectFallbackMessage: string | null = null;
@@ -88,9 +105,11 @@ export default async function SmartLinkPage({ params }: { params: { token: strin
         </div>
 
         {data.action === "BOOKING" && (
-          <BookingForm tenantSlugOverride={data.tenantSlug} smartTagToken={params.token} />
+          <BookingForm tenantSlugOverride={data.tenantSlug} smartTagToken={params.token} smartTagSource={source} />
         )}
-        {data.action === "REBOOK" && <RebookFlow token={params.token} tenantSlug={data.tenantSlug} />}
+        {data.action === "REBOOK" && (
+          <RebookFlow token={params.token} tenantSlug={data.tenantSlug} source={source} />
+        )}
         {data.action === "REVIEW" && <ReviewFlow token={params.token} />}
         {redirectFallbackMessage && (
           <div className="glass-card p-6 text-center">

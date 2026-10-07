@@ -333,6 +333,21 @@ QR ──────┘
 
 No existirán dos sistemas diferentes.
 
+### Canal de origen (`src`)
+
+Para poder comparar ambos canales, cada uno lleva la misma URL con un
+parámetro `src` distinto:
+
+```text
+NFC  →  https://turneo.app/s/{token}?src=nfc   (se graba en el chip; el admin la ofrece para copiar)
+QR   →  https://turneo.app/s/{token}?src=qr    (la codifica GET /api/smart-tags/{id}/qr)
+```
+
+`src` es opcional y es input público: solo se aceptan `nfc` y `qr` (sin
+distinguir mayúsculas, se guarda en minúscula). Un valor ausente o desconocido
+se registra como canal desconocido y nunca rechaza la visita, así que las
+etiquetas y QR impresos antes de este parámetro siguen funcionando.
+
 ---
 
 # 6. Smart Link
@@ -509,8 +524,12 @@ SmartTagId
 Action
 ClientId
 EventType
+Source
 CreatedAt
 ```
+
+`Source` es el canal de origen del evento (`nfc` | `qr`), nullable: queda en
+`null` cuando la visita llegó sin `src` o con un valor no reconocido.
 
 ### EventType inicial
 
@@ -561,10 +580,11 @@ PATCH  /api/smart-tags/{id}/status
 ## Smart Link
 
 ```http
-GET /api/smart/{token}
+GET /api/smart/{token}?src={nfc|qr}
 ```
 
-Este endpoint será público.
+Este endpoint será público. `src` es opcional (ver "Canal de origen" en la
+sección 5): se normaliza y se guarda en el evento de interacción.
 
 Su responsabilidad será:
 
@@ -584,6 +604,15 @@ GET /api/smart-tags/analytics
 ```
 
 Estos endpoints serán administrativos.
+
+Además de `interactions`, `completions` y `conversionRate`, cada etiqueta
+expone `interactionsBySource` y `completionsBySource`, y el resumen
+`totalInteractionsBySource` y `totalCompletionsBySource`. Todos tienen la forma
+`{ nfc, qr, unknown }`, donde `unknown` son los eventos sin canal reconocido
+(la suma de los tres es el total).
+
+Las respuestas de `GET /api/smart-tags` incluyen también `nfcUrl` y `qrUrl`
+(el `smartLinkUrl` con `?src=nfc` / `?src=qr`).
 
 ---
 

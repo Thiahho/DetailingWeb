@@ -154,7 +154,7 @@ export function ClientToast({ toast, onClose }: { toast: Toast; onClose: () => v
   );
 }
 
-export default function BookingForm({ preselectedService, preselection, tenantSlugOverride, smartTagToken }: BookingFormProps) {
+export default function BookingForm({ preselectedService, preselection, tenantSlugOverride, smartTagToken, smartTagSource }: BookingFormProps) {
   const {
     formData,
     setFormData,
@@ -183,7 +183,7 @@ export default function BookingForm({ preselectedService, preselection, tenantSl
     totalPages,
     currentSlots,
     handleCalendarSubmit,
-  } = useBookingFlow({ preselectedService, preselection, tenantSlugOverride, smartTagToken });
+  } = useBookingFlow({ preselectedService, preselection, tenantSlugOverride, smartTagToken, smartTagSource });
 
   if (loading)
     return (

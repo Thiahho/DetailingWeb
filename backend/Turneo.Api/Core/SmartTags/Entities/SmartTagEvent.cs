@@ -20,5 +20,10 @@ public class SmartTagEvent : ITenantScoped
     public int? ClientId { get; set; }
 
     public string EventType { get; set; } = SmartTagEventType.Interaction;
+
+    // Canal de origen (SmartTagSource: "nfc" | "qr"). Null cuando la visita
+    // llegó sin ?src= o con un valor desconocido (links viejos, QR impresos
+    // antes de este campo).
+    public string? Source { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

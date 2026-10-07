@@ -16,8 +16,17 @@ interface SmartTag {
   isActive: boolean;
   token: string;
   smartLinkUrl: string;
+  // Misma URL con ?src=nfc: es la que se graba en el chip, para distinguir
+  // los taps de los escaneos del QR (que lleva ?src=qr).
+  nfcUrl?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface SourceBreakdown {
+  nfc: number;
+  qr: number;
+  unknown: number;
 }
 
 interface SmartTagAnalytics {
@@ -25,6 +34,8 @@ interface SmartTagAnalytics {
   interactions: number;
   completions: number;
   conversionRate: number;
+  interactionsBySource?: SourceBreakdown;
+  completionsBySource?: SourceBreakdown;
 }
 
 interface AnalyticsSummary {
@@ -32,6 +43,20 @@ interface AnalyticsSummary {
   totalCompletions: number;
   conversionRate: number;
   tags: SmartTagAnalytics[];
+  totalInteractionsBySource?: SourceBreakdown;
+  totalCompletionsBySource?: SourceBreakdown;
+}
+
+// "Sin canal" son las visitas que llegaron sin ?src= (links o QR anteriores a
+// la medición por canal): solo se muestra cuando hay alguna.
+function formatBySource(counts: SourceBreakdown): string {
+  const parts = [`NFC ${counts.nfc}`, `QR ${counts.qr}`];
+  if (counts.unknown > 0) parts.push(`sin canal ${counts.unknown}`);
+  return parts.join(" · ");
+}
+
+function nfcUrlOf(tag: SmartTag): string {
+  return tag.nfcUrl ?? `${tag.smartLinkUrl}?src=nfc`;
 }
 
 const ACTION_LABELS: Record<SmartTag["action"], string> = {
@@ -189,10 +214,10 @@ export default function SmartTagsPage() {
     }
   };
 
-  const handleCopyLink = async (url: string) => {
+  const handleCopyLink = async (url: string, copiedMessage = "Link copiado") => {
     try {
       await navigator.clipboard.writeText(url);
-      showToast("success", "Link copiado", undefined, 2500);
+      showToast("success", copiedMessage, undefined, 2500);
     } catch {
       showToast("error", "No se pudo copiar", "Copiá el link manualmente");
     }
@@ -227,8 +252,20 @@ export default function SmartTagsPage() {
 
         {analytics && tags.length > 0 && (
           <div className="grid grid-cols-3 gap-3 mb-6 md:mb-8">
-            <StatCard label="Interacciones" value={analytics.totalInteractions} />
-            <StatCard label="Completadas" value={analytics.totalCompletions} sub="reservas o reseñas" />
+            <StatCard
+              label="Interacciones"
+              value={analytics.totalInteractions}
+              sub={analytics.totalInteractionsBySource && formatBySource(analytics.totalInteractionsBySource)}
+            />
+            <StatCard
+              label="Completadas"
+              value={analytics.totalCompletions}
+              sub={
+                analytics.totalCompletionsBySource
+                  ? `reservas o reseñas · ${formatBySource(analytics.totalCompletionsBySource)}`
+                  : "reservas o reseñas"
+              }
+            />
             <StatCard label="Conversión" value={`${analytics.conversionRate}%`} />
           </div>
         )}
@@ -270,6 +307,16 @@ export default function SmartTagsPage() {
                     {tagAnalytics.conversionRate}% conversión
                   </p>
                 )}
+                {tagAnalytics?.interactionsBySource && (
+                  <p className="text-charcoal/40 text-xs mt-1">
+                    Interacciones: {formatBySource(tagAnalytics.interactionsBySource)}
+                  </p>
+                )}
+                {tagAnalytics?.completionsBySource && (
+                  <p className="text-charcoal/40 text-xs mt-1">
+                    Completadas: {formatBySource(tagAnalytics.completionsBySource)}
+                  </p>
+                )}
 
                 <div className="mt-3 flex items-center gap-3">
                   <img
@@ -295,6 +342,20 @@ export default function SmartTagsPage() {
                     {tag.smartLinkUrl}
                   </span>
                   <span className="text-[10px] text-blushdark">Copiar link</span>
+                </button>
+
+                <button
+                  onClick={() => handleCopyLink(nfcUrlOf(tag), "Link NFC copiado")}
+                  className="mt-2 w-full text-left bg-porcelain/5 border border-mauve/10 rounded-lg px-2.5 py-2 hover:border-mauve/25 transition"
+                  title="Copiar el link para grabar en el chip NFC"
+                >
+                  <span className="block text-charcoal/40 text-[10px] font-medium uppercase tracking-wider">
+                    Link para el chip NFC
+                  </span>
+                  <span className="block font-mono text-[11px] text-charcoal/70 truncate">
+                    {nfcUrlOf(tag)}
+                  </span>
+                  <span className="text-[10px] text-blushdark">Copiar link NFC</span>
                 </button>
 
                 <div className="mt-4 flex flex-col gap-2">

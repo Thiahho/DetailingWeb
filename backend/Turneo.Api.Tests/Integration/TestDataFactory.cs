@@ -237,7 +237,7 @@ public static class TestDataFactory
         return tag;
     }
 
-    public static async Task RecordSmartTagEventAsync(CustomWebApplicationFactory factory, int smartTagId, int tenantId, string action, string eventType)
+    public static async Task RecordSmartTagEventAsync(CustomWebApplicationFactory factory, int smartTagId, int tenantId, string action, string eventType, string? source = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -247,6 +247,7 @@ public static class TestDataFactory
             SmartTagId = smartTagId,
             Action = action,
             EventType = eventType,
+            Source = source,
         });
         await db.SaveChangesAsync();
     }

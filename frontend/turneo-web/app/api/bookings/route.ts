@@ -48,6 +48,7 @@ interface BookingPayload {
   service?: string;
   message?: string;
   smartTagToken?: string;
+  smartTagSource?: string;
 }
 
 interface BookingResponse {

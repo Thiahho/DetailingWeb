@@ -33,7 +33,7 @@ public class SmartLinkController : ControllerBase
     // (esa API hoy solo la usa TenantResolutionMiddleware).
     [HttpGet("{token}")]
     [EnableRateLimiting("smart-tag")]
-    public async Task<IActionResult> ResolveSmartLink(string token)
+    public async Task<IActionResult> ResolveSmartLink(string token, [FromQuery] string? src = null)
     {
         var tag = await _repository.FindActiveByTokenIgnoringTenantAsync(token);
 
@@ -42,7 +42,9 @@ public class SmartLinkController : ControllerBase
         if (tag is null || tag.Tenant is null)
             return NotFound();
 
-        await _repository.RecordEventAsync(tag.Id, tag.TenantId, tag.Action, SmartTagEventType.Interaction);
+        // src inválido o ausente se guarda como null: nunca rechaza la visita.
+        await _repository.RecordEventAsync(
+            tag.Id, tag.TenantId, tag.Action, SmartTagEventType.Interaction, SmartTagSource.Normalize(src));
 
         return Ok(new SmartLinkResponse(
             tag.Id, tag.Name, tag.Location, tag.Action, tag.Tenant.Slug, tag.Tenant.Name));

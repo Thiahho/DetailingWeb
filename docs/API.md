@@ -34,8 +34,8 @@ La columna "Acceso" es un resumen; la regla exacta de cada endpoint está en sus
 | Notifications — CustomerProfiles | `/api/reminders/customers/*` | Admin / Staff |
 | Clients — DataDeletion | `/api/data-deletion-requests/*` | Público (solicitar) + Admin / Staff (gestionar) |
 | Automations | `/api/automationrules/*` | Admin / Staff |
-| SmartTags | `/api/smart-tags/*` | Admin / Staff |
-| SmartTags — SmartLink | `/api/smart/*` | Público (resolución por token, ver [NFC](NFC.md)) |
+| SmartTags | `/api/smart-tags/*` | Admin / Staff. El QR (`/{id}/qr`) codifica el link con `?src=qr`; analytics desglosa por canal (`nfc` / `qr` / `unknown`) |
+| SmartTags — SmartLink | `/api/smart/*` | Público (resolución por token, ver [NFC](NFC.md)). `GET /api/smart/{token}` acepta `?src=nfc\|qr` opcional para registrar el canal |
 | Loyalty | `/api/loyalty-roulette/*` | Público (jugar) + Admin / Staff (premios) |
 | Reviews | `/api/reviews/*` | Público (lectura, alta) + Admin / Staff (moderación) |
 | Content (ContentVideos) | `/api/content-videos/*` | Público (lectura) + Admin / Staff (CRUD) |

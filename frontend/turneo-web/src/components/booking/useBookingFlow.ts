@@ -59,7 +59,12 @@ export interface BookingFormProps {
   // explícito a cada fetch en vez de confiar en el Host real (ver tenantHeader.ts).
   tenantSlugOverride?: string;
   smartTagToken?: string;
+  // Canal por el que se abrió el Smart Link (?src= de /s/{token}); viaja con
+  // la reserva para atribuirla al chip NFC o al QR de la etiqueta.
+  smartTagSource?: SmartTagSource;
 }
+
+export type SmartTagSource = "nfc" | "qr";
 
 // --- Toast Types ---
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -75,7 +80,7 @@ export interface Toast {
 // Estado y reglas del flujo público de reserva (servicios, especialista,
 // horarios, envío). La presentación vive aparte: BookingForms.tsx (formulario
 // de una sola pantalla, usado en Smart Tag) y BookingWizard.tsx (pasos, /reservar).
-export function useBookingFlow({ preselectedService, preselectedServiceKey, preselection, tenantSlugOverride, smartTagToken }: BookingFormProps) {
+export function useBookingFlow({ preselectedService, preselectedServiceKey, preselection, tenantSlugOverride, smartTagToken, smartTagSource }: BookingFormProps) {
   const withTenant = useCallback(
     (path: string) => {
       if (!tenantSlugOverride) return path;
@@ -300,6 +305,7 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
           message: formData.message,
           customFieldsJson: customFieldDefs.length > 0 ? JSON.stringify(customFieldValues) : null,
           smartTagToken: smartTagToken ?? null,
+          smartTagSource: smartTagSource ?? null,
           acceptedTerms: formData.acceptedTerms,
         }),
       });

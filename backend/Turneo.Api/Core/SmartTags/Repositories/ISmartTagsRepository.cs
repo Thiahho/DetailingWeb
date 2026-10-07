@@ -21,8 +21,9 @@ public interface ISmartTagsRepository
     Task<SmartTag?> FindActiveByTokenIgnoringTenantAsync(string token);
 
     // Inserta el evento con TenantId explícito (el del SmartTag resuelto), sin
-    // depender de ApplyTenantId/ICurrentTenant.
-    Task RecordEventAsync(int smartTagId, int tenantId, string action, string eventType);
+    // depender de ApplyTenantId/ICurrentTenant. source es el canal ya
+    // normalizado (SmartTagSource.Normalize) o null si no se conoce.
+    Task RecordEventAsync(int smartTagId, int tenantId, string action, string eventType, string? source = null);
 
     // Analytics (Fase 7): corren desde el admin autenticado, tenant ya resuelto
     // por el query filter normal — a diferencia de FindActiveByTokenIgnoringTenantAsync,

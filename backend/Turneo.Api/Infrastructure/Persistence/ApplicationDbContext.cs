@@ -781,6 +781,8 @@ public class ApplicationDbContext : DbContext
             e.HasIndex(x => x.SmartTagId);
             e.HasIndex(x => new { x.TenantId, x.CreatedAt });
 
+            e.Property(x => x.Source).HasMaxLength(SmartTagSource.MaxLength);
+
             e.HasOne(x => x.Tenant)
                 .WithMany()
                 .HasForeignKey(x => x.TenantId)

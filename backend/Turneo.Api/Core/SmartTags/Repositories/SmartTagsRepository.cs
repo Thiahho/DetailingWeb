@@ -76,7 +76,7 @@ public class SmartTagsRepository : ISmartTagsRepository
             .Include(t => t.Tenant)
             .FirstOrDefaultAsync(t => t.Token == token && t.IsActive);
 
-    public async Task RecordEventAsync(int smartTagId, int tenantId, string action, string eventType)
+    public async Task RecordEventAsync(int smartTagId, int tenantId, string action, string eventType, string? source = null)
     {
         // TenantId explícito: este método corre desde el endpoint público, donde
         // ICurrentTenant no está resuelto de forma confiable (ver SmartLinkController).
@@ -87,11 +87,12 @@ public class SmartTagsRepository : ISmartTagsRepository
             SmartTagId = smartTagId,
             Action = action,
             EventType = eventType,
+            Source = source,
         });
         await _context.SaveChangesAsync();
     }
 
-    private record EventCount(string EventType, int Count);
+    private record EventCount(string EventType, string? Source, int Count);
 
     public async Task<SmartTagAnalyticsRow?> GetAnalyticsForTagAsync(int smartTagId)
     {
@@ -100,8 +101,8 @@ public class SmartTagsRepository : ISmartTagsRepository
 
         var counts = await _context.SmartTagEvents
             .Where(e => e.SmartTagId == smartTagId)
-            .GroupBy(e => e.EventType)
-            .Select(g => new EventCount(g.Key, g.Count()))
+            .GroupBy(e => new { e.EventType, e.Source })
+            .Select(g => new EventCount(g.Key.EventType, g.Key.Source, g.Count()))
             .ToListAsync();
 
         return ToAnalyticsRow(tag, counts);
@@ -111,31 +112,45 @@ public class SmartTagsRepository : ISmartTagsRepository
     {
         var tags = await _context.SmartTags.ToListAsync();
 
-        // (SmartTagId, EventType, Count) — se separa por tag en memoria abajo
+        // (SmartTagId, EventType, Source, Count) — se separa por tag en memoria abajo
         // (mismo criterio que AnalyticsRepository.GetProfessionalStatsAsync:
         // post-procesar tras el ToListAsync cuando agrupar dos veces no
         // aporta nada sobre traer todo junto una sola vez).
         var counts = await _context.SmartTagEvents
-            .GroupBy(e => new { e.SmartTagId, e.EventType })
-            .Select(g => new { g.Key.SmartTagId, g.Key.EventType, Count = g.Count() })
+            .GroupBy(e => new { e.SmartTagId, e.EventType, e.Source })
+            .Select(g => new { g.Key.SmartTagId, g.Key.EventType, g.Key.Source, Count = g.Count() })
             .ToListAsync();
 
         return tags
             .Select(tag => ToAnalyticsRow(tag, counts
                 .Where(c => c.SmartTagId == tag.Id)
-                .Select(c => new EventCount(c.EventType, c.Count))))
+                .Select(c => new EventCount(c.EventType, c.Source, c.Count))))
             .ToList();
     }
 
     private static SmartTagAnalyticsRow ToAnalyticsRow(SmartTag tag, IEnumerable<EventCount> eventCounts)
     {
-        int Sum(Func<string, bool> matches) =>
-            eventCounts.Where(c => matches(c.EventType)).Sum(c => c.Count);
+        var interactions = eventCounts
+            .Where(c => c.EventType == SmartTagEventType.Interaction)
+            .ToList();
+        var completions = eventCounts
+            .Where(c => c.EventType == SmartTagEventType.BookingCompleted || c.EventType == SmartTagEventType.ReviewCompleted)
+            .ToList();
 
-        var interactions = Sum(t => t == SmartTagEventType.Interaction);
-        var completions = Sum(t => t == SmartTagEventType.BookingCompleted || t == SmartTagEventType.ReviewCompleted);
+        return new SmartTagAnalyticsRow(
+            tag.Id, tag.Name, tag.Action,
+            interactions.Sum(c => c.Count), completions.Sum(c => c.Count),
+            ToSourceBreakdown(interactions), ToSourceBreakdown(completions));
+    }
 
-        return new SmartTagAnalyticsRow(tag.Id, tag.Name, tag.Action, interactions, completions);
+    // Unknown agrupa los eventos sin canal reconocido (null u otro valor), así
+    // la suma de los tres siempre da el total.
+    private static SmartTagSourceBreakdown ToSourceBreakdown(IReadOnlyCollection<EventCount> counts)
+    {
+        var nfc = counts.Where(c => c.Source == SmartTagSource.Nfc).Sum(c => c.Count);
+        var qr = counts.Where(c => c.Source == SmartTagSource.Qr).Sum(c => c.Count);
+
+        return new SmartTagSourceBreakdown(nfc, qr, counts.Sum(c => c.Count) - nfc - qr);
     }
 
     private async Task<string> GenerateUniqueTokenAsync()

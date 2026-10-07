@@ -22,12 +22,20 @@ public class SmartTagsController : ControllerBase
     // mismo lugar donde engancharía IPlanLimitsService.IsFeatureEnabledAsync,
     // ver AutomationRulesController.CheckAutomationsAllowedAsync.
 
-    private SmartTagResponse ToResponse(SmartTag t)
+    private string SmartLinkUrl(SmartTag t)
     {
         var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://gestion-turnos-kappa.vercel.app";
+        return $"{baseUrl}/s/{t.Token}";
+    }
+
+    private SmartTagResponse ToResponse(SmartTag t)
+    {
+        var smartLinkUrl = SmartLinkUrl(t);
         return new SmartTagResponse(
             t.Id, t.Name, t.Location, t.Action, t.IsActive, t.Token,
-            $"{baseUrl}/s/{t.Token}", t.CreatedAt, t.UpdatedAt);
+            smartLinkUrl, t.CreatedAt, t.UpdatedAt,
+            SmartTagSource.AppendTo(smartLinkUrl, SmartTagSource.Nfc),
+            SmartTagSource.AppendTo(smartLinkUrl, SmartTagSource.Qr));
     }
 
     [HttpGet]
@@ -107,11 +115,12 @@ public class SmartTagsController : ControllerBase
         var tag = await _repository.GetByIdAsync(id);
         if (tag is null) return NotFound();
 
-        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://gestion-turnos-kappa.vercel.app";
-        var smartLinkUrl = $"{baseUrl}/s/{tag.Token}";
+        // El QR lleva ?src=qr para poder distinguir sus escaneos de los taps
+        // NFC de la misma etiqueta (que usan ?src=nfc).
+        var qrUrl = SmartTagSource.AppendTo(SmartLinkUrl(tag), SmartTagSource.Qr);
 
         using var generator = new QRCodeGenerator();
-        using var qrData = generator.CreateQrCode(smartLinkUrl, QRCodeGenerator.ECCLevel.Q);
+        using var qrData = generator.CreateQrCode(qrUrl, QRCodeGenerator.ECCLevel.Q);
         var qrCode = new PngByteQRCode(qrData);
         var bytes = qrCode.GetGraphic(20);
 
@@ -123,7 +132,13 @@ public class SmartTagsController : ControllerBase
 
     private SmartTagAnalyticsResponse ToAnalyticsResponse(SmartTagAnalyticsRow row) => new(
         row.SmartTagId, row.Name, row.Action, row.Interactions, row.Completions,
-        ConversionRate(row.Interactions, row.Completions));
+        ConversionRate(row.Interactions, row.Completions),
+        row.InteractionsBySource, row.CompletionsBySource);
+
+    private static SmartTagSourceBreakdown Sum(IEnumerable<SmartTagSourceBreakdown> parts) =>
+        parts.Aggregate(
+            new SmartTagSourceBreakdown(0, 0, 0),
+            (total, part) => new SmartTagSourceBreakdown(total.Nfc + part.Nfc, total.Qr + part.Qr, total.Unknown + part.Unknown));
 
     [HttpGet("{id:int}/analytics")]
     [RequirePermission(PermissionModules.SmartTags, PermissionActions.View, alsoCheckProfessional: true)]
@@ -145,6 +160,8 @@ public class SmartTagsController : ControllerBase
             totalInteractions,
             totalCompletions,
             ConversionRate(totalInteractions, totalCompletions),
-            rows.Select(ToAnalyticsResponse).ToList()));
+            rows.Select(ToAnalyticsResponse).ToList(),
+            Sum(rows.Select(r => r.InteractionsBySource)),
+            Sum(rows.Select(r => r.CompletionsBySource))));
     }
 }

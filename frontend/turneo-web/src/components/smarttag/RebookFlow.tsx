@@ -2,10 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import BookingForm from "@/src/components/booking/BookingForms";
+import type { SmartTagSource } from "@/src/components/booking/useBookingFlow";
 
 interface RebookFlowProps {
   token: string;
   tenantSlug: string;
+  source?: SmartTagSource;
 }
 
 interface LastBooking {
@@ -33,7 +35,7 @@ function formatDateTime(iso: string): string {
   });
 }
 
-export default function RebookFlow({ token, tenantSlug }: RebookFlowProps) {
+export default function RebookFlow({ token, tenantSlug, source }: RebookFlowProps) {
   const [email, setEmail] = useState("");
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -58,7 +60,7 @@ export default function RebookFlow({ token, tenantSlug }: RebookFlowProps) {
   };
 
   if (showForm) {
-    return <BookingForm tenantSlugOverride={tenantSlug} smartTagToken={token} />;
+    return <BookingForm tenantSlugOverride={tenantSlug} smartTagToken={token} smartTagSource={source} />;
   }
 
   return (
