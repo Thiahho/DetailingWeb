@@ -61,7 +61,7 @@ Strategy: `ask-on-risk`. Forecast: about 350 authored changed lines
 
 - [x] T1 Source channel on smart tag events (route: delegated writer;
       trigger: 2+ non-trivial files across backend and frontend)
-- [ ] T2 Persistent attribution on Booking (route: delegated writer, same
+- [x] T2 Persistent attribution on Booking (route: delegated writer, same
       worker; trigger: 2+ non-trivial files plus EF migration)
 
 ## Acceptance criteria
@@ -96,8 +96,8 @@ unexecuted; they must be run once Docker is available.
 
 ### T1 Source channel (done)
 
-- Commit: recorded in the T2 progress entry below (a commit cannot hold its
-  own hash).
+- Commit: `957c580` feat(smart-tags): medir el canal de origen (NFC o QR) de
+  cada interacción.
 - Shape decisions: `SmartTagResponse` gained `nfcUrl` and `qrUrl`; analytics
   gained `interactionsBySource` / `completionsBySource` per tag and
   `totalInteractionsBySource` / `totalCompletionsBySource` in the summary,
@@ -111,7 +111,34 @@ unexecuted; they must be run once Docker is available.
     the base). The 10 new Docker-free `SmartTagSourceTests` cases pass.
   - `npx tsc --noEmit` (frontend/turneo-web): exit 0.
 
+### T2 Booking attribution (done)
+
+- Commit: `47536be` feat(bookings): atribuir la reserva al Smart Tag y canal que
+  la originó.
+- `Booking.SmartTagId` (nullable FK, `ON DELETE SET NULL`, no navigation
+  property so `GET /api/bookings` never serializes the tag) and
+  `Booking.Source` (nullable `varchar(8)`); `CreateBookingRequest` gained
+  `SmartTagSource`.
+- The tag is now resolved before the booking is saved, so both fields are
+  written in the same row and transaction; the tenant check compares the tag
+  against `ICurrentTenant.TenantId`, the same value `ApplyTenantId` stamps on
+  the booking. The source is kept only when a tag was attributed.
+- Migration `20261007231232_AddSmartTagAttributionToBookings` (generated).
+- Side effect to know: `GET /api/bookings` (admin) returns the `Booking`
+  entity, so its JSON now also carries `smartTagId` and `source`.
+- Checks observed:
+  - Compile-level RED only: with the new tests and no implementation,
+    `dotnet build backend/Turneo.Api.Tests` failed with CS1061 (`Booking` has
+    no `SmartTagId` / `Source`). No runtime RED/GREEN (Docker unavailable).
+  - `dotnet build backend/Turneo.Api`: 0 errors.
+  - `dotnet test backend/Turneo.Api.Tests`: 22 passed, 174 failed; all 174
+    are the Docker/Testcontainers error (171 before T2 plus the 3 new
+    integration tests).
+  - `npx tsc --noEmit` (frontend/turneo-web): exit 0.
+
 ## Next step
 
-T2: persistent attribution on `Booking`. Then run the integration suite with
-Docker available.
+Run `dotnet test backend/Turneo.Api.Tests` with Docker running: the new
+integration tests (source on smart link events, QR payload, analytics by
+source, booking attribution) have never been executed. Then apply the two
+migrations and decide delivery (push / PR are the user's call).
