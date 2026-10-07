@@ -138,7 +138,13 @@ unexecuted; they must be run once Docker is available.
 
 ## Next step
 
-Run `dotnet test backend/Turneo.Api.Tests` with Docker running: the new
-integration tests (source on smart link events, QR payload, analytics by
-source, booking attribution) have never been executed. Then apply the two
-migrations and decide delivery (push / PR are the user's call).
+Apply the two migrations to the real databases and decide delivery (push /
+PR are the user's call).
+
+### Integration run with Docker (2026-10-07, parent)
+
+- `dotnet test backend/Turneo.Api.Tests` with Docker 29.8.1 running: 196
+  passed, 0 failed, 0 skipped (31 s). This is the first execution of the new
+  integration tests; it closes the pending check from T1 and T2. No runtime
+  RED was ever observed for them (they were first run after implementation).
+- No independent code review ran; RDD is off for this clone.
