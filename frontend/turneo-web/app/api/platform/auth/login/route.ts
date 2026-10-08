@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clientIpHeaders } from "@/src/lib/tenantHeader";
+import { readBackendBody } from "@/src/lib/proxyResponse";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    const data = await readBackendBody(response);
 
     if (response.ok && data.email) {
       const nextResponse = NextResponse.json(data);

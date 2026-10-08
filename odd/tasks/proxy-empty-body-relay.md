@@ -39,6 +39,7 @@ pages.
 
 - [x] T1 Shared helper and loyalty-roulette proxy using it — route: inline (one new file plus one already-understood file)
 - [x] T2 Codemod the passthrough pattern in the remaining proxy routes — route: inline (mechanical scripted replace, no per-file design)
+- [x] T3 Handlers that read the body before answering (auth cookies, booking emails) — route: inline (same one-line swap in four files)
 
 ## Checks
 
@@ -70,13 +71,16 @@ Strategy: `ask-on-risk`. Forecast: about 300 authored changed lines (67 sites,
 - Not exercised against a running backend; the Playwright suite was not run.
 - Review: RDD is off for this clone (`clone_local`), so no native review.
 
+- T3 (added after T2, authorized by the user) — the five handlers that read
+  the body before answering now use `readBackendBody`, which returns `{}` for
+  an empty body so checks like `data.email` or `data.booking` keep working:
+  `app/api/auth/[...path]/route.ts`, `app/api/platform/auth/login/route.ts`,
+  `app/api/bookings/route.ts`, `app/api/bookings/[...path]/route.ts` (two).
+  `relayResponse` is built on it. `npx tsc --noEmit` exit 0. The only
+  `response.json()` calls left on backend responses already carry their own
+  `.catch`.
+
 ## Next step
 
-Five handlers still parse blindly because they read the body before answering.
-They need a per-handler change, not a codemod, and are left for a follow-up:
-
-- `app/api/auth/[...path]/route.ts:74` and
-  `app/api/platform/auth/login/route.ts:19` (set cookies from the body).
-- `app/api/bookings/route.ts:195` and
-  `app/api/bookings/[...path]/route.ts:275`, `:342` (send notification emails
-  from the body).
+None pending in code. Still unverified at runtime: nothing here was exercised
+against a running backend, and the Playwright suite was not run.

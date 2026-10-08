@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { tenantHeader } from "@/src/lib/tenantHeader";
-import { relayResponse } from "@/src/lib/proxyResponse";
+import { readBackendBody, relayResponse } from "@/src/lib/proxyResponse";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -71,7 +71,7 @@ export async function POST(
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    const data = await readBackendBody(response);
 
     // Enviar OTP por email si el backend devolvió el código pendiente
     if (OTP_PATHS[path] && response.ok && data.pendingOtpCode) {

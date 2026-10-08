@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { tenantHeader } from "@/src/lib/tenantHeader";
-import { relayResponse } from "@/src/lib/proxyResponse";
+import { readBackendBody, relayResponse } from "@/src/lib/proxyResponse";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -272,7 +272,7 @@ export async function POST(
       },
       body,
     });
-    const data = await response.json();
+    const data = await readBackendBody(response);
 
     if (response.ok && isCancel && data.booking) {
       notifyAdminBookingCancelled(data.booking).catch((err) =>
@@ -339,7 +339,7 @@ export async function PATCH(
         "Content-Type": "application/json",
       },
     });
-    const data = await response.json();
+    const data = await readBackendBody(response);
 
     if (response.ok && isConfirm) {
       // Fire-and-forget: no bloquear la respuesta esperando el email

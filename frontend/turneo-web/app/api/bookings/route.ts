@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { tenantHeader } from "@/src/lib/tenantHeader";
-import { relayResponse } from "@/src/lib/proxyResponse";
+import { readBackendBody, relayResponse } from "@/src/lib/proxyResponse";
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    const data = await readBackendBody(response);
 
     if (response.ok) {
       const bookingData = data as BookingResponse;
