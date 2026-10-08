@@ -28,7 +28,7 @@ export async function GET(
         "Content-Type": "application/json",
       },
     });
-    return relayResponse(response);
+    return await relayResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },
@@ -54,7 +54,7 @@ export async function POST(
       },
       body: JSON.stringify(body),
     });
-    return relayResponse(response);
+    return await relayResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },
@@ -80,7 +80,7 @@ export async function PUT(
       },
       body: JSON.stringify(body),
     });
-    return relayResponse(response);
+    return await relayResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },

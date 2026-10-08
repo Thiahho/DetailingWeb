@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { tenantHeader } from "@/src/lib/tenantHeader";
+import { relayResponse } from "@/src/lib/proxyResponse";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -11,8 +12,7 @@ export async function GET(request: NextRequest) {
       headers: tenantHeader(request),
       next: { revalidate: 60, tags: ["gallery"] },
     });
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return await relayResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },
@@ -37,11 +37,10 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify(body),
     });
-    const data = await response.json();
     if (response.ok) {
       revalidateTag("gallery");
     }
-    return NextResponse.json(data, { status: response.status });
+    return await relayResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },

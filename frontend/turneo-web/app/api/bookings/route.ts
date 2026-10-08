@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { tenantHeader } from "@/src/lib/tenantHeader";
+import { relayResponse } from "@/src/lib/proxyResponse";
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -26,8 +27,7 @@ export async function GET(request: NextRequest) {
         "Content-Type": "application/json",
       },
     });
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return await relayResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },

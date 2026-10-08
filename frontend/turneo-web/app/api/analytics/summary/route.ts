@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tenantHeader } from "@/src/lib/tenantHeader";
+import { relayResponse } from "@/src/lib/proxyResponse";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -15,8 +16,7 @@ export async function GET(request: NextRequest) {
         "Content-Type": "application/json",
       },
     });
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return await relayResponse(response);
   } catch {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { relayResponse } from "@/src/lib/proxyResponse";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 
@@ -13,8 +14,7 @@ export async function POST(request: NextRequest, { params }: { params: { token: 
       body: JSON.stringify(body),
       cache: "no-store",
     });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    return await relayResponse(res);
   } catch {
     return NextResponse.json({ message: "Error de conexión" }, { status: 500 });
   }

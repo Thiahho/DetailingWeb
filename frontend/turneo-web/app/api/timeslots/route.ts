@@ -1,6 +1,7 @@
 // app/api/timeslots/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { tenantHeader } from "@/src/lib/tenantHeader";
+import { relayResponse } from "@/src/lib/proxyResponse";
 
 const API_URL =
  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
@@ -19,8 +20,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return await relayResponse(response);
   } catch (error) {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },
@@ -45,8 +45,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    return await relayResponse(response);
   } catch (error) {
     return NextResponse.json(
       { message: "Error de conexión con el servidor" },

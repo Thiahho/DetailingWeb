@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tenantHeader } from "@/src/lib/tenantHeader";
+import { relayResponse } from "@/src/lib/proxyResponse";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 
@@ -19,8 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    return await relayResponse(res);
   } catch {
     return NextResponse.json({ message: "Error de conexión" }, { status: 500 });
   }
