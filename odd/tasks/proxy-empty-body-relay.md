@@ -37,8 +37,8 @@ pages.
 
 ## Checklist
 
-- [ ] T1 Shared helper and loyalty-roulette proxy using it — route: inline (one new file plus one already-understood file)
-- [ ] T2 Codemod the passthrough pattern in the remaining proxy routes — route: inline (mechanical scripted replace, no per-file design)
+- [x] T1 Shared helper and loyalty-roulette proxy using it — route: inline (one new file plus one already-understood file)
+- [x] T2 Codemod the passthrough pattern in the remaining proxy routes — route: inline (mechanical scripted replace, no per-file design)
 
 ## Checks
 
@@ -58,5 +58,25 @@ Strategy: `ask-on-risk`. Forecast: about 300 authored changed lines (67 sites,
 
 ## Progress and evidence
 
-- Loyalty-roulette proxy fixed with a local `relay` helper before this document
-  existed (uncommitted); T1 moves it to the shared helper.
+- T1 — commit `f99d30d`. `npx tsc --noEmit` exit 0.
+- T2 — commit `af27229`. 87 handlers in 52 files: the 67 pure passthroughs plus
+  20 of a second mechanical pattern found during the run (parse, call
+  `revalidateTag` on success without reading `data`, pass the body through).
+  Every call is `return await relayResponse(...)` so a failed body read still
+  lands in the route's `catch`. `npx tsc --noEmit` exit 0; grep for the
+  passthrough pattern returns 0.
+- `npm run lint` unavailable: ESLint is not configured in the project (the
+  command opens the interactive setup prompt). Not run.
+- Not exercised against a running backend; the Playwright suite was not run.
+- Review: RDD is off for this clone (`clone_local`), so no native review.
+
+## Next step
+
+Five handlers still parse blindly because they read the body before answering.
+They need a per-handler change, not a codemod, and are left for a follow-up:
+
+- `app/api/auth/[...path]/route.ts:74` and
+  `app/api/platform/auth/login/route.ts:19` (set cookies from the body).
+- `app/api/bookings/route.ts:195` and
+  `app/api/bookings/[...path]/route.ts:275`, `:342` (send notification emails
+  from the body).
