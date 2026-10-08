@@ -71,7 +71,7 @@ Strategy: `ask-on-risk`. Forecast: about 300 authored changed lines (67 sites,
 - Not exercised against a running backend; the Playwright suite was not run.
 - Review: RDD is off for this clone (`clone_local`), so no native review.
 
-- T3 (added after T2, authorized by the user) — the five handlers that read
+- T3 (added after T2, authorized by the user) — commit `31b1f7b`. The five handlers that read
   the body before answering now use `readBackendBody`, which returns `{}` for
   an empty body so checks like `data.email` or `data.booking` keep working:
   `app/api/auth/[...path]/route.ts`, `app/api/platform/auth/login/route.ts`,
