@@ -67,6 +67,18 @@ public static class BackgroundJobsSetup
                 "Recurring job '{JobId}' ya fue registrado por otra instancia concurrente; se ignora la violación de constraint.",
                 jobId);
         }
+        // AddOrUpdate toma un lock distribuido por job y espera 15s. Si otra
+        // instancia lo tiene tomado (rolling deploy) o quedó huérfano en
+        // hangfire.lock tras una caída, vence el timeout. El job ya está
+        // registrado por arranques anteriores y sigue corriendo, así que no
+        // tumbamos el arranque: un cambio de cron o de método en este deploy
+        // recién se aplica en el próximo arranque que consiga el lock.
+        catch (PostgreSqlDistributedLockException ex)
+        {
+            logger.LogWarning(ex,
+                "No se pudo tomar el lock para registrar el recurring job '{JobId}'; se mantiene la definición ya registrada.",
+                jobId);
+        }
     }
 
     private static bool IsDuplicateKeyRace(Exception ex) =>
