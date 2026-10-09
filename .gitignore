@@ -134,6 +134,16 @@ my-mercadopago-app/
 graphify-out/
 
 # =========================
+# CodeGraph (índice generado localmente)
+# =========================
+.codegraph/
+
+# =========================
+# Agent Teams Lite (registro de skills generado localmente)
+# =========================
+.atl/
+
+# =========================
 # Otros
 # =========================
 *.bak
