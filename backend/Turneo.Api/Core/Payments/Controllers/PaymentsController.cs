@@ -75,7 +75,8 @@ public class PaymentsController : ControllerBase
             return BadRequest(new { success = false, message = "No se pudo determinar el monto a cobrar" });
         }
 
-        var baseUrl = _configuration["MercadoPago:BaseUrl"] ?? "https://gestion-turnos-kappa.vercel.app/";
+        var configuredBaseUrl = _configuration["MercadoPago:BaseUrl"];
+        var baseUrl = (string.IsNullOrWhiteSpace(configuredBaseUrl) ? "https://www.turneobelleza.com" : configuredBaseUrl).TrimEnd('/');
 
         var preferenceRequest = new PreferenceRequest
         {

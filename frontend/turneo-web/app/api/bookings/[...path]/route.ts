@@ -182,7 +182,7 @@ async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: s
 
   const turno = formatDateTime(booking.startDateTime ?? booking.timeSlot?.startDateTime);
   const name = booking.customerName || "Cliente";
-  const cancelUrl = `https://gestion-turnos-kappa.vercel.app//cancelar?bookingId=${bookingId}`;
+  const cancelUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.turneobelleza.com"}/cancelar?bookingId=${bookingId}`;
 
   const transporter = createTransporter();
   const info = await transporter.sendMail({

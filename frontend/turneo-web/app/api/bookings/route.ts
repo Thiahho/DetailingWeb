@@ -133,7 +133,7 @@ async function notifyClientBookingReceived(booking: BookingPayload, bookingData:
 
   const turno = formatDateTime(bookingData.booking?.startDateTime);
   const name = booking.customerName || "Cliente";
-  const myBookingsUrl = bookingData.myBookingsLink || "https://gestion-turnos-kappa.vercel.app//mis-turnos";
+  const myBookingsUrl = bookingData.myBookingsLink || `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.turneobelleza.com"}/mis-turnos`;
 
   await sendEmail(
     customerEmail,

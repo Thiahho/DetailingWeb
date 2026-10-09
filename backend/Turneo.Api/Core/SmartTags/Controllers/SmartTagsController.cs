@@ -24,7 +24,7 @@ public class SmartTagsController : ControllerBase
 
     private string SmartLinkUrl(SmartTag t)
     {
-        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://gestion-turnos-kappa.vercel.app";
+        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://www.turneobelleza.com";
         return $"{baseUrl}/s/{t.Token}";
     }
 

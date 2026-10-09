@@ -169,7 +169,7 @@ public class SmartTagsEndpointsTests
         var bytes = await response.Content.ReadAsByteArrayAsync();
 
         var configuration = _factory.Services.GetRequiredService<IConfiguration>();
-        var baseUrl = configuration["SmartTags:PublicBaseUrl"] ?? "https://gestion-turnos-kappa.vercel.app";
+        var baseUrl = configuration["SmartTags:PublicBaseUrl"] ?? "https://www.turneobelleza.com";
 
         Assert.Equal(RenderQr($"{baseUrl}/s/{tag.Token}?src=qr"), bytes);
         Assert.NotEqual(RenderQr($"{baseUrl}/s/{tag.Token}"), bytes);
