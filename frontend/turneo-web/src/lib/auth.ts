@@ -24,7 +24,14 @@ function isFreshWindow(): boolean {
 // rebota de vuelta porque la cookie sigue siendo válida — loop invisible que
 // deja la página colgada en "Cargando..." para siempre. Sacar la cookie acá
 // mantiene sincronizados los dos guards (middleware y cliente).
-function forceLogoutStaleWindow(): void {
+//
+// Devuelve (y deja en pendingStaleLogout) la promesa del logout: si responde
+// DESPUÉS de un login hecho en esta misma ventana, borra la cookie recién
+// creada y la siguiente navegación rebota a /admin/login. verifySession() la
+// espera antes de dejar ver el formulario de login.
+let pendingStaleLogout: Promise<void> | null = null;
+
+function forceLogoutStaleWindow(): Promise<void> {
   const hadSession = localStorage.getItem("isLoggedIn") === "true";
   localStorage.removeItem("isLoggedIn");
   localStorage.removeItem("email");
@@ -33,7 +40,13 @@ function forceLogoutStaleWindow(): void {
   if (hadSession) {
     window.dispatchEvent(new Event("auth-change"));
   }
-  fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+  const request = fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+    .then(() => {}, () => {})
+    .finally(() => {
+      if (pendingStaleLogout === request) pendingStaleLogout = null;
+    });
+  pendingStaleLogout = request;
+  return request;
 }
 
 // Verificar si hay sesión activa — SOLO indicador de UI (localStorage), no una
@@ -131,9 +144,13 @@ export async function verifySession(): Promise<boolean> {
   // viva — cerrar la sesión explícitamente en vez de preguntarle al backend
   // (que la validaría igual, porque la cookie en sí sigue siendo válida).
   if (typeof window !== "undefined" && isFreshWindow()) {
-    forceLogoutStaleWindow();
+    await forceLogoutStaleWindow();
     return false;
   }
+
+  // Un guard de página (isAuthenticated) pudo haber disparado el logout justo
+  // antes de redirigir acá: esperar a que termine antes de seguir.
+  if (pendingStaleLogout) await pendingStaleLogout;
 
   try {
     // Usar el proxy local para que las cookies se envíen correctamente
