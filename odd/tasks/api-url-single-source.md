@@ -54,5 +54,12 @@ site fail silently (empty `public-data`, broken auth) instead of failing the bui
     reads `process.env.NEXT_PUBLIC_API_URL` in app/src; `tsc --noEmit` → exit 0;
     `NEXT_PUBLIC_API_URL=https://example.invalid pnpm build` → success;
     `NEXT_PUBLIC_API_URL= pnpm build` → exit 1 with "NEXT_PUBLIC_API_URL is not set...".
-  - Commit: (recorded below after commit)
-- Next step: native review assessment of the T1 commit; feature complete.
+  - Commit: af746546 `refactor(frontend): centralize API URL and fail fast when missing`
+  - Review: assessed high risk (auth/payments routes touched); consent granted; 4-lens
+    native review approved and acknowledged (lineage review-045053544f2c71a3).
+  - Non-blocking follow-ups (separate later work):
+    - R4: `next.config.js` throw also runs on `next start`; the variable must exist at
+      runtime as well as build time (true on Render today).
+    - R3/R2: `config.ts` does not trim/strip `NEXT_PUBLIC_API_BASE_URL` like `API_URL`.
+    - R2/R3: normalization duplicated between `next.config.js` and `apiUrl.ts`.
+- Feature complete.
