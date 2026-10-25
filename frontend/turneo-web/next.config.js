@@ -1,10 +1,19 @@
 // CSP + headers de seguridad — allowlist basado en un audit real de a qué
 // dominios pega el frontend (ver decision_security_hardening en memoria):
-// API propia (detailing-api.onrender.com), uploads/imágenes de Cloudinary,
+// API propia (el backend al que apunta NEXT_PUBLIC_API_URL), uploads/imágenes de Cloudinary,
 // fotos de perfil de reseñas de Google, y el iframe de Google Maps (ahora validado server-side en
 // src/lib/siteConfig.ts para que no pueda ser cualquier URL). No hay scripts
 // ni estilos de terceros — Google Fonts se sirve self-hosted vía next/font.
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+// The backend URL is required: failing the build/dev server here is better
+// than silently allowing a dead host in the CSP (see src/lib/apiUrl.ts).
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "");
+if (!API_ORIGIN) {
+  throw new Error(
+    "NEXT_PUBLIC_API_URL is not set. It must point to the backend API " +
+      "(e.g. https://<backend>.onrender.com). Define it in .env.local or in the " +
+      "deployment environment variables."
+  );
+}
 
 const CSP_DIRECTIVES = [
   "default-src 'self'",

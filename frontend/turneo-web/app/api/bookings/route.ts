@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 import { readBackendBody, relayResponse } from "@/src/lib/proxyResponse";
+import { API_URL } from "@/src/lib/apiUrl";
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -15,8 +16,6 @@ function createTransporter() {
 
 // GET: Obtener todas las reservas (admin)
 export async function GET(request: NextRequest) {
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
   const token = request.cookies.get("admin_token")?.value || request.cookies.get("token")?.value;
 
   try {
@@ -35,9 +34,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 
 interface BookingPayload {
   timeSlotId?: number;

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { relayResponse } from "@/src/lib/proxyResponse";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("platform_token")?.value;

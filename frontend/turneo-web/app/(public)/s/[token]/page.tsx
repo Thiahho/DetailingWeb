@@ -4,8 +4,8 @@ import type { SmartTagSource } from "@/src/components/booking/useBookingFlow";
 import RebookFlow from "@/src/components/smarttag/RebookFlow";
 import ReviewFlow from "@/src/components/smarttag/ReviewFlow";
 import { getWhatsAppLink } from "@/src/lib/siteConfig";
+import { API_URL } from "@/src/lib/apiUrl";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 const TENANCY_BASE_DOMAIN = process.env.NEXT_PUBLIC_TENANCY_BASE_DOMAIN || "turneo.app";
 
 interface SmartLinkData {

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clientIpHeaders } from "@/src/lib/tenantHeader";
 import { relayResponse } from "@/src/lib/proxyResponse";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 // Ruleta de captación (docs/RULETA.pdf) — endpoints públicos, sin tenant ni
 // auth: es marketing propio de Turneo, no un dato de un negocio en la plataforma.

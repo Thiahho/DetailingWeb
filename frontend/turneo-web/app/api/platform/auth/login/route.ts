@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clientIpHeaders } from "@/src/lib/tenantHeader";
 import { readBackendBody } from "@/src/lib/proxyResponse";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 // Login del panel interno (dueño de plataforma) — separado del proxy de
 // /api/auth para no mezclar la cookie platform_token con admin_token/client_token.

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tenantHeader } from "@/src/lib/tenantHeader";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 function getToken(request: NextRequest) {
   return request.cookies.get("admin_token")?.value ?? request.cookies.get("token")?.value ?? "";

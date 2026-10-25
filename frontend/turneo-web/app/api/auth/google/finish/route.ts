@@ -2,11 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 import { NONCE_COOKIE, getGoogleOAuthConfig, loginUrl, verifyState } from "@/src/lib/googleOAuth";
+import { API_URL } from "@/src/lib/apiUrl";
 
 export const dynamic = "force-dynamic";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 
 // Paso 3 (de vuelta en el host del negocio): canjea el `code` por el ID token
 // de Google, se lo pasa al backend (que lo valida por su cuenta y decide si ese

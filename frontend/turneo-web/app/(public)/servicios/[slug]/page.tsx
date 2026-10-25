@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Check, Clock, Sparkles } from "lucide-react";
+import { API_URL } from "@/src/lib/apiUrl";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
 
 interface Service {

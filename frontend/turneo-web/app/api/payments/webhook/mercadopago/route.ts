@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clientIpHeaders } from "@/src/lib/tenantHeader";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 // El backend valida la firma HMAC de MercadoPago con estos dos headers (más
 // `data.id` del query string): sin reenviarlos, toda notificación que entre

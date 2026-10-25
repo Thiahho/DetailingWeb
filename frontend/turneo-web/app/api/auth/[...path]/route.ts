@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 import { readBackendBody, relayResponse } from "@/src/lib/proxyResponse";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 // Rutas del backend que devuelven un código (pendingOtpCode) para mandar por
 // email desde acá, con el texto que acompaña al código en cada caso.

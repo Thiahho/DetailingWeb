@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 import { relayResponse } from "@/src/lib/proxyResponse";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 // GET también sirve como proxy de GET /api/reviews/all (id="all") desde el
 // panel admin — mismo truco que app/api/gallery/[id]/route.ts, ya que el

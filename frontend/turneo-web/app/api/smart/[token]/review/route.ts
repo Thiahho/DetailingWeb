@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { relayResponse } from "@/src/lib/proxyResponse";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 // Sin tenantHeader: el backend resuelve el tenant por el token del Smart Tag,
 // no por Host (ver SmartLinkController.cs).

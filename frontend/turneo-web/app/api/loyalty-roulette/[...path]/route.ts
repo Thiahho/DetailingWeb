@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 import { relayResponse } from "@/src/lib/proxyResponse";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://detailing-api.onrender.com";
+import { API_URL } from "@/src/lib/apiUrl";
 
 function authHeader(request: NextRequest) {
   const token =
