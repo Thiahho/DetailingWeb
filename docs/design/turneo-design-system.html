@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turneo Design System</title>
+<style>
+  @font-face {
+    font-family: "Plus Jakarta Sans";
+    src: url("../../frontend/turneo-web/app/fonts/PlusJakartaSans-latin.woff2") format("woff2");
+    font-weight: 200 800; font-style: normal;
+  }
+  @font-face {
+    font-family: "Instrument Serif";
+    src: url("../../frontend/turneo-web/app/fonts/InstrumentSerif-Italic-latin.woff2") format("woff2");
+    font-weight: 400; font-style: italic;
+  }
+
+  :root {
+    --cream: #F5EBE5; --ivory: #FFFFFF; --porcelain: #EFE1D9;
+    --blush: #D69AA6; --blushdark: #C07E8C;
+    --mauve: #9C7C88; --lavender: #C9BFE0; --champagne: #C6A26E; --warmgray: #8A7A7E;
+    --charcoal: #2E2328; --ink: #2A2025; --inksoft: #33272D; --mist: #CDBFC4; --rosewood: #8F4C5D;
+    --shadow-soft: 0 1px 2px rgba(46,35,40,.05), 0 6px 20px rgba(46,35,40,.09);
+    --shadow-elevated: 0 8px 24px rgba(46,35,40,.10), 0 2px 6px rgba(46,35,40,.06);
+    --shadow-glow: 0 0 40px rgba(214,154,166,.25);
+    --shadow-gold: 0 0 30px rgba(198,162,110,.2);
+    --sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --serif: "Instrument Serif", ui-serif, Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { color-scheme: light; }
+  body { background: var(--cream); color: var(--charcoal); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  .page { width: 1600px; margin: 0 auto; padding: 64px 72px 80px; }
+  .accent { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: 0; }
+
+  /* ---------- Header ---------- */
+  .cover { background: var(--ink); color: var(--cream); border-radius: 28px; padding: 56px 64px; position: relative; overflow: hidden; }
+  .cover::before { content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(214,154,166,.16), transparent 45%),
+                radial-gradient(circle at 80% 20%, rgba(198,162,110,.14), transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(201,191,224,.16), transparent 45%); }
+  .cover > * { position: relative; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; border: 1px solid rgba(245,235,229,.2); border-radius: 999px; padding: 8px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .16em; color: var(--mist); }
+  .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blush); }
+  .cover h1 { margin-top: 24px; font-size: 72px; line-height: .98; letter-spacing: -.035em; font-weight: 600; }
+  .cover h1 .accent { color: var(--blush); }
+  .cover p { margin-top: 20px; max-width: 760px; color: var(--mist); font-size: 18px; line-height: 1.65; }
+  .cover .meta { margin-top: 32px; display: flex; gap: 28px; padding-top: 20px; border-top: 1px solid rgba(245,235,229,.15); font-size: 14px; color: var(--mist); }
+  .cover .meta b { color: var(--champagne); font-weight: 600; margin-right: 6px; }
+
+  /* ---------- Sections ---------- */
+  section.block { margin-top: 72px; }
+  .sec-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 28px; }
+  .sec-num { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--rosewood); }
+  .sec-head h2 { font-size: 40px; font-weight: 600; letter-spacing: -.03em; line-height: 1; }
+  .sec-head h2 .accent { color: var(--rosewood); }
+  .sec-head p { margin-left: auto; color: var(--warmgray); font-size: 14px; max-width: 520px; text-align: right; line-height: 1.5; }
+  .card { background: var(--ivory); border: 1px solid rgba(156,124,136,.2); border-radius: 16px; box-shadow: var(--shadow-soft); }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: .2em; color: var(--mauve); font-weight: 600; }
+
+  /* ---------- Colors ---------- */
+  .color-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .cgroup { padding: 20px; }
+  .cgroup .label { margin-bottom: 14px; display: block; }
+  .swatch { display: flex; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid rgba(156,124,136,.12); }
+  .swatch:first-of-type { border-top: 0; }
+  .chip { width: 56px; height: 56px; border-radius: 12px; flex-shrink: 0; border: 1px solid rgba(46,35,40,.08); }
+  .swatch .n { font-weight: 600; font-size: 14px; }
+  .swatch .h { font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--rosewood); margin-top: 2px; }
+  .swatch .u { font-size: 12px; color: var(--warmgray); margin-top: 3px; line-height: 1.35; }
+  .ratio { margin-top: 20px; display: flex; height: 44px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(46,35,40,.08); }
+  .ratio div { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+  .gradients { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px; }
+  .grad { padding: 18px; }
+  .grad .g { height: 90px; border-radius: 12px; margin-bottom: 12px; }
+  .grad code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--warmgray); line-height: 1.5; }
+
+  /* ---------- Typography ---------- */
+  .type-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 20px; }
+  .font-card { padding: 28px; }
+  .font-card .big { font-size: 96px; line-height: 1; margin: 12px 0 8px; }
+  .font-card .alpha { font-size: 18px; color: var(--warmgray); letter-spacing: .02em; line-height: 1.6; }
+  .weights { display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap; }
+  .weights span { font-size: 22px; }
+  .scale { padding: 8px 28px; }
+  .scale-row { display: grid; grid-template-columns: 170px 1fr 230px; gap: 20px; align-items: center; padding: 18px 0; border-top: 1px solid rgba(156,124,136,.12); }
+  .scale-row:first-child { border-top: 0; }
+  .scale-row .spec { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: var(--warmgray); line-height: 1.5; }
+
+  /* ---------- Components ---------- */
+  .comp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .comp { padding: 24px; }
+  .comp .label { display: block; margin-bottom: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--sans); border: 0; cursor: pointer; }
+  .btn-hero { min-height: 54px; padding: 0 32px; border-radius: 999px; background: var(--blush); color: var(--ink); font-size: 16px; font-weight: 600; }
+  .btn-primary { padding: 12px 24px; border-radius: 8px; background: var(--blush); color: #fff; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-glow); }
+  .btn-primary.hover { background: var(--blushdark); }
+  .btn-secondary { padding: 12px 24px; border-radius: 8px; background: rgba(239,225,217,.05); color: var(--charcoal); border: 1px solid rgba(156,124,136,.15); font-size: 14px; font-weight: 600; }
+  .btn-danger { padding: 12px 24px; border-radius: 8px; background: #DC2626; color: #fff; font-size: 14px; font-weight: 600; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; font-weight: 500; border-radius: 999px; background: var(--blush); color: #fff; }
+  .btn-link { font-size: 14px; font-weight: 500; color: var(--mist); text-decoration: underline; text-decoration-color: rgba(245,235,229,.3); text-underline-offset: 6px; }
+  .on-ink { background: var(--ink); border-radius: 14px; padding: 20px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; border: 1px solid rgba(156,124,136,.15); background: #fff; padding: 4px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .2em; color: var(--mauve); }
+  .input { width: 100%; border-radius: 12px; border: 1px solid rgba(156,124,136,.15); background: #fff; padding: 12px 16px; font-size: 14px; color: var(--charcoal); font-family: var(--sans); }
+  .input.ph { color: rgba(138,122,126,.6); }
+  .input.focus { border-color: var(--blush); box-shadow: 0 0 0 1px rgba(214,154,166,.4); }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .field span { font-size: 12px; font-weight: 600; color: var(--warmgray); }
+  .shadow-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .shadow-demo div { background: #fff; border-radius: 14px; height: 74px; display: flex; flex-direction: column; justify-content: center; padding: 0 14px; font-size: 13px; font-weight: 600; }
+  .shadow-demo small { font-weight: 400; color: var(--warmgray); font-size: 11px; margin-top: 2px; }
+  .radii { display: flex; gap: 14px; align-items: flex-end; }
+  .radii div { width: 64px; height: 64px; background: var(--porcelain); border: 1px solid rgba(156,124,136,.25); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; font-size: 10px; color: var(--warmgray); }
+  .motion li { list-style: none; display: grid; grid-template-columns: 90px 1fr; gap: 10px; font-size: 13px; padding: 7px 0; border-top: 1px solid rgba(156,124,136,.12); }
+  .motion li:first-child { border-top: 0; }
+  .motion b { color: var(--rosewood); font-weight: 600; }
+  .check { color: var(--champagne); font-weight: 700; }
+
+  /* ---------- Wireframes ---------- */
+  .wf-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 28px; align-items: start; }
+  .wf-title { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .wf-title h3 { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+  .wf-title span { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--rosewood); }
+  .browser { border-radius: 16px; overflow: hidden; background: #fff; box-shadow: var(--shadow-elevated); border: 1px solid rgba(156,124,136,.25); }
+  .bar { height: 30px; background: var(--porcelain); display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+  .bar i { width: 9px; height: 9px; border-radius: 50%; background: rgba(156,124,136,.45); }
+  .bar em { margin-left: 12px; flex: 1; height: 16px; border-radius: 8px; background: rgba(255,255,255,.7); font-style: normal; font-size: 9.5px; color: var(--warmgray); display: flex; align-items: center; padding-left: 10px; font-family: ui-monospace, Consolas, monospace; }
+  .wf { font-size: 10px; }
+  .wf .s { position: relative; padding: 16px 18px; }
+  .wf .tag { position: absolute; top: 8px; right: 10px; font-family: ui-monospace, Consolas, monospace; font-size: 8.5px; padding: 2px 6px; border-radius: 4px; background: rgba(214,154,166,.18); color: var(--rosewood); border: 1px dashed rgba(143,76,93,.4); }
+  .ink { background: var(--ink); color: var(--cream); }
+  .ink .tag { background: rgba(214,154,166,.15); color: var(--blush); border-color: rgba(214,154,166,.4); }
+  .creamb { background: var(--cream); }
+  .ln { height: 6px; border-radius: 3px; background: rgba(46,35,40,.14); margin-top: 5px; }
+  .ink .ln { background: rgba(205,191,196,.28); }
+  .hd { height: 12px; border-radius: 4px; background: rgba(46,35,40,.75); margin-top: 6px; }
+  .ink .hd { background: rgba(245,235,229,.9); }
+  .acc { display: inline-block; height: 12px; border-radius: 4px; background: var(--blush); }
+  .light-acc { background: var(--rosewood); }
+  .pill { display: inline-block; height: 18px; border-radius: 999px; background: var(--blush); margin-top: 10px; }
+  .pill-o { display: inline-block; height: 9px; border-radius: 999px; border: 1px solid rgba(245,235,229,.3); }
+  .box { border-radius: 8px; background: #fff; border: 1px solid rgba(156,124,136,.2); box-shadow: var(--shadow-soft); }
+  .ink .box { background: var(--inksoft); border-color: rgba(245,235,229,.1); box-shadow: none; }
+  .flex { display: flex; gap: 10px; }
+  .col { flex: 1; min-width: 0; }
+  .navw { display: flex; align-items: center; justify-content: space-between; padding: 9px 18px; background: rgba(42,32,37,.92); border-bottom: 1px solid rgba(245,235,229,.1); }
+  .logo { display: flex; align-items: center; gap: 6px; color: var(--cream); font-weight: 600; font-size: 12px; }
+  .logo b { width: 14px; height: 14px; border-radius: 50%; background: var(--blush); }
+  .navlinks { display: flex; gap: 8px; }
+  .navlinks span { width: 30px; height: 5px; border-radius: 3px; background: rgba(205,191,196,.4); }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .note { font-size: 9px; color: var(--warmgray); margin-top: 4px; }
+  .ink .note { color: var(--mist); }
+  .faq-row { height: 16px; border-radius: 6px; border-bottom: 1px solid rgba(156,124,136,.25); margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .faq-row::after { content: "+"; font-size: 10px; color: var(--mauve); }
+  .sidebar { width: 76px; background: var(--ink); padding: 12px 8px; flex-shrink: 0; }
+  .sidebar .it { height: 6px; border-radius: 3px; background: rgba(205,191,196,.3); margin: 9px 0; }
+  .sidebar .it.on { background: var(--blush); }
+  .kpi { padding: 8px; }
+  .kpi .v { height: 12px; width: 60%; border-radius: 3px; background: var(--charcoal); margin-top: 5px; }
+  .cal { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 8px; }
+  .cal div { height: 14px; border-radius: 3px; background: var(--porcelain); }
+  .cal .b { background: rgba(214,154,166,.6); }
+  .cal .l { background: rgba(201,191,224,.8); }
+  .cal .c { background: rgba(198,162,110,.55); }
+  .legend { margin-top: 20px; display: flex; gap: 22px; font-size: 13px; color: var(--warmgray); flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+
+  footer.doc { margin-top: 64px; padding-top: 24px; border-top: 1px solid rgba(156,124,136,.25); display: flex; justify-content: space-between; font-size: 13px; color: var(--warmgray); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===================== COVER ===================== -->
+  <header class="cover">
+    <span class="eyebrow"><span class="dot"></span>Design System · Frontend</span>
+    <h1>Turneo, cálido y <span class="accent">ordenado.</span></h1>
+    <p>Sistema visual del frontend <b style="color:var(--cream)">turneo-web</b> (Next.js + Tailwind CSS): paleta, tipografía, componentes, sombras, movimiento y wireframes de las tres superficies principales — la home comercial, el sitio público de cada salón (/reservar) y el panel de administración.</p>
+    <div class="meta">
+      <span><b>Stack</b>Next.js · Tailwind 3 · lucide-react</span>
+      <span><b>Fuentes</b>Plus Jakarta Sans + Instrument Serif Italic</span>
+      <span><b>Tono</b>Rosa empolvado sobre crema y ciruela</span>
+      <span><b>Fuente de verdad</b>tailwind.config.js · globals.css</span>
+    </div>
+  </header>
+
+  <!-- ===================== 01 COLORS ===================== -->
+  <section class="block">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2>Paleta de <span class="accent">color</span></h2>
+      <p>Neutros cálidos (nunca grises fríos), un rosa principal para acción y una ciruela casi negra para las secciones oscuras que alternan con crema.</p>
+    </div>
+
+    <div class="color-groups">
+      <div class="card cgroup">
+        <span class="label">Base / superficies</span>
+        <div class="swatch"><div class="chip" style="background:#F5EBE5"></div><div><div class="n">cream</div><div class="h">#F5EBE5</div><div class="u">Fondo de página (body)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#FFFFFF"></div><div><div class="n">ivory</div><div class="h">#FFFFFF</div><div class="u">Cards, inputs, badges</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#EFE1D9"></div><div><div class="n">porcelain</div><div class="h">#EFE1D9</div><div class="u">Superficie secundaria, rellenos</div></div></div>
+      </div>
+
+      <div class="card cgroup">
+        <span class="label">Principal / acción</span>
+        <div class="swatch"><div class="chip" style="background:#D69AA6"></div><div><div class="n">blush</div><div class="h">#D69AA6</div><div class="u">CTAs, focus, acentos activos, palabra serif</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#C07E8C"></div><div><div class="n">blushdark</div><div class="h">#C07E8C</div><div class="u">Hover de botón primario</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#8F4C5D"></div><div><div class="n">rosewood</div><div class="h">#8F4C5D</div><div class="u">Texto de acento sobre claro (AA)</div></div></div>
+      </div>
+
+      <div class="card cgroup">
+        <span class="label">Secundarios</span>
+        <div class="swatch"><div class="chip" style="background:#9C7C88"></div><div><div class="n">mauve</div><div class="h">#9C7C88</div><div class="u">Bordes (/15–/20), labels</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#C9BFE0"></div><div><div class="n">lavender</div><div class="h">#C9BFE0</div><div class="u">Gradientes, estados suaves</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#C6A26E"></div><div><div class="n">champagne</div><div class="h">#C6A26E</div><div class="u">Checks, detalles dorados</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#8A7A7E"></div><div><div class="n">warmgray</div><div class="h">#8A7A7E</div><div class="u">Texto secundario, placeholders</div></div></div>
+      </div>
+
+      <div class="card cgroup">
+        <span class="label">Texto / secciones oscuras</span>
+        <div class="swatch"><div class="chip" style="background:#2E2328"></div><div><div class="n">charcoal</div><div class="h">#2E2328</div><div class="u">Texto principal (no negro puro)</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#2A2025"></div><div><div class="n">ink</div><div class="h">#2A2025</div><div class="u">Hero, nav, secciones y footer oscuros</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#33272D"></div><div><div class="n">inksoft</div><div class="h">#33272D</div><div class="u">Cards sobre ink</div></div></div>
+        <div class="swatch"><div class="chip" style="background:#CDBFC4"></div><div><div class="n">mist</div><div class="h">#CDBFC4</div><div class="u">Texto secundario sobre ink</div></div></div>
+      </div>
+    </div>
+
+    <div class="ratio">
+      <div style="flex:42;background:#F5EBE5;color:#8A7A7E">CREAM 42%</div>
+      <div style="flex:26;background:#2A2025;color:#CDBFC4">INK 26%</div>
+      <div style="flex:14;background:#FFFFFF;color:#8A7A7E">IVORY 14%</div>
+      <div style="flex:8;background:#D69AA6;color:#2A2025">BLUSH 8%</div>
+      <div style="flex:4;background:#EFE1D9;color:#8A7A7E">PORC.</div>
+      <div style="flex:3;background:#8F4C5D;color:#fff">RW</div>
+      <div style="flex:2;background:#C6A26E"></div>
+      <div style="flex:1;background:#C9BFE0"></div>
+    </div>
+    <p class="note" style="font-size:12px;margin-top:8px">Proporción aproximada de uso en la home comercial.</p>
+
+    <div class="gradients">
+      <div class="card grad">
+        <div class="g" style="background:#F5EBE5;background-image:radial-gradient(circle at 20% 20%, rgba(214,154,166,.16), transparent 45%),radial-gradient(circle at 80% 20%, rgba(198,162,110,.14), transparent 50%),radial-gradient(circle at 50% 80%, rgba(201,191,224,.16), transparent 45%);"></div>
+        <span class="label">.hero-grid</span>
+        <p class="mono" style="margin-top:6px">3 radial-gradients: blush 16% · champagne 14% · lavender 16%</p>
+      </div>
+      <div class="card grad">
+        <div class="g" style="height:90px;display:flex;align-items:center"><div style="width:100%;height:6px;border-radius:3px;background:linear-gradient(90deg, rgba(214,154,166,.18), rgba(201,191,224,.2), rgba(198,162,110,.18));"></div></div>
+        <span class="label">.section-divider</span>
+        <p class="mono" style="margin-top:6px">linear 90°: blush 18% → lavender 20% → champagne 18%</p>
+      </div>
+      <div class="card grad">
+        <div class="g" style="display:flex;gap:8px">
+          <div style="flex:1;border-radius:10px;background:#2A2025;display:flex;align-items:center;justify-content:center;color:#F5EBE5;font-size:12px">Aa cream / ink</div>
+          <div style="flex:1;border-radius:10px;background:#F5EBE5;display:flex;align-items:center;justify-content:center;color:#8F4C5D;font-size:12px;border:1px solid rgba(156,124,136,.2)">Aa rosewood / cream</div>
+        </div>
+        <span class="label">Contraste</span>
+        <p class="mono" style="margin-top:6px">blush como texto chico no llega a AA sobre claro → usar rosewood</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 02 TYPOGRAPHY ===================== -->
+  <section class="block">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2>Tipo<span class="accent">grafía</span></h2>
+      <p>Una sans variable para todo; la serif itálica solo como palabra de acento al final de los títulos públicos (clase <b>.accent-serif</b>).</p>
+    </div>
+    <div class="type-grid">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="card font-card">
+          <span class="label">Sans · --font-sans · pesos 200–800</span>
+          <div class="big" style="font-weight:600;letter-spacing:-.035em">Aa</div>
+          <div style="font-size:22px;font-weight:600">Plus Jakarta Sans</div>
+          <div class="alpha">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ<br>abcdefghijklmnñopqrstuvwxyz 0123456789</div>
+          <div class="weights">
+            <span style="font-weight:300">Light</span><span style="font-weight:400">Regular</span><span style="font-weight:500">Medium</span><span style="font-weight:600">Semibold</span><span style="font-weight:800">Extra</span>
+          </div>
+        </div>
+        <div class="card font-card">
+          <span class="label">Serif · --font-serif · solo italic 400</span>
+          <div class="big accent" style="color:var(--rosewood)">Aa</div>
+          <div class="accent" style="font-size:30px">Instrument Serif Italic</div>
+          <div class="alpha accent" style="font-size:22px">por mensaje. · a cualquier hora. · tu salón?</div>
+        </div>
+      </div>
+
+      <div class="card scale">
+        <div class="scale-row">
+          <div><div class="label">Display / H1</div><div class="mono">hero</div></div>
+          <div style="font-size:64px;font-weight:600;line-height:.98;letter-spacing:-.035em">Dejá de <span class="accent" style="color:var(--rosewood)">perseguir.</span></div>
+          <div class="spec">72px (lg) · 60px (sm) · 46px (base)<br>600 · lh .98 · ls -0.035em<br>text-balance</div>
+        </div>
+        <div class="scale-row">
+          <div><div class="label">H2 sección</div></div>
+          <div style="font-size:40px;font-weight:600;line-height:1.05;letter-spacing:-.03em">Que el turno no <span class="accent" style="color:var(--rosewood)">se olvide.</span></div>
+          <div class="spec">36–48px · 600<br>lh 1.05 · ls -0.03em</div>
+        </div>
+        <div class="scale-row">
+          <div><div class="label">H3 card</div></div>
+          <div style="font-size:20px;font-weight:600;letter-spacing:-.01em">Reservan y no aparecen.</div>
+          <div class="spec">18–20px · 600</div>
+        </div>
+        <div class="scale-row">
+          <div><div class="label">Eyebrow</div></div>
+          <div><span class="eyebrow" style="color:var(--mauve);border-color:rgba(156,124,136,.25)"><span class="dot"></span>Para peluquerías, uñas y estética</span></div>
+          <div class="spec">11px · uppercase<br>ls 0.16em · pill con borde</div>
+        </div>
+        <div class="scale-row">
+          <div><div class="label">Lead</div></div>
+          <div style="font-size:18px;line-height:1.65;color:var(--warmgray)">Turneo ordena la agenda, los recordatorios, la caja y el stock de tu salón.</div>
+          <div class="spec">16–18px · 400<br>leading-relaxed (1.625)<br>mist sobre ink / warmgray sobre cream</div>
+        </div>
+        <div class="scale-row">
+          <div><div class="label">Body</div></div>
+          <div style="font-size:14px;line-height:1.6">Cada horario es único por profesional. No se pueden superponer dos reservas.</div>
+          <div class="spec">14px (text-sm) · 400</div>
+        </div>
+        <div class="scale-row">
+          <div><div class="label">Caption / badge</div></div>
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.2em;color:var(--mauve)">Incluido · Garantías</div>
+          <div class="spec">11–12px · uppercase<br>ls 0.2em · mauve</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 03 COMPONENTS ===================== -->
+  <section class="block">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2>Componentes y <span class="accent">estilos</span></h2>
+      <p>Bordes redondeados generosos, sombras cálidas tintadas con charcoal y un solo CTA fuerte por pantalla.</p>
+    </div>
+    <div class="comp-grid">
+      <div class="card comp">
+        <span class="label">Botones · Button.tsx</span>
+        <div class="row">
+          <button class="btn btn-primary">Guardar</button>
+          <button class="btn btn-primary hover">Hover</button>
+          <button class="btn btn-secondary">Cancelar</button>
+          <button class="btn btn-danger">Eliminar</button>
+          <button class="btn btn-sm">Small pill</button>
+        </div>
+        <p class="mono" style="margin-top:14px">primary: blush · text-white · shadow-glow · rounded-lg<br>secondary: borde mauve/15 · danger: red-600 #DC2626<br>shape pill: rounded-full + hover scale 1.02</p>
+      </div>
+
+      <div class="card comp">
+        <span class="label">CTA principal sobre ink</span>
+        <div class="on-ink">
+          <div class="row">
+            <span class="btn btn-hero">Quiero sumar mi salón <span>→</span></span>
+            <span class="btn-link">Ver qué resuelve</span>
+          </div>
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(245,235,229,.15);font-size:13px;color:var(--mist);display:flex;gap:16px">
+            <span><span class="check">✓</span> Reservas 24 hs</span><span><span class="check">✓</span> Recordatorios</span>
+          </div>
+        </div>
+        <p class="mono" style="margin-top:14px">min-h 54px · px-8 · rounded-full · text-ink 600<br>hover: -translate-y-0.5 · flecha translate-x-1</p>
+      </div>
+
+      <div class="card comp">
+        <span class="label">Formulario · .form-input</span>
+        <div class="field"><span>Nombre</span><div class="input ph">Tu nombre y apellido</div></div>
+        <div class="field"><span>Email (focus)</span><div class="input focus">clienta@mail.com</div></div>
+        <p class="mono" style="margin-top:12px">rounded-xl · px-4 py-3 · borde mauve/15<br>focus: border-blush + ring-1 blush/40</p>
+      </div>
+
+      <div class="card comp">
+        <span class="label">Badge · glass-card</span>
+        <div class="row"><span class="badge">Nuevo</span><span class="badge" style="color:var(--rosewood)">Más pedido</span></div>
+        <div class="card" style="margin-top:16px;padding:16px">
+          <div style="font-weight:600;font-size:15px">Corte + Brushing</div>
+          <div style="font-size:13px;color:var(--warmgray);margin-top:4px">60 min · con Sofía</div>
+          <div style="margin-top:10px;font-weight:700;color:var(--rosewood)">$ 18.000</div>
+        </div>
+        <p class="mono" style="margin-top:12px">.glass-card: rounded-2xl · border mauve/20 · bg-ivory · shadow-soft</p>
+      </div>
+
+      <div class="card comp">
+        <span class="label">Sombras</span>
+        <div class="shadow-demo">
+          <div style="box-shadow:var(--shadow-soft)">soft<small>cards por defecto</small></div>
+          <div style="box-shadow:var(--shadow-elevated)">elevated<small>modales, previews</small></div>
+          <div style="box-shadow:var(--shadow-glow)">glow<small>botón primario</small></div>
+          <div style="box-shadow:var(--shadow-gold)">gold<small>ruleta / premios</small></div>
+        </div>
+        <span class="label" style="margin-top:20px">Radios</span>
+        <div class="radii">
+          <div style="border-radius:8px">lg 8</div>
+          <div style="border-radius:12px">xl 12</div>
+          <div style="border-radius:16px">2xl 16</div>
+          <div style="border-radius:999px">full</div>
+        </div>
+      </div>
+
+      <div class="card comp">
+        <span class="label">Movimiento</span>
+        <ul class="motion">
+          <li><b>rise</b><span>.9s · fade + translateY(28px) — entrada del hero, escalonada .1s</span></li>
+          <li><b>reveal</b><span>.8s al hacer scroll · stagger 80 ms por hijo</span></li>
+          <li><b>floaty</b><span>7s ease-in-out · flota ±14px</span></li>
+          <li><b>marquee</b><span>46s lineal · se pausa con hover/focus</span></li>
+          <li><b>halo</b><span>2.4s · box-shadow blush pulsante en CTA</span></li>
+          <li><b>pane</b><span>.5s · slide-in lateral de pasos</span></li>
+          <li><b>a11y</b><span>prefers-reduced-motion corta todo a 0.01ms</span></li>
+        </ul>
+        <p class="mono" style="margin-top:8px">easing: cubic-bezier(.2,.7,.2,1)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 04 WIREFRAMES ===================== -->
+  <section class="block">
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2>Wire<span class="accent">frames</span></h2>
+      <p>Estructura real de cada superficie (desktop, contenedor max-w-6xl · 1152px, padding lateral 24px). Las secciones alternan ink / cream.</p>
+    </div>
+
+    <div class="wf-grid">
+      <!-- ===== HOME COMERCIAL ===== -->
+      <div>
+        <div class="wf-title"><h3>Home comercial</h3><span>app/(public)/page.tsx · /</span></div>
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><em>turneobelleza.com</em></div>
+          <div class="wf">
+            <div class="navw"><div class="logo"><b></b>Turneo</div><div class="navlinks"><span></span><span></span><span></span><span class="pill" style="margin:0;height:12px;width:50px"></span></div></div>
+
+            <div class="s ink" style="padding-top:22px;padding-bottom:26px">
+              <span class="tag">LandingHero</span>
+              <div class="flex">
+                <div class="col">
+                  <span class="pill-o" style="width:110px"></span>
+                  <div class="hd" style="width:95%;height:16px;margin-top:10px"></div>
+                  <div class="hd" style="width:50%;height:16px;display:inline-block"></div> <span class="acc" style="width:34%;height:16px"></span>
+                  <div class="ln" style="width:90%;margin-top:10px"></div><div class="ln" style="width:75%"></div>
+                  <span class="pill" style="width:110px;height:22px"></span>
+                  <div class="note">✓ 24 hs · ✓ recordatorios · ✓ navegador</div>
+                </div>
+                <div class="col"><div class="box" style="height:118px;padding:8px"><div class="note">AgendaPreview</div><div class="cal"><div class="b"></div><div></div><div class="l"></div><div class="b"></div><div></div><div></div><div class="c"></div><div class="b"></div><div></div><div class="l"></div><div class="b"></div><div></div><div></div><div class="b"></div><div class="c"></div></div></div></div>
+              </div>
+            </div>
+
+            <div class="s creamb"><span class="tag">PainsSection</span>
+              <div class="hd" style="width:28%"></div>
+              <div class="g4" style="margin-top:10px"><div class="box" style="height:44px"></div><div class="box" style="height:44px"></div><div class="box" style="height:44px"></div><div class="box" style="height:44px"></div></div>
+            </div>
+
+            <div class="s ink"><span class="tag">ProblemBlock ×5 · ink</span>
+              <div class="flex"><div class="col"><div class="ln" style="width:30%"></div><div class="hd" style="width:80%"></div><div class="ln" style="width:90%"></div><div class="ln" style="width:70%"></div></div><div class="col"><div class="box" style="height:54px"></div></div></div>
+            </div>
+            <div class="s creamb"><span class="tag">ProblemBlock · cream · flip</span>
+              <div class="flex"><div class="col"><div class="box" style="height:54px"></div></div><div class="col"><div class="ln" style="width:30%"></div><div class="hd" style="width:80%"></div><div class="ln" style="width:90%"></div><div class="ln" style="width:70%"></div></div></div>
+            </div>
+            <div class="s ink" style="padding:8px 18px"><div class="note" style="text-align:center">··· ausencias · reservas · caja · insumos · equipo ···</div></div>
+
+            <div class="s creamb"><span class="tag">CalculadoraCostoInaccion</span>
+              <div class="box" style="padding:10px"><div class="flex"><div class="col"><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:80%"></div></div><div class="col" style="text-align:center"><div class="hd" style="width:60%;margin:6px auto;background:var(--rosewood)"></div><div class="ln" style="width:50%;margin:5px auto 0"></div></div></div></div>
+            </div>
+
+            <div class="s ink"><span class="tag">OwnSiteSection #tu-web</span>
+              <div class="hd" style="width:40%"></div>
+              <div class="g3" style="margin-top:10px"><div class="box" style="height:30px"></div><div class="box" style="height:30px"></div><div class="box" style="height:30px"></div><div class="box" style="height:30px"></div><div class="box" style="height:30px"></div><div class="box" style="height:30px"></div></div>
+            </div>
+
+            <div class="s creamb"><span class="tag">RetentionSection</span>
+              <div class="hd" style="width:44%"></div>
+              <div class="g3" style="margin-top:10px"><div class="box" style="height:40px"></div><div class="box" style="height:40px"></div><div class="box" style="height:40px"></div></div>
+            </div>
+
+            <div class="s ink"><span class="tag">TrustStrip</span>
+              <div class="g4"><div><div class="ln" style="width:70%"></div><div class="ln"></div></div><div><div class="ln" style="width:70%"></div><div class="ln"></div></div><div><div class="ln" style="width:70%"></div><div class="ln"></div></div><div><div class="ln" style="width:70%"></div><div class="ln"></div></div></div>
+            </div>
+
+            <div class="s creamb"><span class="tag">LandingFaq #preguntas</span>
+              <div class="hd" style="width:30%"></div>
+              <div class="faq-row"></div><div class="faq-row"></div><div class="faq-row"></div>
+            </div>
+
+            <div class="s ink" style="text-align:center"><span class="tag">ClosingCta #contacto</span>
+              <div class="hd" style="width:50%;margin:6px auto 0"></div>
+              <span class="pill" style="width:120px;height:22px"></span>
+            </div>
+            <div class="s ink" style="text-align:center;border-top:1px solid rgba(245,235,229,.15);padding:10px"><div class="note">Turneo · Términos · Privacidad</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== RESERVAR (tenant) ===== -->
+      <div>
+        <div class="wf-title"><h3>Sitio del salón</h3><span>/reservar</span></div>
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><em>salon.turneobelleza.com/reservar</em></div>
+          <div class="wf">
+            <div class="navw" style="background:rgba(245,235,229,.95);border-color:rgba(156,124,136,.2)"><div class="logo" style="color:var(--charcoal)"><b></b>Salón</div><div class="navlinks"><span style="background:rgba(46,35,40,.2)"></span><span style="background:rgba(46,35,40,.2)"></span><span class="pill" style="margin:0;height:12px;width:50px"></span></div></div>
+            <div class="s ink" style="padding-bottom:22px"><span class="tag">HeroSection</span>
+              <span class="pill-o" style="width:80px"></span>
+              <div class="hd" style="width:80%;height:18px;margin-top:10px"></div><span class="acc" style="width:45%;height:18px;margin-top:4px"></span>
+              <div class="ln" style="width:70%;margin-top:10px"></div>
+              <span class="pill" style="width:100px;height:22px"></span>
+            </div>
+            <div class="s creamb"><span class="tag">ServicesSection</span>
+              <div class="hd" style="width:32%"></div>
+              <div class="g3" style="margin-top:10px"><div class="box" style="height:52px"></div><div class="box" style="height:52px"></div><div class="box" style="height:52px"></div></div>
+            </div>
+            <div class="s ink"><span class="tag">WorkSection · galería</span>
+              <div class="g4"><div class="box" style="height:42px"></div><div class="box" style="height:42px"></div><div class="box" style="height:42px"></div><div class="box" style="height:42px"></div></div>
+            </div>
+            <div class="s creamb"><span class="tag">AboutSection · equipo</span>
+              <div class="flex"><div class="col"><div class="hd" style="width:60%"></div><div class="ln"></div><div class="ln" style="width:70%"></div></div><div class="col"><div class="box" style="height:46px"></div></div></div>
+            </div>
+            <div class="s ink"><span class="tag">ReviewsSection</span>
+              <div class="g3"><div class="box" style="height:36px"></div><div class="box" style="height:36px"></div><div class="box" style="height:36px"></div></div>
+            </div>
+            <div class="s creamb"><span class="tag">FaqSection</span><div class="faq-row"></div><div class="faq-row"></div></div>
+            <div class="s ink"><span class="tag">BookingWizard #contacto</span>
+              <div class="box" style="padding:10px">
+                <div class="flex" style="gap:4px"><span class="pill" style="margin:0;width:22%;height:6px"></span><span class="pill" style="margin:0;width:22%;height:6px;opacity:.3"></span><span class="pill" style="margin:0;width:22%;height:6px;opacity:.3"></span><span class="pill" style="margin:0;width:22%;height:6px;opacity:.3"></span></div>
+                <div class="ln" style="margin-top:10px;width:50%"></div>
+                <div class="g3" style="margin-top:8px"><div style="height:18px;border-radius:6px;border:1px solid rgba(214,154,166,.6)"></div><div style="height:18px;border-radius:6px;background:rgba(214,154,166,.6)"></div><div style="height:18px;border-radius:6px;border:1px solid rgba(214,154,166,.6)"></div></div>
+              </div>
+            </div>
+            <div class="s creamb" style="padding-bottom:30px;position:relative"><span class="tag">Floats</span>
+              <div class="note">WhatsAppFloat · RouletteFloat · MobileBookBar (mobile)</div>
+              <div style="position:absolute;right:14px;bottom:10px;width:22px;height:22px;border-radius:50%;background:#25D366"></div>
+              <div style="position:absolute;right:42px;bottom:10px;width:22px;height:22px;border-radius:50%;background:var(--champagne);box-shadow:var(--shadow-gold)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ADMIN ===== -->
+      <div>
+        <div class="wf-title"><h3>Panel admin</h3><span>/admin · /profesional</span></div>
+        <div class="browser">
+          <div class="bar"><i></i><i></i><i></i><em>/admin/turnos</em></div>
+          <div class="wf" style="display:flex;min-height:420px;background:var(--cream)">
+            <div class="sidebar">
+              <div class="logo" style="font-size:10px"><b></b>Turneo</div>
+              <div class="it on"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it"></div><div class="it"></div>
+              <div class="note" style="color:var(--mist);font-size:8px;margin-top:10px">w-56 · 224px fijo<br>mobile: top bar + bottom bar 56px</div>
+            </div>
+            <div style="flex:1;padding:14px;position:relative">
+              <span class="tag">Contenido · bg-cream</span>
+              <div class="hd" style="width:40%"></div>
+              <div class="ln" style="width:60%"></div>
+              <div class="g3" style="margin-top:12px">
+                <div class="box kpi"><div class="ln" style="width:60%;margin:0"></div><div class="v"></div></div>
+                <div class="box kpi"><div class="ln" style="width:60%;margin:0"></div><div class="v"></div></div>
+                <div class="box kpi"><div class="ln" style="width:60%;margin:0"></div><div class="v" style="background:var(--rosewood)"></div></div>
+              </div>
+              <div class="box" style="margin-top:10px;padding:10px">
+                <div class="flex" style="justify-content:space-between"><div class="ln" style="width:30%;margin:0"></div><span class="pill" style="margin:0;width:60px;height:14px"></span></div>
+                <div class="cal" style="grid-template-columns:repeat(6,1fr)"><div class="b"></div><div></div><div class="l"></div><div class="b"></div><div></div><div class="c"></div><div></div><div class="b"></div><div class="b"></div><div></div><div class="l"></div><div></div><div class="c"></div><div></div><div class="b"></div><div class="l"></div><div></div><div class="b"></div></div>
+              </div>
+              <div class="box" style="margin-top:10px;padding:10px">
+                <div class="ln" style="width:25%;margin:0 0 6px"></div>
+                <div style="display:grid;grid-template-columns:2fr 1fr 1fr 40px;gap:6px;align-items:center">
+                  <div class="ln"></div><div class="ln"></div><div class="ln"></div><span class="pill" style="margin:0;height:10px;background:rgba(201,191,224,.9)"></span>
+                  <div class="ln"></div><div class="ln"></div><div class="ln"></div><span class="pill" style="margin:0;height:10px;background:rgba(198,162,110,.7)"></span>
+                  <div class="ln"></div><div class="ln"></div><div class="ln"></div><span class="pill" style="margin:0;height:10px"></span>
+                  <div class="ln"></div><div class="ln"></div><div class="ln"></div><span class="pill" style="margin:0;height:10px;background:rgba(201,191,224,.9)"></span>
+                </div>
+              </div>
+              <div class="note" style="margin-top:10px">Secciones: turnos, calendario, caja, clientes, servicios, profesionales, insumos, productos, estadísticas, reseñas, ruleta, galería, contenido, configuración.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:24px;padding:20px">
+          <span class="label">Reglas de layout</span>
+          <ul class="motion" style="margin-top:10px">
+            <li><b>Contenedor</b><span>max-w-6xl (1152px) · px-6</span></li>
+            <li><b>Secciones</b><span>py 80–112px · alternan ink / cream</span></li>
+            <li><b>Grid</b><span>1 col mobile → 2–4 col (md / lg)</span></li>
+            <li><b>Touch</b><span>targets ≥ 44px · CTA 54px</span></li>
+            <li><b>Mobile</b><span>barra CTA fija abajo · filas .snap-row deslizables</span></li>
+            <li><b>Focus</b><span>outline 2px blush · offset 4px</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:#2A2025"></i>Sección ink</span>
+      <span><i style="background:#F5EBE5;border:1px solid rgba(156,124,136,.3)"></i>Sección cream</span>
+      <span><i style="background:#FFFFFF;border:1px solid rgba(156,124,136,.3)"></i>Card ivory</span>
+      <span><i style="background:#D69AA6"></i>CTA / acento</span>
+      <span><i style="background:#C9BFE0"></i>Turno lavender</span>
+      <span><i style="background:#C6A26E"></i>Champagne</span>
+    </div>
+  </section>
+
+  <footer class="doc">
+    <span>Turneo · Frontend Design System</span>
+    <span>Fuente: frontend/turneo-web — tailwind.config.js, app/globals.css, app/layout.tsx, src/components</span>
+  </footer>
+</div>
+</body>
+</html>
