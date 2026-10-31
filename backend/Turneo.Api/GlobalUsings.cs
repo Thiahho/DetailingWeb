@@ -4,6 +4,7 @@ global using Turneo.Api.Core.Clients;
 global using Turneo.Api.Core.Bookings;
 global using Turneo.Api.Core.Scheduling;
 global using Turneo.Api.Core.Professionals;
+global using Turneo.Api.Core.Promotions;
 global using Turneo.Api.Core.Roles;
 global using Turneo.Api.Core.Services;
 global using Turneo.Api.Core.Products;

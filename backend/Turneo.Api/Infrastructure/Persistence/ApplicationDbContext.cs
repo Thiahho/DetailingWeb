@@ -63,6 +63,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<Service> Services { get; set; }
     public DbSet<Professional> Professionals { get; set; }
+    public DbSet<Promotion> Promotions { get; set; }
     public DbSet<NotificationLog> NotificationLogs { get; set; }
     public DbSet<ClientAccessCode> ClientAccessCodes { get; set; }
     public DbSet<ContentVideo> ContentVideos { get; set; }
@@ -461,6 +462,25 @@ public class ApplicationDbContext : DbContext
             entity.HasMany(p => p.Services)
                   .WithMany()
                   .UsingEntity(j => j.ToTable("ProfessionalServices"));
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<Promotion>(entity =>
+        {
+            entity.HasIndex(e => new { e.ProfessionalId, e.IsActive });
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Value).HasColumnType("decimal(12,2)");
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<Professional>()
+                .WithMany()
+                .HasForeignKey(e => e.ProfessionalId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });
