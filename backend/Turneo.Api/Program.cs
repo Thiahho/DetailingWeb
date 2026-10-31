@@ -33,6 +33,7 @@ builder.Services.AddScoped<CurrentTenantService>();
 builder.Services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<CurrentTenantService>());
 // Core depende solo de IPlanLimitsService (Shared) — nunca de SaaS directamente.
 builder.Services.AddScoped<IPlanLimitsService, PlanLimitsService>();
+builder.Services.AddScoped<IPromotionPricingService, PromotionPricingService>();
 // Capa de repositorio (auditoría, "reducir acoplamiento de ApplicationDbContext") — piloteada en Professionals,
 // extendida al resto de los controllers que antes inyectaban ApplicationDbContext directo.
 builder.Services.AddScoped<IProfessionalsRepository, ProfessionalsRepository>();

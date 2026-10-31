@@ -156,8 +156,14 @@ namespace Turneo.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<decimal?>("DiscountAmount")
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<string>("Email")
                         .HasColumnType("text");
+
+                    b.Property<decimal?>("FinalPrice")
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<string>("GoogleEventId")
                         .HasColumnType("text");
@@ -172,6 +178,9 @@ namespace Turneo.Api.Migrations
                         .HasColumnType("jsonb");
 
                     b.Property<int?>("ProfessionalId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PromotionId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Service")

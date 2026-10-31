@@ -21,8 +21,11 @@ public class BookingsController : ControllerBase
     private readonly ISmartTagsRepository _smartTagsRepository;
     private readonly ICurrentTenant _currentTenant;
 
-    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant)
+    private readonly IPromotionPricingService _promotionPricing;
+
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing)
     {
+        _promotionPricing = promotionPricing;
         _repository = repository;
         _authService = authService;
         _configuration = configuration;
@@ -104,8 +107,15 @@ public class BookingsController : ControllerBase
         var smartTag = await ResolveAttributedSmartTagAsync(request.SmartTagToken);
         var smartTagSource = smartTag is null ? null : SmartTagSource.Normalize(request.SmartTagSource);
 
+        var promotion = professionalId.HasValue
+            ? await _promotionPricing.QuoteBySlugAsync(professionalId.Value, request.Service, DateTime.UtcNow)
+            : null;
+
         var booking = new Booking
         {
+            PromotionId = promotion?.PromotionId,
+            DiscountAmount = promotion?.DiscountAmount,
+            FinalPrice = promotion?.FinalPrice,
             TimeSlotId = request.TimeSlotId,
             ProfessionalId = professionalId,
             CustomerName = request.CustomerName,

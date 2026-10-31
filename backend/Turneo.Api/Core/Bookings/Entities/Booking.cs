@@ -40,4 +40,12 @@ public class Booking : ITenantScoped
     public int? SmartTagId { get; set; }
     // Canal de origen (SmartTagSource: "nfc" | "qr"); null si no se conoce.
     public string? Source { get; set; }
+
+    // Snapshot de la promoción aplicada al reservar (los tres null = sin promo).
+    // Se guarda en la reserva para que editar o borrar la promo después no
+    // cambie lo que se acordó con el cliente. Sin navegación: GET /api/bookings
+    // serializa la entidad.
+    public int? PromotionId { get; set; }
+    public decimal? DiscountAmount { get; set; }
+    public decimal? FinalPrice { get; set; }
 }

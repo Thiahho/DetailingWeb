@@ -62,7 +62,12 @@ public class PaymentsController : ControllerBase
         // Parse service price
         var service = await _repository.GetServiceBySlugAsync(booking.Service);
         decimal amount;
-        if (request.Amount > 0)
+        if (booking.FinalPrice is > 0)
+        {
+            // Precio con promoción acordado al reservar: gana sobre el monto del cliente.
+            amount = booking.FinalPrice.Value;
+        }
+        else if (request.Amount > 0)
         {
             amount = request.Amount;
         }

@@ -306,6 +306,8 @@ public class ApplicationDbContext : DbContext
         // Configuración Booking
         modelBuilder.Entity<Booking>(entity =>
         {
+            entity.Property(e => e.DiscountAmount).HasColumnType("decimal(12,2)");
+            entity.Property(e => e.FinalPrice).HasColumnType("decimal(12,2)");
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CustomerEmailNormalized);
             entity.HasIndex(e => e.TimeSlotId)
