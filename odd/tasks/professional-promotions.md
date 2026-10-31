@@ -12,7 +12,7 @@ Objective: each professional can create automatic-discount promotions. Branch: T
 ## Tasks
 - T1 (S1,S2) entity + migration (with RLS) + CRUD — inline — done in c0897dd; tests compile but NOT run (no Docker on this machine)
 - T2 (S4,S5) pricing service + booking snapshot + Mercado Pago amount — inline — done; 10 pure unit tests pass, integration tests (PromotionBookingTests) compile but NOT run (no Docker). Earnings need no change: they sum real CajaMovements.
-- T3 (S3) public read endpoint + frontend portal page + public price UI — inline — pending
+- T3 (S3) public read endpoint + frontend portal page + public price UI — inline — done; `tsc --noEmit` clean; `pnpm lint` not configured in repo (interactive prompt); Playwright e2e not written/run; backend integration tests not run (no Docker)
 
 ## Log
 - L1: "que cada profesional tenga la opcion de poder crear promociones."

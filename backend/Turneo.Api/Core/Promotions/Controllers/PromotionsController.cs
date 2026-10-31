@@ -140,6 +140,53 @@ public class PromotionsController : ControllerBase
     };
 }
 
+// Lectura pública para la reserva: un precio final por servicio con promo vigente.
+// Solo expone montos, nunca los datos internos de la promoción.
+[ApiController]
+[Route("api/professionals/{professionalId:int}/promotions")]
+public class PublicPromotionsController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly IPromotionPricingService _pricing;
+
+    public PublicPromotionsController(ApplicationDbContext context, IPromotionPricingService pricing)
+    {
+        _context = context;
+        _pricing = pricing;
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("public-read")]
+    public async Task<IActionResult> GetActive(int professionalId)
+    {
+        var services = await _context.Professionals
+            .Where(p => p.Id == professionalId && p.IsActive)
+            .SelectMany(p => p.Services)
+            .Where(s => s.IsActive)
+            .ToListAsync();
+
+        var now = DateTime.UtcNow;
+        var result = new List<object>();
+        foreach (var service in services)
+        {
+            var quote = await _pricing.QuoteAsync(professionalId, service, now);
+            if (quote == null) continue;
+            result.Add(new
+            {
+                serviceId = service.Id,
+                serviceSlug = service.Slug,
+                promotionName = quote.PromotionName,
+                originalPrice = quote.OriginalPrice,
+                discountAmount = quote.DiscountAmount,
+                finalPrice = quote.FinalPrice
+            });
+        }
+
+        return Ok(result);
+    }
+}
+
 public class PromotionRequest
 {
     [Required, StringLength(100, MinimumLength = 1)]

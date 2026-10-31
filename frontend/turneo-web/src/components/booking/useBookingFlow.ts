@@ -12,6 +12,15 @@ export interface TimeSlot {
   professionalName?: string | null;
 }
 
+export interface ActivePromotion {
+  serviceId: number;
+  serviceSlug: string;
+  promotionName: string;
+  originalPrice: number;
+  discountAmount: number;
+  finalPrice: number;
+}
+
 export interface ServicePack {
   id: number;
   title: string;
@@ -222,6 +231,26 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
     setPendingSlotId(null);
   }, [timeSlots, slotsProfessionalId, pendingSlotId]);
 
+  // Promociones vigentes del profesional elegido (o fijado por la ficha): el
+  // precio final lo calcula el backend, acá solo se muestra.
+  const [promotions, setPromotions] = useState<ActivePromotion[]>([]);
+  const promotionProfessionalId = formData.selectedProfessionalId ?? lockedProfessional?.id ?? null;
+
+  useEffect(() => {
+    if (!promotionProfessionalId) {
+      setPromotions([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(withTenant(`/api/professionals/${promotionProfessionalId}/promotions`))
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data) => { if (!cancelled) setPromotions(Array.isArray(data) ? data : []); })
+      .catch(() => { if (!cancelled) setPromotions([]); });
+    return () => { cancelled = true; };
+  }, [promotionProfessionalId, withTenant]);
+
+  const selectedPromotion = promotions.find((p) => p.serviceSlug === formData.selectedService) ?? null;
+
   const loadProfessionals = async () => {
     try {
       const response = await fetch(withTenant("/api/professionals"));
@@ -374,6 +403,7 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
     setLockedProfessionalId,
     visibleServices,
     selectedServiceObj,
+    selectedPromotion,
     customFieldDefs,
     availableProfessionals,
     toast,

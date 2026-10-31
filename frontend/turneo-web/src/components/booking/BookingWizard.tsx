@@ -35,6 +35,7 @@ export default function BookingWizard(props: BookingFormProps) {
     setLockedProfessionalId,
     visibleServices,
     selectedServiceObj,
+    selectedPromotion,
     customFieldDefs,
     availableProfessionals,
     toast,
@@ -101,7 +102,15 @@ export default function BookingWizard(props: BookingFormProps) {
         ].map(([term, value]) => (
           <div key={term} className="flex justify-between gap-4 py-4">
             <dt className="text-sm text-charcoal/70">{term}</dt>
-            <dd className="text-right text-sm font-semibold">{value ?? "—"}</dd>
+            {term === "Precio" && selectedPromotion ? (
+              <dd className="text-right text-sm font-semibold" data-testid="promo-price">
+                <span className="mr-2 font-normal text-charcoal/50 line-through">{value}</span>
+                <span className="text-rosewood">${selectedPromotion.finalPrice.toLocaleString("es-AR")}</span>
+                <span className="block text-xs font-normal text-charcoal/70">{selectedPromotion.promotionName}</span>
+              </dd>
+            ) : (
+              <dd className="text-right text-sm font-semibold">{value ?? "—"}</dd>
+            )}
           </div>
         ))}
       </dl>

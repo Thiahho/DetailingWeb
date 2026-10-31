@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Turneo.Api.Tests.Integration;
@@ -106,6 +107,29 @@ public class PromotionBookingTests
         Assert.Null(booking.PromotionId);
         Assert.Null(booking.DiscountAmount);
         Assert.Null(booking.FinalPrice);
+    }
+
+    [Fact]
+    public async Task PublicEndpoint_ListsFinalPriceWithoutAuth_AndOmitsPausedPromotions()
+    {
+        var (tenantId, professional, service) = await ArrangeAsync();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var p = await db.Professionals.IgnoreQueryFilters().Include(x => x.Services).SingleAsync(x => x.Id == professional.Id);
+            p.Services.Add(await db.Services.IgnoreQueryFilters().SingleAsync(x => x.Id == service.Id));
+            await db.SaveChangesAsync();
+        }
+        await SeedPromotionAsync(tenantId, professional.Id, service.Id, PromotionDiscountType.Percent, 25);
+        await SeedPromotionAsync(tenantId, professional.Id, service.Id, PromotionDiscountType.Percent, 90, active: false);
+
+        var response = await _factory.CreateClient().GetAsync($"/api/professionals/{professional.Id}/promotions");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        Assert.Equal(1, list.GetArrayLength());
+        Assert.Equal(750m, list[0].GetProperty("finalPrice").GetDecimal());
+        Assert.Equal(1000m, list[0].GetProperty("originalPrice").GetDecimal());
     }
 
     [Fact]

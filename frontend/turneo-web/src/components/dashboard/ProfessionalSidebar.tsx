@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart2, CalendarDays, Globe, History, LayoutDashboard, LogOut, UserCog, Wallet } from "lucide-react";
+import { BarChart2, CalendarDays, Globe, History, LayoutDashboard, LogOut, Tag, UserCog, Wallet } from "lucide-react";
 import { getSiteConfig } from "@/src/lib/siteConfig";
 import { isAdminAuthenticated } from "@/src/lib/auth";
 
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/profesional/historial", label: "Historial", shortLabel: "Historial", icon: History },
   { href: "/profesional/comisiones", label: "Día Trabajado", shortLabel: "Día", icon: Wallet },
   { href: "/profesional/tablero", label: "Mi Tablero", shortLabel: "Tablero", icon: BarChart2 },
+  { href: "/profesional/promociones", label: "Promociones", shortLabel: "Promos", icon: Tag },
   { href: "/profesional/cuenta", label: "Mi cuenta", shortLabel: "Cuenta", icon: UserCog },
 ];
 
