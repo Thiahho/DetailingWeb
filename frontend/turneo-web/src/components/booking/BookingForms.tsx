@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import PaymentButton from "@/src/components/payments/PaymentButton";
 
+import HomeAddressStep from "./HomeAddressStep";
 import { useBookingFlow, type BookingFormProps, type Toast } from "./useBookingFlow";
+import { formatSurcharge } from "@/src/lib/homeService/coverageLocality";
+import { homeServicePriceBreakdown } from "@/src/lib/homeService/bookingAddress";
 
 export type { BookingPreselection } from "./useBookingFlow";
 
@@ -154,7 +157,7 @@ export function ClientToast({ toast, onClose }: { toast: Toast; onClose: () => v
   );
 }
 
-export default function BookingForm({ preselectedService, preselection, tenantSlugOverride, smartTagToken, smartTagSource }: BookingFormProps) {
+export default function BookingForm({ preselectedService, preselection, tenantSlugOverride, smartTagToken, smartTagSource, whatsAppNumber }: BookingFormProps) {
   const {
     formData,
     setFormData,
@@ -183,7 +186,24 @@ export default function BookingForm({ preselectedService, preselection, tenantSl
     totalPages,
     currentSlots,
     handleCalendarSubmit,
+    selectedPromotion,
+    isAtHome,
+    homeAddress,
+    setHomeAddress,
+    coverageLocalities,
+    coverageStatus,
+    retryCoverage,
+    selectedCoverageLocality,
   } = useBookingFlow({ preselectedService, preselection, tenantSlugOverride, smartTagToken, smartTagSource });
+
+  // Display-only: the server decides the charged amount.
+  const price = isAtHome
+    ? homeServicePriceBreakdown({
+        servicePrice: selectedServiceObj?.price,
+        promotionPrice: selectedPromotion?.finalPrice ?? null,
+        surcharge: selectedCoverageLocality?.surcharge ?? null,
+      })
+    : null;
 
   if (loading)
     return (
@@ -356,6 +376,31 @@ export default function BookingForm({ preselectedService, preselection, tenantSl
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-xl bg-gradient-to-t from-white to-transparent" />
         </div>
       </div>
+
+      {/* Domicilio: solo para servicios a domicilio */}
+      {isAtHome && (
+        <div className="space-y-3" data-testid="smarttag-home-address">
+          <label className="text-xs uppercase tracking-[0.2em] text-charcoal/50 block">
+            ¿Dónde hacemos el servicio?
+          </label>
+          <HomeAddressStep
+            tone="light"
+            serviceTitle={selectedServiceObj?.title ?? formData.selectedService}
+            homeAddress={homeAddress}
+            setHomeAddress={setHomeAddress}
+            coverageLocalities={coverageLocalities}
+            coverageStatus={coverageStatus}
+            retryCoverage={retryCoverage}
+            whatsAppNumber={whatsAppNumber}
+          />
+          {price && selectedCoverageLocality && price.total !== null && (
+            <p className="text-sm text-charcoal/70" data-testid="smarttag-price-total">
+              {price.surcharge > 0 && <>Recargo por zona: ${formatSurcharge(price.surcharge)} · </>}
+              Total: <strong>${formatSurcharge(price.total)}</strong>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Campos dinámicos del servicio */}
       {customFieldDefs.length > 0 && (

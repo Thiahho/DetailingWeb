@@ -449,6 +449,7 @@ export function useBookingFlow(
         // (on-site keeps the plain error toast below).
         showToast("error", "Elegí otro horario", data.message || "Ese horario ya no está disponible.");
         setFormData((prev) => ({ ...prev, selectedSlotId: null }));
+        setCurrentPage(1);
         loadAvailableSlots(formData.selectedProfessionalId, slotsServiceSlug);
         onSlotConflictRef.current?.();
       } else {

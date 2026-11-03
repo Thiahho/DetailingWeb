@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addressFromResolvedPlace,
   buildHomeAddressPayload,
   coverageWhatsAppMessage,
   homeServicePriceBreakdown,
@@ -174,6 +175,36 @@ describe("coverageWhatsAppMessage", () => {
   it("skips the parts that are missing", () => {
     expect(coverageWhatsAppMessage({ serviceTitle: "Lavado", street: " ", locality: "" })).toBe(
       "Hola, quiero consultar si pueden hacer el servicio \"Lavado\" a domicilio. Mi zona no figura en la lista de cobertura."
+    );
+  });
+});
+
+describe("addressFromResolvedPlace", () => {
+  const place = { direccion: "Mitre 456", localidad: "Bernal", partido: "Quilmes", provincia: "Buenos Aires" };
+
+  it("fills the street and the matching coverage locality, keeping the other fields", () => {
+    const prev = form({ coverageLocalityId: null, street: "", details: "2B", notes: "Timbre" });
+    expect(addressFromResolvedPlace(prev, place, localities)).toEqual({
+      address: { coverageLocalityId: 2, street: "Mitre 456", details: "2B", notes: "Timbre" },
+      outsideName: null,
+    });
+  });
+
+  it("keeps the current street when the place has no address", () => {
+    const prev = form({ street: "Typed while loading 99" });
+    expect(addressFromResolvedPlace(prev, { ...place, direccion: "" }, localities).address.street).toBe(
+      "Typed while loading 99"
+    );
+  });
+
+  it("clears the locality and names the place when it is out of coverage", () => {
+    const outside = { direccion: "Hipólito Yrigoyen 1", localidad: "Lanús Oeste", partido: "Lanús", provincia: "Buenos Aires" };
+    expect(addressFromResolvedPlace(form(), outside, localities)).toEqual({
+      address: { ...form(), coverageLocalityId: null, street: "Hipólito Yrigoyen 1" },
+      outsideName: "Lanús Oeste",
+    });
+    expect(addressFromResolvedPlace(form(), { ...outside, localidad: "", partido: "" }, localities).outsideName).toBe(
+      "esa zona"
     );
   });
 });

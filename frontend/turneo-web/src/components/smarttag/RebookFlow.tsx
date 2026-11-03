@@ -8,6 +8,7 @@ interface RebookFlowProps {
   token: string;
   tenantSlug: string;
   source?: SmartTagSource;
+  whatsAppNumber?: string;
 }
 
 interface LastBooking {
@@ -35,7 +36,7 @@ function formatDateTime(iso: string): string {
   });
 }
 
-export default function RebookFlow({ token, tenantSlug, source }: RebookFlowProps) {
+export default function RebookFlow({ token, tenantSlug, source, whatsAppNumber }: RebookFlowProps) {
   const [email, setEmail] = useState("");
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -60,7 +61,7 @@ export default function RebookFlow({ token, tenantSlug, source }: RebookFlowProp
   };
 
   if (showForm) {
-    return <BookingForm tenantSlugOverride={tenantSlug} smartTagToken={token} smartTagSource={source} />;
+    return <BookingForm tenantSlugOverride={tenantSlug} smartTagToken={token} smartTagSource={source} whatsAppNumber={whatsAppNumber} />;
   }
 
   return (

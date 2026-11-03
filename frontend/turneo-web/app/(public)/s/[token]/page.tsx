@@ -95,6 +95,11 @@ export default async function SmartLinkPage({
         : "Este negocio todavía no configuró su Instagram.";
   }
 
+  // Tenant WhatsApp for the out-of-coverage button of at-home services
+  // (same source as /reservar: the tenant's site config).
+  const bookingWhatsApp =
+    data.action === "BOOKING" || data.action === "REBOOK" ? (await getSiteConfigForTenant(data.tenantSlug))?.whatsAppNumber || undefined : undefined;
+
   return (
     <main className="min-h-screen bg-cream px-6 py-16 text-charcoal">
       <div className="mx-auto max-w-xl space-y-6">
@@ -105,10 +110,15 @@ export default async function SmartLinkPage({
         </div>
 
         {data.action === "BOOKING" && (
-          <BookingForm tenantSlugOverride={data.tenantSlug} smartTagToken={params.token} smartTagSource={source} />
+          <BookingForm
+            tenantSlugOverride={data.tenantSlug}
+            smartTagToken={params.token}
+            smartTagSource={source}
+            whatsAppNumber={bookingWhatsApp}
+          />
         )}
         {data.action === "REBOOK" && (
-          <RebookFlow token={params.token} tenantSlug={data.tenantSlug} source={source} />
+          <RebookFlow token={params.token} tenantSlug={data.tenantSlug} source={source} whatsAppNumber={bookingWhatsApp} />
         )}
         {data.action === "REVIEW" && <ReviewFlow token={params.token} />}
         {redirectFallbackMessage && (

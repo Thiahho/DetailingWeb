@@ -137,3 +137,20 @@ export function coverageWhatsAppMessage({
     where ? ` en ${where}` : ""
   }. Mi zona no figura en la lista de cobertura.`;
 }
+
+/**
+ * Applies a place resolved from a Maps link to the current form. Meant for a
+ * functional state update, so a street typed while the lookup ran is kept when
+ * the place has no address. `outsideName` is set when no coverage locality matches.
+ */
+export function addressFromResolvedPlace(
+  prev: HomeAddressForm,
+  place: { direccion: string; localidad: string; partido: string; provincia: string },
+  localities: ActiveCoverageLocality[]
+): { address: HomeAddressForm; outsideName: string | null } {
+  const match = matchCoverageLocality(place, localities);
+  return {
+    address: { ...prev, street: place.direccion || prev.street, coverageLocalityId: match?.id ?? null },
+    outsideName: match ? null : place.localidad || place.partido || "esa zona",
+  };
+}
