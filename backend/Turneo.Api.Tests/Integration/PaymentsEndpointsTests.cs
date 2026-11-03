@@ -248,6 +248,43 @@ public class PaymentsEndpointsTests
     }
 
     [Fact]
+    public async Task Webhook_WithoutLocalPayment_UsesServicePriceWhenBookingHasNoFinalPrice()
+    {
+        var booking = await SeedBookingWithoutPaymentAsync(null, 49);
+        var service = await TestDataFactory.CreateServiceAsync(_factory, booking.TenantId, "Corte MP"); // Price "1000"
+        await TestDataFactory.SetBookingServiceAsync(_factory, booking.Id, service.Slug);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 1000m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555104"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(1000m, payment!.Amount);
+        Assert.Equal(PaymentStatus.Approved, payment.Status);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Confirmed, updatedBooking!.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_WithoutLocalPayment_IgnoresServiceFromAnotherTenant()
+    {
+        var booking = await SeedBookingWithoutPaymentAsync(null, 50);
+        var otherTenant = await TestDataFactory.CreateTenantAsync(_factory, $"otro-{Guid.NewGuid():N}"[..20], "Otro negocio");
+        var foreignService = await TestDataFactory.CreateServiceAsync(_factory, otherTenant.Id, "Corte ajeno"); // Price "1000"
+        await TestDataFactory.SetBookingServiceAsync(_factory, booking.Id, foreignService.Slug);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 1000m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555105"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(0m, payment!.Amount);
+        Assert.Equal(PaymentStatus.Pending, payment.Status);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Pending, updatedBooking!.Status);
+    }
+
+    [Fact]
     public async Task Webhook_WithoutLocalPayment_AndNoKnownPrice_KeepsPaymentAndBookingPending()
     {
         var booking = await SeedBookingWithoutPaymentAsync(null, 48);

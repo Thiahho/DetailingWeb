@@ -36,5 +36,9 @@ Close two payment defects found while reviewing the MercadoPago webhook, before 
 
 - [x] T3 — Webhook-created Payment uses PaymentAmountResolver for the expected amount (service looked up with explicit tenant), links the Booking so approval confirms it, and an unknown expected amount (0) is never approved. Route: inline (small, understood change). RED observed: 2 of 3 new tests failed ("Approved" instead of "Pending"); GREEN: payments filter 28/28; full suite 232/238 with the same 6 pre-existing failures.
 
+- Commit ebd6cc37 (T3): native review granted, 4 lenses, approved and acknowledged; informational warnings only.
+- [x] T4 — Tests for the service-price fallback and the cross-tenant service filter in the webhook (review follow-up). Characterization tests, so no RED; mutation check (tenant filter removed) made the cross-tenant test fail. Payments filter 30/30.
+- Full-branch review attempt stopped with `lens_context_budget_exceeded` (108 files, 8667 lines); nothing created.
+
 ## Next step
 Investigate the 6 pre-existing test failures separately.
