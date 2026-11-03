@@ -453,6 +453,11 @@ public class BookingsController : ControllerBase
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
 
+        // A confirmed or paid booking is locked: reject before the home-service
+        // policy runs or any field is assigned, so a rejected edit changes nothing.
+        if (booking.Status == BookingStatus.Confirmed || await _repository.HasApprovedPaymentAsync(booking.Id))
+            return BadRequest(new { success = false, message = "No se puede editar una reserva confirmada o pagada" });
+
         // Re-run the home-service policy against the resulting service so the
         // address/surcharge snapshot matches its location type. Validated before
         // any field is touched: a rejected edit changes nothing.

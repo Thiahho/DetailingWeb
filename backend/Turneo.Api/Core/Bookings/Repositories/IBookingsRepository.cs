@@ -18,6 +18,7 @@ public interface IBookingsRepository
     Task<List<PublicBookingItem>> GetByEmailAsync(string normalizedEmail);
     Task<Booking?> GetByIdWithTimeSlotAsync(int id);
     Task<Booking?> FindAsync(int id);
+    Task<bool> HasApprovedPaymentAsync(int bookingId);
     Task LoadTimeSlotAsync(Booking booking);
     Task<int> DeleteExpiredSlotsAsync(DateTime now);
     Task<Booking?> GetByIdWithItemsAsync(int id);

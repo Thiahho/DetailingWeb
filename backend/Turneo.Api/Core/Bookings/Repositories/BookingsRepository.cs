@@ -169,6 +169,9 @@ public class BookingsRepository : IBookingsRepository
 
     public Task<Booking?> FindAsync(int id) => _context.Bookings.FindAsync(id).AsTask();
 
+    public Task<bool> HasApprovedPaymentAsync(int bookingId) =>
+        _context.Payments.AnyAsync(p => p.BookingId == bookingId && p.Status == PaymentStatus.Approved);
+
     public Task LoadTimeSlotAsync(Booking booking) =>
         _context.Entry(booking).Reference(b => b.TimeSlot).LoadAsync();
 
