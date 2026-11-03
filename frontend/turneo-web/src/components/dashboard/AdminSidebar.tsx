@@ -10,7 +10,7 @@ import {
   CalendarDays, BarChart2, Wrench, Globe,
   LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
-  MoreHorizontal, ChevronDown, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star,
+  MoreHorizontal, ChevronDown, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star, MapPin,
 } from "lucide-react";
 
 // `module`: a qué PermissionModule pertenece este link — un Staff sin permiso
@@ -51,6 +51,8 @@ const groups: NavGroup[] = [
     title: "Catálogo",
     items: [
       { href: "/admin/servicios", label: "Servicios", icon: Wrench, module: "Servicios" },
+      // Admin only: the coverage-localities API is [Authorize(Roles = "Admin")], outside the permission modules.
+      { href: "/admin/zonas-cobertura", label: "Zonas de cobertura", icon: MapPin, adminOnly: true },
       { href: "/admin/productos", label: "Productos", icon: Package, module: "Productos" },
       { href: "/admin/insumos", label: "Insumos", icon: Boxes, module: "Insumos" },
     ],

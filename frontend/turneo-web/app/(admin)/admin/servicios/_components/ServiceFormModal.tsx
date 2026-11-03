@@ -7,6 +7,12 @@ import CategoryCombobox from "@/src/components/forms/CategoryCombobox";
 import Autocomplete, { normalize } from "@/src/components/forms/Autocomplete";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import {
+  SERVICE_LOCATION_OPTIONS,
+  normalizeLocationType,
+  withLocationType,
+  type ServiceLocationType,
+} from "@/src/lib/homeService/serviceLocation";
 
 const DIACRITICS_RE = new RegExp("[" + String.fromCharCode(0x0300) + "-" + String.fromCharCode(0x036f) + "]", "g");
 
@@ -29,6 +35,7 @@ export interface Service {
   category?: string;
   bufferMinutes: number;
   color: string;
+  locationType?: ServiceLocationType;
 }
 
 export interface InsumoOption { id: number; name: string; stock: number; }
@@ -57,6 +64,7 @@ const emptyForm = {
   category: "",
   bufferMinutes: 0,
   color: "#7c3aed",
+  locationType: "OnSite" as ServiceLocationType,
 };
 
 export default function ServiceFormModal({
@@ -91,6 +99,7 @@ export default function ServiceFormModal({
           category: initial.category ?? "",
           bufferMinutes: initial.bufferMinutes,
           color: initial.color,
+          locationType: normalizeLocationType(initial.locationType),
         }
       : { ...emptyForm, details: ["", "", ""] }
   );
@@ -201,11 +210,15 @@ export default function ServiceFormModal({
     setSaving(true);
 
     const validFields = customFields.filter((f) => f.name.trim() && f.key.trim());
-    const payload = {
-      ...formData,
-      details: formData.details.filter((d) => d.trim() !== ""),
-      customFieldsSchema: validFields.length > 0 ? JSON.stringify(validFields) : null,
-    };
+    // The PUT is a full replace: locationType must always travel or the service resets to OnSite.
+    const payload = withLocationType(
+      {
+        ...formData,
+        details: formData.details.filter((d) => d.trim() !== ""),
+        customFieldsSchema: validFields.length > 0 ? JSON.stringify(validFields) : null,
+      },
+      formData.locationType
+    );
 
     try {
       const url = initial ? `/api/services/${initial.id}` : "/api/services";
@@ -303,6 +316,42 @@ export default function ServiceFormModal({
               />
             </div>
           </div>
+
+          {/* Dónde se presta */}
+          <fieldset>
+            <legend className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">Dónde se presta</legend>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              {SERVICE_LOCATION_OPTIONS.map((option) => {
+                const selected = formData.locationType === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blush/40 ${
+                      selected
+                        ? "border-blushdark bg-blush/10 text-blushdark"
+                        : "border-mauve/10 bg-cream text-charcoal/70 hover:border-mauve/30"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="service-location-type"
+                      className="sr-only"
+                      data-testid={`service-form-location-${option.value}`}
+                      value={option.value}
+                      checked={selected}
+                      onChange={() => setFormData((prev) => ({ ...prev, locationType: option.value }))}
+                    />
+                    {option.label}
+                  </label>
+                );
+              })}
+            </div>
+            {formData.locationType === "AtHome" && (
+              <p className="mt-1 text-[11px] text-charcoal/40">
+                El cliente indica su dirección al reservar y solo puede hacerlo dentro de tus zonas de cobertura.
+              </p>
+            )}
+          </fieldset>
 
           {/* Imagen */}
           <div>
