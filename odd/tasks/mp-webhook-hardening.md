@@ -32,5 +32,7 @@ Close two payment defects found while reviewing the MercadoPago webhook, before 
 
 - 2026-11-03: Docker up. Payments filter: 25/25 passed. Full suite: 229/235; the 6 failures (4 PromotionsEndpointsTests, 2 BookingsEndpointsTests that only fail in the full run) fail identically on the base without these changes — pre-existing, out of scope.
 
+- Commit 7d46ccf3 (T1+T2). Review assess: high (payments hot path); user declined native review for this candidate.
+
 ## Next step
 Optional follow-up: compute the expected amount with PaymentAmountResolver when the webhook creates the Payment itself. Investigate the 6 pre-existing test failures separately.
