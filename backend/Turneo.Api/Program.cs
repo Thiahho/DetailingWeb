@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using Turneo.Api.Infrastructure.Security;
+using Turneo.Api.Modules.HomeService.ServiceArea;
 
 // Evita que el host arranque un FileSystemWatcher sobre appsettings.json: en contenedores
 // con inotify limitado (p. ej. Render) esto tira IOException y mata el proceso antes de arrancar.
@@ -56,6 +57,7 @@ builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository
 builder.Services.AddScoped<IPermissionsRepository, PermissionsRepository>();
 builder.Services.AddScoped<ISmartTagsRepository, SmartTagsRepository>();
 builder.Services.AddScoped<IReviewsRepository, ReviewsRepository>();
+builder.Services.AddScoped<ICoverageLocalitiesRepository, CoverageLocalitiesRepository>();
 
 builder.Services.AddScoped<TenantSessionInterceptor>();
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>

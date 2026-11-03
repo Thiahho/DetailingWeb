@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MercadoPago.Resource.Customer;
+using Turneo.Api.Modules.HomeService.ServiceArea;
 
 namespace Turneo.Api.Infrastructure.Persistence;
 
@@ -54,6 +55,9 @@ public class ApplicationDbContext : DbContext
 
     // Modules/Beauty
     public DbSet<Treatment> Treatments { get; set; }
+
+    // Modules/HomeService
+    public DbSet<CoverageLocality> CoverageLocalities { get; set; }
 
     public DbSet<User> Users { get; set; }
     public DbSet<ModulePermission> ModulePermissions { get; set; }
@@ -214,6 +218,28 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.TenantId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
+        });
+
+        // ── Modules/HomeService ──────────────────────────────────────────
+        modelBuilder.Entity<CoverageLocality>(entity =>
+        {
+            // Backstops for the duplicate check in the controller (name+province
+            // is checked case-insensitively there; these catch concurrent inserts).
+            entity.HasIndex(e => new { e.TenantId, e.Province, e.Name }).IsUnique();
+            entity.HasIndex(e => new { e.TenantId, e.GeorefId })
+                .IsUnique()
+                .HasFilter("\"GeorefId\" IS NOT NULL");
+            entity.Property(e => e.Name).HasMaxLength(150);
+            entity.Property(e => e.Province).HasMaxLength(100);
+            entity.Property(e => e.GeorefId).HasMaxLength(20);
+            entity.Property(e => e.Surcharge).HasColumnType("decimal(12,2)");
+
+            entity.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });

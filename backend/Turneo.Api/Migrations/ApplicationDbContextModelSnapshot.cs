@@ -1381,6 +1381,9 @@ namespace Turneo.Api.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("LocationType")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
@@ -1946,6 +1949,55 @@ namespace Turneo.Api.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Treatments");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.HomeService.ServiceArea.CoverageLocality", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("GeorefId")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Province")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("Surcharge")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "GeorefId")
+                        .IsUnique()
+                        .HasFilter("\"GeorefId\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "Province", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CoverageLocalities");
                 });
 
             modelBuilder.Entity("Turneo.Api.SaaS.Features.Feature", b =>
@@ -2860,6 +2912,17 @@ namespace Turneo.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Service");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.HomeService.ServiceArea.CoverageLocality", b =>
+                {
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Tenant");
                 });

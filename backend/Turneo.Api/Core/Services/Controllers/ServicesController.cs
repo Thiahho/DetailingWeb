@@ -42,6 +42,7 @@ public class ServicesController : ControllerBase
             s.Category,
             s.BufferMinutes,
             s.Color,
+            s.LocationType,
             s.IsActive,
             s.Order
         }));
@@ -69,6 +70,7 @@ public class ServicesController : ControllerBase
             s.Category,
             s.BufferMinutes,
             s.Color,
+            s.LocationType,
             s.IsActive,
             s.Order,
             s.CreatedAt,
@@ -99,6 +101,7 @@ public class ServicesController : ControllerBase
             service.Category,
             service.BufferMinutes,
             service.Color,
+            service.LocationType,
             service.IsActive,
             service.Order
         });
@@ -139,6 +142,7 @@ public class ServicesController : ControllerBase
             Category = request.Category,
             BufferMinutes = request.BufferMinutes,
             Color = request.Color,
+            LocationType = request.LocationType,
             IsActive = request.IsActive,
             Order = request.Order
         };
@@ -160,6 +164,7 @@ public class ServicesController : ControllerBase
             service.Category,
             service.BufferMinutes,
             service.Color,
+            service.LocationType,
             service.IsActive,
             service.Order
         });
@@ -190,6 +195,7 @@ public class ServicesController : ControllerBase
         service.Category = request.Category;
         service.BufferMinutes = request.BufferMinutes;
         service.Color = request.Color;
+        service.LocationType = request.LocationType;
         service.IsActive = request.IsActive;
         service.Order = request.Order;
         service.UpdatedAt = DateTime.UtcNow;
@@ -293,6 +299,9 @@ public class ServiceRequest
     [Required, RegularExpression("^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
         ErrorMessage = "Color debe ser un color hexadecimal (#RRGGBB)")]
     public string Color { get; set; } = "#7c3aed";
+
+    [EnumDataType(typeof(ServiceLocationType))]
+    public ServiceLocationType LocationType { get; set; } = ServiceLocationType.OnSite;
 
     public bool IsActive { get; set; } = true;
     public int Order { get; set; } = 0;
