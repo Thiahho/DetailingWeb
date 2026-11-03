@@ -24,9 +24,11 @@ public class BookingsController : ControllerBase
 
     private readonly IPromotionPricingService _promotionPricing;
     private readonly IHomeServiceBookingPolicy _homeServicePolicy;
+    private readonly ICajaRepository _cajaRepository;
 
-    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing, IHomeServiceBookingPolicy homeServicePolicy)
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing, IHomeServiceBookingPolicy homeServicePolicy, ICajaRepository cajaRepository)
     {
+        _cajaRepository = cajaRepository;
         _promotionPricing = promotionPricing;
         _homeServicePolicy = homeServicePolicy;
         _repository = repository;
@@ -272,12 +274,15 @@ public class BookingsController : ControllerBase
         if (booking.TimeSlot.EndDateTime < ArgentinaClock.Now())
             return BadRequest(new { success = false, message = "Este turno ya expiró y no puede cancelarse" });
 
-        booking.Status = BookingStatus.Cancelled;
-        booking.CancelledAt = DateTime.UtcNow;
-        booking.TimeSlot.IsAvailable = true;
+        // Paid bookings are cancelled by the Admin, who also registers the refund
+        // (see AdminCancelRefund); the client is pointed to WhatsApp instead.
+        if (await _repository.HasApprovedPaymentAsync(booking.Id))
+            return BadRequest(new { success = false, message = "Esta reserva ya está pagada. Escribinos por WhatsApp para cancelarla" });
+
+        MarkCancelled(booking);
 
         await _repository.SaveChangesAsync();
-        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCancelled, null));
+        EnqueueCancelledNotification(booking.Id);
 
         return Ok(new
         {
@@ -295,6 +300,94 @@ public class BookingsController : ControllerBase
             }
         });
     }
+
+    // POST: api/bookings/{id}/admin-cancel-refund (admin - cancel a paid booking and
+    // register its refund). One transaction: booking cancelled (same side effects as
+    // the public cancel), payment marked Refunded and a Caja "Refund" movement in the
+    // open session. Mercado Pago is not called: the money is returned by hand.
+    [HttpPost("{id}/admin-cancel-refund")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AdminCancelRefund(int id, [FromBody] AdminCancelRefundRequest request)
+    {
+        await using var transaction = await _repository.BeginTransactionAsync();
+
+        var booking = await _repository.GetByIdWithTimeSlotAndPaymentAsync(id);
+        if (booking == null)
+            return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        var payment = booking.Payment;
+        if (payment?.Status == PaymentStatus.Refunded)
+            return BadRequest(new { success = false, message = "El pago de esta reserva ya fue devuelto" });
+
+        if (payment?.Status != PaymentStatus.Approved)
+            return BadRequest(new { success = false, message = "Esta reserva no tiene un pago aprobado para devolver" });
+
+        if (booking.Status == BookingStatus.Cancelled)
+            return BadRequest(new { success = false, message = "Este turno ya fue cancelado" });
+
+        var amount = request.Amount ?? payment.Amount;
+        if (amount <= 0 || amount > payment.Amount)
+            return BadRequest(new { success = false, message = "El monto a devolver debe ser mayor a cero y no puede superar el pago" });
+
+        // Same rule as POST api/caja/movements: every Caja movement belongs to the
+        // open session, so the refund cannot be registered while the caja is closed.
+        var session = await _cajaRepository.GetOpenSessionAsync();
+        if (session == null)
+            return BadRequest(new { success = false, message = "No hay ninguna caja abierta" });
+
+        // First write, guarded at the database: only one concurrent request can move
+        // the payment from Approved to Refunded, so a double submit cannot register
+        // two refunds. Runs inside the transaction, so a later failure rolls it back.
+        // The tracked `payment` is left untouched so SaveChanges never rewrites the row.
+        var refundedAt = DateTime.UtcNow;
+        if (!await _repository.TryMarkPaymentRefundedAsync(payment.Id, refundedAt))
+        {
+            await transaction.RollbackAsync();
+            return BadRequest(new { success = false, message = "El pago de esta reserva ya fue devuelto" });
+        }
+
+        MarkCancelled(booking);
+
+        // The original Mercado Pago payment has no Caja movement, so the refund is
+        // linked by BookingId only (RefundOfMovementId stays null).
+        var movement = new CajaMovement
+        {
+            CajaSessionId = session.Id,
+            Type = CajaMovementType.Refund,
+            Method = request.Method,
+            Amount = amount,
+            BookingId = booking.Id,
+            Description = string.IsNullOrWhiteSpace(request.Note)
+                ? $"Devolución por cancelación de la reserva #{booking.Id}"
+                : request.Note.Trim(),
+            CreatedByUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value)
+        };
+        _cajaRepository.AddMovement(movement);
+
+        await _repository.SaveChangesAsync();
+        await transaction.CommitAsync();
+        EnqueueCancelledNotification(booking.Id);
+
+        return Ok(new
+        {
+            success = true,
+            message = "Turno cancelado y devolución registrada",
+            booking = new { id = booking.Id, status = booking.Status, cancelledAt = booking.CancelledAt },
+            payment = new { id = payment.Id, status = PaymentStatus.Refunded, amount = payment.Amount, refundedAt },
+            refund = new { cajaMovementId = movement.Id, amount = movement.Amount, method = movement.Method, description = movement.Description }
+        });
+    }
+
+    // Shared by every cancel path: status, timestamp and freeing the slot.
+    private static void MarkCancelled(Booking booking)
+    {
+        booking.Status = BookingStatus.Cancelled;
+        booking.CancelledAt = DateTime.UtcNow;
+        booking.TimeSlot.IsAvailable = true;
+    }
+
+    private static void EnqueueCancelledNotification(int bookingId) =>
+        BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(bookingId, NotificationEventType.BookingCancelled, null));
 
     // POST: api/bookings/{id}/reschedule (público - solo turnos Pending)
     [HttpPost("{id}/reschedule")]
@@ -555,6 +648,21 @@ public class BookingsController : ControllerBase
 }
 
 // DTOs
+public class AdminCancelRefundRequest
+{
+    // Optional: defaults to the full payment amount. Upper bound (the payment
+    // amount) is checked in the action.
+    [Range(0.01, 9_999_999)]
+    public decimal? Amount { get; set; }
+
+    // Same values as Caja movements (CajaMovementMethod).
+    [Required, RegularExpression("^(Cash|Transfer)$")]
+    public string Method { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string? Note { get; set; }
+}
+
 public class RescheduleRequest
 {
     [Range(1, int.MaxValue)]

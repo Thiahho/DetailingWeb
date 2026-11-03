@@ -19,6 +19,9 @@ public interface IBookingsRepository
     Task<Booking?> GetByIdWithTimeSlotAsync(int id);
     Task<Booking?> FindAsync(int id);
     Task<bool> HasApprovedPaymentAsync(int bookingId);
+    Task<Booking?> GetByIdWithTimeSlotAndPaymentAsync(int id);
+    // Conditional update (Approved -> Refunded): only one concurrent caller wins.
+    Task<bool> TryMarkPaymentRefundedAsync(int paymentId, DateTime refundedAt);
     Task LoadTimeSlotAsync(Booking booking);
     Task<int> DeleteExpiredSlotsAsync(DateTime now);
     Task<Booking?> GetByIdWithItemsAsync(int id);

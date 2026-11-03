@@ -172,6 +172,16 @@ public class BookingsRepository : IBookingsRepository
     public Task<bool> HasApprovedPaymentAsync(int bookingId) =>
         _context.Payments.AnyAsync(p => p.BookingId == bookingId && p.Status == PaymentStatus.Approved);
 
+    public Task<Booking?> GetByIdWithTimeSlotAndPaymentAsync(int id) =>
+        _context.Bookings.Include(b => b.TimeSlot).Include(b => b.Payment).FirstOrDefaultAsync(b => b.Id == id);
+
+    public async Task<bool> TryMarkPaymentRefundedAsync(int paymentId, DateTime refundedAt) =>
+        await _context.Payments
+            .Where(p => p.Id == paymentId && p.Status == PaymentStatus.Approved)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(p => p.Status, PaymentStatus.Refunded)
+                .SetProperty(p => p.RefundedAt, refundedAt)) == 1;
+
     public Task LoadTimeSlotAsync(Booking booking) =>
         _context.Entry(booking).Reference(b => b.TimeSlot).LoadAsync();
 
