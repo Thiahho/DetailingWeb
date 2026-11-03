@@ -174,6 +174,14 @@ public static class TestDataFactory
         return booking;
     }
 
+    public static async Task SetBookingFinalPriceAsync(CustomWebApplicationFactory factory, int bookingId, decimal? finalPrice)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Bookings.IgnoreQueryFilters().Where(b => b.Id == bookingId)
+            .ExecuteUpdateAsync(s => s.SetProperty(b => b.FinalPrice, finalPrice));
+    }
+
     public static async Task SetTimeSlotAvailabilityAsync(CustomWebApplicationFactory factory, int timeSlotId, bool isAvailable)
     {
         using var scope = factory.Services.CreateScope();

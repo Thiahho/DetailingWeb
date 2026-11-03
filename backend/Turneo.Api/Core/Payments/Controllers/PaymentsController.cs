@@ -260,13 +260,17 @@ public class PaymentsController : ControllerBase
                 if (booking == null)
                     return Ok();
 
-                // Create payment record if webhook arrives before preference response was saved
+                // El aviso llegó antes de que create-preference guardara el pago: el monto
+                // esperado se calcula igual que ahí, nunca con lo que cobró MercadoPago.
+                // Sin precio conocido queda en 0 y MatchesExpectedCharge no lo aprueba.
+                var service = await _repository.GetServiceBySlugForTenantAsync(booking.Service, booking.TenantId);
                 payment = new Payment
                 {
                     TenantId = booking.TenantId,
                     BookingId = bookingId,
+                    Booking = booking,
                     Provider = "MercadoPago",
-                    Amount = mpPayment.TransactionAmount ?? 0
+                    Amount = PaymentAmountResolver.Resolve(booking, service) ?? 0
                 };
                 _repository.AddPayment(payment);
             }
@@ -328,7 +332,8 @@ public class PaymentsController : ControllerBase
         if (!string.Equals(mpPayment.CurrencyId, "ARS", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        return payment.Amount <= 0 || (mpPayment.TransactionAmount ?? 0) >= payment.Amount;
+        // Sin monto esperado no hay contra qué validar: no se aprueba.
+        return payment.Amount > 0 && (mpPayment.TransactionAmount ?? 0) >= payment.Amount;
     }
 
     // Clave única para los dos endpoints: MercadoPago:AccessToken. La legacy

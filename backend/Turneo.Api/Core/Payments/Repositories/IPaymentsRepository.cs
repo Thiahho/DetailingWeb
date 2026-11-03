@@ -9,6 +9,8 @@ public interface IPaymentsRepository
     // (no pasa por el proxy del frontend) — ver nota en el controller.
     Task<Payment?> GetPaymentByBookingIgnoringTenantAsync(int bookingId);
     Task<Booking?> GetBookingByIdIgnoringTenantAsync(int bookingId);
+    // Mismo motivo: sin tenant ambiental, el tenant se fija explícito desde la reserva.
+    Task<Service?> GetServiceBySlugForTenantAsync(string? slug, int tenantId);
     Task<Payment?> GetPaymentByBookingAsync(int bookingId);
     Task<List<AdminPaymentListItem>> GetAllWithBookingAsync();
     Task<int> SaveChangesAsync();

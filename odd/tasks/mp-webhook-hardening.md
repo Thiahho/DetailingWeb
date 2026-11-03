@@ -34,5 +34,7 @@ Close two payment defects found while reviewing the MercadoPago webhook, before 
 
 - Commit 7d46ccf3 (T1+T2). Review assess: high (payments hot path); user declined native review for this candidate.
 
+- [x] T3 — Webhook-created Payment uses PaymentAmountResolver for the expected amount (service looked up with explicit tenant), links the Booking so approval confirms it, and an unknown expected amount (0) is never approved. Route: inline (small, understood change). RED observed: 2 of 3 new tests failed ("Approved" instead of "Pending"); GREEN: payments filter 28/28; full suite 232/238 with the same 6 pre-existing failures.
+
 ## Next step
-Optional follow-up: compute the expected amount with PaymentAmountResolver when the webhook creates the Payment itself. Investigate the 6 pre-existing test failures separately.
+Investigate the 6 pre-existing test failures separately.

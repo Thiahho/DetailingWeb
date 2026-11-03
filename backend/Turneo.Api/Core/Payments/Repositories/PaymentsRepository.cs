@@ -31,6 +31,11 @@ public class PaymentsRepository : IPaymentsRepository
     public Task<Booking?> GetBookingByIdIgnoringTenantAsync(int bookingId) =>
         _context.Bookings.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookingId);
 
+    public Task<Service?> GetServiceBySlugForTenantAsync(string? slug, int tenantId) =>
+        _context.Services
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.Slug == slug && s.TenantId == tenantId);
+
     public Task<Payment?> GetPaymentByBookingAsync(int bookingId) =>
         _context.Payments.FirstOrDefaultAsync(p => p.BookingId == bookingId);
 

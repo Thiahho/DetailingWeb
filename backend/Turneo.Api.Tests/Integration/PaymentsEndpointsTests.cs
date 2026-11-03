@@ -204,6 +204,64 @@ public class PaymentsEndpointsTests
         return (booking, payment);
     }
 
+    // Booking without a local Payment yet: the webhook arrives before create-preference saved it.
+    private async Task<Booking> SeedBookingWithoutPaymentAsync(decimal? finalPrice, int dayOffset)
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var start = DateTime.UtcNow.AddDays(dayOffset);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, start, start.AddHours(1));
+        var booking = await TestDataFactory.CreateBookingAsync(_factory, tenantId, slot.Id, "Pagador MP", $"mp-{Guid.NewGuid():N}@test.com");
+        await TestDataFactory.SetBookingFinalPriceAsync(_factory, booking.Id, finalPrice);
+        return booking;
+    }
+
+    [Fact]
+    public async Task Webhook_WithoutLocalPayment_ApprovedFullAmount_CreatesApprovedPaymentAndConfirmsBooking()
+    {
+        var booking = await SeedBookingWithoutPaymentAsync(5000m, 46);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 5000m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555101"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(PaymentStatus.Approved, payment!.Status);
+        Assert.Equal(5000m, payment.Amount);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Confirmed, updatedBooking!.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_WithoutLocalPayment_ApprovedLowerAmount_KeepsPaymentAndBookingPending()
+    {
+        var booking = await SeedBookingWithoutPaymentAsync(5000m, 47);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 1m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555102"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(PaymentStatus.Pending, payment!.Status);
+        Assert.Equal(5000m, payment.Amount);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Pending, updatedBooking!.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_WithoutLocalPayment_AndNoKnownPrice_KeepsPaymentAndBookingPending()
+    {
+        var booking = await SeedBookingWithoutPaymentAsync(null, 48);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 1m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555103"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(PaymentStatus.Pending, payment!.Status);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Pending, updatedBooking!.Status);
+    }
+
     [Fact]
     public async Task Webhook_ApprovedPaymentWithMatchingAmount_ApprovesPaymentAndConfirmsBooking()
     {
