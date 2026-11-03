@@ -78,6 +78,9 @@ jobs:
       - name: Tipos
         run: pnpm exec tsc --noEmit -p .
 
+      - name: Tests unitarios
+        run: pnpm test
+
       # Atrapa lo que tsc no ve: useSearchParams sin Suspense, límites
       # server/client mal puestos y páginas que fallan al prerenderizar.
       - name: Build de producción
