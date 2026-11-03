@@ -171,12 +171,14 @@ builder.Services.AddRateLimiter(options =>
             }));
 
     // Creación/cancelación/reprogramación de turnos y búsqueda por email: público, anónimo.
+    // Configurable solo para tests (mismo motivo que PublicReadPermitLimit abajo).
+    var publicBookingPermitLimit = builder.Configuration.GetValue("RateLimiting:PublicBookingPermitLimit", 20);
     options.AddPolicy("public-booking", httpContext =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: ClientIpResolver.GetPartitionKey(httpContext),
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 20,
+                PermitLimit = publicBookingPermitLimit,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));

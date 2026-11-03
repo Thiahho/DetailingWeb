@@ -37,6 +37,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
                 // por defecto, nunca en producción). Prendido acá igual que en
                 // appsettings.Testing.json; RegisterLockTests lo apaga en un host aparte.
                 ["Auth:AllowOpenRegistration"] = "true",
+                // Todos los tests salen por la misma IP y comparten la ventana de
+                // "public-booking" (20/min): con la suite completa se agotaba y
+                // tests sin relación entre sí fallaban con 429 según el orden.
+                ["RateLimiting:PublicBookingPermitLimit"] = "10000",
             });
         });
 
