@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
+using Turneo.Api.Modules.HomeService.TravelBuffer;
 
 namespace Turneo.Api.Core.Scheduling;
 
@@ -10,12 +11,14 @@ namespace Turneo.Api.Core.Scheduling;
 public class TimeSlotsController : ControllerBase
 {
     private readonly ITimeSlotsRepository _repository;
+    private readonly IHomeServiceTravelBuffer _travelBuffer;
     private static readonly TimeZoneInfo _argentinaZone =
         TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
 
-    public TimeSlotsController(ITimeSlotsRepository repository)
+    public TimeSlotsController(ITimeSlotsRepository repository, IHomeServiceTravelBuffer travelBuffer)
     {
         _repository = repository;
+        _travelBuffer = travelBuffer;
     }
 
     private static DateTime NowArgentina() =>
@@ -30,12 +33,17 @@ public class TimeSlotsController : ControllerBase
     }
 
     // GET: api/timeslots/available (público - para clientes)
+    // serviceSlug (optional): for an at-home service, slots inside the travel
+    // buffer of another at-home booking of the same professional are hidden.
     [HttpGet("available")]
     [AllowAnonymous]
     [EnableRateLimiting("public-read")]
-    public async Task<IActionResult> GetAvailableSlots([FromQuery] int? professionalId)
+    public async Task<IActionResult> GetAvailableSlots([FromQuery] int? professionalId, [FromQuery] string? serviceSlug)
     {
         var slots = await _repository.GetAvailableAsync(professionalId, NowArgentina());
+
+        if (await _travelBuffer.IsAtHomeServiceAsync(serviceSlug))
+            slots = await _travelBuffer.ExcludeSlotsInsideBufferAsync(slots, professionalId);
 
         return Ok(slots.Select(s => new
         {

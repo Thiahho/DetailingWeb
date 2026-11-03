@@ -36,7 +36,8 @@ public class BusinessSettingsController : ControllerBase
             // endTime = settings.EndTime.ToString(@"hh\:mm"),
             slotDuration = settings.SlotDuration,
             breakBetweenSlots = settings.BreakBetweenSlots,
-            maxDaysInAdvance = settings.MaxDaysInAdvance
+            maxDaysInAdvance = settings.MaxDaysInAdvance,
+            homeServiceTravelBufferMinutes = settings.HomeServiceTravelBufferMinutes
         });
     }
 
@@ -44,6 +45,11 @@ public class BusinessSettingsController : ControllerBase
     [HttpPut]
     public async Task<IActionResult> UpdateSettings([FromBody] BusinessSettingsRequest request)
     {
+        if (request.HomeServiceTravelBufferMinutes is < 0 or > BusinessSettings.MaxHomeServiceTravelBufferMinutes)
+        {
+            return BadRequest(new { message = $"El tiempo de traslado entre turnos a domicilio debe estar entre 0 y {BusinessSettings.MaxHomeServiceTravelBufferMinutes} minutos" });
+        }
+
         var settings = await _repository.GetAsync();
 
         if (settings == null)
@@ -56,7 +62,8 @@ public class BusinessSettingsController : ControllerBase
                 // EndTime = TimeSpan.Parse(request.EndTime),
                 SlotDuration = request.SlotDuration,
                 BreakBetweenSlots = request.BreakBetweenSlots,
-                MaxDaysInAdvance = request.MaxDaysInAdvance
+                MaxDaysInAdvance = request.MaxDaysInAdvance,
+                HomeServiceTravelBufferMinutes = request.HomeServiceTravelBufferMinutes ?? BusinessSettings.DefaultHomeServiceTravelBufferMinutes
             };
             _repository.Add(settings);
         }
@@ -69,6 +76,8 @@ public class BusinessSettingsController : ControllerBase
             settings.SlotDuration = request.SlotDuration;
             settings.BreakBetweenSlots = request.BreakBetweenSlots;
             settings.MaxDaysInAdvance = request.MaxDaysInAdvance;
+            if (request.HomeServiceTravelBufferMinutes is int bufferMinutes)
+                settings.HomeServiceTravelBufferMinutes = bufferMinutes;
             settings.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -90,4 +99,6 @@ public class BusinessSettingsRequest
     public int SlotDuration { get; set; }
     public int BreakBetweenSlots { get; set; }
     public int MaxDaysInAdvance { get; set; }
+    // Optional so older clients that do not send it keep the stored value.
+    public int? HomeServiceTravelBufferMinutes { get; set; }
 }

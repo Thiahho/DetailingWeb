@@ -1454,6 +1454,9 @@ namespace Turneo.Api.Migrations
                         .IsRequired()
                         .HasColumnType("integer[]");
 
+                    b.Property<int>("HomeServiceTravelBufferMinutes")
+                        .HasColumnType("integer");
+
                     b.Property<int>("MaxDaysInAdvance")
                         .HasColumnType("integer");
 

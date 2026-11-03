@@ -6,6 +6,7 @@ using System.Threading.RateLimiting;
 using Turneo.Api.Infrastructure.Security;
 using Turneo.Api.Modules.HomeService.BookingAddress;
 using Turneo.Api.Modules.HomeService.ServiceArea;
+using Turneo.Api.Modules.HomeService.TravelBuffer;
 
 // Evita que el host arranque un FileSystemWatcher sobre appsettings.json: en contenedores
 // con inotify limitado (p. ej. Render) esto tira IOException y mata el proceso antes de arrancar.
@@ -60,6 +61,7 @@ builder.Services.AddScoped<ISmartTagsRepository, SmartTagsRepository>();
 builder.Services.AddScoped<IReviewsRepository, ReviewsRepository>();
 builder.Services.AddScoped<ICoverageLocalitiesRepository, CoverageLocalitiesRepository>();
 builder.Services.AddScoped<IHomeServiceBookingPolicy, HomeServiceBookingPolicy>();
+builder.Services.AddScoped<IHomeServiceTravelBuffer, HomeServiceTravelBuffer>();
 
 builder.Services.AddScoped<TenantSessionInterceptor>();
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>

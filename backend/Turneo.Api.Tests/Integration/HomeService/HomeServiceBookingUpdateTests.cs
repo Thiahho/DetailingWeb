@@ -58,7 +58,10 @@ public class HomeServiceBookingUpdateTests
     private async Task<Booking> BookAsync(int tenantId, string serviceSlug, object? homeAddress)
     {
         var start = DateTime.UtcNow.AddDays(30).AddMinutes(Random.Shared.Next(1, 100_000));
-        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, start, start.AddHours(1));
+        // Own professional per slot: random times of other at-home bookings in the
+        // shared tenant must never fall inside the travel buffer of this one.
+        var professional = await TestDataFactory.CreateProfessionalAsync(_factory, tenantId);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, start, start.AddHours(1), professional.Id);
         var response = await _factory.CreateClient().PostAsJsonAsync("/api/bookings", new
         {
             timeSlotId = slot.Id,

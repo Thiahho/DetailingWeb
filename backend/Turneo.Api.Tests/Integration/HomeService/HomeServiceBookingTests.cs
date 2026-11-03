@@ -54,6 +54,9 @@ public class HomeServiceBookingTests
 
     private async Task<int> CreateSlotAsync(int tenantId, int? professionalId = null)
     {
+        // Own professional per slot: random times of other at-home bookings in the
+        // shared tenant must never fall inside the travel buffer of this one.
+        professionalId ??= (await TestDataFactory.CreateProfessionalAsync(_factory, tenantId)).Id;
         var start = DateTime.UtcNow.AddDays(30).AddMinutes(Random.Shared.Next(1, 100_000));
         return (await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, start, start.AddHours(1), professionalId)).Id;
     }

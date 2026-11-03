@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Turneo.Api.Core.Notifications;
 using Turneo.Api.Modules.HomeService.BookingAddress;
+using Turneo.Api.Modules.HomeService.TravelBuffer;
 using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Bookings;
@@ -25,10 +26,12 @@ public class BookingsController : ControllerBase
     private readonly IPromotionPricingService _promotionPricing;
     private readonly IHomeServiceBookingPolicy _homeServicePolicy;
     private readonly ICajaRepository _cajaRepository;
+    private readonly IHomeServiceTravelBuffer _travelBuffer;
 
-    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing, IHomeServiceBookingPolicy homeServicePolicy, ICajaRepository cajaRepository)
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing, IHomeServiceBookingPolicy homeServicePolicy, ICajaRepository cajaRepository, IHomeServiceTravelBuffer travelBuffer)
     {
         _cajaRepository = cajaRepository;
+        _travelBuffer = travelBuffer;
         _promotionPricing = promotionPricing;
         _homeServicePolicy = homeServicePolicy;
         _repository = repository;
@@ -111,6 +114,12 @@ public class BookingsController : ControllerBase
         // cualquier valor que haya mandado el cliente (turnos legacy sin dueño mantienen
         // el comportamiento anterior: el profesional lo elige el cliente al reservar).
         var professionalId = timeSlot.ProfessionalId ?? request.ProfessionalId;
+
+        // At-home bookings keep the travel buffer with the professional's other
+        // at-home bookings. Returning before the commit rolls the claim back.
+        if (homeService.Snapshot is not null
+            && await _travelBuffer.IsSlotInsideBufferAsync(request.TimeSlotId, professionalId))
+            return TravelBufferConflict();
 
         // Se resuelve antes de guardar para que la atribución quede en la misma
         // fila y en la misma transacción que la reserva. El canal solo cuenta
@@ -378,6 +387,17 @@ public class BookingsController : ControllerBase
         });
     }
 
+    // 409 like the other "slot not available" answers; the client picks another time.
+    private ConflictObjectResult TravelBufferConflict() =>
+        Conflict(new { success = false, message = HomeServiceTravelBuffer.InsideBufferMessage });
+
+    // Reschedule of an at-home booking (HomeServiceSurcharge is set only on those):
+    // the new slot must keep the travel buffer with the professional's other
+    // at-home bookings. The booking itself is left out of the check.
+    private async Task<bool> MovesIntoTravelBufferAsync(Booking booking, int newTimeSlotId) =>
+        booking.HomeServiceSurcharge is not null
+        && await _travelBuffer.IsSlotInsideBufferAsync(newTimeSlotId, booking.ProfessionalId, booking.Id);
+
     // Shared by every cancel path: status, timestamp and freeing the slot.
     private static void MarkCancelled(Booking booking)
     {
@@ -416,6 +436,9 @@ public class BookingsController : ControllerBase
 
         if (updated == 0)
             return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
+
+        if (await MovesIntoTravelBufferAsync(booking, request.NewTimeSlotId))
+            return TravelBufferConflict();
 
         // Antes de pisar el TimeSlotId — es lo único que le queda al job de background
         // para poder avisar "de tal hora a tal hora" (ver NotificationService).
@@ -474,6 +497,9 @@ public class BookingsController : ControllerBase
 
         if (updated == 0)
             return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
+
+        if (await MovesIntoTravelBufferAsync(booking, request.NewTimeSlotId))
+            return TravelBufferConflict();
 
         var previousStartDateTime = booking.TimeSlot.StartDateTime;
 
@@ -558,6 +584,13 @@ public class BookingsController : ControllerBase
         var homeService = await _homeServicePolicy.ResolveForUpdateAsync(service, request.HomeAddress, booking);
         if (homeService.Error is not null)
             return BadRequest(new { success = false, message = homeService.Error });
+
+        // An on-site booking that becomes at-home must respect the travel buffer
+        // at its current time. Bookings that already were at-home keep their time.
+        if (homeService.Snapshot is not null
+            && booking.HomeServiceSurcharge is null
+            && await _travelBuffer.IsSlotInsideBufferAsync(booking.TimeSlotId, booking.ProfessionalId, booking.Id))
+            return TravelBufferConflict();
 
         booking.CustomerName = request.CustomerName.Trim();
         booking.CustomerPhone = request.CustomerPhone.Trim();
