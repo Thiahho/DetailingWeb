@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using MercadoPago.Client.Preference;
 using MercadoPago.Config;
-using MercadoPago.Client.Payment;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -16,12 +15,21 @@ public class PaymentsController : ControllerBase
     private readonly IPaymentsRepository _repository;
     private readonly IConfiguration _configuration;
     private readonly IPlanLimitsService _planLimits;
+    private readonly IMercadoPagoPaymentGateway _paymentGateway;
+    private readonly ILogger<PaymentsController> _logger;
 
-    public PaymentsController(IPaymentsRepository repository, IConfiguration configuration, IPlanLimitsService planLimits)
+    public PaymentsController(
+        IPaymentsRepository repository,
+        IConfiguration configuration,
+        IPlanLimitsService planLimits,
+        IMercadoPagoPaymentGateway paymentGateway,
+        ILogger<PaymentsController> logger)
     {
         _repository = repository;
         _configuration = configuration;
         _planLimits = planLimits;
+        _paymentGateway = paymentGateway;
+        _logger = logger;
     }
 
     // POST: api/payments/create-preference
@@ -59,26 +67,10 @@ public class PaymentsController : ControllerBase
 
         MercadoPagoConfig.AccessToken = accessToken;
 
-        // Parse service price
+        // Monto decidido solo por el servidor: request.Amount se ignora.
         var service = await _repository.GetServiceBySlugAsync(booking.Service);
-        decimal amount;
-        if (booking.FinalPrice is > 0)
-        {
-            // Precio con promoción acordado al reservar: gana sobre el monto del cliente.
-            amount = booking.FinalPrice.Value;
-        }
-        else if (request.Amount > 0)
-        {
-            amount = request.Amount;
-        }
-        else if (service != null && decimal.TryParse(service.Price.Replace(".", "").Replace(",", "."), out var parsed))
-        {
-            amount = parsed;
-        }
-        else
-        {
+        if (PaymentAmountResolver.Resolve(booking, service) is not decimal amount)
             return BadRequest(new { success = false, message = "No se pudo determinar el monto a cobrar" });
-        }
 
         var configuredBaseUrl = _configuration["MercadoPago:BaseUrl"];
         var baseUrl = (string.IsNullOrWhiteSpace(configuredBaseUrl) ? "https://www.turneobelleza.com" : configuredBaseUrl).TrimEnd('/');
@@ -241,12 +233,14 @@ public class PaymentsController : ControllerBase
         if (type != "payment" || string.IsNullOrEmpty(dataIdParam))
             return Ok(); // Acknowledge but ignore non-payment notifications
 
-        var dataId = dataIdParam;
+        // Id no numérico: no es un pago que podamos consultar, reintentar no sirve.
+        if (!long.TryParse(dataIdParam, out var mpPaymentId))
+            return Ok();
 
         try
         {
-            var paymentClient = new PaymentClient();
-            var mpPayment = await paymentClient.GetAsync(long.Parse(dataId));
+            // null = no existe o 4xx permanente de MercadoPago → no aplica.
+            var mpPayment = await _paymentGateway.GetPaymentAsync(mpPaymentId, HttpContext.RequestAborted);
 
             if (mpPayment == null)
                 return Ok();
@@ -279,11 +273,22 @@ public class PaymentsController : ControllerBase
 
             payment.ExternalPaymentId = mpPayment.Id?.ToString();
             payment.PaymentMethod = mpPayment.PaymentMethodId;
-            payment.PayerEmail = mpPayment.Payer?.Email;
+            payment.PayerEmail = mpPayment.PayerEmail;
 
             switch (mpPayment.Status)
             {
                 case "approved":
+                    // Solo se aprueba si MercadoPago cobró al menos lo esperado y en ARS;
+                    // si no, queda Pending para revisión manual.
+                    if (!MatchesExpectedCharge(payment, mpPayment))
+                    {
+                        _logger.LogWarning(
+                            "MercadoPago payment {MpPaymentId} for booking {BookingId} approved with {Amount} {Currency}, expected {ExpectedAmount} ARS — left Pending",
+                            mpPayment.Id, bookingId, mpPayment.TransactionAmount, mpPayment.CurrencyId, payment.Amount);
+                        payment.Status = PaymentStatus.Pending;
+                        break;
+                    }
+
                     payment.Status = PaymentStatus.Approved;
                     payment.PaidAt = DateTime.UtcNow;
                     // Auto-confirm the booking when payment is approved
@@ -311,9 +316,19 @@ public class PaymentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MercadoPago Webhook] Error: {ex.Message}");
-            return Ok(); // Always return 200 to prevent MP from retrying excessively
+            // Falla transitoria (API de MercadoPago, base): 500 para que MercadoPago
+            // reintente; con 200 la notificación se perdía y el turno quedaba Pending.
+            _logger.LogError(ex, "MercadoPago webhook failed processing payment {MpPaymentId}", mpPaymentId);
+            return StatusCode(StatusCodes.Status500InternalServerError);
         }
+    }
+
+    private static bool MatchesExpectedCharge(Payment payment, MercadoPagoPaymentInfo mpPayment)
+    {
+        if (!string.Equals(mpPayment.CurrencyId, "ARS", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return payment.Amount <= 0 || (mpPayment.TransactionAmount ?? 0) >= payment.Amount;
     }
 
     // Clave única para los dos endpoints: MercadoPago:AccessToken. La legacy
@@ -368,6 +383,8 @@ public class CreatePaymentRequest
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "BookingId inválido")]
     public int BookingId { get; set; }
 
+    // Ignorado: el monto lo decide el servidor (PaymentAmountResolver). Se mantiene
+    // solo por compatibilidad con clientes que todavía lo mandan (PaymentButton).
     [System.ComponentModel.DataAnnotations.Range(0, 9_999_999, ErrorMessage = "Monto inválido")]
     public decimal Amount { get; set; }
 }

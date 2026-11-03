@@ -282,4 +282,29 @@ public static class TestDataFactory
         await db.SaveChangesAsync();
         return profile;
     }
+
+    public static async Task<Payment> CreatePaymentAsync(CustomWebApplicationFactory factory, int tenantId, int bookingId, decimal amount, string status = PaymentStatus.Pending)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var payment = new Payment
+        {
+            TenantId = tenantId,
+            BookingId = bookingId,
+            Amount = amount,
+            Currency = "ARS",
+            Provider = "MercadoPago",
+            Status = status
+        };
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+        return payment;
+    }
+
+    public static async Task<Payment?> GetPaymentByBookingIgnoringTenantAsync(CustomWebApplicationFactory factory, int bookingId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.Payments.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.BookingId == bookingId);
+    }
 }

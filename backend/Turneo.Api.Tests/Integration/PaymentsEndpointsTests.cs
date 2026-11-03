@@ -2,6 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Turneo.Api.Tests.Integration;
 
@@ -11,9 +15,9 @@ namespace Turneo.Api.Tests.Integration;
 // estado de config "sin pasarela habilitada" que producción hoy.
 //
 // Los tests del webhook que necesitan token/secreto levantan un host aparte
-// (WithConfigOverrides) con valores falsos y solo mandan notificaciones que
-// no son de tipo "payment": el controller nunca llega a llamar a la API real
-// de MercadoPago.
+// (WithConfigOverrides) con valores falsos. Los que mandan notificaciones de
+// tipo "payment" además reemplazan IMercadoPagoPaymentGateway por un fake:
+// el controller nunca llega a llamar a la API real de MercadoPago.
 [Collection("Integration")]
 public class PaymentsEndpointsTests
 {
@@ -154,6 +158,121 @@ public class PaymentsEndpointsTests
         var response = await host.CreateClient().PostAsJsonAsync(WebhookUrl, new { type = "payment", data = new { id = "123" } });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    // --- Webhook "payment" con gateway falso: nunca se llama a la API real ---
+
+    private sealed class FakeMercadoPagoPaymentGateway : IMercadoPagoPaymentGateway
+    {
+        private readonly Func<long, MercadoPagoPaymentInfo?> _handler;
+        public FakeMercadoPagoPaymentGateway(Func<long, MercadoPagoPaymentInfo?> handler) => _handler = handler;
+
+        public Task<MercadoPagoPaymentInfo?> GetPaymentAsync(long paymentId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_handler(paymentId));
+    }
+
+    private WebApplicationFactory<Program> HostWithGateway(Func<long, MercadoPagoPaymentInfo?> handler) =>
+        _factory.WithConfigOverrides(new Dictionary<string, string?>
+            {
+                ["MercadoPago:AccessToken"] = FakeAccessToken,
+                ["MercadoPago:WebhookSecret"] = FakeWebhookSecret,
+            })
+            .WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<IMercadoPagoPaymentGateway>();
+                services.AddSingleton<IMercadoPagoPaymentGateway>(new FakeMercadoPagoPaymentGateway(handler));
+            }));
+
+    private static HttpRequestMessage SignedPaymentNotification(string dataId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{WebhookUrl}?data.id={dataId}&type=payment")
+        {
+            Content = JsonContent.Create(new { type = "payment", data = new { id = dataId } })
+        };
+        request.Headers.Add("x-request-id", "req-pay");
+        request.Headers.Add("x-signature", SignatureHeader(FakeWebhookSecret, dataId, "req-pay", "1700000000"));
+        return request;
+    }
+
+    private async Task<(Booking booking, Payment payment)> SeedPendingPaymentAsync(decimal amount, int dayOffset)
+    {
+        var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
+        var start = DateTime.UtcNow.AddDays(dayOffset);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, start, start.AddHours(1));
+        var booking = await TestDataFactory.CreateBookingAsync(_factory, tenantId, slot.Id, "Pagador MP", $"mp-{Guid.NewGuid():N}@test.com");
+        var payment = await TestDataFactory.CreatePaymentAsync(_factory, tenantId, booking.Id, amount);
+        return (booking, payment);
+    }
+
+    [Fact]
+    public async Task Webhook_ApprovedPaymentWithMatchingAmount_ApprovesPaymentAndConfirmsBooking()
+    {
+        var (booking, _) = await SeedPendingPaymentAsync(10000m, 40);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 10000m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555001"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(PaymentStatus.Approved, payment!.Status);
+        Assert.NotNull(payment.PaidAt);
+        Assert.Equal("555001", payment.ExternalPaymentId);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Confirmed, updatedBooking!.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_ApprovedPaymentWithLowerAmount_KeepsPaymentAndBookingPending()
+    {
+        var (booking, _) = await SeedPendingPaymentAsync(10000m, 41);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 1m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555002"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(PaymentStatus.Pending, payment!.Status);
+        Assert.Null(payment.PaidAt);
+        Assert.Equal("555002", payment.ExternalPaymentId);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Pending, updatedBooking!.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_ApprovedPaymentInOtherCurrency_KeepsPaymentAndBookingPending()
+    {
+        var (booking, _) = await SeedPendingPaymentAsync(10000m, 42);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 10000m, "USD", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555003"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(PaymentStatus.Pending, payment!.Status);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Pending, updatedBooking!.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_WhenGatewayFails_Returns500SoMercadoPagoRetries()
+    {
+        var host = HostWithGateway(_ => throw new HttpRequestException("MercadoPago unreachable"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555004"));
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Webhook_WithNonNumericPaymentId_ReturnsOkWithoutCallingGateway()
+    {
+        var called = false;
+        var host = HostWithGateway(_ => { called = true; return null; });
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("not-a-number"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.False(called);
     }
 
     [Fact]
