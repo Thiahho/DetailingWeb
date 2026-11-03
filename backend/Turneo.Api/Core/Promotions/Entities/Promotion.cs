@@ -1,7 +1,11 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Turneo.Api.Core.Promotions;
 
+// El portal manda "Percent"/"FixedAmount" como texto; sin el converter la API no
+// lo podía leer y respondía 400. Sigue aceptando el número (0/1).
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum PromotionDiscountType
 {
     Percent = 0,
