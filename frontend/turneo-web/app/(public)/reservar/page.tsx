@@ -310,6 +310,7 @@ export default function Home() {
             preselectedService={preselectedService}
             preselectedServiceKey={preselectedServiceKey}
             preselection={preselection}
+            whatsAppNumber={siteConfig?.whatsAppNumber || undefined}
           />
         </div>
       </section>

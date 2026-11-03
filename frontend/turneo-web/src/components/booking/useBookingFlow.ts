@@ -2,6 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef, type FormEvent } from "react";
 import { logError } from "@/src/lib/logger";
+import { normalizeLocationType, type ServiceLocationType } from "@/src/lib/homeService/serviceLocation";
+import {
+  EMPTY_HOME_ADDRESS,
+  buildHomeAddressPayload,
+  parseActiveCoverageLocalities,
+  type ActiveCoverageLocality,
+  type HomeAddressForm,
+} from "@/src/lib/homeService/bookingAddress";
 
 export interface TimeSlot {
   id: number;
@@ -28,6 +36,7 @@ export interface ServicePack {
   price: string;
   duration: string;
   customFieldsSchema?: string;
+  locationType?: ServiceLocationType | number;
 }
 
 export interface Professional {
@@ -71,6 +80,17 @@ export interface BookingFormProps {
   // Canal por el que se abrió el Smart Link (?src= de /s/{token}); viaja con
   // la reserva para atribuirla al chip NFC o al QR de la etiqueta.
   smartTagSource?: SmartTagSource;
+  // Tenant WhatsApp (site config), used by the out-of-coverage contact button
+  // of at-home services. Without it the button is not shown.
+  whatsAppNumber?: string;
+}
+
+export type CoverageStatus = "idle" | "loading" | "ready" | "error";
+
+export interface BookingFlowOptions {
+  // At-home services only: called when the backend rejects the chosen slot (409: taken or inside the
+  // travel buffer of another at-home booking), after the slots are reloaded.
+  onSlotConflict?: () => void;
 }
 
 export type SmartTagSource = "nfc" | "qr";
@@ -89,7 +109,10 @@ export interface Toast {
 // Estado y reglas del flujo público de reserva (servicios, especialista,
 // horarios, envío). La presentación vive aparte: BookingForms.tsx (formulario
 // de una sola pantalla, usado en Smart Tag) y BookingWizard.tsx (pasos, /reservar).
-export function useBookingFlow({ preselectedService, preselectedServiceKey, preselection, tenantSlugOverride, smartTagToken, smartTagSource }: BookingFormProps) {
+export function useBookingFlow(
+  { preselectedService, preselectedServiceKey, preselection, tenantSlugOverride, smartTagToken, smartTagSource }: BookingFormProps,
+  { onSlotConflict }: BookingFlowOptions = {}
+) {
   const withTenant = useCallback(
     (path: string) => {
       if (!tenantSlugOverride) return path;
@@ -133,6 +156,20 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
     : services;
 
   const selectedServiceObj = services.find((s) => s.slug === formData.selectedService) ?? null;
+  // At-home services need an address inside the tenant's coverage and slots
+  // filtered by the travel buffer (`serviceSlug`); on-site services are unchanged.
+  const isAtHome = normalizeLocationType(selectedServiceObj?.locationType) === "AtHome";
+  const slotsServiceSlug = isAtHome ? formData.selectedService : "";
+  const [homeAddress, setHomeAddress] = useState<HomeAddressForm>(EMPTY_HOME_ADDRESS);
+  const [coverageLocalities, setCoverageLocalities] = useState<ActiveCoverageLocality[]>([]);
+  const [coverageStatus, setCoverageStatus] = useState<CoverageStatus>("idle");
+  const selectedCoverageLocality = coverageLocalities.find((l) => l.id === homeAddress.coverageLocalityId) ?? null;
+  const onSlotConflictRef = useRef(onSlotConflict);
+  onSlotConflictRef.current = onSlotConflict;
+  // Only the latest slots request may write the list (professional and
+  // service changes can overlap).
+  const slotsRequestRef = useRef(0);
+
   const customFieldDefs: CustomFieldDef[] = (() => {
     if (!selectedServiceObj?.customFieldsSchema) return [];
     try { return JSON.parse(selectedServiceObj.customFieldsSchema); } catch { return []; }
@@ -217,8 +254,26 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
   useEffect(() => {
     setFormData((prev) => ({ ...prev, selectedSlotId: null }));
     setCurrentPage(1);
-    loadAvailableSlots(formData.selectedProfessionalId);
-  }, [formData.selectedProfessionalId]);
+    loadAvailableSlots(formData.selectedProfessionalId, slotsServiceSlug);
+  }, [formData.selectedProfessionalId, slotsServiceSlug]);
+
+  // Coverage list, fetched once the first at-home service is chosen.
+  useEffect(() => {
+    if (!isAtHome || coverageStatus !== "idle") return;
+    setCoverageStatus("loading");
+    fetch(withTenant("/api/home-service/coverage-localities/active"))
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+      .then((data) => {
+        setCoverageLocalities(parseActiveCoverageLocalities(data));
+        setCoverageStatus("ready");
+      })
+      .catch((error) => {
+        logError(error);
+        setCoverageStatus("error");
+      });
+  }, [isAtHome, coverageStatus, withTenant]);
+
+  const retryCoverage = useCallback(() => setCoverageStatus("idle"), []);
 
   // Marca el horario elegido en la card una vez cargados los slots de ese profesional
   useEffect(() => {
@@ -264,12 +319,18 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
     }
   };
 
-  const loadAvailableSlots = async (professionalId?: number | null) => {
+  const loadAvailableSlots = async (professionalId?: number | null, serviceSlug?: string) => {
+    const requestId = ++slotsRequestRef.current;
     try {
-      const query = professionalId ? `?professionalId=${professionalId}` : "";
+      const params = new URLSearchParams();
+      if (professionalId) params.set("professionalId", String(professionalId));
+      if (serviceSlug) params.set("serviceSlug", serviceSlug);
+      const query = params.toString() ? `?${params}` : "";
       const response = await fetch(withTenant(`/api/timeslots/available${query}`));
+      if (requestId !== slotsRequestRef.current) return;
       if (response.ok) {
         const data = await response.json();
+        if (requestId !== slotsRequestRef.current) return;
         setTimeSlots(data);
         setSlotsProfessionalId(professionalId ?? null);
       }
@@ -312,6 +373,12 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
       }
     }
 
+    const homeAddressPayload = isAtHome ? buildHomeAddressPayload(homeAddress) : null;
+    if (homeAddressPayload && !homeAddressPayload.ok) {
+      showToast("warning", "Dirección del servicio", homeAddressPayload.message);
+      return;
+    }
+
     if (!formData.acceptedTerms) {
       showToast("warning", "Términos y Condiciones", "Tenés que aceptar los Términos y Condiciones para reservar");
       return;
@@ -336,6 +403,7 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
           smartTagToken: smartTagToken ?? null,
           smartTagSource: smartTagSource ?? null,
           acceptedTerms: formData.acceptedTerms,
+          ...(homeAddressPayload?.ok ? { homeAddress: homeAddressPayload.value } : {}),
         }),
       });
 
@@ -370,10 +438,19 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
         });
         setCustomFieldValues({});
         setLockedProfessionalId(null);
+        setHomeAddress(EMPTY_HOME_ADDRESS);
 
         // Resetear paginación y recargar turnos
         setCurrentPage(1);
         loadAvailableSlots();
+      } else if (response.status === 409 && isAtHome) {
+        // At-home: the slot was taken or is too close to another at-home
+        // booking. Refresh the list and let the user pick another time
+        // (on-site keeps the plain error toast below).
+        showToast("error", "Elegí otro horario", data.message || "Ese horario ya no está disponible.");
+        setFormData((prev) => ({ ...prev, selectedSlotId: null }));
+        loadAvailableSlots(formData.selectedProfessionalId, slotsServiceSlug);
+        onSlotConflictRef.current?.();
       } else {
         showToast("error", "Error al agendar", data.message || "No se pudo completar la reserva. Intentá nuevamente.");
       }
@@ -414,5 +491,12 @@ export function useBookingFlow({ preselectedService, preselectedServiceKey, pres
     totalPages,
     currentSlots,
     handleCalendarSubmit,
+    isAtHome,
+    homeAddress,
+    setHomeAddress,
+    coverageLocalities,
+    coverageStatus,
+    retryCoverage,
+    selectedCoverageLocality,
   };
 }

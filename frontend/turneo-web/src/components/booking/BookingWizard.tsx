@@ -4,20 +4,38 @@ import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import PaymentButton from "@/src/components/payments/PaymentButton";
 import { ClientToast } from "./BookingForms";
+import HomeAddressStep from "./HomeAddressStep";
 import { useBookingFlow, type BookingFormProps } from "./useBookingFlow";
+import { FIELD, FIELD_LABEL, OPTION, OPTION_OFF, OPTION_ON } from "./wizardStyles";
 import { groupSlotsByDay, splitSlotLabel } from "@/src/lib/slotLabel";
+import { formatSurcharge } from "@/src/lib/homeService/coverageLocality";
+import { homeServicePriceBreakdown, isHomeAddressComplete } from "@/src/lib/homeService/bookingAddress";
+import { normalizeLocationType } from "@/src/lib/homeService/serviceLocation";
 
-const STEPS = ["Servicio", "Profesional", "Día y hora", "Tus datos"] as const;
+type StepKey = "servicio" | "domicilio" | "profesional" | "horario" | "datos";
 
-const OPTION = "rounded-2xl border px-4 py-3 text-left transition active:scale-[0.98]";
-const OPTION_ON = "border-blush bg-blush text-ink";
-const OPTION_OFF = "border-cream/20 text-cream hover:border-cream/45";
-const FIELD =
-  "mt-2 w-full rounded-2xl border border-cream/20 bg-ink px-4 py-3.5 text-base text-cream placeholder:text-mist/50 focus:border-blush focus:outline-none focus:ring-1 focus:ring-blush/40";
-const FIELD_LABEL = "block text-xs font-semibold text-mist";
+const STEP_LABELS: Record<StepKey, string> = {
+  servicio: "Servicio",
+  domicilio: "Domicilio",
+  profesional: "Profesional",
+  horario: "Día y hora",
+  datos: "Tus datos",
+};
+const ON_SITE_STEPS: StepKey[] = ["servicio", "profesional", "horario", "datos"];
+// At-home services add the address right after choosing the service.
+const AT_HOME_STEPS: StepKey[] = ["servicio", "domicilio", "profesional", "horario", "datos"];
 
-// Reserva en cuatro pasos para /reservar (sección oscura). Misma lógica que el
-// formulario clásico (useBookingFlow); acá solo cambia cómo se recorre.
+const SUMMARY_TEST_IDS: Record<string, string> = {
+  Domicilio: "summary-home-address",
+  "Recargo por zona": "summary-zone-surcharge",
+  Total: "summary-total",
+};
+
+const money = (value: number) => `$${formatSurcharge(value) || "0"}`;
+
+// Reserva en cuatro pasos para /reservar (sección oscura), cinco si el servicio
+// es a domicilio. Misma lógica que el formulario clásico (useBookingFlow); acá
+// solo cambia cómo se recorre.
 export default function BookingWizard(props: BookingFormProps) {
   const {
     formData,
@@ -41,10 +59,25 @@ export default function BookingWizard(props: BookingFormProps) {
     toast,
     closeToast,
     handleCalendarSubmit,
-  } = useBookingFlow(props);
+    isAtHome,
+    homeAddress,
+    setHomeAddress,
+    coverageLocalities,
+    coverageStatus,
+    retryCoverage,
+    selectedCoverageLocality,
+  } = useBookingFlow(props, {
+    // 409 on submit (slot taken or too close to another at-home booking): back to the time step.
+    onSlotConflict: () => {
+      setPickedDay(null);
+      setStep(STEPS.indexOf("horario"));
+    },
+  });
 
   const [step, setStep] = useState(0);
   const [pickedDay, setPickedDay] = useState<string | null>(null);
+  const STEPS = isAtHome ? AT_HOME_STEPS : ON_SITE_STEPS;
+  const currentStep = STEPS[Math.min(step, STEPS.length - 1)];
 
   // "Reservar" en una card de servicio: el servicio ya viene elegido.
   useEffect(() => {
@@ -70,7 +103,21 @@ export default function BookingWizard(props: BookingFormProps) {
   const selectedProfessional =
     availableProfessionals.find((p) => p.id === formData.selectedProfessionalId) ?? lockedProfessional;
 
-  const canContinue = [Boolean(formData.selectedService), true, Boolean(formData.selectedSlotId), true][step];
+  const canContinue: Record<StepKey, boolean> = {
+    servicio: Boolean(formData.selectedService),
+    domicilio: isHomeAddressComplete(homeAddress),
+    profesional: true,
+    horario: Boolean(formData.selectedSlotId),
+    datos: true,
+  };
+
+  const price = isAtHome
+    ? homeServicePriceBreakdown({
+        servicePrice: selectedServiceObj?.price,
+        promotionPrice: selectedPromotion?.finalPrice ?? null,
+        surcharge: selectedCoverageLocality?.surcharge ?? null,
+      })
+    : null;
 
   if (loading) {
     return (
@@ -97,8 +144,20 @@ export default function BookingWizard(props: BookingFormProps) {
                 ? "Sin preferencia"
                 : undefined,
           ],
+          ...(isAtHome
+            ? [
+                [
+                  "Domicilio",
+                  selectedCoverageLocality && homeAddress.street.trim()
+                    ? `${homeAddress.street.trim()}, ${selectedCoverageLocality.name}`
+                    : undefined,
+                ],
+              ]
+            : []),
           ["Día y hora", selectedSlot?.label],
           ["Precio", selectedServiceObj ? `$${selectedServiceObj.price}` : undefined],
+          ...(price && price.surcharge > 0 ? [["Recargo por zona", money(price.surcharge)]] : []),
+          ...(price && price.total !== null && selectedCoverageLocality ? [["Total", money(price.total)]] : []),
         ].map(([term, value]) => (
           <div key={term} className="flex justify-between gap-4 py-4">
             <dt className="text-sm text-charcoal/70">{term}</dt>
@@ -109,11 +168,21 @@ export default function BookingWizard(props: BookingFormProps) {
                 <span className="block text-xs font-normal text-charcoal/70">{selectedPromotion.promotionName}</span>
               </dd>
             ) : (
-              <dd className="text-right text-sm font-semibold">{value ?? "—"}</dd>
+              <dd
+                className={`text-right text-sm font-semibold ${term === "Total" ? "text-rosewood" : ""}`}
+                data-testid={SUMMARY_TEST_IDS[term ?? ""]}
+              >
+                {value ?? "—"}
+              </dd>
             )}
           </div>
         ))}
       </dl>
+      {price && price.surcharge > 0 && (
+        <p className="text-xs leading-relaxed text-charcoal/70">
+          El recargo por zona se suma al precio del servicio a domicilio.
+        </p>
+      )}
       <p className="text-sm leading-relaxed text-charcoal/70">
         No hace falta pagar para reservar. Si querés, podés dejar una seña online al confirmar.
       </p>
@@ -171,9 +240,9 @@ export default function BookingWizard(props: BookingFormProps) {
           {/* Progreso */}
           <div className="space-y-3">
             <ol className="hidden flex-wrap gap-x-6 gap-y-2 text-sm font-semibold sm:flex">
-              {STEPS.map((label, i) => (
+              {STEPS.map((key, i) => (
                 <li
-                  key={label}
+                  key={key}
                   aria-current={i === step ? "step" : undefined}
                   className={`flex items-center gap-2 transition-colors ${i <= step ? "text-cream" : "text-mist/70"}`}
                 >
@@ -184,12 +253,12 @@ export default function BookingWizard(props: BookingFormProps) {
                   >
                     {i + 1}
                   </span>
-                  {label}
+                  {STEP_LABELS[key]}
                 </li>
               ))}
             </ol>
             <div className="flex items-baseline justify-between gap-3 sm:hidden">
-              <span className="text-sm font-semibold text-cream">{STEPS[step]}</span>
+              <span className="text-sm font-semibold text-cream">{STEP_LABELS[currentStep]}</span>
               <span className="text-xs text-mist">
                 Paso {step + 1} de {STEPS.length}
               </span>
@@ -203,7 +272,7 @@ export default function BookingWizard(props: BookingFormProps) {
           </div>
 
           {/* 1 · Servicio */}
-          {step === 0 && (
+          {currentStep === "servicio" && (
             <div key="servicio" className="animate-pane space-y-5">
               <h3 className="text-2xl font-semibold tracking-tight text-cream">¿Qué te querés hacer?</h3>
               {lockedProfessional && (
@@ -249,6 +318,7 @@ export default function BookingWizard(props: BookingFormProps) {
                       <span className="mt-1 block text-xs opacity-80">
                         ${pack.price}
                         {pack.duration ? ` · ${pack.duration}` : ""}
+                        {normalizeLocationType(pack.locationType) === "AtHome" ? " · A domicilio" : ""}
                       </span>
                     </button>
                   ))}
@@ -257,8 +327,24 @@ export default function BookingWizard(props: BookingFormProps) {
             </div>
           )}
 
+          {/* 2 · Domicilio (solo servicios a domicilio) */}
+          {currentStep === "domicilio" && (
+            <div key="domicilio" className="animate-pane space-y-5">
+              <h3 className="text-2xl font-semibold tracking-tight text-cream">¿Dónde hacemos el servicio?</h3>
+              <HomeAddressStep
+                serviceTitle={selectedServiceObj?.title ?? formData.selectedService}
+                homeAddress={homeAddress}
+                setHomeAddress={setHomeAddress}
+                coverageLocalities={coverageLocalities}
+                coverageStatus={coverageStatus}
+                retryCoverage={retryCoverage}
+                whatsAppNumber={props.whatsAppNumber}
+              />
+            </div>
+          )}
+
           {/* 2 · Profesional */}
-          {step === 1 && (
+          {currentStep === "profesional" && (
             <div key="profesional" className="animate-pane space-y-5">
               <h3 className="text-2xl font-semibold tracking-tight text-cream">¿Con quién te querés atender?</h3>
               {loadingProfessionals ? (
@@ -325,7 +411,7 @@ export default function BookingWizard(props: BookingFormProps) {
           )}
 
           {/* 3 · Día y hora */}
-          {step === 2 && (
+          {currentStep === "horario" && (
             <div key="horario" className="animate-pane space-y-5">
               <h3 className="text-2xl font-semibold tracking-tight text-cream">Elegí día y horario</h3>
               {!activeDay ? (
@@ -378,7 +464,7 @@ export default function BookingWizard(props: BookingFormProps) {
           )}
 
           {/* 4 · Datos */}
-          {step === 3 && (
+          {currentStep === "datos" && (
             <div key="datos" className="animate-pane space-y-5">
               <h3 className="text-2xl font-semibold tracking-tight text-cream">Tus datos</h3>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -509,7 +595,7 @@ export default function BookingWizard(props: BookingFormProps) {
                 type="button"
                 data-testid="booking-next"
                 onClick={() => setStep((s) => s + 1)}
-                disabled={!canContinue}
+                disabled={!canContinue[currentStep]}
                 className="group min-h-[50px] flex-1 rounded-full bg-blush px-7 text-[15px] font-semibold text-ink transition hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0 sm:flex-none"
               >
                 Continuar <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
