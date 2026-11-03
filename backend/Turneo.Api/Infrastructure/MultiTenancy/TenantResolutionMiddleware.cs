@@ -50,7 +50,7 @@ public class TenantResolutionMiddleware(RequestDelegate next)
         {
             var host = context.Request.Headers["X-Tenant-Host"].FirstOrDefault()
                 ?? context.Request.Host.Host;
-            var slug = ResolveSlugFromHost(host, configuration);
+            var (slug, fromSubdomain) = ResolveSlugFromHost(host, configuration);
 
             if (slug is not null)
             {
@@ -79,24 +79,40 @@ public class TenantResolutionMiddleware(RequestDelegate next)
                     await db.Database.ExecuteSqlRawAsync($"SET app.tenant_id = '{tenantId}'");
 #pragma warning restore EF1002
                 }
+                else if (fromSubdomain)
+                {
+                    // Subdominio real del dominio base sin tenant detrás: cortar acá
+                    // con 404 en vez de seguir con tenant 0 (sitio vacío, writes que
+                    // fallan con 500). El fallback DefaultTenantSlug no entra acá.
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    await context.Response.WriteAsJsonAsync(new { message = "Negocio no encontrado" });
+                    return;
+                }
             }
         }
 
         await next(context);
     }
 
-    private static string? ResolveSlugFromHost(string host, IConfiguration configuration)
+    // FromSubdomain = true solo cuando el slug salió de un subdominio de
+    // Tenancy:BaseDomain; false cuando es el fallback DefaultTenantSlug.
+    private static (string? Slug, bool FromSubdomain) ResolveSlugFromHost(string host, IConfiguration configuration)
     {
         var baseDomain = configuration["Tenancy:BaseDomain"];
 
         if (!string.IsNullOrEmpty(baseDomain) &&
             host.EndsWith("." + baseDomain, StringComparison.OrdinalIgnoreCase))
         {
-            var sub = host[..^(baseDomain.Length + 1)];
-            if (!string.IsNullOrEmpty(sub) && !sub.Equals("www", StringComparison.OrdinalIgnoreCase))
-                return sub;
+            // Los hosts no distinguen mayúsculas y los slugs se guardan en minúscula.
+            var sub = host[..^(baseDomain.Length + 1)].ToLowerInvariant();
+
+            // Los subdominios reservados (api, admin, ...) nunca son tenants: se
+            // mantiene el comportamiento previo (sin 404) para no cortar llamadas
+            // directas si el backend vive en uno de ellos (ej. api.<BaseDomain>).
+            if (!string.IsNullOrEmpty(sub) && sub != "www")
+                return (sub, !TenantSlugRules.IsReserved(sub));
         }
 
-        return configuration["Tenancy:DefaultTenantSlug"];
+        return (configuration["Tenancy:DefaultTenantSlug"], false);
     }
 }

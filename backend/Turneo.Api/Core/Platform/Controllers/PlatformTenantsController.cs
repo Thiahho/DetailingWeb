@@ -50,6 +50,11 @@ public class PlatformTenantsController : ControllerBase
     {
         var slug = request.Slug.Trim().ToLowerInvariant();
 
+        // El slug es el subdominio del tenant: tiene que ser etiqueta DNS válida y no reservada.
+        var slugError = TenantSlugRules.Validate(slug);
+        if (slugError is not null)
+            return BadRequest(new { message = slugError });
+
         if (await _context.Tenants.AnyAsync(t => t.Slug == slug))
             return BadRequest(new { message = "Ya existe un tenant con ese slug" });
 
