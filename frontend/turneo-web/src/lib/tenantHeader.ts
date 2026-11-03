@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 
 const TENANCY_BASE_DOMAIN = process.env.NEXT_PUBLIC_TENANCY_BASE_DOMAIN || "turneo.app";
 
-// El backend corre en un host distinto (Render) al que el usuario realmente
-// visita (subdominio del tenant en Vercel), así que no puede resolver el
+// El backend corre en un servicio de Render distinto al del frontend que el
+// usuario realmente visita (subdominio del tenant), así que no puede resolver el
 // tenant mirando su propio Request.Host en requests públicas/anónimas.
 // Este header le pasa el host real que vio esta ruta proxy.
 //

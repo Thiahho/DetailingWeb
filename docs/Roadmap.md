@@ -21,7 +21,7 @@
 - **Enforcement de planes**: 7 de 11 features conectados (`MaxProfessionals`, `MaxBookings`, `MaxServices`, `MaxClients`, `CanUseAutomations`, `CanUseMercadoPago`, `CanUseWhatsapp`) — falta `MaxBranches`, `MaxAdmins` (sembrado sin uso a propósito) y `CanUseAI` (sin ninguna función de IA implementada todavía). Es además **fail-open** por diseño — ver [Features](Features.md).
 - **Enterprise real**: `Branch` no tiene `BranchId` en las entidades de `Core` (no filtra agenda por sucursal todavía); `Theme` no lo consume el frontend; `Audit/` y `API/` son esqueleto vacío.
 - **Beauty**: `Memberships/` y `Products/` son carpetas vacías, sin modelo de datos (requieren definición de negocio primero).
-- **Multi-tenancy en producción**: el mecanismo está implementado y probado localmente, pero falta configurar el DNS wildcard real — sin eso, el ruteo por subdominio no se puede probar en producción. Hoy hay 1 solo tenant real (`legacy`).
+- **Multi-tenancy en producción**: el mecanismo está implementado y probado localmente, con validación de slugs y 404 para subdominios desconocidos (2026-11-03). Falta configurar el DNS wildcard `*.turneobelleza.com` (Cloudflare → Render) y `Tenancy:BaseDomain` real — pasos en `docs/MultiTenancy.md`. Hoy hay 1 solo tenant real (`legacy`).
 - **Permisos de Staff**: Insumos y Productos ya tienen tests de integración que confirman el `403` sin permiso y el `2xx` con permiso (9 casos, 05/10); el resto de los módulos sigue sin test dedicado.
 
 ### ⏳ Roadmap (sin iniciar)

@@ -21,7 +21,7 @@ Cada negocio registrado es un `Tenant` (`SaaS/Tenants/Tenant.cs`, `int Id`). Tod
 
 ## El header `X-Tenant-Host`
 
-El frontend (Vercel) y el backend (Render) corren en hosts distintos. Cuando Next.js hace un `fetch()` server-side hacia la API, el `Host` que ve el backend es el suyo propio, no el subdominio que el usuario realmente visitó (`salon-x.Turneo.app`) — así que hay que reenviarlo explícitamente.
+El frontend y el backend corren como dos servicios separados en Render. Cuando Next.js hace un `fetch()` server-side hacia la API, el `Host` que ve el backend es el suyo propio, no el subdominio que el usuario realmente visitó (`salon-x.turneobelleza.com`) — así que hay que reenviarlo explícitamente.
 
 - `frontend/Turneo-web/src/lib/tenantHeader.ts` lee `request.headers.get("host")` y lo devuelve como `{ "X-Tenant-Host": host }`.
 - Las 24 rutas proxy en `app/api/**/route.ts` lo incluyen en cada `fetch()` hacia el backend.
@@ -43,4 +43,22 @@ Probado end-to-end contra la base local:
 
 ## Pendiente
 
-Configurar el DNS wildcard (`*.Turneo.app` o el dominio que se defina) y `Tenancy:BaseDomain` real en producción — hasta entonces no se puede probar el ruteo por subdominio real, aunque el código ya está listo para cuando exista. Esto es responsabilidad del usuario (dashboard externo, no algo que se resuelva desde el código).
+Configurar el DNS wildcard `*.turneobelleza.com` en producción. Es responsabilidad del usuario (paneles externos, no se resuelve desde el código). Hasta entonces el ruteo por subdominio no se puede probar en producción.
+
+Lo que ya está hecho en el código (2026-11-03, ver `odd/tasks/tenant-subdomain-rules.md`):
+- Los slugs nuevos deben ser etiquetas DNS válidas (3–63 caracteres, `a-z0-9` y guiones) y no pueden ser nombres reservados (`www`, `api`, `admin`, `legacy`…) — `SaaS/Tenants/TenantSlugRules.cs`.
+- Un subdominio del dominio base sin negocio detrás responde 404 en vez de seguir sin tenant.
+
+Pasos pendientes (dominio en Cloudflare, frontend y backend en Render):
+1. Render, servicio del **frontend** → Custom Domains: agregar `turneobelleza.com` y `*.turneobelleza.com` (Render exige que la raíz también apunte a Render).
+2. Cloudflare DNS, todos en **DNS only** (nube gris), con `<front>` = subdominio `.onrender.com` del frontend:
+   - `CNAME @ → <front>.onrender.com`
+   - `CNAME * → <front>.onrender.com`
+   - `CNAME _acme-challenge → <front>.verify.renderdns.com`
+   - `CNAME _cf-custom-hostname → <front>.hostname.renderdns.com`
+   - Sin registros AAAA; si hay CAA, permitir `letsencrypt.org` y `pki.goog` (también `issuewild`).
+3. Variables: backend `Tenancy__BaseDomain=turneobelleza.com`; frontend `NEXT_PUBLIC_TENANCY_BASE_DOMAIN=turneobelleza.com` (se lee en el build: redeploy).
+4. Verify en Render; probar `<slug>.turneobelleza.com` (muestra ese negocio) y `nada.turneobelleza.com` (404).
+5. Revisar que los slugs ya existentes en producción cumplan `TenantSlugRules`.
+
+Pendiente relacionado: `Notifications:CancellationBaseUrl` es un link fijo a `www.turneobelleza.com/cancelar`; con más de un negocio probablemente deba armarse con el subdominio de cada uno (a verificar).

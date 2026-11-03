@@ -6,7 +6,7 @@ namespace Turneo.Api.Infrastructure.MultiTenancy;
 //   1. Claim "tenant_id" del JWT (usuarios autenticados: Admin/Professional/Client).
 //   2. Header "X-Tenant-Host" (rutas públicas anónimas proxeadas por el frontend
 //      Next.js — ver src/lib/tenantHeader.ts). El frontend corre en un host
-//      distinto al backend (Vercel vs. Render), así que Request.Host acá adentro
+//      distinto al backend (dos servicios separados en Render), así que Request.Host acá adentro
 //      es el del backend, no el subdominio que el usuario realmente visitó; el
 //      frontend nos pasa ese dato explícito en este header dedicado (no usamos
 //      el X-Forwarded-Host estándar para no pisarnos con el que ya agrega el
