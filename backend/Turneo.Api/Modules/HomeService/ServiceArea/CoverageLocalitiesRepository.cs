@@ -18,6 +18,14 @@ public class CoverageLocalitiesRepository : ICoverageLocalitiesRepository
             .ThenBy(c => c.Name)
             .ToListAsync();
 
+    public Task<List<CoverageLocality>> GetActiveAsync() =>
+        _context.CoverageLocalities
+            .AsNoTracking()
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.Province)
+            .ThenBy(c => c.Name)
+            .ToListAsync();
+
     public Task<CoverageLocality?> FindAsync(int id) =>
         _context.CoverageLocalities.FirstOrDefaultAsync(c => c.Id == id);
 

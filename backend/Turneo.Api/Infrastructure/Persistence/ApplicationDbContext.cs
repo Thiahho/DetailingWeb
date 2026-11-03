@@ -334,6 +334,12 @@ public class ApplicationDbContext : DbContext
         {
             entity.Property(e => e.DiscountAmount).HasColumnType("decimal(12,2)");
             entity.Property(e => e.FinalPrice).HasColumnType("decimal(12,2)");
+            entity.Property(e => e.HomeAddressStreet).HasMaxLength(200);
+            entity.Property(e => e.HomeAddressDetails).HasMaxLength(100);
+            entity.Property(e => e.HomeAddressNotes).HasMaxLength(500);
+            entity.Property(e => e.CoverageLocalityName).HasMaxLength(150);
+            entity.Property(e => e.CoverageLocalityProvince).HasMaxLength(100);
+            entity.Property(e => e.HomeServiceSurcharge).HasColumnType("decimal(12,2)");
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.CustomerEmailNormalized);
             entity.HasIndex(e => e.TimeSlotId)

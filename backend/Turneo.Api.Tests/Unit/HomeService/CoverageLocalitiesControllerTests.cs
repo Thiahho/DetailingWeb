@@ -13,6 +13,7 @@ public class CoverageLocalitiesControllerTests
 
         public Task<List<CoverageLocality>> GetAllAsync() => Task.FromResult(new List<CoverageLocality> { _existing });
         public Task<CoverageLocality?> FindAsync(int id) => Task.FromResult<CoverageLocality?>(id == 1 ? _existing : null);
+        public Task<List<CoverageLocality>> GetActiveAsync() => Task.FromResult(new List<CoverageLocality> { _existing });
         public Task<bool> ExistsAsync(string name, string province, string? georefId, int? excludeId = null) => Task.FromResult(false);
         public void Add(CoverageLocality locality) { }
         public void Remove(CoverageLocality locality) { }

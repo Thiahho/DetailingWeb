@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -279,6 +280,53 @@ public class PaymentsEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
         Assert.Equal(0m, payment!.Amount);
+        Assert.Equal(PaymentStatus.Pending, payment.Status);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Pending, updatedBooking!.Status);
+    }
+
+    // At-home booking: the surcharge frozen on the booking is part of the expected charge.
+    private async Task<Booking> SeedAtHomeBookingWithoutPaymentAsync(decimal? finalPrice, decimal surcharge, int dayOffset)
+    {
+        var booking = await SeedBookingWithoutPaymentAsync(finalPrice, dayOffset);
+        var service = await TestDataFactory.CreateServiceAsync(_factory, booking.TenantId, "Lavado MP"); // Price "1000"
+        await TestDataFactory.SetBookingServiceAsync(_factory, booking.Id, service.Slug);
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Bookings.IgnoreQueryFilters().Where(b => b.Id == booking.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(b => b.HomeServiceSurcharge, surcharge));
+        return booking;
+    }
+
+    [Theory]
+    [InlineData(null, 1500, "555106")]
+    [InlineData(800, 1300, "555107")]
+    public async Task Webhook_WithoutLocalPayment_AtHomeBooking_ExpectsPricePlusSurcharge(int? finalPrice, int expected, string paymentId)
+    {
+        var booking = await SeedAtHomeBookingWithoutPaymentAsync(finalPrice, 500m, finalPrice is null ? 51 : 52);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), expected, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification(paymentId));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(expected, payment!.Amount);
+        Assert.Equal(PaymentStatus.Approved, payment.Status);
+        var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(BookingStatus.Confirmed, updatedBooking!.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_WithoutLocalPayment_AtHomeBookingPaidWithoutSurcharge_KeepsPending()
+    {
+        var booking = await SeedAtHomeBookingWithoutPaymentAsync(null, 500m, 53);
+        var host = HostWithGateway(id => new MercadoPagoPaymentInfo(id, "approved", booking.Id.ToString(), 1000m, "ARS", "visa", "payer@test.com"));
+
+        var response = await host.CreateClient().SendAsync(SignedPaymentNotification("555108"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var payment = await TestDataFactory.GetPaymentByBookingIgnoringTenantAsync(_factory, booking.Id);
+        Assert.Equal(1500m, payment!.Amount);
         Assert.Equal(PaymentStatus.Pending, payment.Status);
         var updatedBooking = await TestDataFactory.GetBookingIgnoringTenantAsync(_factory, booking.Id);
         Assert.Equal(BookingStatus.Pending, updatedBooking!.Status);

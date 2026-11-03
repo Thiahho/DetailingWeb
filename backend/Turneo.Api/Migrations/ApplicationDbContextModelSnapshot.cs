@@ -134,6 +134,17 @@ namespace Turneo.Api.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<int?>("CoverageLocalityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CoverageLocalityName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("CoverageLocalityProvince")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -167,6 +178,21 @@ namespace Turneo.Api.Migrations
 
                     b.Property<string>("GoogleEventId")
                         .HasColumnType("text");
+
+                    b.Property<string>("HomeAddressDetails")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("HomeAddressNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("HomeAddressStreet")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("HomeServiceSurcharge")
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<string>("Message")
                         .HasColumnType("text");

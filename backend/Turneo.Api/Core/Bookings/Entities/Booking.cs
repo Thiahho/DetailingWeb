@@ -48,4 +48,19 @@ public class Booking : ITenantScoped
     public int? PromotionId { get; set; }
     public decimal? DiscountAmount { get; set; }
     public decimal? FinalPrice { get; set; }
+
+    // Snapshot of the client's address for an at-home service (all null = the
+    // service is performed on site). Locality name, province and surcharge are
+    // copied from the tenant's CoverageLocality at booking time, so editing or
+    // deleting the locality later never changes an existing booking. No
+    // navigation on purpose: GET /api/bookings serializes the entity.
+    public string? HomeAddressStreet { get; set; }
+    public string? HomeAddressDetails { get; set; }
+    public string? HomeAddressNotes { get; set; }
+    public int? CoverageLocalityId { get; set; }
+    public string? CoverageLocalityName { get; set; }
+    public string? CoverageLocalityProvince { get; set; }
+    // Surcharge applied at booking time (0 when the locality has none). It is
+    // added on top of the service/promotion price by PaymentAmountResolver.
+    public decimal? HomeServiceSurcharge { get; set; }
 }

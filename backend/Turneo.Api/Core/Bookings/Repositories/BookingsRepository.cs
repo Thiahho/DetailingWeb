@@ -98,7 +98,17 @@ public class BookingsRepository : IBookingsRepository
                 x.Booking.Items
                     .Select(i => new BookingItemSummary(
                         i.Id, i.ItemType, i.ServiceId, i.ProductId, i.InsumoId, i.IsSale, i.Name, i.Quantity, i.UnitPrice))
-                    .ToList()))
+                    .ToList(),
+                x.Booking.HomeServiceSurcharge != null
+                    ? new HomeServiceAddressSummary(
+                        x.Booking.HomeAddressStreet,
+                        x.Booking.HomeAddressDetails,
+                        x.Booking.HomeAddressNotes,
+                        x.Booking.CoverageLocalityId,
+                        x.Booking.CoverageLocalityName,
+                        x.Booking.CoverageLocalityProvince,
+                        x.Booking.HomeServiceSurcharge)
+                    : null))
             .ToListAsync();
 
     public Task<List<MyBookingItem>> GetMineAsync(string? emailFilter)

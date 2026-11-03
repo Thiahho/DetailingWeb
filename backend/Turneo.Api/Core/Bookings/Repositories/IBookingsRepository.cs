@@ -73,7 +73,18 @@ public record AdminBookingListItem(
     List<NotificationLogSummary> NotificationLogs,
     string? PhotoUrlsBefore,
     string? PhotoUrlsAfter,
-    List<BookingItemSummary> Items);
+    List<BookingItemSummary> Items,
+    HomeServiceAddressSummary? HomeServiceAddress);
+
+// Address snapshot of an at-home booking (null for on-site bookings).
+public record HomeServiceAddressSummary(
+    string? Street,
+    string? Details,
+    string? Notes,
+    int? CoverageLocalityId,
+    string? LocalityName,
+    string? Province,
+    decimal? Surcharge);
 
 public record MyBookingItem(
     int Id,

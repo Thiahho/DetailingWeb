@@ -4,6 +4,9 @@ public interface ICoverageLocalitiesRepository
 {
     Task<List<CoverageLocality>> GetAllAsync();
     Task<CoverageLocality?> FindAsync(int id);
+
+    // Active localities only, for the public booking page.
+    Task<List<CoverageLocality>> GetActiveAsync();
     Task<bool> ExistsAsync(string name, string province, string? georefId, int? excludeId = null);
     void Add(CoverageLocality locality);
     void Remove(CoverageLocality locality);

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Turneo.Api.Core.Notifications;
+using Turneo.Api.Modules.HomeService.BookingAddress;
 using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Bookings;
@@ -22,10 +23,12 @@ public class BookingsController : ControllerBase
     private readonly ICurrentTenant _currentTenant;
 
     private readonly IPromotionPricingService _promotionPricing;
+    private readonly IHomeServiceBookingPolicy _homeServicePolicy;
 
-    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing)
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing, IHomeServiceBookingPolicy homeServicePolicy)
     {
         _promotionPricing = promotionPricing;
+        _homeServicePolicy = homeServicePolicy;
         _repository = repository;
         _authService = authService;
         _configuration = configuration;
@@ -67,6 +70,12 @@ public class BookingsController : ControllerBase
             if (!professionalIsActive)
                 return BadRequest(new { success = false, message = "El profesional seleccionado no está disponible" });
         }
+
+        // At-home services need an address inside the tenant's coverage zone.
+        // Checked before claiming the slot so a rejected booking never holds it.
+        var homeService = await _homeServicePolicy.ResolveAsync(request.Service, request.HomeAddress);
+        if (homeService.Error is not null)
+            return BadRequest(new { success = false, message = homeService.Error });
 
         var bookingsThisMonth = await _repository.CountThisMonthAsync();
         if (!await _planLimits.IsWithinLimitAsync("MaxBookings", bookingsThisMonth))
@@ -132,6 +141,7 @@ public class BookingsController : ControllerBase
             SmartTagId = smartTag?.Id,
             Source = smartTagSource
         };
+        homeService.Snapshot?.ApplyTo(booking);
 
         _repository.Add(booking);
 
@@ -598,6 +608,9 @@ public class CreateBookingRequest
     // null, nunca false (el default del tipo) — la validación real de que
     // sea explícitamente true se hace a mano en CreateBooking.
     public bool AcceptedTerms { get; set; }
+
+    // Required only when the booked service is AtHome; ignored otherwise.
+    public HomeServiceAddressRequest? HomeAddress { get; set; }
 }
 
 public class UpdateBookingDetailRequest
