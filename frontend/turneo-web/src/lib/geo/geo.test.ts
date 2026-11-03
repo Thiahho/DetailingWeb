@@ -2,16 +2,29 @@ import { describe, expect, it } from "vitest";
 import { alturaEscrita, direccionesFromPhoton, filtrarPorCalle, localidadesFromGeoref, lugarFromNominatim, parseCoords } from "@/src/lib/geo/geo";
 
 describe("localidadesFromGeoref", () => {
-  it("deduplica por nombre y partido", () => {
+  it("deduplica por nombre y partido y conserva el id de Georef", () => {
     const items = localidadesFromGeoref([
-      { nombre: "Moreno", departamento: { nombre: "Moreno" }, provincia: { nombre: "Buenos Aires" }, centroide: { lat: -34.64, lon: -58.78 } },
-      { nombre: "Moreno", departamento: { nombre: "Moreno" }, provincia: { nombre: "Buenos Aires" }, centroide: { lat: -34.65, lon: -58.79 } },
+      { id: "06560010000", nombre: "Moreno", departamento: { nombre: "Moreno" }, provincia: { nombre: "Buenos Aires" }, centroide: { lat: -34.64, lon: -58.78 } },
+      { id: "06560010001", nombre: "Moreno", departamento: { nombre: "Moreno" }, provincia: { nombre: "Buenos Aires" }, centroide: { lat: -34.65, lon: -58.79 } },
       { nombre: "González Moreno", departamento: { nombre: "Rivadavia" }, provincia: { nombre: "Buenos Aires" }, centroide: { lat: -35.55, lon: -63.38 } },
       { nombre: "Sin centroide", departamento: { nombre: "X" } },
     ]);
     expect(items).toEqual([
-      { nombre: "Moreno", partido: "Moreno", provincia: "Buenos Aires", lat: -34.64, lng: -58.78 },
-      { nombre: "González Moreno", partido: "Rivadavia", provincia: "Buenos Aires", lat: -35.55, lng: -63.38 },
+      { id: "06560010000", nombre: "Moreno", partido: "Moreno", provincia: "Buenos Aires", lat: -34.64, lng: -58.78 },
+      { id: null, nombre: "González Moreno", partido: "Rivadavia", provincia: "Buenos Aires", lat: -35.55, lng: -63.38 },
+    ]);
+  });
+
+  it("mantiene localidades de cualquier provincia, aunque compartan nombre y partido", () => {
+    const items = localidadesFromGeoref([
+      { id: "14014010000", nombre: "Córdoba", departamento: { nombre: "Capital" }, provincia: { nombre: "Córdoba" }, centroide: { lat: -31.41, lon: -64.18 } },
+      { id: "06371010000", nombre: "San Martín", departamento: { nombre: "General San Martín" }, provincia: { nombre: "Buenos Aires" }, centroide: { lat: -34.57, lon: -58.53 } },
+      { id: "50070010000", nombre: "San Martín", departamento: { nombre: "General San Martín" }, provincia: { nombre: "Mendoza" }, centroide: { lat: -33.08, lon: -68.47 } },
+    ]);
+    expect(items.map((i) => [i.nombre, i.provincia, i.id])).toEqual([
+      ["Córdoba", "Córdoba", "14014010000"],
+      ["San Martín", "Buenos Aires", "06371010000"],
+      ["San Martín", "Mendoza", "50070010000"],
     ]);
   });
 });
@@ -28,13 +41,23 @@ describe("direccionesFromPhoton", () => {
     expect(items[0]).toMatchObject({ localidad: "Francisco Álvarez", partido: "Partido de Moreno", exacta: false, lat: -34.6047422, lng: -58.8686989 });
   });
 
-  it("descarta otros países, otras provincias y lo que no es calle", () => {
+  it("descarta otros países y lo que no es calle", () => {
     const items = direccionesFromPhoton([
       street("Colonia", { countrycode: "UY", state: "Colonia" }),
-      street("San Martín", { state: "Entre Ríos" }),
       street("Plaza Mitre", { type: "locality" }),
     ]);
     expect(items).toEqual([]);
+  });
+
+  it("devuelve calles de cualquier provincia argentina", () => {
+    const items = direccionesFromPhoton([
+      street("Av. Colón", { city: "Córdoba", county: "Capital", state: "Córdoba" }),
+      street("San Martín", { city: "Paraná", county: "Paraná", state: "Entre Ríos" }),
+    ]);
+    expect(items.map((i) => [i.calle, i.localidad])).toEqual([
+      ["Av. Colón", "Córdoba"],
+      ["San Martín", "Paraná"],
+    ]);
   });
 
   it("marca como exactas las puertas con número", () => {

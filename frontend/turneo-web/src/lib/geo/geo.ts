@@ -4,7 +4,8 @@
 
 export type Coords = { lat: number; lng: number };
 
-export type LocalidadSuggestion = Coords & { nombre: string; partido: string; provincia: string };
+/** `id` is the Georef locality id (null when Georef does not send it). */
+export type LocalidadSuggestion = Coords & { id: string | null; nombre: string; partido: string; provincia: string };
 
 /** `exacta` means the point is a house number, not the whole street. */
 export type DireccionSuggestion = Coords & { calle: string; altura?: string; localidad: string; partido: string; exacta: boolean };
@@ -22,18 +23,20 @@ export type LugarCaptado = Coords & {
 /** `demasiadas-solicitudes` is returned with HTTP 429 by the per-IP rate limit. */
 export type GeoError = "link-invalido" | "sin-coordenadas" | "sin-servicio" | "demasiadas-solicitudes";
 
-const ZONA = ["Buenos Aires", "Ciudad Autónoma de Buenos Aires"];
-
 const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 type GeorefLocalidad = {
+  id?: string;
   nombre?: string;
   departamento?: { nombre?: string };
   provincia?: { nombre?: string };
   centroide?: { lat?: number; lon?: number };
 };
 
-/** Georef repeats localities (entity and census locality): they are deduplicated by name and partido. */
+/**
+ * Georef repeats localities (entity and census locality): they are deduplicated by name and partido
+ * within a province, so same-name localities of different provinces are all kept.
+ */
 export function localidadesFromGeoref(localidades: GeorefLocalidad[], max = 8): LocalidadSuggestion[] {
   const seen = new Set<string>();
   const out: LocalidadSuggestion[] = [];
@@ -42,10 +45,11 @@ export function localidadesFromGeoref(localidades: GeorefLocalidad[], max = 8): 
     const { lat, lon } = l.centroide ?? {};
     if (!nombre || typeof lat !== "number" || typeof lon !== "number") continue;
     const partido = l.departamento?.nombre ?? "";
-    const key = fold(`${nombre}|${partido}`);
+    const provincia = l.provincia?.nombre ?? "";
+    const key = fold(`${nombre}|${partido}|${provincia}`);
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ nombre, partido, provincia: l.provincia?.nombre ?? "", lat, lng: lon });
+    out.push({ id: l.id?.trim() || null, nombre, partido, provincia, lat, lng: lon });
     if (out.length === max) break;
   }
   return out;
@@ -67,14 +71,14 @@ type PhotonFeature = {
   geometry?: { coordinates?: [number, number] };
 };
 
-/** Photon streets and house numbers inside Buenos Aires/CABA, without duplicates. */
+/** Photon streets and house numbers in Argentina, without duplicates. */
 export function direccionesFromPhoton(features: PhotonFeature[], max = 6): DireccionSuggestion[] {
   const seen = new Set<string>();
   const out: DireccionSuggestion[] = [];
   for (const f of features) {
     const p = f.properties ?? {};
     const [lng, lat] = f.geometry?.coordinates ?? [];
-    if (p.countrycode !== "AR" || (p.state && !ZONA.includes(p.state))) continue;
+    if (p.countrycode !== "AR") continue;
     if (p.type !== "street" && p.type !== "house") continue;
     const exacta = p.type === "house";
     const calle = (exacta ? p.street : p.name)?.trim();

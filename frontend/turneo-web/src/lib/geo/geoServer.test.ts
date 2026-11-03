@@ -114,3 +114,70 @@ describe("resolveMapsUrl", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("searchLocalidades", () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("searches all of Argentina in one Georef call and returns the Georef id", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        localidades: [
+          { id: "14014010000", nombre: "Córdoba", departamento: { nombre: "Capital" }, provincia: { nombre: "Córdoba" }, centroide: { lat: -31.41, lon: -64.18 } },
+        ],
+      }),
+    );
+    const { searchLocalidades } = await loadModule();
+
+    const items = await searchLocalidades("cordoba");
+
+    expect(items).toEqual([{ id: "14014010000", nombre: "Córdoba", partido: "Capital", provincia: "Córdoba", lat: -31.41, lng: -64.18 }]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.origin + url.pathname).toBe("https://apis.datos.gob.ar/georef/api/localidades");
+    expect(url.searchParams.get("nombre")).toBe("cordoba");
+    expect(url.searchParams.has("provincia")).toBe(false);
+    expect(url.searchParams.get("campos")?.split(",")).toEqual(expect.arrayContaining(["id", "nombre", "departamento.nombre", "provincia.nombre", "centroide"]));
+  });
+
+  it("throws when Georef is unavailable", async () => {
+    fetchMock.mockResolvedValue(new Response("down", { status: 503 }));
+    const { searchLocalidades } = await loadModule();
+    await expect(searchLocalidades("cordoba")).rejects.toThrow();
+  });
+});
+
+describe("searchDirecciones", () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("bounds Photon to Argentina and keeps streets outside Buenos Aires", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        features: [
+          {
+            properties: { type: "street", name: "Avenida Colón", city: "Córdoba", county: "Capital", state: "Córdoba", countrycode: "AR" },
+            geometry: { coordinates: [-64.19, -31.41] },
+          },
+        ],
+      }),
+    );
+    const { searchDirecciones } = await loadModule();
+
+    const items = await searchDirecciones("avenida colon", null);
+
+    expect(items).toMatchObject([{ calle: "Avenida Colón", localidad: "Córdoba", partido: "Capital" }]);
+    const url = new URL(String(fetchMock.mock.calls[0][0]));
+    expect(url.searchParams.get("bbox")).toBe("-73.6,-55.1,-53.6,-21.7");
+  });
+});

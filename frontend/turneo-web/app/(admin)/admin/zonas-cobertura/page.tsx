@@ -16,6 +16,7 @@ import {
 } from "@/src/lib/homeService/coverageLocality";
 import LocalitySearch from "./_components/LocalitySearch";
 import CoverageLocalityRow from "./_components/CoverageLocalityRow";
+import TravelBufferCard from "./_components/TravelBufferCard";
 
 const API = "/api/home-service/coverage-localities";
 const CONNECTION_ERROR = "No se pudo conectar con el servidor";
@@ -152,6 +153,8 @@ export default function ZonasCoberturaPage() {
             Localidades donde prestás los servicios a domicilio. Podés sumar un recargo por traslado a cada una.
           </p>
         </div>
+
+        <TravelBufferCard showToast={showToast} />
 
         {loadFailed ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm text-red-700">

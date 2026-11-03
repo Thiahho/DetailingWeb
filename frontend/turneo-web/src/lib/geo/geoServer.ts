@@ -25,8 +25,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://turneo.app";
 const HEADERS = { "User-Agent": `Turneo/1.0 (+${SITE_URL})`, Accept: "application/json" };
 const TIMEOUT_MS = 5000;
 const DAY_SECONDS = 60 * 60 * 24;
-// Buenos Aires province + CABA: min lon, min lat, max lon, max lat.
-const BBOX = "-63.4,-41.1,-56.6,-33.2";
+// Argentina (mainland and Tierra del Fuego): min lon, min lat, max lon, max lat.
+const BBOX = "-73.6,-55.1,-53.6,-21.7";
 const MAX_REDIRECTS = 5;
 
 // Nominatim allows at most 1 request per second. Per server instance (see throttle.ts): calls
@@ -42,16 +42,14 @@ async function getJson<T>(url: string, revalidate: number): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** Localities of Buenos Aires province (06) and CABA (02) matching the query. */
+/** Localities of any Argentine province matching the query, with their Georef id. */
 export async function searchLocalidades(q: string): Promise<LocalidadSuggestion[]> {
-  const query = (provincia: string) =>
-    getJson<{ localidades: Parameters<typeof localidadesFromGeoref>[0] }>(
-      `${GEOREF}/localidades?nombre=${encodeURIComponent(q)}&provincia=${provincia}&campos=nombre,departamento.nombre,provincia.nombre,centroide&max=10`,
-      DAY_SECONDS,
-    );
-  const results = await Promise.allSettled([query("06"), query("02")]);
-  if (results.every((r) => r.status === "rejected")) throw new Error("Georef unavailable");
-  return localidadesFromGeoref(results.flatMap((r) => (r.status === "fulfilled" ? r.value.localidades : [])));
+  // One country-wide query; max=20 keeps the 20 raw rows the former two province queries (10 each) fetched.
+  const { localidades } = await getJson<{ localidades: Parameters<typeof localidadesFromGeoref>[0] }>(
+    `${GEOREF}/localidades?nombre=${encodeURIComponent(q)}&campos=id,nombre,departamento.nombre,provincia.nombre,centroide&max=20`,
+    DAY_SECONDS,
+  );
+  return localidadesFromGeoref(localidades);
 }
 
 /** Streets and addresses while typing, biased toward `near` (the center of the chosen locality). */

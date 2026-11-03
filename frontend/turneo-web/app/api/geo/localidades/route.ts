@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { searchLocalidades } from "@/src/lib/geo/geoServer";
 import { geoRateLimit } from "@/src/lib/geo/geoRateLimit";
 
-// GET /api/geo/localidades?q= -> { items: LocalidadSuggestion[] } (Georef, Buenos Aires + CABA).
+// GET /api/geo/localidades?q= -> { items: LocalidadSuggestion[] } (Georef, all of Argentina).
 export async function GET(req: NextRequest) {
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim().slice(0, 80);
   if (q.length < 2) return NextResponse.json({ items: [] });

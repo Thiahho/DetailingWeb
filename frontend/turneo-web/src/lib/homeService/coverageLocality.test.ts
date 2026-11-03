@@ -54,9 +54,16 @@ describe("formatSurcharge", () => {
 });
 
 describe("coverageLocalityFromSuggestion", () => {
-  it("fills name and province from a Georef suggestion", () => {
-    const draft = coverageLocalityFromSuggestion({ nombre: " Quilmes ", partido: "Quilmes", provincia: "Buenos Aires", lat: 1, lng: 2 });
-    expect(draft).toEqual({ name: "Quilmes", province: "Buenos Aires", georefId: null });
+  it("fills name, province and Georef id from a Georef suggestion", () => {
+    const draft = coverageLocalityFromSuggestion({ id: " 06658010000 ", nombre: " Quilmes ", partido: "Quilmes", provincia: "Buenos Aires", lat: 1, lng: 2 });
+    expect(draft).toEqual({ name: "Quilmes", province: "Buenos Aires", georefId: "06658010000" });
+  });
+
+  it("sends a null Georef id when the suggestion has none", () => {
+    for (const id of [null, "", "  "]) {
+      const draft = coverageLocalityFromSuggestion({ id, nombre: "Quilmes", partido: "Quilmes", provincia: "Buenos Aires", lat: 1, lng: 2 });
+      expect(draft.georefId).toBeNull();
+    }
   });
 });
 

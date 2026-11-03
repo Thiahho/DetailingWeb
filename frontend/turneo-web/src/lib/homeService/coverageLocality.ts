@@ -45,14 +45,18 @@ export function formatSurcharge(value: number | null): string {
 }
 
 /**
- * Name and province come from the picked Georef suggestion. The geo proxy does
- * not return the Georef id, so it stays null and the backend deduplicates by
- * name and province.
+ * Name, province and Georef id come from the picked Georef suggestion. The id
+ * is null when Georef did not send one; the backend then deduplicates by name
+ * and province.
  */
 export function coverageLocalityFromSuggestion(
   suggestion: LocalidadSuggestion
 ): Pick<CoverageLocalityRequest, "name" | "province" | "georefId"> {
-  return { name: suggestion.nombre.trim(), province: suggestion.provincia.trim(), georefId: null };
+  return {
+    name: suggestion.nombre.trim(),
+    province: suggestion.provincia.trim(),
+    georefId: suggestion.id?.trim() || null,
+  };
 }
 
 /** The PUT is a full replace: start from the stored locality so fields the screen does not edit (georefId) survive. */
