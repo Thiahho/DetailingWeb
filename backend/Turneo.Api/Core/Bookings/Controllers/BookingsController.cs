@@ -453,11 +453,20 @@ public class BookingsController : ControllerBase
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
 
+        // Re-run the home-service policy against the resulting service so the
+        // address/surcharge snapshot matches its location type. Validated before
+        // any field is touched: a rejected edit changes nothing.
+        var service = request.Service?.Trim();
+        var homeService = await _homeServicePolicy.ResolveForUpdateAsync(service, request.HomeAddress, booking);
+        if (homeService.Error is not null)
+            return BadRequest(new { success = false, message = homeService.Error });
+
         booking.CustomerName = request.CustomerName.Trim();
         booking.CustomerPhone = request.CustomerPhone.Trim();
         booking.Subject = request.Subject.Trim();
-        booking.Service = request.Service?.Trim();
+        booking.Service = service;
         booking.Message = string.IsNullOrWhiteSpace(request.Message) ? null : request.Message.Trim();
+        homeService.ApplyTo(booking);
 
         await _repository.SaveChangesAsync();
 
@@ -563,6 +572,11 @@ public class UpdateBookingRequest
 
     [StringLength(2000)]
     public string? Message { get; set; }
+
+    // Same shape as on create. Required when the resulting service is AtHome
+    // and the booking has no address yet; omitted on an AtHome booking that
+    // already has one, the stored address and surcharge are kept unchanged.
+    public HomeServiceAddressRequest? HomeAddress { get; set; }
 }
 
 public class CreateBookingRequest

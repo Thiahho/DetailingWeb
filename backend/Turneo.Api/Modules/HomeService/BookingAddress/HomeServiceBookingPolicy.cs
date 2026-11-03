@@ -22,14 +22,41 @@ public record HomeServiceAddressSnapshot(
         booking.CoverageLocalityProvince = Province;
         booking.HomeServiceSurcharge = Surcharge;
     }
+
+    // Removes every home-service field: the booking is performed on site.
+    public static void ClearFrom(Booking booking)
+    {
+        booking.HomeAddressStreet = null;
+        booking.HomeAddressDetails = null;
+        booking.HomeAddressNotes = null;
+        booking.CoverageLocalityId = null;
+        booking.CoverageLocalityName = null;
+        booking.CoverageLocalityProvince = null;
+        booking.HomeServiceSurcharge = null;
+    }
 }
 
-// Error = the booking must be rejected (400). Snapshot null and no error = the
+// Error = the booking must be rejected (400). KeepExisting = an edit leaves the
+// booking's current snapshot untouched. Otherwise a null Snapshot means the
 // service is performed on site and nothing is stored.
-public record HomeServiceAddressResolution(HomeServiceAddressSnapshot? Snapshot, string? Error)
+public record HomeServiceAddressResolution(HomeServiceAddressSnapshot? Snapshot, string? Error, bool KeepExisting = false)
 {
     public static readonly HomeServiceAddressResolution OnSite = new(null, null);
+    public static readonly HomeServiceAddressResolution Keep = new(null, null, KeepExisting: true);
     public static HomeServiceAddressResolution Reject(string error) => new(null, error);
+
+    // Writes the outcome on an existing booking. Only valid when Error is null.
+    public void ApplyTo(Booking booking)
+    {
+        if (Error is not null)
+            throw new InvalidOperationException("A rejected home-service resolution cannot be applied.");
+        if (KeepExisting)
+            return;
+        if (Snapshot is not null)
+            Snapshot.ApplyTo(booking);
+        else
+            HomeServiceAddressSnapshot.ClearFrom(booking);
+    }
 }
 
 public interface IHomeServiceBookingPolicy
@@ -37,6 +64,12 @@ public interface IHomeServiceBookingPolicy
     // Decides whether the booked service needs the client's address and, if so,
     // validates it against the current tenant's active coverage localities.
     Task<HomeServiceAddressResolution> ResolveAsync(string? serviceSlug, HomeServiceAddressRequest? address);
+
+    // Same decision for an edit of an existing booking. When the resulting
+    // service is AtHome and no address is sent, a booking that already has a
+    // snapshot keeps it unchanged (editing other fields must not re-price it);
+    // otherwise the address is required and validated exactly as on create.
+    Task<HomeServiceAddressResolution> ResolveForUpdateAsync(string? serviceSlug, HomeServiceAddressRequest? address, Booking booking);
 }
 
 public class HomeServiceBookingPolicy : IHomeServiceBookingPolicy
@@ -65,9 +98,7 @@ public class HomeServiceBookingPolicy : IHomeServiceBookingPolicy
         if (string.IsNullOrWhiteSpace(serviceSlug))
             return HomeServiceAddressResolution.OnSite;
 
-        var isAtHome = await _context.Services
-            .AnyAsync(s => s.Slug == serviceSlug && s.LocationType == ServiceLocationType.AtHome);
-        if (!isAtHome)
+        if (!await IsAtHomeAsync(serviceSlug))
             return HomeServiceAddressResolution.OnSite;
 
         var street = address?.Street?.Trim();
@@ -99,6 +130,21 @@ public class HomeServiceBookingPolicy : IHomeServiceBookingPolicy
                 locality.Surcharge ?? 0m),
             null);
     }
+
+    public async Task<HomeServiceAddressResolution> ResolveForUpdateAsync(string? serviceSlug, HomeServiceAddressRequest? address, Booking booking)
+    {
+        // HomeServiceSurcharge is null only when the booking has no snapshot.
+        if (address is null
+            && booking.HomeServiceSurcharge is not null
+            && !string.IsNullOrWhiteSpace(serviceSlug)
+            && await IsAtHomeAsync(serviceSlug))
+            return HomeServiceAddressResolution.Keep;
+
+        return await ResolveAsync(serviceSlug, address);
+    }
+
+    private Task<bool> IsAtHomeAsync(string serviceSlug) =>
+        _context.Services.AnyAsync(s => s.Slug == serviceSlug && s.LocationType == ServiceLocationType.AtHome);
 
     private static string? NullIfBlank(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
