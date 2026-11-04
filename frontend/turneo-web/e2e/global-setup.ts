@@ -153,7 +153,11 @@ export default async function globalSetup() {
   // quedaba ninguno libre y este setup fallaba con "No quedan turnos
   // disponibles". Se liberan los turnos futuros que tomaron corridas
   // anteriores: solo los de clientes de e2e (todos llevan "E2E" en el nombre).
-  const allSlotsRes = await fetch(`${API_URL}/api/timeslots`, { headers: authHeaders });
+  // Solo hace falta lo futuro: `from` (día inclusive) desde ayer cubre cualquier
+  // desfase de zona horaria; el filtro de abajo descarta lo ya pasado.
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const fromDay = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+  const allSlotsRes = await fetch(`${API_URL}/api/timeslots?from=${fromDay}`, { headers: authHeaders });
   if (allSlotsRes.ok) {
     const allSlots = (await allSlotsRes.json()) as {
       id: number;

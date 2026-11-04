@@ -5,12 +5,12 @@ import { relayResponse } from "@/src/lib/proxyResponse";
 import { API_URL } from "@/src/lib/apiUrl";
 
   
-// GET: Obtener todos los timeslots (admin)
+// GET: Obtener los timeslots (admin). Reenvía ?from=&to= (rango opcional).
 export async function GET(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value || request.cookies.get("client_token")?.value || request.cookies.get("token")?.value;
 
   try {
-    const response = await fetch(`${API_URL}/api/timeslots`, {
+    const response = await fetch(`${API_URL}/api/timeslots${request.nextUrl.search}`, {
       method: "GET",
       headers: {
         ...tenantHeader(request),

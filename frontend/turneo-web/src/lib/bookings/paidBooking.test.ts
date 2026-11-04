@@ -4,8 +4,9 @@ import {
   buildPaidCancellationMessage,
   canCancelAndRefund,
   isPaid,
+  canEditBooking,
+  canReleaseBooking,
   isPaidCancellationRejection,
-  withPaymentInfo,
 } from "@/src/lib/bookings/paidBooking";
 
 describe("isPaid", () => {
@@ -68,28 +69,21 @@ describe("buildPaidCancellationMessage", () => {
   });
 });
 
-describe("withPaymentInfo", () => {
-  const adminList = [
-    { id: 1, status: "Confirmed", paymentStatus: "Approved", paymentAmount: 15000, paymentPaidAt: "2026-11-01T10:00:00", paymentProvider: "MercadoPago" },
-    { id: 2, status: "Pending", paymentStatus: null, paymentAmount: null, paymentPaidAt: null, paymentProvider: null },
-  ];
-
-  it("copies the payment fields of the admin list onto the matching booking", () => {
-    expect(withPaymentInfo({ id: 1, status: "Confirmed", customerName: "Ana" }, adminList)).toEqual({
-      id: 1,
-      status: "Confirmed",
-      customerName: "Ana",
-      paymentStatus: "Approved",
-      paymentAmount: 15000,
-      paymentPaidAt: "2026-11-01T10:00:00",
-      paymentProvider: "MercadoPago",
-    });
+describe("canReleaseBooking", () => {
+  it("blocks Liberar/Cancelar turno only for an approved payment", () => {
+    expect(canReleaseBooking({ paymentStatus: "Approved" })).toBe(false);
+    for (const paymentStatus of ["Pending", "Rejected", "Refunded", null, undefined]) {
+      expect(canReleaseBooking({ paymentStatus })).toBe(true);
+    }
   });
+});
 
-  it("keeps the booking unchanged when it is not in the list or the list is not an array", () => {
-    const booking = { id: 3, status: "Pending", paymentStatus: "Pending" };
-    expect(withPaymentInfo(booking, adminList)).toEqual(booking);
-    expect(withPaymentInfo(booking, { message: "error" })).toEqual(booking);
-    expect(withPaymentInfo(booking, null)).toEqual(booking);
+describe("canEditBooking", () => {
+  it("blocks editing confirmed or paid bookings", () => {
+    expect(canEditBooking({ status: "Confirmed", paymentStatus: null })).toBe(false);
+    expect(canEditBooking({ status: "Pending", paymentStatus: "Approved" })).toBe(false);
+    expect(canEditBooking({ status: "Pending", paymentStatus: "Pending" })).toBe(true);
+    expect(canEditBooking({ status: "Pending" })).toBe(true);
+    expect(canEditBooking({ status: "Cancelled", paymentStatus: "Refunded" })).toBe(true);
   });
 });

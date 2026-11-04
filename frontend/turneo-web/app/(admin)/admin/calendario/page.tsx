@@ -10,6 +10,8 @@ import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { BOOKING_EDIT_LOCKED_REASON, PAID_RELEASE_HINT, canEditBooking, canReleaseBooking } from "@/src/lib/bookings/paidBooking";
+import { buildTimeslotsUrl, calendarVisibleRange } from "@/src/lib/bookings/slotRange";
 
 // react-big-calendar y el modal de reserva solo hacen falta cuando se
 // cambia a vista semana/día o se abre "Reservar": diferirlos evita que su
@@ -31,6 +33,8 @@ interface Booking {
   professionalName?: string | null;
   message?: string;
   status: string;
+  paymentStatus?: string | null;
+  paymentAmount?: number | null;
 }
 
 interface Professional {
@@ -126,8 +130,28 @@ export default function CalendarioPage() {
   const { toasts, showToast, removeToast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const loadSlots = () =>
-    fetch("/api/timeslots").then((r) => r.json()).then((data) => setSlots(Array.isArray(data) ? data : []));
+  // Only the visible range (month, or a week on each side of the agenda date).
+  // A response for a range the user already navigated away from is dropped.
+  const visibleRange = calendarVisibleRange(viewMode, current, agendaDate);
+  const rangeUrl = buildTimeslotsUrl(visibleRange);
+  const latestRangeUrl = useRef(rangeUrl);
+  latestRangeUrl.current = rangeUrl;
+  const loadSlots = () => {
+    const url = rangeUrl;
+    return fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        if (url === latestRangeUrl.current) setSlots(Array.isArray(data) ? data : []);
+      });
+  };
+
+  // The initial load happens in the effect below (with the rest of the data).
+  const rangeLoaded = useRef(false);
+  useEffect(() => {
+    if (!rangeLoaded.current) { rangeLoaded.current = true; return; }
+    if (!isAdminAuthenticated()) return;
+    loadSlots().catch(() => {});
+  }, [rangeUrl]);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) { router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login"); return; }
@@ -369,8 +393,11 @@ export default function CalendarioPage() {
     const res = await fetch(`/api/timeslots/${slotId}/release`, { method: "PUT" });
     if (res.ok) {
       setDetailBooking(null);
-      const data = await fetch("/api/timeslots").then((r) => r.json());
-      setSlots(Array.isArray(data) ? data : []);
+      await loadSlots();
+    } else {
+      // e.g. 400 for a paid booking ("Usá Cancelar y devolver").
+      const data = await res.json().catch(() => ({}));
+      showToast("error", isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno", data.message);
     }
   };
 
@@ -637,13 +664,23 @@ export default function CalendarioPage() {
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <button
-                  onClick={() => openEdit(detailBooking.slot)}
-                  data-testid="calendario-edit-button"
-                  className="text-blushdark hover:text-blush transition text-xs font-semibold"
-                >
-                  Editar
-                </button>
+                {canEditBooking(detailBooking.slot.booking!) ? (
+                  <button
+                    onClick={() => openEdit(detailBooking.slot)}
+                    data-testid="calendario-edit-button"
+                    className="text-blushdark hover:text-blush transition text-xs font-semibold"
+                  >
+                    Editar
+                  </button>
+                ) : (
+                  <span
+                    data-testid="calendario-edit-locked"
+                    title={BOOKING_EDIT_LOCKED_REASON}
+                    className="max-w-[9rem] text-right text-[11px] leading-tight text-charcoal/40"
+                  >
+                    {BOOKING_EDIT_LOCKED_REASON}
+                  </span>
+                )}
                 <button onClick={() => setDetailBooking(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
               </div>
             </div>
@@ -793,14 +830,20 @@ export default function CalendarioPage() {
               >
                 WhatsApp
               </a>
-              <Button
-                data-testid="calendario-liberar-button"
-                onClick={() => liberarTurno(detailBooking.slot.id, detailBooking.slot.booking?.status === "Confirmed")}
-                variant="danger"
-                className="flex-1"
-              >
-                {detailBooking.slot.booking?.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
-              </Button>
+              {canReleaseBooking(detailBooking.slot.booking!) ? (
+                <Button
+                  data-testid="calendario-liberar-button"
+                  onClick={() => liberarTurno(detailBooking.slot.id, detailBooking.slot.booking?.status === "Confirmed")}
+                  variant="danger"
+                  className="flex-1"
+                >
+                  {detailBooking.slot.booking?.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
+                </Button>
+              ) : (
+                <p data-testid="calendario-paid-release-hint" className="flex-1 self-center text-center text-xs text-charcoal/50">
+                  {PAID_RELEASE_HINT}
+                </p>
+              )}
             </div>
           </div>
         </div>

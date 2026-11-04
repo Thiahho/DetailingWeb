@@ -9,6 +9,7 @@ import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { logError } from "@/src/lib/logger";
 import { useTeamMode } from "@/src/hooks/useTeamMode";
+import { buildTimeslotsUrl, toLocalDateStr } from "@/src/lib/bookings/slotRange";
 import type { Booking, TimeSlot as Slot } from "./turnos/_components/BookingDetailModal";
 
 const BookingDetailModal = dynamic(() => import("./turnos/_components/BookingDetailModal"), { ssr: false });
@@ -99,7 +100,8 @@ export default function AdminDashboard() {
   const { hasTeam } = useTeamMode();
 
   const reloadSlots = () =>
-    fetch("/api/timeslots")
+    // Only upcoming slots are shown, so ask the server from today on.
+    fetch(buildTimeslotsUrl({ from: toLocalDateStr(new Date()) }))
       .then((r) => r.json())
       .then((data) => {
         if (!Array.isArray(data)) return;

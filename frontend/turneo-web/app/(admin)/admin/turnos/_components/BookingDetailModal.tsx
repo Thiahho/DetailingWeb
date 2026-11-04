@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { X, Phone, Scissors, Tag, UserRound, MessageSquare, Wallet } from "lucide-react";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
-import { canCancelAndRefund } from "@/src/lib/bookings/paidBooking";
+import { PAID_RELEASE_HINT, canCancelAndRefund, canReleaseBooking } from "@/src/lib/bookings/paidBooking";
 
 export interface Booking {
   id: number;
@@ -234,12 +234,18 @@ export default function BookingDetailModal({
                   Enviar email
                 </a>
               )}
-              <button
-                onClick={() => { onClose(); onRelease(slot.id, booking.status === "Confirmed"); }}
-                className="w-full rounded-lg bg-mauve px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-mauve/85"
-              >
-                {booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
-              </button>
+              {canReleaseBooking(booking) ? (
+                <button
+                  onClick={() => { onClose(); onRelease(slot.id, booking.status === "Confirmed"); }}
+                  className="w-full rounded-lg bg-mauve px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-mauve/85"
+                >
+                  {booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
+                </button>
+              ) : (
+                <p data-testid="booking-detail-paid-release-hint" className="text-center text-xs text-charcoal/50">
+                  {PAID_RELEASE_HINT}
+                </p>
+              )}
               {onCancelRefund && canCancelAndRefund(booking) && (
                 <button
                   onClick={() => { onClose(); onCancelRefund(slot); }}

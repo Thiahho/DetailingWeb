@@ -40,41 +40,21 @@ export function buildPaidCancellationMessage({
   return `Hola, quiero cancelar mi turno #${bookingId}${servicePart} del ${whenLabel}. Ya está pagado.`;
 }
 
-export interface BookingPaymentInfo {
-  paymentStatus: string | null;
-  paymentAmount: number | null;
-  paymentPaidAt: string | null;
-  paymentProvider: string | null;
-}
+/** Admin hint shown instead of "Liberar"/"Cancelar turno" on a paid booking. */
+export const PAID_RELEASE_HINT = "Reserva pagada: para cancelarla usá \"Cancelar y devolver\".";
 
-type PaymentRow = Partial<BookingPaymentInfo> & { id?: unknown };
-
-/** Indexes the payment fields of the admin `GET /api/bookings` list by booking id. Anything but an array yields an empty index. */
-export function indexPaymentInfo(list: unknown): Map<number, BookingPaymentInfo> {
-  const index = new Map<number, BookingPaymentInfo>();
-  if (!Array.isArray(list)) return index;
-  for (const row of list as PaymentRow[]) {
-    if (!row || typeof row.id !== "number") continue;
-    index.set(row.id, {
-      paymentStatus: row.paymentStatus ?? null,
-      paymentAmount: row.paymentAmount ?? null,
-      paymentPaidAt: row.paymentPaidAt ?? null,
-      paymentProvider: row.paymentProvider ?? null,
-    });
-  }
-  return index;
-}
+/** Reason shown instead of "Editar" (mirrors the backend 400 of `PUT /api/bookings/{id}`). */
+export const BOOKING_EDIT_LOCKED_REASON = "No se puede editar una reserva confirmada o pagada";
 
 /**
- * `GET /api/timeslots` does not carry the payment of the slot's booking; the
- * admin agenda copies it from the bookings list. `source` is that list or an
- * index built with `indexPaymentInfo`.
+ * `PUT /api/timeslots/{id}/release` rejects a booking with an approved payment:
+ * it is cancelled only through "Cancelar y devolver", which records the refund.
  */
-export function withPaymentInfo<T extends { id: number }>(
-  booking: T,
-  source: unknown
-): T & Partial<BookingPaymentInfo> {
-  const index = source instanceof Map ? (source as Map<number, BookingPaymentInfo>) : indexPaymentInfo(source);
-  const info = index.get(booking.id);
-  return info ? { ...booking, ...info } : booking;
+export function canReleaseBooking(booking: { paymentStatus?: string | null }): boolean {
+  return !isPaid(booking.paymentStatus);
+}
+
+/** `PUT /api/bookings/{id}` rejects confirmed bookings and bookings with an approved payment. */
+export function canEditBooking(booking: { status: string; paymentStatus?: string | null }): boolean {
+  return booking.status !== "Confirmed" && !isPaid(booking.paymentStatus);
 }

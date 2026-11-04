@@ -12,7 +12,8 @@ import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { Button } from "@/src/components/shared/Button";
 import type { Booking, TimeSlot } from "./_components/BookingDetailModal";
-import { canCancelAndRefund, indexPaymentInfo, withPaymentInfo } from "@/src/lib/bookings/paidBooking";
+import { PAID_RELEASE_HINT, canCancelAndRefund, canReleaseBooking } from "@/src/lib/bookings/paidBooking";
+import { buildTimeslotsUrl, defaultAgendaRange } from "@/src/lib/bookings/slotRange";
 
 // El modal de detalle de reserva solo hace falta al abrir un turno reservado:
 // diferirlo evita que entre en el compile/bundle inicial de la ruta.
@@ -111,6 +112,8 @@ export default function TurnosPage() {
   // Paid booking being cancelled with a refund (Admin only; the endpoint rejects Staff).
   const [refundSlot, setRefundSlot] = useState<TimeSlot | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Rango de fechas cargado (GET /api/timeslots?from=&to=, días inclusive).
+  const [range, setRange] = useState(() => defaultAgendaRange(new Date()));
   // Estado filtro por estado
   type StatusFilter = "all" | "available" | "disabled" | "pending" | "confirmed" | "expired";
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -129,7 +132,6 @@ export default function TurnosPage() {
       return;
     }
     setIsAdmin(getRole() === "Admin");
-    loadSlots();
     // /all incluye inactivos — al crear turnos el admin puede querer agendar
     // para alguien que está temporalmente desactivado, no solo los activos.
     fetch("/api/professionals/all").then((r) => r.json()).then((d) => setProfessionals(Array.isArray(d) ? d : [])).catch(() => {});
@@ -137,23 +139,17 @@ export default function TurnosPage() {
   }, [router]);
 
   // --- Lógica de Carga y CRUD (Igual que tu código original) ---
+  // Only the visible date range; each slot booking already carries its payment
+  // (paymentStatus/paymentAmount), so no extra bookings request is needed.
   const loadSlots = async () => {
     try {
-      // /api/timeslots has no payment data; the bookings list supplies it (a
-      // failure there only hides the payment badge and "Cancelar y devolver").
-      const [response, payments] = await Promise.all([
-        fetch("/api/timeslots"),
-        fetch("/api/bookings")
-          .then((r) => (r.ok ? r.json() : []))
-          .then(indexPaymentInfo)
-          .catch(() => indexPaymentInfo([])),
-      ]);
+      const response = await fetch(buildTimeslotsUrl(range));
       if (response.ok) {
         const data: TimeSlot[] = await response.json();
         const normalizedSlots = data.map((slot) => ({
           ...slot,
           booking: slot.booking
-            ? withPaymentInfo({ ...slot.booking, status: normalizeBookingStatus(slot.booking.status) }, payments)
+            ? { ...slot.booking, status: normalizeBookingStatus(slot.booking.status) }
             : undefined,
         }));
         setSlots(normalizedSlots);
@@ -163,6 +159,27 @@ export default function TurnosPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (!isAdminAuthenticated()) return;
+    loadSlots();
+    // loadSlots reads the current range; reload whenever it changes.
+  }, [range]);
+
+  const changeRange = (key: "from" | "to", value: string) => {
+    if (!value) return;
+    setRange((prev) => {
+      const next = { ...prev, [key]: value };
+      // Keep from <= to (the backend rejects an inverted range).
+      if (next.from > next.to) {
+        if (key === "from") next.to = value;
+        else next.from = value;
+      }
+      return next;
+    });
+    setSelectedIds([]);
+    setCurrentPage(1);
   };
 
   // Calcula start/end (string local, sin conversión UTC) para una fecha puntual.
@@ -515,6 +532,14 @@ export default function TurnosPage() {
           5000
         );
         loadSlots();
+      } else {
+        // e.g. 400 for a paid booking ("Usá Cancelar y devolver").
+        const data = await response.json().catch(() => ({}));
+        showToast(
+          "error",
+          isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno",
+          data.message || "Intentá de nuevo"
+        );
       }
     } catch (error) {
       showToast("error", "Error", isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno");
@@ -634,11 +659,21 @@ export default function TurnosPage() {
 
   const bulkRelease = async () => {
     const reservedSelected = slots.filter(
-      (s) => selectedIds.includes(s.id) && !s.isAvailable
+      (s) => selectedIds.includes(s.id) && !s.isAvailable && (!s.booking || canReleaseBooking(s.booking))
     );
+    const paidSkipped = slots.filter(
+      (s) => selectedIds.includes(s.id) && !s.isAvailable && !!s.booking && !canReleaseBooking(s.booking)
+    ).length;
     if (reservedSelected.length === 0) {
-      showToast("warning", "Acción no permitida", "Solo se pueden habilitar turnos reservados");
+      showToast(
+        "warning",
+        "Acción no permitida",
+        paidSkipped > 0 ? PAID_RELEASE_HINT : "Solo se pueden habilitar turnos reservados"
+      );
       return;
+    }
+    if (paidSkipped > 0) {
+      showToast("warning", "Reservas pagadas omitidas", `${paidSkipped} turno(s) pagado(s) no se cancelan acá. ${PAID_RELEASE_HINT}`, 6000);
     }
     if (!(await confirm({ message: `¿Cancelar ${reservedSelected.length} turno(s)? Las reservas quedarán canceladas y las fechas se liberarán.`, confirmLabel: "Cancelar turnos" }))) return;
 
@@ -1206,6 +1241,30 @@ export default function TurnosPage() {
               )}
             </div>
 
+            {/* Rango de fechas cargado */}
+            <div className="flex items-center gap-2 mb-3 px-1 flex-wrap text-xs text-charcoal/60" data-testid="slot-list-range">
+              <label className="flex items-center gap-1.5">
+                Desde
+                <input
+                  type="date"
+                  data-testid="slot-list-range-from"
+                  value={range.from}
+                  onChange={(e) => changeRange("from", e.target.value)}
+                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-2 py-1 text-xs text-charcoal focus:outline-none focus:border-blush"
+                />
+              </label>
+              <label className="flex items-center gap-1.5">
+                Hasta
+                <input
+                  type="date"
+                  data-testid="slot-list-range-to"
+                  value={range.to}
+                  onChange={(e) => changeRange("to", e.target.value)}
+                  className="bg-porcelain/10 border border-mauve/10 rounded-lg px-2 py-1 text-xs text-charcoal focus:outline-none focus:border-blush"
+                />
+              </label>
+            </div>
+
             {/* Filtro por estado */}
             <div className="flex gap-1.5 mb-3 px-1 flex-wrap">
               {(
@@ -1406,12 +1465,24 @@ export default function TurnosPage() {
                             >
                               Ver detalle
                             </button>
-                            <button
-                              onClick={() => habilitarTurno(slot.id)}
-                              className="text-green-700 hover:text-green-700 text-xs font-medium uppercase tracking-wide transition"
-                            >
-                              Liberar
-                            </button>
+                            {!slot.booking || canReleaseBooking(slot.booking) ? (
+                              <button
+                                onClick={() => habilitarTurno(slot.id)}
+                                className="text-green-700 hover:text-green-700 text-xs font-medium uppercase tracking-wide transition"
+                              >
+                                Liberar
+                              </button>
+                            ) : (
+                              !isAdmin && (
+                                <span
+                                  data-testid="slot-paid-release-hint"
+                                  title={PAID_RELEASE_HINT}
+                                  className="text-charcoal/40 text-xs font-medium uppercase tracking-wide"
+                                >
+                                  Pagado
+                                </span>
+                              )
+                            )}
                             {isAdmin && slot.booking && canCancelAndRefund(slot.booking) && (
                               <button
                                 onClick={() => setRefundSlot(slot)}

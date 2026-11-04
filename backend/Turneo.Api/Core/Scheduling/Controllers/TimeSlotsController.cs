@@ -100,9 +100,19 @@ public class TimeSlotsController : ControllerBase
     [HttpGet]
     [Authorize(Roles = "Admin,Staff,Professional")]
     [RequirePermission(PermissionModules.Turnos, PermissionActions.View, alsoCheckProfessional: true)]
-    public async Task<IActionResult> GetAllSlots()
+    // from / to (optional, yyyy-MM-dd): inclusive days in Argentina time, the same
+    // wall clock StartDateTime is stored in. Absent = open-ended on that side
+    // (both absent = every slot, as before).
+    public async Task<IActionResult> GetAllSlots([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var slots = await _repository.GetAllWithBookingsAsync();
+        if (from.HasValue && to.HasValue && from.Value.Date > to.Value.Date)
+        {
+            return BadRequest(new { message = "La fecha \"desde\" no puede ser posterior a \"hasta\"" });
+        }
+
+        var slots = await _repository.GetAllWithBookingsAsync(
+            from?.Date,
+            to?.Date.AddDays(1));
 
         return Ok(slots.Select(s => new
         {
@@ -137,7 +147,12 @@ public class TimeSlotsController : ControllerBase
                         ? b.Professional.FirstName + " " + b.Professional.LastName
                         : null,
                     message = b.Message,
-                    status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status
+                    status = b.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : b.Status,
+                    // Payment of the booking (authenticated admin agenda only; loaded in the same query).
+                    paymentStatus = b.Payment != null ? b.Payment.Status : null,
+                    paymentAmount = b.Payment != null ? (decimal?)b.Payment.Amount : null,
+                    paymentPaidAt = b.Payment != null ? b.Payment.PaidAt : null,
+                    paymentProvider = b.Payment != null ? b.Payment.Provider : null
                 }).FirstOrDefault()
         }));
     }
@@ -294,6 +309,17 @@ public class TimeSlotsController : ControllerBase
         if (callerProfessionalId != null && slot.ProfessionalId != callerProfessionalId)
         {
             return Forbid();
+        }
+
+        // A paid booking is cancelled only via POST api/bookings/{id}/admin-cancel-refund,
+        // which also records the refund. Checked before any change.
+        if (await _repository.HasApprovedPaymentAsync(slot.Id))
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = "Esta reserva está pagada. Usá \"Cancelar y devolver\" para cancelarla y registrar la devolución."
+            });
         }
 
         // Confirmed → marcar como Cancelled; Pending → eliminar

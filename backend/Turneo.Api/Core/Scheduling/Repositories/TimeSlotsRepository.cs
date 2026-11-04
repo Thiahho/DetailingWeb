@@ -27,14 +27,26 @@ public class TimeSlotsRepository : ITimeSlotsRepository
             .OrderBy(t => t.StartDateTime)
             .ToListAsync();
 
-    public Task<List<TimeSlot>> GetAllWithBookingsAsync() =>
+    // One SQL query (EF single-query mode): slots LEFT JOIN professional/service,
+    // plus their bookings LEFT JOIN booking professional and payment. The range
+    // is applied in the WHERE clause and served by the (TenantId, StartDateTime,
+    // ProfessionalId) index.
+    public Task<List<TimeSlot>> GetAllWithBookingsAsync(DateTime? from = null, DateTime? toExclusive = null) =>
         _context.TimeSlots
+            .AsNoTracking()
+            .Where(t => from == null || t.StartDateTime >= from)
+            .Where(t => toExclusive == null || t.StartDateTime < toExclusive)
             .Include(t => t.Professional)
             .Include(t => t.Service)
             .Include(t => t.Bookings)
                 .ThenInclude(b => b.Professional)
+            .Include(t => t.Bookings)
+                .ThenInclude(b => b.Payment)
             .OrderBy(t => t.StartDateTime)
             .ToListAsync();
+
+    public Task<bool> HasApprovedPaymentAsync(int timeSlotId) =>
+        _context.Payments.AnyAsync(p => p.Booking.TimeSlotId == timeSlotId && p.Status == PaymentStatus.Approved);
 
     public Task<bool> ProfessionalIsActiveAsync(int professionalId) =>
         _context.Professionals.AnyAsync(p => p.Id == professionalId && p.IsActive);
