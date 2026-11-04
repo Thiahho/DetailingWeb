@@ -4,6 +4,7 @@ import {
   bookingRange,
   bookingTimeLabel,
   buildAvailableSlotsUrl,
+  continuationOwners,
   formatTimeRange,
   mergeBookingRanges,
   slotOccupancy,
@@ -129,5 +130,46 @@ describe("bookingTimeLabel", () => {
   it("shows only the start time when the booking lasts its slot or has no range", () => {
     expect(bookingTimeLabel({ ...slot, bookingStartDateTime: slot.startDateTime, bookingEndDateTime: slot.endDateTime })).toBe("10:00");
     expect(bookingTimeLabel(slot)).toBe("10:00");
+  });
+});
+
+describe("mergeBookingRanges after a move", () => {
+  it("ignores a stale range that no longer starts at the slot", () => {
+    const slots = [{ id: 1, ...slot, booking: { id: 7 } }];
+    const merged = mergeBookingRanges(slots, [
+      { id: 7, bookingStartDateTime: "2026-11-04T09:00:00", bookingEndDateTime: "2026-11-04T12:00:00" },
+    ]);
+    expect(merged[0].booking).toEqual({ id: 7 });
+  });
+});
+
+describe("continuationOwners", () => {
+  const owner = {
+    id: 1,
+    startDateTime: "2026-11-05T10:00:00",
+    endDateTime: "2026-11-05T11:00:00",
+    booking: { id: 7, bookingStartDateTime: "2026-11-05T10:00:00", bookingEndDateTime: "2026-11-05T12:30:00" },
+    occupiedByBookingId: 7,
+  };
+  const covered = { id: 2, startDateTime: "2026-11-05T11:00:00", endDateTime: "2026-11-05T12:00:00", occupiedByBookingId: 7 };
+  const partly = { id: 3, startDateTime: "2026-11-05T12:00:00", endDateTime: "2026-11-05T13:00:00", occupiedByBookingId: 7 };
+  const orphan = { id: 4, startDateTime: "2026-11-05T15:00:00", endDateTime: "2026-11-05T16:00:00", occupiedByBookingId: 9 };
+  const free = { id: 5, startDateTime: "2026-11-05T16:00:00", endDateTime: "2026-11-05T17:00:00", occupiedByBookingId: null };
+
+  it("maps each continuation slot to the slot where its booking starts", () => {
+    const owners = continuationOwners([owner, covered, partly, orphan, free]);
+    expect(owners.get(2)).toEqual({ ownerSlotId: 1, coveredByOwnerBlock: true });
+    // The booking ends at 12:30: the 12:00–13:00 slot is occupied but not covered by the block.
+    expect(owners.get(3)).toEqual({ ownerSlotId: 1, coveredByOwnerBlock: false });
+  });
+
+  it("keeps a continuation whose booking starts outside the loaded slots, without owner", () => {
+    expect(continuationOwners([orphan]).get(4)).toEqual({ ownerSlotId: null, coveredByOwnerBlock: false });
+  });
+
+  it("ignores booked and free slots", () => {
+    const owners = continuationOwners([owner, free]);
+    expect(owners.has(1)).toBe(false);
+    expect(owners.has(5)).toBe(false);
   });
 });

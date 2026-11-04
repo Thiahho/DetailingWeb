@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./agenda-calendar.css";
+import { bookingRange, continuationOwners, slotOccupancy } from "@/src/lib/bookingRange";
 
 const locales = { es };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
@@ -26,6 +27,9 @@ export interface AgendaBooking {
   customerName: string;
   professionalId?: number | null;
   status: string;
+  // Real range (slot start + service duration); absent = the slot's own times.
+  bookingStartDateTime?: string | null;
+  bookingEndDateTime?: string | null;
 }
 
 export interface AgendaTimeSlot {
@@ -36,6 +40,8 @@ export interface AgendaTimeSlot {
   professionalId?: number | null;
   professionalName?: string | null;
   booking?: AgendaBooking;
+  // Active booking that starts in or overlaps this slot (null when free).
+  occupiedByBookingId?: number | null;
 }
 
 export interface AgendaProfessional {
@@ -55,6 +61,9 @@ interface AgendaEvent {
   isAvailable: boolean;
   bookingId?: number;
   bookingStatus?: string;
+  // Slot covered by another booking's range: opens that booking's slot when set.
+  continuationOf?: number | null;
+  isContinuation?: boolean;
   color: string;
 }
 
@@ -137,7 +146,9 @@ const DnDCalendar = withDragAndDrop<AgendaEvent, AgendaResource>(Calendar);
 function AgendaEventContent({ event }: { event: AgendaEvent }) {
   return (
     <span
-      data-testid={event.isAvailable ? "agenda-event-available" : "agenda-event-booking"}
+      data-testid={
+        event.isAvailable ? "agenda-event-available" : event.isContinuation ? "agenda-event-occupied" : "agenda-event-booking"
+      }
       data-slot-id={event.id}
       data-booking-id={event.bookingId ?? ""}
     >
@@ -284,23 +295,47 @@ export default function AgendaCalendar({
     [slots, professionalFilter]
   );
 
-  const events: AgendaEvent[] = useMemo(
-    () =>
-      filteredSlots.map((s) => ({
+  // A booking block spans its real range; slots covered by another booking's
+  // range are hidden under that block, or shown as occupied when the block
+  // does not reach them (never as free).
+  const events: AgendaEvent[] = useMemo(() => {
+    const continuations = continuationOwners(filteredSlots);
+    const customerBySlot = new Map(filteredSlots.map((s) => [s.id, s.booking?.customerName]));
+    return filteredSlots.flatMap((s): AgendaEvent[] => {
+      const occupancy = slotOccupancy(s);
+      const base = {
         id: s.id,
-        title: s.isAvailable
+        resourceId: s.professionalId ?? UNASSIGNED,
+        color: professionalColor(s.professionalId),
+      };
+      if (occupancy === "continuation") {
+        const owner = continuations.get(s.id);
+        if (owner?.coveredByOwnerBlock) return [];
+        const ownerName = owner?.ownerSlotId != null ? customerBySlot.get(owner.ownerSlotId) : undefined;
+        return [{
+          ...base,
+          title: `Ocupado${ownerName ? ` · ${ownerName}` : ""}`,
+          start: new Date(s.startDateTime),
+          end: new Date(s.endDateTime),
+          isAvailable: false,
+          isContinuation: true,
+          continuationOf: owner?.ownerSlotId ?? null,
+        }];
+      }
+      const range = s.booking ? bookingRange({ ...s, ...s.booking }) : { start: s.startDateTime, end: s.endDateTime };
+      return [{
+        ...base,
+        title: occupancy === "free"
           ? `Libre${s.professionalName ? ` · ${s.professionalName}` : ""}`
           : `${s.booking?.customerName ?? "Reservado"}`,
-        start: new Date(s.startDateTime),
-        end: new Date(s.endDateTime),
-        resourceId: s.professionalId ?? UNASSIGNED,
-        isAvailable: s.isAvailable,
+        start: new Date(range.start),
+        end: new Date(range.end),
+        isAvailable: occupancy === "free",
         bookingId: s.booking?.id,
         bookingStatus: s.booking?.status,
-        color: professionalColor(s.professionalId),
-      })),
-    [filteredSlots, professionalColor]
-  );
+      }];
+    });
+  }, [filteredSlots, professionalColor]);
 
   const resources: AgendaResource[] = useMemo(() => {
     const list = professionals.map((p) => ({
@@ -332,6 +367,16 @@ export default function AgendaCalendar({
         },
       };
     }
+    if (event.isContinuation) {
+      return {
+        style: {
+          backgroundColor: event.color,
+          opacity: 0.4,
+          border: "none",
+          color: "#fff",
+        },
+      };
+    }
     const confirmed = event.bookingStatus === "Confirmed";
     return {
       style: {
@@ -346,7 +391,9 @@ export default function AgendaCalendar({
   const handleSelectEvent = useCallback(
     (event: AgendaEvent) => {
       if (event.isAvailable) onSelectAvailable(event.id);
-      else onSelectBooking(event.id);
+      else if (event.isContinuation) {
+        if (event.continuationOf != null) onSelectBooking(event.continuationOf);
+      } else onSelectBooking(event.id);
     },
     [onSelectAvailable, onSelectBooking]
   );
@@ -368,7 +415,7 @@ export default function AgendaCalendar({
       const candidates = slots.filter(
         (s) =>
           s.id !== event.id &&
-          s.isAvailable &&
+          slotOccupancy(s) === "free" &&
           (s.professionalId ?? UNASSIGNED) === targetProfessionalId &&
           new Date(s.startDateTime).toDateString() === dropDay
       );

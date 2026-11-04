@@ -46,8 +46,7 @@ export function formatTimeRange(range: TimeRange): string {
  */
 export function bookingTimeLabel(source: SlotTimes & BookingRangeFields): string {
   const range = bookingRange(source);
-  const minute = (dateTime: string) => (dateTime ?? "").replace("Z", "").slice(0, 16);
-  return minute(range.end) !== minute(source.endDateTime) ? formatTimeRange(range) : wallClockTime(range.start);
+  return minuteOf(range.end) !== minuteOf(source.endDateTime) ? formatTimeRange(range) : wallClockTime(range.start);
 }
 
 /** Wall-clock date time plus `minutes`, in the same "yyyy-MM-ddTHH:mm:ss" format. */
@@ -97,6 +96,50 @@ export function buildAvailableSlotsUrl(
  * GET api/timeslots does not carry the booking range in the nested booking;
  * copy it from a booking list (GET api/bookings) that does.
  */
+export interface ContinuationOwner {
+  /** Slot where the occupying booking starts, null when it is not among the given slots. */
+  ownerSlotId: number | null;
+  /** The owner's booking block (its real range) already spans this whole slot. */
+  coveredByOwnerBlock: boolean;
+}
+
+/**
+ * Continuation slots (covered by another booking's range) keyed by slot id.
+ * An agenda can hide those already spanned by the owner's booking block and
+ * render the rest as occupied, never as free.
+ */
+export function continuationOwners(
+  slots: (SlotTimes & {
+    id: number;
+    isAvailable?: boolean;
+    booking?: ({ id: number } & BookingRangeFields) | null;
+    occupiedByBookingId?: number | null;
+  })[]
+): Map<number, ContinuationOwner> {
+  const ownerByBooking = new Map<number, (typeof slots)[number]>();
+  for (const slot of slots) if (slot.booking) ownerByBooking.set(slot.booking.id, slot);
+
+  const result = new Map<number, ContinuationOwner>();
+  for (const slot of slots) {
+    if (slot.booking || slot.occupiedByBookingId == null) continue;
+    const owner = ownerByBooking.get(slot.occupiedByBookingId);
+    if (!owner) {
+      result.set(slot.id, { ownerSlotId: null, coveredByOwnerBlock: false });
+      continue;
+    }
+    const ownerEnd = bookingRange({ ...owner, ...owner.booking }).end;
+    result.set(slot.id, {
+      ownerSlotId: owner.id,
+      coveredByOwnerBlock: minuteOf(ownerEnd) >= minuteOf(slot.endDateTime) && minuteOf(owner.startDateTime) <= minuteOf(slot.startDateTime),
+    });
+  }
+  return result;
+}
+
+function minuteOf(dateTime: string): string {
+  return (dateTime ?? "").replace("Z", "").slice(0, 16);
+}
+
 export function mergeBookingRanges<B extends { id: number }, S extends { booking?: B | null }>(
   slots: S[],
   bookings: ({ id: number } & BookingRangeFields)[]
@@ -105,6 +148,10 @@ export function mergeBookingRanges<B extends { id: number }, S extends { booking
   return slots.map((slot) => {
     const range = slot.booking ? ranges.get(slot.booking.id) : undefined;
     if (!slot.booking || !range?.bookingEndDateTime) return slot;
+    // The list can be older than the slots (booking moved since): a range that
+    // no longer starts at this slot is stale, keep the slot times instead.
+    const slotStart = (slot as { startDateTime?: string }).startDateTime;
+    if (slotStart && range.bookingStartDateTime && minuteOf(range.bookingStartDateTime) !== minuteOf(slotStart)) return slot;
     return {
       ...slot,
       booking: {

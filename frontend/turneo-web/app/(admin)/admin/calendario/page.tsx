@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { isAdminAuthenticated, getRole } from "@/src/lib/auth";
@@ -12,6 +12,7 @@ import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 import { BOOKING_EDIT_LOCKED_REASON, PAID_RELEASE_HINT, canEditBooking, canReleaseBooking } from "@/src/lib/bookings/paidBooking";
 import { buildTimeslotsUrl, calendarVisibleRange } from "@/src/lib/bookings/slotRange";
+import { bookingTimeLabel, continuationOwners, mergeBookingRanges, slotOccupancy } from "@/src/lib/bookingRange";
 
 // react-big-calendar y el modal de reserva solo hacen falta cuando se
 // cambia a vista semana/día o se abre "Reservar": diferirlos evita que su
@@ -35,6 +36,9 @@ interface Booking {
   status: string;
   paymentStatus?: string | null;
   paymentAmount?: number | null;
+  // Real range (merged from GET api/bookings; absent = the slot's own times).
+  bookingStartDateTime?: string | null;
+  bookingEndDateTime?: string | null;
 }
 
 interface Professional {
@@ -54,6 +58,8 @@ interface TimeSlot {
   professionalId?: number | null;
   professionalName?: string | null;
   serviceSlug?: string | null;
+  // Active booking that starts in or overlaps this slot (null when free).
+  occupiedByBookingId?: number | null;
 }
 
 interface BookingItemRecord {
@@ -73,6 +79,8 @@ interface BookingFullRecord {
   items?: BookingItemRecord[];
   photoUrlsBefore?: string | null;
   photoUrlsAfter?: string | null;
+  bookingStartDateTime?: string | null;
+  bookingEndDateTime?: string | null;
 }
 
 interface ServiceOption { id: number; title: string; slug: string; price: string; }
@@ -102,7 +110,7 @@ function parseLocalDate(iso: string) {
 
 export default function CalendarioPage() {
   const router = useRouter();
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [rawSlots, setSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [today] = useState(new Date());
   const [current, setCurrent] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 });
@@ -119,6 +127,15 @@ export default function CalendarioPage() {
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [insumos, setInsumos] = useState<InsumoOption[]>([]);
   const [bookingsFull, setBookingsFull] = useState<BookingFullRecord[]>([]);
+  // GET api/timeslots does not carry the booking's real range: take it from the booking list.
+  const slots = useMemo(() => mergeBookingRanges(rawSlots, bookingsFull), [rawSlots, bookingsFull]);
+  const continuations = useMemo(() => continuationOwners(slots), [slots]);
+  // A slot covered by another booking's range opens that booking.
+  const openContinuation = (slot: TimeSlot) => {
+    const ownerSlotId = continuations.get(slot.id)?.ownerSlotId;
+    const owner = ownerSlotId != null ? slots.find((s) => s.id === ownerSlotId) : undefined;
+    if (owner?.booking) setDetailBooking({ slot: owner });
+  };
   const [detailItems, setDetailItems] = useState<BookingItemRecord[]>([]);
   const [newItem, setNewItem] = useState({ itemType: "Service" as "Service" | "Product" | "Insumo", refId: 0, quantity: 1, unitPrice: 0, isSale: false });
   const [savingDetail, setSavingDetail] = useState(false);
@@ -145,6 +162,12 @@ export default function CalendarioPage() {
       });
   };
 
+  // Booking list (items, photos and the real range of each booking).
+  const loadBookings = () =>
+    fetch("/api/bookings").then((r) => r.json()).then((d) => setBookingsFull(Array.isArray(d) ? d : []));
+  // After a booking change: occupancy and real ranges of other slots can change too.
+  const reloadAgenda = () => Promise.all([loadSlots(), loadBookings().catch(() => {})]);
+
   // The initial load happens in the effect below (with the rest of the data).
   const rangeLoaded = useRef(false);
   useEffect(() => {
@@ -161,7 +184,7 @@ export default function CalendarioPage() {
       fetch("/api/services/all").then((r) => r.json()).then((d) => setServices(Array.isArray(d) ? d : [])),
       fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])),
       fetch("/api/insumos").then((r) => r.json()).then((d) => setInsumos(Array.isArray(d) ? d : [])),
-      fetch("/api/bookings").then((r) => r.json()).then((d) => setBookingsFull(Array.isArray(d) ? d : [])),
+      loadBookings(),
     ]).finally(() => setLoading(false));
   }, [router]);
 
@@ -224,7 +247,7 @@ export default function CalendarioPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        await loadSlots();
+        await reloadAgenda();
         showToast("success", "Turno reprogramado", successMessage ?? "Se movió a su nuevo horario.");
       } else {
         showToast("error", "No se pudo reprogramar", data.message);
@@ -375,6 +398,8 @@ export default function CalendarioPage() {
         showToast("success", "Turno actualizado", data.message);
         setEditingBooking(null);
         setDetailBooking({ slot: updatedSlot });
+        // A service change can change the booking's range.
+        reloadAgenda().catch(() => {});
       } else {
         showToast("error", "No se pudo actualizar", data.message);
       }
@@ -393,7 +418,7 @@ export default function CalendarioPage() {
     const res = await fetch(`/api/timeslots/${slotId}/release`, { method: "PUT" });
     if (res.ok) {
       setDetailBooking(null);
-      await loadSlots();
+      await reloadAgenda();
     } else {
       // e.g. 400 for a paid booking ("Usá Cancelar y devolver").
       const data = await res.json().catch(() => ({}));
@@ -505,7 +530,7 @@ export default function CalendarioPage() {
                 if (!day) return <div key={`empty-${i}`} />;
                 const dayData = slotsByDay[day] ?? [];
                 const hasBooked = dayData.some((s) => !s.isAvailable);
-                const hasAvailable = dayData.some((s) => s.isAvailable);
+                const hasAvailable = dayData.some((s) => slotOccupancy(s) === "free");
                 const isSelected = selectedDay === day;
                 const todayCell = isToday(day);
 
@@ -574,17 +599,19 @@ export default function CalendarioPage() {
                     {daySlots
                       .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime))
                       .map((slot) => {
-                        const { h, min } = parseLocalDate(slot.startDateTime);
-                        const time = `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+                        const continuation = slotOccupancy(slot) === "continuation";
+                        const time = bookingTimeLabel(slot.booking ? { ...slot, ...slot.booking } : slot);
                         return (
                           <div
                             key={slot.id}
                             data-testid="calendario-slot-row"
                             data-available={slot.isAvailable}
                             data-customer-name={slot.booking?.customerName ?? ""}
-                            onClick={() => !slot.isAvailable && slot.booking && setDetailBooking({ slot })}
-                            className={`p-3 rounded-xl border transition ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
-                              slot.isAvailable
+                            onClick={() => (continuation ? openContinuation(slot) : !slot.isAvailable && slot.booking && setDetailBooking({ slot }))}
+                            className={`p-3 rounded-xl border transition ${!slot.isAvailable || continuation ? "cursor-pointer hover:brightness-95" : ""} ${
+                              continuation
+                                ? "border-mauve/15 bg-porcelain/30"
+                                : slot.isAvailable
                                 ? "border-green-200 bg-green-50"
                                 : slot.booking?.status === "Confirmed"
                                 ? "border-blue-200 bg-blue-50"
@@ -594,13 +621,15 @@ export default function CalendarioPage() {
                             <div className="flex items-center justify-between">
                               <span className="text-charcoal font-medium text-sm">{time}</span>
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                slot.isAvailable
+                                continuation
+                                  ? "bg-mauve/10 text-charcoal/60"
+                                  : slot.isAvailable
                                   ? "bg-green-500/20 text-green-700"
                                   : slot.booking?.status === "Confirmed"
                                   ? "bg-blue-500/20 text-blue-700"
                                   : "bg-orange-500/20 text-orange-700"
                               }`}>
-                                {slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
+                                {continuation ? "OCUPADO" : slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
                               </span>
                             </div>
                             {!slot.isAvailable && slot.booking && (
@@ -609,11 +638,14 @@ export default function CalendarioPage() {
                                 {slot.booking.professionalName && ` · 👤 ${slot.booking.professionalName}`}
                               </p>
                             )}
-                            {slot.isAvailable && slot.professionalName && (
+                            {continuation && (
+                              <p className="text-charcoal/40 text-xs mt-1">Lo ocupa un turno que empieza antes</p>
+                            )}
+                            {slot.isAvailable && !continuation && slot.professionalName && (
                               <p className="text-charcoal/40 text-xs mt-1">👤 {slot.professionalName}</p>
                             )}
                             <div className="mt-2 flex gap-2">
-                              {slot.isAvailable ? (
+                              {slot.isAvailable && !continuation ? (
                                 <button
                                   data-testid="calendario-slot-reserve-button"
                                   onClick={() => setReserveSlot(slot)}
@@ -624,7 +656,7 @@ export default function CalendarioPage() {
                               ) : (
                                 <button
                                   data-testid="calendario-slot-detail-button"
-                                  onClick={() => slot.booking && setDetailBooking({ slot })}
+                                  onClick={() => (continuation ? openContinuation(slot) : slot.booking && setDetailBooking({ slot }))}
                                   className="text-xs text-blushdark hover:text-blush font-medium transition"
                                 >
                                   Ver detalle
@@ -648,7 +680,7 @@ export default function CalendarioPage() {
         <ReserveSlotModal
           slot={reserveSlot}
           onClose={() => setReserveSlot(null)}
-          onReserved={loadSlots}
+          onReserved={reloadAgenda}
         />
       )}
 
@@ -660,7 +692,7 @@ export default function CalendarioPage() {
               <div>
                 <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
                 <p className="text-charcoal/40 text-xs mt-0.5">
-                  {(() => { const { d, m, h, min } = parseLocalDate(detailBooking.slot.startDateTime); return `${String(h).padStart(2,"0")}:${String(min).padStart(2,"0")} · ${d} de ${MONTH_NAMES[m - 1]}`; })()}
+                  {(() => { const { d, m } = parseLocalDate(detailBooking.slot.startDateTime); return `${bookingTimeLabel({ ...detailBooking.slot, ...detailBooking.slot.booking })} · ${d} de ${MONTH_NAMES[m - 1]}`; })()}
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
