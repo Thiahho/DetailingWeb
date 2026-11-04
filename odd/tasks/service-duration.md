@@ -61,12 +61,10 @@ Detailing (first niche) has multi-hour services; the agenda must not sell overla
 - 2026-11-03: T4 implemented (uncommitted, delegated writer). Migration `20261104024508_AddBookingOverlapConstraint`: detection first (under `SET LOCAL app.tenant_id = 'bypass'`) raises "AddBookingOverlapConstraint: existing bookings break the new rules…" listing `tenant X: bookings A and B` overlaps and `tenant X: booking C` ranges with End <= Start, never modifying data; then `btree_gist` (`HasPostgresExtension`), `CK_Bookings_EndAfterStart` (EF `HasCheckConstraint`) and raw-SQL `EX_Bookings_ProfessionalTimeOverlap` = `EXCLUDE USING gist ("TenantId" WITH =, (COALESCE("ProfessionalId", 0)) WITH =, tsrange("StartDateTime","EndDateTime",'[)') WITH &&) WHERE ("Status" <> 'Cancelled')` (Pending, Confirmed, legacy Reservado occupy time). Down drops both constraints, keeps the extension. `Core/Bookings/Services/BookingWriteConflict` maps 23P01 → 409 "Ese horario se superpone con otro turno del mismo profesional" and 23514 → 400 "El horario del turno no es válido" (matched by constraint name) through `BookingsController.TrySaveBookingAsync` (create, public/admin reschedule, UpdateBooking); open transactions roll back the slot claim/release. Tests: `BookingOverlapConstraintTests` (14) + `BookingOverlapConstraintMigrationTests` (2); RED 12 failed / 4 passed (the allowed cases). Fixtures changed: `HomeServiceTravelBufferTests.ExistingBookingAsync` now stores the slot range (CHECK), and 6 legacy-tenant fixtures on `UtcNow.AddDays(N)` without professional moved to unused days (they overlapped across tests). Backend 475/475, no pending model changes. Open: deleting a professional sets its bookings' `ProfessionalId` NULL (FK SetNull) and can now hit 23P01 (500) if they overlap NULL-professional bookings — `ProfessionalsController.Delete` is outside T4's surface.
 
 ## Next step
-T5 (T4b pending user decision).
+Paused 2026-11-04 by the user (working tree clean at `16e19a5d`; the T5 writer was stopped before writing anything).
 
-## Follow-ups
-- Managed Postgres: `CREATE EXTENSION btree_gist` needs CREATE on the database or the extension allow-listed; verify on production before deploy.
-- Migration backfill RLS bypass path is not exercised by tests (test container runs as superuser).
-- `RegenerateAllSlotsAsync` still uses server `DateTime.Now` (UTC on Render) instead of Argentina wall-clock; no frontend caller today.
-- Release cancels a Pending booking whose payment is still Pending; check what the MercadoPago webhook does if it later approves that payment (Cancelled booking + possibly re-booked slot).
-- 2026-11-03: T2+T3 committed together (shared migration snapshot). Parent: backend 459/459, pnpm test 148/148, tsc OK; independent review PASS with follow-ups (tier high, RDD off).
-- 2026-11-03: T4 parent additions: ConfirmBooking rejects cancelled bookings (400) since confirming would revive freed time (+1 test). Backend 476/476; independent review PASS with follow-ups (tier high, RDD off).
+Resume with:
+1. Ask the user the pending T4b decision: deleting a professional with active future bookings — block the delete until bookings are reassigned or cancelled (recommended) vs allow it with a clear 409 when it collides.
+2. Confirm or change the T5 default `MaxCoverageGapMinutes = 30` (gaps up to 30 min between consecutive slots count as continuous agenda; longer gaps such as lunch break coverage).
+3. Relaunch T5 with the same brief (single availability rule for listing and every booking write, coverage, slot recompute helper, `occupiedByBookingId`, travel buffer on real ranges). Baseline: backend 476/476, frontend 148/148.
+4. Then T6 (frontend) and T7 (EMPRENDERS guide).
