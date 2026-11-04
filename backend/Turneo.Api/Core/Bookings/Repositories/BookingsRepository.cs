@@ -185,8 +185,11 @@ public class BookingsRepository : IBookingsRepository
     public Task LoadTimeSlotAsync(Booking booking) =>
         _context.Entry(booking).Reference(b => b.TimeSlot).LoadAsync();
 
+    // Slots with any booking (any status) are kept: booking history is never deleted.
     public Task<int> DeleteExpiredSlotsAsync(DateTime now) =>
-        _context.TimeSlots.Where(t => t.EndDateTime < now).ExecuteDeleteAsync();
+        _context.TimeSlots
+            .Where(t => t.EndDateTime < now && !t.Bookings.Any())
+            .ExecuteDeleteAsync();
 
     public Task<Booking?> GetByIdWithItemsAsync(int id) =>
         _context.Bookings.Include(b => b.Items).FirstOrDefaultAsync(b => b.Id == id);

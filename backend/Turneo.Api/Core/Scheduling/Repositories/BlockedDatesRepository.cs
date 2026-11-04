@@ -28,9 +28,10 @@ public class BlockedDatesRepository : IBlockedDatesRepository
     public Task<bool> ExistsAsync(DateTime date, int? professionalId) =>
         _context.BlockedDates.AnyAsync(d => d.Date == date && d.ProfessionalId == professionalId);
 
+    // Slots with any booking (any status) are kept: booking history is never deleted.
     public Task<List<TimeSlot>> GetAvailableSlotsOnDateAsync(DateTime date, int? professionalId) =>
         _context.TimeSlots
-            .Where(t => t.StartDateTime.Date == date.Date && t.IsAvailable)
+            .Where(t => t.StartDateTime.Date == date.Date && t.IsAvailable && !t.Bookings.Any())
             .Where(t => professionalId == null || t.ProfessionalId == professionalId)
             .ToListAsync();
 

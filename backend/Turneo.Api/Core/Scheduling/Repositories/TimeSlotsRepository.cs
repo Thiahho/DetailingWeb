@@ -64,7 +64,10 @@ public class TimeSlotsRepository : ITimeSlotsRepository
             (excludeId == null || t.Id != excludeId));
 
     public Task<TimeSlot?> GetByIdWithBookingsAsync(int id) =>
-        _context.TimeSlots.Include(t => t.Bookings).FirstOrDefaultAsync(t => t.Id == id);
+        _context.TimeSlots
+            .Include(t => t.Bookings)
+                .ThenInclude(b => b.Payment)
+            .FirstOrDefaultAsync(t => t.Id == id);
 
     public void Add(TimeSlot slot) => _context.TimeSlots.Add(slot);
 

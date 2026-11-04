@@ -322,9 +322,12 @@ public class TimeSlotsController : ControllerBase
             });
         }
 
-        // Confirmed → marcar como Cancelled; Pending → eliminar
-        var toDelete = slot.Bookings.Where(b => b.Status != BookingStatus.Confirmed).ToList();
-        var toCancel = slot.Bookings.Where(b => b.Status == BookingStatus.Confirmed).ToList();
+        // Confirmed → marcar como Cancelled; Pending → eliminar, salvo que tenga un
+        // pago registrado: esa también se cancela, el pago nunca se borra.
+        // Ya canceladas: se dejan como están (historial y CancelledAt original).
+        var active = slot.Bookings.Where(b => b.Status != BookingStatus.Cancelled).ToList();
+        var toDelete = active.Where(b => b.Status != BookingStatus.Confirmed && b.Payment == null).ToList();
+        var toCancel = active.Where(b => b.Status == BookingStatus.Confirmed || b.Payment != null).ToList();
 
         _repository.RemoveBookings(toDelete);
         foreach (var booking in toCancel)
@@ -431,9 +434,15 @@ public class TimeSlotsController : ControllerBase
         }
 
         // No permitir eliminar si está reservado, salvo que ya haya expirado
-        if (!slot.IsAvailable && slot.EndDateTime >= DateTime.UtcNow)
+        if (!slot.IsAvailable && slot.EndDateTime >= NowArgentina())
         {
             return BadRequest(new { message = "No se puede eliminar un turno reservado. Habilitalo primero." });
+        }
+
+        // Ninguna reserva (de ningún estado, cancelada incluida) se borra con su turno.
+        if (slot.Bookings.Count > 0)
+        {
+            return BadRequest(new { message = "Este horario tiene reservas registradas y no se puede borrar" });
         }
 
         _repository.Remove(slot);

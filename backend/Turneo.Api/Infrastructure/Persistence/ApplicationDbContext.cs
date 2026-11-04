@@ -357,7 +357,9 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(b => b.TimeSlot)
                 .WithMany(t => t.Bookings)
                 .HasForeignKey(b => b.TimeSlotId)
-                .OnDelete(DeleteBehavior.Cascade);
+                // Restrict: deleting a slot never deletes its bookings (booking and
+                // payment history). Slot-deleting paths skip slots that have bookings.
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(b => b.Professional)
                 .WithMany()
@@ -548,7 +550,8 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(p => p.Booking)
                 .WithOne(b => b.Payment)
                 .HasForeignKey<Payment>(p => p.BookingId)
-                .OnDelete(DeleteBehavior.Cascade);
+                // Restrict: a booking that has a payment is never deleted (history).
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });

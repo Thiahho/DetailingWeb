@@ -526,9 +526,8 @@ public class BookingsController : ControllerBase
     [RequirePermission(PermissionModules.Turnos, PermissionActions.Delete, alsoCheckProfessional: true)]
     public async Task<IActionResult> DeleteExpiredBookings()
     {
-        var now = DateTime.UtcNow;
-
-        var deletedSlots = await _repository.DeleteExpiredSlotsAsync(now);
+        // TimeSlot times are Argentina wall-clock (see ArgentinaClock), not UTC.
+        var deletedSlots = await _repository.DeleteExpiredSlotsAsync(ArgentinaClock.Now());
 
         return Ok(new { success = true, deletedTimeSlots = deletedSlots });
     }

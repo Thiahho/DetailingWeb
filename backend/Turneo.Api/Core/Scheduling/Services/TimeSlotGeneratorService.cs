@@ -85,9 +85,10 @@ public class TimeSlotGeneratorService
 
     public async Task RegenerateAllSlotsAsync()
     {
-        // Eliminar turnos futuros disponibles (no reservados)
+        // Eliminar turnos futuros disponibles sin reservas (un turno con una reserva
+        // cancelada también se conserva: el historial nunca se borra)
         var futureSlots = await _context.TimeSlots
-            .Where(t => t.StartDateTime > DateTime.Now && t.IsAvailable)
+            .Where(t => t.StartDateTime > DateTime.Now && t.IsAvailable && !t.Bookings.Any())
             .ToListAsync();
 
         _context.TimeSlots.RemoveRange(futureSlots);
@@ -101,10 +102,10 @@ public class TimeSlotGeneratorService
 
     public async Task CleanOldSlotsAsync()
     {
-        // Eliminar turnos pasados (más de 7 días atrás)
+        // Eliminar turnos pasados (más de 7 días atrás) sin reservas
         var oldDate = DateTime.Now.AddDays(-7);
         var oldSlots = await _context.TimeSlots
-            .Where(t => t.StartDateTime < oldDate)
+            .Where(t => t.StartDateTime < oldDate && !t.Bookings.Any())
             .ToListAsync();
 
         _context.TimeSlots.RemoveRange(oldSlots);

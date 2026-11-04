@@ -2393,7 +2393,7 @@ namespace Turneo.Api.Migrations
                     b.HasOne("Turneo.Api.Core.Scheduling.TimeSlot", "TimeSlot")
                         .WithMany("Bookings")
                         .HasForeignKey("TimeSlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Professional");
@@ -2675,7 +2675,7 @@ namespace Turneo.Api.Migrations
                     b.HasOne("Turneo.Api.Core.Bookings.Booking", "Booking")
                         .WithOne("Payment")
                         .HasForeignKey("Turneo.Api.Core.Payments.Payment", "BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
