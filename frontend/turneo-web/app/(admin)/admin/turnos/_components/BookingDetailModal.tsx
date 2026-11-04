@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { X, Phone, Scissors, Tag, UserRound, MessageSquare, Wallet } from "lucide-react";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { canCancelAndRefund } from "@/src/lib/bookings/paidBooking";
 
 export interface Booking {
   id: number;
@@ -96,6 +97,7 @@ export default function BookingDetailModal({
   onRelease,
   onDeleteExpired,
   emailHref,
+  onCancelRefund,
 }: {
   slot: TimeSlot;
   booking: Booking;
@@ -107,6 +109,8 @@ export default function BookingDetailModal({
   // Link "mailto:" ya armado por el caller — opcional, solo algunas pantallas
   // (Panel principal) ofrecen contacto directo por email además de WhatsApp.
   emailHref?: string;
+  // Optional: only the agenda (Admin) offers "Cancelar y devolver" for a paid booking.
+  onCancelRefund?: (slot: TimeSlot) => void;
 }) {
   useModalHotkeys(true, { onClose });
   const slotExpired = isExpired(slot.startDateTime);
@@ -236,6 +240,15 @@ export default function BookingDetailModal({
               >
                 {booking.status === "Confirmed" ? "Cancelar turno" : "Liberar turno"}
               </button>
+              {onCancelRefund && canCancelAndRefund(booking) && (
+                <button
+                  onClick={() => { onClose(); onCancelRefund(slot); }}
+                  data-testid="booking-detail-cancel-refund"
+                  className="w-full rounded-lg border border-red-200 px-6 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                >
+                  Cancelar y devolver
+                </button>
+              )}
             </>
           )}
         </div>

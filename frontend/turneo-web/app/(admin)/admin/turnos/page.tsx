@@ -12,10 +12,12 @@ import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { Button } from "@/src/components/shared/Button";
 import type { Booking, TimeSlot } from "./_components/BookingDetailModal";
+import { canCancelAndRefund, indexPaymentInfo, withPaymentInfo } from "@/src/lib/bookings/paidBooking";
 
 // El modal de detalle de reserva solo hace falta al abrir un turno reservado:
 // diferirlo evita que entre en el compile/bundle inicial de la ruta.
 const BookingDetailModal = dynamic(() => import("./_components/BookingDetailModal"), { ssr: false });
+const CancelRefundModal = dynamic(() => import("./_components/CancelRefundModal"), { ssr: false });
 
 // --- Interfaces ---
 
@@ -106,6 +108,9 @@ export default function TurnosPage() {
 
   // Estado modal detalle
   const [detailSlot, setDetailSlot] = useState<TimeSlot | null>(null);
+  // Paid booking being cancelled with a refund (Admin only; the endpoint rejects Staff).
+  const [refundSlot, setRefundSlot] = useState<TimeSlot | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   // Estado filtro por estado
   type StatusFilter = "all" | "available" | "disabled" | "pending" | "confirmed" | "expired";
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -123,6 +128,7 @@ export default function TurnosPage() {
       router.push(getRole() === "Professional" ? "/profesional/agenda" : "/admin/login");
       return;
     }
+    setIsAdmin(getRole() === "Admin");
     loadSlots();
     // /all incluye inactivos — al crear turnos el admin puede querer agendar
     // para alguien que está temporalmente desactivado, no solo los activos.
@@ -133,13 +139,21 @@ export default function TurnosPage() {
   // --- Lógica de Carga y CRUD (Igual que tu código original) ---
   const loadSlots = async () => {
     try {
-      const response = await fetch("/api/timeslots");
+      // /api/timeslots has no payment data; the bookings list supplies it (a
+      // failure there only hides the payment badge and "Cancelar y devolver").
+      const [response, payments] = await Promise.all([
+        fetch("/api/timeslots"),
+        fetch("/api/bookings")
+          .then((r) => (r.ok ? r.json() : []))
+          .then(indexPaymentInfo)
+          .catch(() => indexPaymentInfo([])),
+      ]);
       if (response.ok) {
         const data: TimeSlot[] = await response.json();
         const normalizedSlots = data.map((slot) => ({
           ...slot,
           booking: slot.booking
-            ? { ...slot.booking, status: normalizeBookingStatus(slot.booking.status) }
+            ? withPaymentInfo({ ...slot.booking, status: normalizeBookingStatus(slot.booking.status) }, payments)
             : undefined,
         }));
         setSlots(normalizedSlots);
@@ -1398,6 +1412,15 @@ export default function TurnosPage() {
                             >
                               Liberar
                             </button>
+                            {isAdmin && slot.booking && canCancelAndRefund(slot.booking) && (
+                              <button
+                                onClick={() => setRefundSlot(slot)}
+                                data-testid="slot-cancel-refund-button"
+                                className="text-red-600 hover:text-red-500 text-xs font-medium uppercase tracking-wide transition"
+                              >
+                                Cancelar y devolver
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -1539,6 +1562,20 @@ export default function TurnosPage() {
           onConfirm={(bookingId, booking, startDateTime) => confirmarTurno(bookingId, booking, startDateTime)}
           onRelease={habilitarTurno}
           onDeleteExpired={deleteSlot}
+          onCancelRefund={isAdmin ? (slot) => setRefundSlot(slot) : undefined}
+        />
+      )}
+
+      {refundSlot && refundSlot.booking && (
+        <CancelRefundModal
+          booking={refundSlot.booking}
+          whenLabel={formatDateFriendly(refundSlot.startDateTime)}
+          onClose={() => setRefundSlot(null)}
+          onDone={(message) => {
+            setRefundSlot(null);
+            showToast("success", "Reserva cancelada", message, 6000);
+            loadSlots();
+          }}
         />
       )}
     </div>

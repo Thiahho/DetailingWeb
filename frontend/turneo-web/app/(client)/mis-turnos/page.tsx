@@ -7,6 +7,12 @@ import { groupSlotsByDay, splitSlotLabel } from "@/src/lib/slotLabel";
 import PaymentButton from "@/src/components/payments/PaymentButton";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import {
+  PAID_CANCEL_NOTICE,
+  buildPaidCancellationMessage,
+  isPaid,
+  isPaidCancellationRejection,
+} from "@/src/lib/bookings/paidBooking";
 
 interface MyBooking {
   id: number;
@@ -116,6 +122,10 @@ export default function MisTurnosPage() {
   // Turnos cancelados en esta visita: se quedan en la pestaña donde estaban (ya
   // marcados como cancelados) en vez de desaparecer de golpe hacia "Historial".
   const [cancelledNow, setCancelledNow] = useState<number[]>([]);
+  // Bookings the backend refused to cancel because they are paid. The
+  // by-email list does not carry the payment status, so this is how the card
+  // learns it.
+  const [paidBlocked, setPaidBlocked] = useState<number[]>([]);
 
   // Estado del modal de reprogramación
   const [rescheduleBooking, setRescheduleBooking] = useState<MyBooking | null>(null);
@@ -148,6 +158,7 @@ export default function MisTurnosPage() {
       setTab("next");
       setNotice("");
       setCancelledNow([]);
+      setPaidBlocked([]);
       fetchSiteConfig();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error de conexión");
@@ -167,6 +178,12 @@ export default function MisTurnosPage() {
       );
       setCancelledNow((prev) => [...prev, id]);
       setNotice("Turno cancelado. Liberamos el horario.");
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (isPaidCancellationRejection(res.status, data.message)) {
+      setPaidBlocked((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      setNotice("");
     } else {
       setNotice("No pudimos cancelar el turno. Probá de nuevo o escribinos por WhatsApp.");
     }
@@ -441,6 +458,18 @@ export default function MisTurnosPage() {
                   const waLink = waNumber
                     ? getWhatsAppLink(waNumber, `Hola, quiero reprogramar mi turno #${b.id} del ${formatDate(b.startDateTime)}`)
                     : "#";
+                  // Paid and still upcoming: cancellation goes through WhatsApp.
+                  const paidCancel = active && (isPaid(b.paymentStatus) || paidBlocked.includes(b.id));
+                  const paidCancelLink = waNumber
+                    ? getWhatsAppLink(
+                        waNumber,
+                        buildPaidCancellationMessage({
+                          bookingId: b.id,
+                          service: b.service,
+                          whenLabel: formatDate(b.startDateTime),
+                        })
+                      )
+                    : null;
 
                   return (
                     <article
@@ -501,7 +530,13 @@ export default function MisTurnosPage() {
                             </p>
                           )}
 
-                          {!b.paymentStatus && !cancelled && (
+                          {paidCancel && (
+                            <p data-testid="mis-turnos-paid-cancel-notice" className="text-sm text-charcoal/70">
+                              {PAID_CANCEL_NOTICE}
+                            </p>
+                          )}
+
+                          {!b.paymentStatus && !cancelled && !paidCancel && (
                             <details className="text-sm">
                               <summary className="cursor-pointer list-none font-semibold text-rosewood underline-offset-4 hover:underline">
                                 Dejar una seña (opcional) →
@@ -531,7 +566,18 @@ export default function MisTurnosPage() {
                             Reprogramar por WhatsApp
                           </a>
                         )}
-                        {!past && (
+                        {paidCancel && paidCancelLink && (
+                          <a
+                            href={paidCancelLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid="mis-turnos-paid-cancel-whatsapp"
+                            className={`${BTN_OUTLINE} flex-1 text-center md:flex-none`}
+                          >
+                            Cancelar por WhatsApp
+                          </a>
+                        )}
+                        {!past && !paidCancel && (
                           <button
                             type="button"
                             onClick={() => cancelBooking(b.id)}

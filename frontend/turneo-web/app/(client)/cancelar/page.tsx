@@ -2,8 +2,13 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { CalendarDays, Clock, AlertTriangle } from "lucide-react";
-import { getSiteConfig, DEFAULT_SITE_CONFIG } from "@/src/lib/siteConfig";
+import { CalendarDays, Clock, AlertTriangle, MessageCircle } from "lucide-react";
+import { getSiteConfig, getWhatsAppLink, DEFAULT_SITE_CONFIG } from "@/src/lib/siteConfig";
+import {
+  PAID_CANCEL_NOTICE,
+  buildPaidCancellationMessage,
+  isPaidCancellationRejection,
+} from "@/src/lib/bookings/paidBooking";
 
 interface BookingDetail {
   id: number;
@@ -15,7 +20,9 @@ interface BookingDetail {
   cancelledAt?: string;
 }
 
-type PageState = "loading" | "confirm" | "cancelled" | "already_cancelled" | "expired" | "error";
+// "paid": the backend rejected the cancel because the booking is already paid
+// (GET /api/bookings/{id} does not expose the payment status).
+type PageState = "loading" | "confirm" | "cancelled" | "already_cancelled" | "expired" | "paid" | "error";
 
 // Parseo sin conversión UTC: el backend manda la hora ya en horario de
 // Argentina (ver ArgentinaClock), un new Date(iso) directo la corre por la
@@ -62,10 +69,12 @@ function CancelarContent() {
   const [errorMsg, setErrorMsg] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [businessName, setBusinessName] = useState(DEFAULT_SITE_CONFIG.businessName);
+  const [whatsAppNumber, setWhatsAppNumber] = useState("");
 
   useEffect(() => {
     getSiteConfig().then((config) => {
       if (config.businessName) setBusinessName(config.businessName);
+      if (config.whatsAppNumber) setWhatsAppNumber(config.whatsAppNumber);
     });
   }, []);
 
@@ -105,6 +114,8 @@ function CancelarContent() {
       const data = await res.json();
       if (res.ok) {
         setState("cancelled");
+      } else if (isPaidCancellationRejection(res.status, data.message)) {
+        setState("paid");
       } else if (data.message?.includes("expiró")) {
         setState("expired");
       } else {
@@ -254,6 +265,38 @@ function CancelarContent() {
                 <p className="text-charcoal font-semibold text-lg">Turno expirado</p>
                 <p className="text-charcoal/50 text-sm mt-1">Este turno ya pasó y no puede cancelarse.</p>
               </div>
+            </div>
+          )}
+
+          {/* Paid: the client cancels through WhatsApp */}
+          {state === "paid" && booking && (
+            <div className="p-10 flex flex-col items-center gap-4 text-center" data-testid="cancel-paid-notice">
+              <div className="w-14 h-14 rounded-full bg-champagne/15 flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-champagne" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="text-charcoal font-semibold text-lg">Reserva pagada</p>
+                <p className="text-charcoal/50 text-sm mt-1">{PAID_CANCEL_NOTICE}</p>
+              </div>
+              {whatsAppNumber && (
+                <a
+                  href={getWhatsAppLink(
+                    whatsAppNumber,
+                    buildPaidCancellationMessage({
+                      bookingId: booking.id,
+                      service: booking.service,
+                      whenLabel: formatDateFriendly(booking.startDateTime),
+                    })
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="cancel-paid-whatsapp"
+                  className="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-lg bg-mauve px-6 py-3 text-sm font-semibold text-white transition hover:bg-mauve/85"
+                >
+                  <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                  Escribir por WhatsApp
+                </a>
+              )}
             </div>
           )}
 
