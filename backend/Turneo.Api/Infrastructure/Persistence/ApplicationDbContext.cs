@@ -110,6 +110,10 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // GiST support for plain scalar columns (TenantId, ProfessionalId) in the
+        // booking overlap exclusion constraint (see Booking below).
+        modelBuilder.HasPostgresExtension("btree_gist");
+
         // ── SaaS ──────────────────────────────────────────────────────────
         modelBuilder.Entity<Tenant>(entity =>
         {
@@ -345,6 +349,17 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.TimeSlotId)
                 .HasFilter("\"Status\" <> 'Cancelled'")
                 .IsUnique();
+
+            // Time a booking occupies: [StartDateTime, EndDateTime). The CHECK
+            // keeps a forgotten range (0001-01-01) from being stored silently.
+            // EF cannot model the companion exclusion constraint, so it lives
+            // only in migration AddBookingOverlapConstraint (raw SQL):
+            //   EX_Bookings_ProfessionalTimeOverlap — two bookings that are not
+            //   Cancelled, of the same tenant and professional (NULL professional
+            //   = one shared resource), never overlap. Violations (23P01) answer
+            //   409 through BookingWriteConflict.
+            entity.ToTable(t => t.HasCheckConstraint(
+                BookingWriteConflict.EndAfterStartConstraint, "\"EndDateTime\" > \"StartDateTime\""));
 
             entity.Property(e => e.PhotoUrlsBefore).HasColumnType("jsonb");
             entity.Property(e => e.PhotoUrlsAfter).HasColumnType("jsonb");

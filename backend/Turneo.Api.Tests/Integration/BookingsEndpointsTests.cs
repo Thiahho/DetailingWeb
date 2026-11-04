@@ -203,7 +203,7 @@ public class BookingsEndpointsTests
     public async Task CreateBooking_WithSmartTagTokenAndUnknownSource_AttributesTagWithNullSource()
     {
         var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
-        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(10), DateTime.UtcNow.AddDays(10).AddHours(1));
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(31), DateTime.UtcNow.AddDays(31).AddHours(1));
         var tag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantId, "Mostrador", action: "BOOKING");
 
         var client = _factory.CreateClient();
@@ -265,7 +265,7 @@ public class BookingsEndpointsTests
     {
         var tenantA = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
         var tenantB = (await TestDataFactory.CreateTenantAsync(_factory, $"tenant-b-{Guid.NewGuid():N}", "Salón B")).Id;
-        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantA, DateTime.UtcNow.AddDays(9), DateTime.UtcNow.AddDays(9).AddHours(1));
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantA, DateTime.UtcNow.AddDays(13), DateTime.UtcNow.AddDays(13).AddHours(1));
         // El tag pertenece a OTRO tenant (B) que el de la reserva que se va a crear (A).
         var foreignTag = await TestDataFactory.CreateSmartTagAsync(_factory, tenantB, "Recepción B", action: "BOOKING");
 

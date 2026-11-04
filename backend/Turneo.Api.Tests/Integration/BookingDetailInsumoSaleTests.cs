@@ -33,7 +33,7 @@ public class BookingDetailInsumoSaleTests
     {
         var tenantId = await TestDataFactory.GetOrCreateLegacyTenantIdAsync(_factory);
         var admin = await CreateAdminClientAsync(tenantId);
-        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(20), DateTime.UtcNow.AddDays(20).AddHours(1));
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(23), DateTime.UtcNow.AddDays(23).AddHours(1));
         var booking = await TestDataFactory.CreateBookingAsync(_factory, tenantId, slot.Id, "Cliente Venta", $"venta-{Guid.NewGuid():N}@test.com");
         var insumo = await TestDataFactory.CreateInsumoAsync(_factory, tenantId, $"Esmalte-{Guid.NewGuid():N}", stock: 10);
 
@@ -69,7 +69,7 @@ public class BookingDetailInsumoSaleTests
         var admin = await CreateAdminClientAsync(tenantId);
         var phone = $"sale-history-{Guid.NewGuid():N}".Substring(0, 15);
         var profile = await TestDataFactory.CreateCustomerProfileAsync(_factory, tenantId, phone, "Cliente Historial Venta");
-        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(21), DateTime.UtcNow.AddDays(21).AddHours(1));
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, DateTime.UtcNow.AddDays(24), DateTime.UtcNow.AddDays(24).AddHours(1));
         var booking = await TestDataFactory.CreateBookingAsync(_factory, tenantId, slot.Id, "Cliente Historial Venta", $"hist-{Guid.NewGuid():N}@test.com", phone: phone);
         var insumoUsado = await TestDataFactory.CreateInsumoAsync(_factory, tenantId, $"Algodon-{Guid.NewGuid():N}", stock: 10);
         var insumoVendido = await TestDataFactory.CreateInsumoAsync(_factory, tenantId, $"Esmalte-{Guid.NewGuid():N}", stock: 10);

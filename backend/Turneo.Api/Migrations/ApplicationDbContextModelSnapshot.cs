@@ -21,6 +21,7 @@ namespace Turneo.Api.Migrations
                 .HasAnnotation("ProductVersion", "9.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "btree_gist");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("ProfessionalService", b =>
@@ -262,7 +263,10 @@ namespace Turneo.Api.Migrations
                         .IsUnique()
                         .HasFilter("\"Status\" <> 'Cancelled'");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", t =>
+                        {
+                            t.HasCheckConstraint("CK_Bookings_EndAfterStart", "\"EndDateTime\" > \"StartDateTime\"");
+                        });
                 });
 
             modelBuilder.Entity("Turneo.Api.Core.Bookings.BookingItem", b =>

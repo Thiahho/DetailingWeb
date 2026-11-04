@@ -74,6 +74,10 @@ public class HomeServiceTravelBufferTests
         {
             TenantId = setup.Tenant.Id,
             TimeSlotId = slot.Id,
+            // Same range the API stores for a service without duration (the
+            // database rejects a booking that ends at or before its start).
+            StartDateTime = slot.StartDateTime,
+            EndDateTime = slot.EndDateTime,
             ProfessionalId = professionalId == -1 ? setup.Professional.Id : professionalId,
             CustomerName = "Cliente Existente",
             CustomerPhone = "1122334455",

@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Turneo.Api.Core.Notifications;
@@ -157,7 +158,8 @@ public class BookingsController : ControllerBase
 
         _repository.Add(booking);
 
-        await _repository.SaveChangesAsync();
+        if (await TrySaveBookingAsync() is { } rejected)
+            return rejected;
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCreated, null));
 
@@ -423,6 +425,24 @@ public class BookingsController : ControllerBase
         (await ResolveTimeRangeAsync(newSlot.StartDateTime, newSlot.EndDateTime, booking.Service)).ApplyTo(booking);
     }
 
+    // Save for every write that places a booking at a time. The database
+    // refuses a booking that overlaps another active booking of the same
+    // professional (409) or whose range ends at or before its start (400); that
+    // answer is returned instead of a 500. The caller's open transaction (slot
+    // claim/release) is rolled back when it is disposed without commit.
+    private async Task<IActionResult?> TrySaveBookingAsync()
+    {
+        try
+        {
+            await _repository.SaveChangesAsync();
+            return null;
+        }
+        catch (DbUpdateException exception) when (BookingWriteConflict.From(exception) is { } conflict)
+        {
+            return StatusCode(conflict.StatusCode, new { success = false, message = conflict.Message });
+        }
+    }
+
     private static void EnqueueCancelledNotification(int bookingId) =>
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(bookingId, NotificationEventType.BookingCancelled, null));
 
@@ -465,7 +485,8 @@ public class BookingsController : ControllerBase
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
         await MoveToSlotAsync(booking, request.NewTimeSlotId);
-        await _repository.SaveChangesAsync();
+        if (await TrySaveBookingAsync() is { } rejected)
+            return rejected;
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
@@ -523,7 +544,8 @@ public class BookingsController : ControllerBase
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
         await MoveToSlotAsync(booking, request.NewTimeSlotId);
-        await _repository.SaveChangesAsync();
+        if (await TrySaveBookingAsync() is { } rejected)
+            return rejected;
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
@@ -568,6 +590,10 @@ public class BookingsController : ControllerBase
             if (!int.TryParse(claim, out var professionalId) || booking.ProfessionalId != professionalId)
                 return Forbid();
         }
+
+        // A cancelled booking already freed its time; confirming it would revive it.
+        if (booking.Status == BookingStatus.Cancelled)
+            return BadRequest(new { success = false, message = "No se puede confirmar una reserva cancelada" });
 
         booking.Status = BookingStatus.Confirmed;
         await _repository.SaveChangesAsync();
@@ -624,7 +650,8 @@ public class BookingsController : ControllerBase
         booking.Message = string.IsNullOrWhiteSpace(request.Message) ? null : request.Message.Trim();
         homeService.ApplyTo(booking);
 
-        await _repository.SaveChangesAsync();
+        if (await TrySaveBookingAsync() is { } rejected)
+            return rejected;
 
         return Ok(new
         {
