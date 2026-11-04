@@ -372,6 +372,25 @@ public class RangeAvailabilityTests
         Assert.Null(OccupiedBy(slots[13]));
     }
 
+    [Fact]
+    public async Task AdminSlots_NestedBooking_CarriesItsRealRange()
+    {
+        var setup = await CreateSetupAsync();
+        var threeHours = await ServiceAsync(setup, 180);
+        var slots = await HourlySlotsAsync(setup, 10, 14);
+        await BookAsync(setup, slots[10].Id, threeHours);
+        var admin = await AdminClientAsync(setup);
+        var day = setup.Day.ToString("yyyy-MM-dd");
+
+        var response = await admin.GetAsync($"/api/timeslots?from={day}&to={day}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var list = (await response.Content.ReadFromJsonAsync<List<JsonElement>>())!;
+        var booking = list.Single(s => s.GetProperty("id").GetInt32() == slots[10].Id).GetProperty("booking");
+        Assert.Equal(slots[10].StartDateTime, booking.GetProperty("bookingStartDateTime").GetDateTime());
+        Assert.Equal(slots[10].StartDateTime.AddMinutes(180), booking.GetProperty("bookingEndDateTime").GetDateTime());
+    }
+
     // --- Reschedule and edit exclude the booking itself ------------------------
 
     [Fact]

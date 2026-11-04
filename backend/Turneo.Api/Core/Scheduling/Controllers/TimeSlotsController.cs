@@ -97,6 +97,9 @@ public class TimeSlotsController : ControllerBase
                 .Select(b => new
                 {
                     id = b.Id,
+                    // Real range of the booking (a long service spans several slots).
+                    bookingStartDateTime = b.StartDateTime,
+                    bookingEndDateTime = b.EndDateTime,
                     customerName = b.CustomerName,
                     customerPhone = b.CustomerPhone,
                     subject = b.Subject,
@@ -153,6 +156,9 @@ public class TimeSlotsController : ControllerBase
                 .Select(b => new
                 {
                     id = b.Id,
+                    // Real range of the booking (a long service spans several slots).
+                    bookingStartDateTime = b.StartDateTime,
+                    bookingEndDateTime = b.EndDateTime,
                     customerName = b.CustomerName,
                     customerPhone = b.CustomerPhone,
                     email = b.Email,
