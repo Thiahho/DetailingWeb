@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { addMinutesToWallClock, wallClockTime } from "@/src/lib/bookingRange";
 
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -29,6 +30,7 @@ interface Service {
   id: number;
   title: string;
   slug: string;
+  durationMinutes?: number | null;
 }
 
 interface Professional {
@@ -106,7 +108,10 @@ export default function ReserveSlotModal({ slot, onClose, onReserved }: ReserveS
     : customers;
 
   const { d, m, h, min } = parseLocalDate(slot.startDateTime);
-  const timeLabel = `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")} · ${d} de ${MONTH_NAMES[m - 1]}`;
+  // With a duration, the booking occupies slot start + duration: show that range.
+  const durationMinutes = services.find((s) => s.slug === service)?.durationMinutes;
+  const endLabel = durationMinutes ? ` – ${wallClockTime(addMinutesToWallClock(slot.startDateTime, durationMinutes))}` : "";
+  const timeLabel = `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}${endLabel} · ${d} de ${MONTH_NAMES[m - 1]}`;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

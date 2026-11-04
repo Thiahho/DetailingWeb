@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { CalendarPlus, Check, X } from "lucide-react";
 import { getWhatsAppLink } from "@/src/lib/siteConfig";
-import { groupSlotsByDay, splitSlotLabel } from "@/src/lib/slotLabel";
+import { groupSlotsByDay, slotRangeLabel, splitSlotLabel } from "@/src/lib/slotLabel";
+import { bookingRange, bookingTimeLabel, buildAvailableSlotsUrl } from "@/src/lib/bookingRange";
 import PaymentButton from "@/src/components/payments/PaymentButton";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
@@ -29,12 +30,17 @@ interface MyBooking {
   paymentAmount: number | null;
   paymentPaidAt: string | null;
   paymentCheckoutUrl: string | null;
+  // Real range of the booking (slot start + service duration).
+  bookingStartDateTime?: string | null;
+  bookingEndDateTime?: string | null;
 }
 
 interface TimeSlot {
   id: number;
   label: string;
   startDateTime: string;
+  endDateTime?: string;
+  bookingEndDateTime?: string | null;
 }
 
 type Tab = "next" | "past";
@@ -90,10 +96,11 @@ const countdownLabel = (iso: string) => {
 
 const calendarLink = (b: MyBooking) => {
   const stamp = (iso: string) => new Date(iso).toISOString().replace(/[-:]|\.\d{3}/g, "");
+  const range = bookingRange(b);
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: b.service || "Turno",
-    dates: `${stamp(b.startDateTime)}/${stamp(b.endDateTime || b.startDateTime)}`,
+    dates: `${stamp(range.start)}/${stamp(range.end || range.start)}`,
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 };
@@ -196,12 +203,16 @@ export default function MisTurnosPage() {
     setRescheduleError("");
     setLoadingSlots(true);
     try {
-      const res = await fetch("/api/timeslots/available");
+      // Only starts where this booking's service fits entirely. A legacy
+      // booking whose service is not a current slug (400) lists plain slots;
+      // the API still validates the move.
+      let res = await fetch(buildAvailableSlotsUrl({ serviceSlug: booking.service }));
+      if (res.status === 400 && booking.service) res = await fetch(buildAvailableSlotsUrl());
       const data = await res.json();
       // Un 429/500 del proxy llega como { message } — sin este chequeo se
       // mostraba como "No hay horarios disponibles", que es falso.
       if (!res.ok || !Array.isArray(data)) throw new Error("slots unavailable");
-      setAvailableSlots(data);
+      setAvailableSlots(data.map((slot: TimeSlot) => ({ ...slot, label: slotRangeLabel(slot) })));
     } catch {
       setAvailableSlots([]);
       setRescheduleError("No se pudieron cargar los horarios disponibles");
@@ -223,11 +234,18 @@ export default function MisTurnosPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "No se pudo reprogramar");
 
-      // Actualizar la lista con la nueva fecha
+      // Actualizar la lista con la nueva fecha (y el rango real que ocupa)
+      const newSlot = availableSlots.find((s) => s.id === selectedSlotId);
       setItems((prev) =>
         prev!.map((item) =>
           item.id === rescheduleBooking.id
-            ? { ...item, startDateTime: data.newStartDateTime }
+            ? {
+                ...item,
+                startDateTime: data.newStartDateTime,
+                endDateTime: newSlot?.endDateTime ?? item.endDateTime,
+                bookingStartDateTime: data.newStartDateTime,
+                bookingEndDateTime: newSlot?.bookingEndDateTime ?? newSlot?.endDateTime ?? null,
+              }
             : item
         )
       );
@@ -368,7 +386,7 @@ export default function MisTurnosPage() {
                     <h2 className="text-2xl font-semibold leading-tight tracking-tight md:text-4xl">
                       {nextBooking.service || "Turno"}
                     </h2>
-                    <p className="text-[15px] text-charcoal/70 md:text-base">{nextParts.time} h</p>
+                    <p className="text-[15px] text-charcoal/70 md:text-base">{bookingTimeLabel(nextBooking)} h</p>
                   </div>
                 </div>
                 <div className="flex gap-2.5">
@@ -495,7 +513,7 @@ export default function MisTurnosPage() {
                           </div>
                           {b.subject && <p className="text-sm text-charcoal/70">{b.subject}</p>}
                           <p className="text-[15px] text-charcoal/70">
-                            {parts.time} h · {b.customerName}
+                            {bookingTimeLabel(b)} h · {b.customerName}
                           </p>
 
                           {Object.keys(customFields).length > 0 && (

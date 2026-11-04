@@ -9,6 +9,7 @@ import {
   buildPaidCancellationMessage,
   isPaidCancellationRejection,
 } from "@/src/lib/bookings/paidBooking";
+import { bookingTimeLabel } from "@/src/lib/bookingRange";
 
 interface BookingDetail {
   id: number;
@@ -16,6 +17,10 @@ interface BookingDetail {
   service: string;
   subject: string;
   startDateTime: string;
+  endDateTime: string;
+  // Real range of the booking (slot start + service duration).
+  bookingStartDateTime?: string | null;
+  bookingEndDateTime?: string | null;
   status: string;
   cancelledAt?: string;
 }
@@ -153,7 +158,8 @@ function CancelarContent() {
 
           {/* Confirm */}
           {state === "confirm" && booking && (() => {
-            const { dateLabel, timeLabel } = formatAppointmentPieces(booking.startDateTime);
+            const { dateLabel } = formatAppointmentPieces(booking.startDateTime);
+            const timeLabel = bookingTimeLabel(booking);
             return (
               <>
                 <div className="bg-champagne/10 border-b border-champagne/20 px-6 py-5 flex items-center gap-3">

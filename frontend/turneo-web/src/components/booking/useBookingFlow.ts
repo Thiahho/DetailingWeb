@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef, type FormEvent } from "react";
 import { logError } from "@/src/lib/logger";
+import { buildAvailableSlotsUrl } from "@/src/lib/bookingRange";
+import { slotRangeLabel } from "@/src/lib/slotLabel";
 import { normalizeLocationType, type ServiceLocationType } from "@/src/lib/homeService/serviceLocation";
 import {
   EMPTY_HOME_ADDRESS,
@@ -15,6 +17,8 @@ export interface TimeSlot {
   id: number;
   startDateTime: string;
   endDateTime: string;
+  // End of the range the requested service would occupy (may span several slots).
+  bookingEndDateTime?: string | null;
   label: string;
   professionalId?: number | null;
   professionalName?: string | null;
@@ -156,10 +160,11 @@ export function useBookingFlow(
     : services;
 
   const selectedServiceObj = services.find((s) => s.slug === formData.selectedService) ?? null;
-  // At-home services need an address inside the tenant's coverage and slots
-  // filtered by the travel buffer (`serviceSlug`); on-site services are unchanged.
+  // At-home services need an address inside the tenant's coverage.
   const isAtHome = normalizeLocationType(selectedServiceObj?.locationType) === "AtHome";
-  const slotsServiceSlug = isAtHome ? formData.selectedService : "";
+  // Slots are listed for the chosen service, whatever it is: the API only offers
+  // starts where the service's whole duration fits (and, at home, the travel buffer).
+  const slotsServiceSlug = formData.selectedService;
   const [homeAddress, setHomeAddress] = useState<HomeAddressForm>(EMPTY_HOME_ADDRESS);
   const [coverageLocalities, setCoverageLocalities] = useState<ActiveCoverageLocality[]>([]);
   const [coverageStatus, setCoverageStatus] = useState<CoverageStatus>("idle");
@@ -322,17 +327,17 @@ export function useBookingFlow(
   const loadAvailableSlots = async (professionalId?: number | null, serviceSlug?: string) => {
     const requestId = ++slotsRequestRef.current;
     try {
-      const params = new URLSearchParams();
-      if (professionalId) params.set("professionalId", String(professionalId));
-      if (serviceSlug) params.set("serviceSlug", serviceSlug);
-      const query = params.toString() ? `?${params}` : "";
-      const response = await fetch(withTenant(`/api/timeslots/available${query}`));
+      const response = await fetch(withTenant(buildAvailableSlotsUrl({ professionalId, serviceSlug })));
       if (requestId !== slotsRequestRef.current) return;
-      if (response.ok) {
-        const data = await response.json();
-        if (requestId !== slotsRequestRef.current) return;
-        setTimeSlots(data);
+      const data = await response.json().catch(() => null);
+      if (requestId !== slotsRequestRef.current) return;
+      if (response.ok && Array.isArray(data)) {
+        // The label shows the real range when the service outlasts the slot.
+        setTimeSlots(data.map((slot: TimeSlot) => ({ ...slot, label: slotRangeLabel(slot) })));
         setSlotsProfessionalId(professionalId ?? null);
+      } else {
+        setTimeSlots([]);
+        showToast("error", "No pudimos cargar los horarios", data?.message || "Intentá nuevamente en unos minutos.");
       }
     } catch (error) {
       logError(error);
@@ -443,10 +448,10 @@ export function useBookingFlow(
         // Resetear paginación y recargar turnos
         setCurrentPage(1);
         loadAvailableSlots();
-      } else if (response.status === 409 && isAtHome) {
-        // At-home: the slot was taken or is too close to another at-home
-        // booking. Refresh the list and let the user pick another time
-        // (on-site keeps the plain error toast below).
+      } else if (response.status === 409) {
+        // The slot was taken, the service's range now overlaps another booking
+        // or no longer fits the agenda, or (at home) it is too close to another
+        // at-home booking. Refresh the list and let the user pick another time.
         showToast("error", "Elegí otro horario", data.message || "Ese horario ya no está disponible.");
         setFormData((prev) => ({ ...prev, selectedSlotId: null }));
         setCurrentPage(1);

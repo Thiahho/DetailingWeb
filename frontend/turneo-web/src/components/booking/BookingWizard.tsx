@@ -67,7 +67,8 @@ export default function BookingWizard(props: BookingFormProps) {
     retryCoverage,
     selectedCoverageLocality,
   } = useBookingFlow(props, {
-    // 409 on submit (slot taken or too close to another at-home booking): back to the time step.
+    // 409 on submit (slot taken, the service no longer fits, or too close to
+    // another at-home booking): back to the time step.
     onSlotConflict: () => {
       setPickedDay(null);
       setStep(STEPS.indexOf("horario"));
