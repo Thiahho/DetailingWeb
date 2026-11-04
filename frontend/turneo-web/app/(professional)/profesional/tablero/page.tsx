@@ -4,11 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth, isProfessionalAuthenticated, getRole } from "@/src/lib/auth";
 import { logError } from "@/src/lib/logger";
+import { slotOccupancy } from "@/src/lib/bookingRange";
 
 interface TimeSlot {
   id: number;
   startDateTime: string;
   isAvailable: boolean;
+  booking?: { id: number } | null;
+  // Active booking that starts in or overlaps this slot (null when free).
+  occupiedByBookingId?: number | null;
 }
 
 interface EarningsPeriod {
@@ -84,8 +88,11 @@ export default function ProfesionalTableroPage() {
     const d = new Date(s.startDateTime);
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   });
-  const bookedThisMonth = monthSlots.filter((s) => !s.isAvailable);
-  const occupancyRate = monthSlots.length > 0 ? Math.round((bookedThisMonth.length / monthSlots.length) * 100) : 0;
+  // A long service covers several slots: it counts once as a turno, but every
+  // covered slot counts as occupied time.
+  const bookedThisMonth = monthSlots.filter((s) => slotOccupancy(s) === "booked");
+  const occupiedThisMonth = monthSlots.filter((s) => !s.isAvailable || slotOccupancy(s) === "continuation");
+  const occupancyRate = monthSlots.length > 0 ? Math.round((occupiedThisMonth.length / monthSlots.length) * 100) : 0;
   const daysElapsed = now.getDate();
   const commissionAmount = earnings?.commissionAmount ?? 0;
   const chargedTotal = earnings?.chargedTotal ?? 0;
@@ -110,7 +117,7 @@ export default function ProfesionalTableroPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard label="Turnos del mes" value={bookedThisMonth.length} />
-          <StatCard label="Ocupación" value={`${occupancyRate}%`} sub={`${bookedThisMonth.length} / ${monthSlots.length} turnos`} />
+          <StatCard label="Ocupación" value={`${occupancyRate}%`} sub={`${occupiedThisMonth.length} / ${monthSlots.length} horarios`} />
           <StatCard label="Comisión del mes" value={formatCurrency(commissionAmount)} sub={`sobre ${formatCurrency(chargedTotal)} cobrados`} />
           <StatCard label="Promedio diario" value={formatCurrency(dailyAverage)} sub={`en ${daysElapsed} días`} />
         </div>

@@ -10,6 +10,7 @@ import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { logError } from "@/src/lib/logger";
 import { useTeamMode } from "@/src/hooks/useTeamMode";
 import { buildTimeslotsUrl, toLocalDateStr } from "@/src/lib/bookings/slotRange";
+import { bookingRangeEnd, slotOccupancy } from "@/src/lib/bookingRange";
 import type { Booking, TimeSlot as Slot } from "./turnos/_components/BookingDetailModal";
 
 const BookingDetailModal = dynamic(() => import("./turnos/_components/BookingDetailModal"), { ssr: false });
@@ -106,8 +107,9 @@ export default function AdminDashboard() {
       .then((data) => {
         if (!Array.isArray(data)) return;
         const now = new Date();
+        // A slot covered by another booking's range is part of that booking, not a turno of its own.
         const upcoming = data
-          .filter((s: Slot) => parseLocalDate(s.startDateTime) >= now)
+          .filter((s: Slot) => parseLocalDate(s.startDateTime) >= now && slotOccupancy(s) !== "continuation")
           .sort((a: Slot, b: Slot) => parseLocalDate(a.startDateTime).getTime() - parseLocalDate(b.startDateTime).getTime())
           .slice(0, 30);
         setSlots(upcoming);
@@ -159,7 +161,9 @@ export default function AdminDashboard() {
         setDetailSlot((prev) => (prev?.id === id ? null : prev));
         reloadSlots();
       } else {
-        showToast("error", "Error", isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno");
+        // e.g. 409 when another booking's range still covers the slot.
+        const data = await res.json().catch(() => ({}));
+        showToast("error", "Error", data.message || (isConfirmed ? "No se pudo cancelar el turno" : "No se pudo liberar el turno"));
       }
     } catch (error) {
       showToast("error", "Error de conexión", "No se pudo conectar con el servidor");
@@ -344,6 +348,9 @@ export default function AdminDashboard() {
             <div className="md:hidden space-y-2">
               {filtered.map((slot) => {
                 const { day, date, time } = formatDate(slot.startDateTime);
+                // Real range end when the booking outlasts its slot (a long service).
+                const rangeEnd = slot.booking ? bookingRangeEnd({ ...slot, ...slot.booking }) : null;
+                const timeLabel = rangeEnd ? `${time} – ${rangeEnd}` : time;
                 const hoy = isHoy(slot.startDateTime);
                 return (
                   <div
@@ -361,7 +368,7 @@ export default function AdminDashboard() {
                           <span className="text-charcoal/40 text-xs">{day}</span>
                           <span className="text-charcoal font-medium text-sm">{date}</span>
                           <span className="text-charcoal/30 text-xs">·</span>
-                          <span className="text-charcoal font-mono text-sm">{time}</span>
+                          <span className="text-charcoal font-mono text-sm">{timeLabel}</span>
                         </div>
                         {/* Estado */}
                         <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
@@ -432,6 +439,9 @@ export default function AdminDashboard() {
                 <tbody>
                   {filtered.map((slot) => {
                     const { day, date, time } = formatDate(slot.startDateTime);
+                    // Real range end when the booking outlasts its slot (a long service).
+                    const rangeEnd = slot.booking ? bookingRangeEnd({ ...slot, ...slot.booking }) : null;
+                    const timeLabel = rangeEnd ? `${time} – ${rangeEnd}` : time;
                     const hoy = isHoy(slot.startDateTime);
                     return (
                       <tr
@@ -450,7 +460,7 @@ export default function AdminDashboard() {
                             <span className="text-charcoal font-medium">{date}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-4 text-charcoal font-mono">{time}</td>
+                        <td className="px-5 py-4 text-charcoal font-mono">{timeLabel}</td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${
                             slot.isAvailable

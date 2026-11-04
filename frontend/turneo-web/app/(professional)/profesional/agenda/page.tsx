@@ -7,6 +7,7 @@ import { logError } from "@/src/lib/logger";
 import { useToast, ToastContainer } from "@/src/components/shared/Toast";
 import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
+import { bookingRangeEnd, slotOccupancy } from "@/src/lib/bookingRange";
 
 interface Booking {
   id: number;
@@ -16,6 +17,9 @@ interface Booking {
   service?: string;
   message?: string;
   status: string;
+  // Real range (slot start + service duration); absent = the slot's own times.
+  bookingStartDateTime?: string | null;
+  bookingEndDateTime?: string | null;
 }
 
 interface TimeSlot {
@@ -25,6 +29,14 @@ interface TimeSlot {
   isAvailable: boolean;
   label: string;
   booking?: Booking;
+  // Active booking that starts in or overlaps this slot (null when free).
+  occupiedByBookingId?: number | null;
+}
+
+// Slot label with the booking's range end when it outlasts the slot ("… · 10:00 – 13:00").
+function slotDisplayLabel(slot: TimeSlot): string {
+  const end = slot.booking ? bookingRangeEnd({ ...slot, ...slot.booking }) : null;
+  return end ? `${slot.label} – ${end}` : slot.label;
 }
 
 const ITEMS_PER_PAGE = 8;
@@ -147,7 +159,9 @@ function ProfessionalAgendaContent() {
       showToast("success", "Turno liberado");
       loadSlots();
     } else {
-      showToast("error", "No se pudo liberar el turno");
+      // e.g. 409 when another booking's range still covers the slot.
+      const data = await res.json().catch(() => ({}));
+      showToast("error", data.message || "No se pudo liberar el turno");
     }
   };
 
@@ -259,6 +273,8 @@ function ProfessionalAgendaContent() {
               <div className="space-y-2">
                 {pageSlots.map((slot) => {
                   const isHighlighted = highlightedBookingId != null && slot.booking?.id === highlightedBookingId;
+                  // Covered by another booking's range (a long service started earlier).
+                  const continuation = slotOccupancy(slot) === "continuation";
                   return (
                   <div
                     key={slot.id}
@@ -269,6 +285,8 @@ function ProfessionalAgendaContent() {
                     className={`p-4 rounded-xl border ${!slot.isAvailable ? "cursor-pointer hover:brightness-95" : ""} ${
                       isHighlighted
                         ? "border-champagne ring-2 ring-champagne/50 bg-champagne/10"
+                        : continuation
+                        ? "border-mauve/15 bg-porcelain/30"
                         : slot.isAvailable
                         ? "border-green-200 bg-green-50"
                         : slot.booking?.status === "Confirmed"
@@ -282,8 +300,11 @@ function ProfessionalAgendaContent() {
                           {isHighlighted && (
                             <span className="text-[9px] font-bold bg-champagne/20 text-champagne px-1.5 py-0.5 rounded">NUEVO</span>
                           )}
-                          <p className="text-charcoal font-medium text-sm">{slot.label}</p>
+                          <p className="text-charcoal font-medium text-sm">{slotDisplayLabel(slot)}</p>
                         </div>
+                        {continuation && (
+                          <p className="text-charcoal/50 text-xs mt-1">Lo ocupa un turno que empieza antes</p>
+                        )}
                         {!slot.isAvailable && slot.booking && (
                           <p className="text-charcoal/60 text-xs mt-1">
                             {slot.booking.customerName} · {slot.booking.customerPhone}
@@ -293,15 +314,17 @@ function ProfessionalAgendaContent() {
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          slot.isAvailable
+                          continuation
+                            ? "bg-mauve/10 text-charcoal/60"
+                            : slot.isAvailable
                             ? "bg-green-500/20 text-green-700"
                             : slot.booking?.status === "Confirmed"
                             ? "bg-blue-500/20 text-blue-700"
                             : "bg-orange-500/20 text-orange-700"
                         }`}>
-                          {slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
+                          {continuation ? "OCUPADO" : slot.isAvailable ? "LIBRE" : slot.booking?.status === "Confirmed" ? "CONFIRMADO" : "RESERVADO"}
                         </span>
-                        {slot.isAvailable ? (
+                        {continuation ? null : slot.isAvailable ? (
                           <button
                             onClick={() => deleteSlot(slot.id)}
                             data-testid="agenda-slot-delete"
@@ -359,7 +382,7 @@ function ProfessionalAgendaContent() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-mauve/5">
               <div>
                 <h2 className="text-charcoal font-semibold text-lg">Detalle de reserva</h2>
-                <p className="text-charcoal/40 text-xs mt-0.5">{detailSlot.label}</p>
+                <p className="text-charcoal/40 text-xs mt-0.5">{slotDisplayLabel(detailSlot)}</p>
               </div>
               <button onClick={() => setDetailSlot(null)} className="text-charcoal/40 hover:text-charcoal transition text-xl">✕</button>
             </div>
