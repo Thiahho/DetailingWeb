@@ -46,7 +46,13 @@ export function formatTimeRange(range: TimeRange): string {
  */
 export function bookingTimeLabel(source: SlotTimes & BookingRangeFields): string {
   const range = bookingRange(source);
-  return minuteOf(range.end) !== minuteOf(source.endDateTime) ? formatTimeRange(range) : wallClockTime(range.start);
+  return bookingRangeEnd(source) ? formatTimeRange(range) : wallClockTime(range.start);
+}
+
+/** "HH:mm" end of the booking when its real range ends after its slot, else null. */
+export function bookingRangeEnd(source: SlotTimes & BookingRangeFields): string | null {
+  const end = bookingRange(source).end;
+  return minuteOf(end) !== minuteOf(source.endDateTime) ? wallClockTime(end) || null : null;
 }
 
 /** Wall-clock date time plus `minutes`, in the same "yyyy-MM-ddTHH:mm:ss" format. */

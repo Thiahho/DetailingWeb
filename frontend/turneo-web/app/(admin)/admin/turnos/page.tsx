@@ -14,6 +14,7 @@ import { Button } from "@/src/components/shared/Button";
 import type { Booking, TimeSlot } from "./_components/BookingDetailModal";
 import { PAID_RELEASE_HINT, canCancelAndRefund, canReleaseBooking } from "@/src/lib/bookings/paidBooking";
 import { buildTimeslotsUrl, defaultAgendaRange } from "@/src/lib/bookings/slotRange";
+import { bookingRangeEnd, slotOccupancy } from "@/src/lib/bookingRange";
 
 // El modal de detalle de reserva solo hace falta al abrir un turno reservado:
 // diferirlo evita que entre en el compile/bundle inicial de la ruta.
@@ -721,7 +722,7 @@ export default function TurnosPage() {
     const expired = isExpired(slot.startDateTime);
     if (statusFilter === "expired") return expired;
     if (expired) return false;
-    if (statusFilter === "available") return slot.isAvailable && !slot.isBlocked;
+    if (statusFilter === "available") return slot.isAvailable && !slot.isBlocked && slotOccupancy(slot) !== "continuation";
     if (statusFilter === "disabled") return slot.isAvailable && !!slot.isBlocked;
     if (statusFilter === "pending") return !slot.isAvailable && slot.booking?.status !== "Confirmed";
     if (statusFilter === "confirmed") return !slot.isAvailable && slot.booking?.status === "Confirmed";
@@ -1338,6 +1339,10 @@ export default function TurnosPage() {
                 currentSlots.map((slot) => {
                   const expired = isExpired(slot.startDateTime);
                   const blocked = slot.isAvailable && !!slot.isBlocked;
+                  // Covered by another booking's range (a long service started earlier).
+                  const continuation = slotOccupancy(slot) === "continuation";
+                  const ownerSlot = continuation ? slots.find((s) => s.booking?.id === slot.occupiedByBookingId) : undefined;
+                  const rangeEnd = slot.booking ? bookingRangeEnd({ ...slot, ...slot.booking }) : null;
                   return (
                   <div
                     key={slot.id}
@@ -1350,6 +1355,8 @@ export default function TurnosPage() {
                           ? "bg-porcelain/[0.02] border-mauve/10 opacity-60"
                           : blocked
                           ? "bg-porcelain/10 border-mauve/20"
+                          : continuation
+                          ? "bg-porcelain/20 border-mauve/15"
                           : slot.isAvailable
                           ? "bg-green-50 border-green-200 hover:border-green-300"
                           : slot.booking?.status === "Confirmed"
@@ -1371,6 +1378,7 @@ export default function TurnosPage() {
                           {/* Fecha y Hora */}
                           <p className={`font-medium text-[15px] tracking-wide ${expired ? "text-charcoal/50 line-through" : "text-charcoal"}`}>
                             {formatDateFriendly(slot.startDateTime)}
+                            {rangeEnd && ` – ${rangeEnd}`}
                           </p>
 
                           {/* Estado */}
@@ -1379,7 +1387,7 @@ export default function TurnosPage() {
                               className={`w-2.5 h-2.5 rounded-full ${
                                 expired
                                   ? "bg-porcelain/30"
-                                  : blocked
+                                  : blocked || continuation
                                   ? "bg-charcoal/30"
                                   : slot.isAvailable
                                   ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
@@ -1392,7 +1400,7 @@ export default function TurnosPage() {
                               className={`text-xs font-bold tracking-wider ${
                                 expired
                                   ? "text-charcoal/40"
-                                  : blocked
+                                  : blocked || continuation
                                   ? "text-charcoal/50"
                                   : slot.isAvailable
                                   ? "text-green-500"
@@ -1405,6 +1413,8 @@ export default function TurnosPage() {
                                 ? "EXPIRADO"
                                 : blocked
                                 ? "DESHABILITADO"
+                                : continuation
+                                ? "OCUPADO"
                                 : slot.isAvailable
                                 ? "HABILITADO"
                                 : slot.booking?.status === "Confirmed"
@@ -1424,6 +1434,16 @@ export default function TurnosPage() {
                           >
                             Eliminar
                           </button>
+                        ) : continuation ? (
+                          ownerSlot ? (
+                            <button
+                              onClick={() => setDetailSlot(ownerSlot)}
+                              data-testid="slot-occupied-owner-button"
+                              className="text-blushdark hover:text-blush text-xs font-medium uppercase tracking-wide transition"
+                            >
+                              Ver turno
+                            </button>
+                          ) : null
                         ) : slot.isAvailable ? (
                           <>
                             <button
@@ -1497,8 +1517,16 @@ export default function TurnosPage() {
                       </div>
                     </div>
 
+                    {continuation && (
+                      <div className="mt-3 pt-3 border-t border-mauve/5 text-xs text-charcoal/50">
+                        {ownerSlot?.booking
+                          ? `Lo ocupa el turno de ${ownerSlot.booking.customerName}, que empieza antes`
+                          : "Lo ocupa un turno que empieza antes"}
+                      </div>
+                    )}
+
                     {/* Profesional dueño del turno, aunque todavía no esté reservado */}
-                    {slot.isAvailable && (slot.professionalName || slot.serviceTitle) && (
+                    {slot.isAvailable && !continuation && (slot.professionalName || slot.serviceTitle) && (
                       <div className="mt-3 pt-3 border-t border-mauve/5 text-xs text-charcoal/50 flex flex-wrap gap-x-3 gap-y-1">
                         {slot.professionalName && <span>👤 {slot.professionalName}</span>}
                         {slot.serviceTitle && <span data-testid="slot-item-service">🔧 {slot.serviceTitle}</span>}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addMinutesToWallClock,
   bookingRange,
+  bookingRangeEnd,
   bookingTimeLabel,
   buildAvailableSlotsUrl,
   continuationOwners,
@@ -171,5 +172,16 @@ describe("continuationOwners", () => {
     const owners = continuationOwners([owner, free]);
     expect(owners.has(1)).toBe(false);
     expect(owners.has(5)).toBe(false);
+  });
+});
+
+describe("bookingRangeEnd", () => {
+  it("is the end time when the booking outlasts its slot", () => {
+    expect(bookingRangeEnd({ ...slot, bookingEndDateTime: "2026-11-05T13:00:00" })).toBe("13:00");
+  });
+
+  it("is null when the booking lasts its slot or has no range", () => {
+    expect(bookingRangeEnd({ ...slot, bookingEndDateTime: slot.endDateTime })).toBeNull();
+    expect(bookingRangeEnd(slot)).toBeNull();
   });
 });

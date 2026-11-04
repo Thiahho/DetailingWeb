@@ -5,6 +5,7 @@ import { X, Phone, Scissors, Tag, UserRound, MessageSquare, Wallet } from "lucid
 import { Button } from "@/src/components/shared/Button";
 import { useModalHotkeys } from "@/src/hooks/useModalHotkeys";
 import { PAID_RELEASE_HINT, canCancelAndRefund, canReleaseBooking } from "@/src/lib/bookings/paidBooking";
+import { bookingRangeEnd } from "@/src/lib/bookingRange";
 
 export interface Booking {
   id: number;
@@ -22,6 +23,9 @@ export interface Booking {
   paymentAmount?: number | null;
   paymentPaidAt?: string | null;
   paymentProvider?: string | null;
+  // Real range (slot start + service duration); absent = the slot's own times.
+  bookingStartDateTime?: string | null;
+  bookingEndDateTime?: string | null;
 }
 
 export interface TimeSlot {
@@ -38,6 +42,8 @@ export interface TimeSlot {
   serviceId?: number | null;
   serviceTitle?: string | null;
   serviceSlug?: string | null;
+  // Active booking that starts in or overlaps this slot (null when free).
+  occupiedByBookingId?: number | null;
 }
 
 function isExpired(isoString: string): boolean {
@@ -145,7 +151,10 @@ export default function BookingDetailModal({
               <h2 className="text-charcoal font-semibold text-lg">{booking.customerName}</h2>
               {statusBadge}
             </div>
-            <p className="text-charcoal/40 text-xs mt-1">{formatDateFriendly(slot.startDateTime)}</p>
+            <p className="text-charcoal/40 text-xs mt-1">
+              {formatDateFriendly(slot.startDateTime)}
+              {bookingRangeEnd({ ...slot, ...booking }) && ` – ${bookingRangeEnd({ ...slot, ...booking })}`}
+            </p>
           </div>
           <button
             onClick={onClose}
