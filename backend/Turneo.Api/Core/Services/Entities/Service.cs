@@ -24,6 +24,9 @@ public class Service : ITenantScoped
     public string Slug { get; set; } = string.Empty;
     public string Price { get; set; } = string.Empty;
     public string? Duration { get; set; } = string.Empty;
+    // How long a booking of this service blocks the agenda (5–1440). Null: the
+    // booking lasts its start slot. The free-text Duration stays for display.
+    public int? DurationMinutes { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public string? Description { get; set; }
     public List<string> Details { get; set; } = new();

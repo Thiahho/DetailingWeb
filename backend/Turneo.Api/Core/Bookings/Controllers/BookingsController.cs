@@ -153,6 +153,7 @@ public class BookingsController : ControllerBase
             Source = smartTagSource
         };
         homeService.Snapshot?.ApplyTo(booking);
+        (await ResolveTimeRangeAsync(timeSlot.StartDateTime, timeSlot.EndDateTime, booking.Service)).ApplyTo(booking);
 
         _repository.Add(booking);
 
@@ -258,6 +259,8 @@ public class BookingsController : ControllerBase
             customFieldsJson = booking.CustomFieldsJson,
             startDateTime = booking.TimeSlot.StartDateTime,
             endDateTime = booking.TimeSlot.EndDateTime,
+            bookingStartDateTime = booking.StartDateTime,
+            bookingEndDateTime = booking.EndDateTime,
             status = booking.Status == BookingStatus.LegacyReserved ? BookingStatus.Pending : booking.Status,
             cancelledAt = booking.CancelledAt
         });
@@ -406,6 +409,20 @@ public class BookingsController : ControllerBase
         booking.TimeSlot.IsAvailable = true;
     }
 
+    // Every write that places a booking at a time goes through here: the rule
+    // lives in BookingTimeRange, the service duration comes from the booked
+    // service's slug within the current tenant.
+    private async Task<BookingTimeRange> ResolveTimeRangeAsync(DateTime start, DateTime slotEnd, string? serviceSlug) =>
+        BookingTimeRange.From(start, slotEnd, await _repository.GetServiceDurationMinutesAsync(serviceSlug));
+
+    // Reschedule: the booking moves to the new slot and its range is recomputed from it.
+    private async Task MoveToSlotAsync(Booking booking, int newTimeSlotId)
+    {
+        var newSlot = await _repository.GetSlotSnapshotAsync(newTimeSlotId);
+        booking.TimeSlotId = newTimeSlotId;
+        (await ResolveTimeRangeAsync(newSlot.StartDateTime, newSlot.EndDateTime, booking.Service)).ApplyTo(booking);
+    }
+
     private static void EnqueueCancelledNotification(int bookingId) =>
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(bookingId, NotificationEventType.BookingCancelled, null));
 
@@ -447,7 +464,7 @@ public class BookingsController : ControllerBase
         // Liberar el slot anterior
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
-        booking.TimeSlotId = request.NewTimeSlotId;
+        await MoveToSlotAsync(booking, request.NewTimeSlotId);
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
@@ -505,7 +522,7 @@ public class BookingsController : ControllerBase
 
         await _repository.ReleaseSlotAsync(booking.TimeSlotId);
 
-        booking.TimeSlotId = request.NewTimeSlotId;
+        await MoveToSlotAsync(booking, request.NewTimeSlotId);
         await _repository.SaveChangesAsync();
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
@@ -590,6 +607,15 @@ public class BookingsController : ControllerBase
             && booking.HomeServiceSurcharge is null
             && await _travelBuffer.IsSlotInsideBufferAsync(booking.TimeSlotId, booking.ProfessionalId, booking.Id))
             return TravelBufferConflict();
+
+        // A different service changes how long the booking lasts: recompute the
+        // end from the new service, keeping the start. Same service: the range
+        // stays as booked even if the service's duration changed since.
+        if (!string.Equals(booking.Service?.Trim() ?? string.Empty, service ?? string.Empty, StringComparison.Ordinal))
+        {
+            await _repository.LoadTimeSlotAsync(booking);
+            (await ResolveTimeRangeAsync(booking.StartDateTime, booking.TimeSlot.EndDateTime, service)).ApplyTo(booking);
+        }
 
         booking.CustomerName = request.CustomerName.Trim();
         booking.CustomerPhone = request.CustomerPhone.Trim();

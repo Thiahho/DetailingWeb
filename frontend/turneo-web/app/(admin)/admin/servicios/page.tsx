@@ -13,6 +13,7 @@ import { useBulkSelection } from "@/src/hooks/useBulkSelection";
 import { countLabel, runBulk } from "@/src/lib/bulk";
 import type { Service, InsumoOption } from "./_components/ServiceFormModal";
 import { withLocationType } from "@/src/lib/homeService/serviceLocation";
+import { withDurationMinutes } from "@/src/lib/services/serviceDuration";
 import { distinctCategories } from "@/src/components/forms/CategoryCombobox";
 
 // El formulario (imagen, receta de insumos, campos dinámicos) es el bloque
@@ -122,7 +123,13 @@ export default function ServiciosAdminPage() {
       const res = await fetch(`/api/services/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(withLocationType({ ...rest, customFieldsSchema: rest.customFieldsSchema ?? null, isActive }, rest.locationType)),
+        // Full replace: locationType and durationMinutes must travel unchanged.
+        body: JSON.stringify(
+          withDurationMinutes(
+            withLocationType({ ...rest, customFieldsSchema: rest.customFieldsSchema ?? null, isActive }, rest.locationType),
+            rest.durationMinutes
+          )
+        ),
       });
       return res.ok;
     });

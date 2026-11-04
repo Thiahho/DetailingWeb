@@ -44,6 +44,18 @@ public class BookingsRepository : IBookingsRepository
     public Task<TimeSlot> GetSlotSnapshotAsync(int timeSlotId) =>
         _context.TimeSlots.AsNoTracking().FirstAsync(t => t.Id == timeSlotId);
 
+    public async Task<int?> GetServiceDurationMinutesAsync(string? serviceSlug)
+    {
+        var slug = serviceSlug?.Trim();
+        if (string.IsNullOrEmpty(slug))
+            return null;
+
+        return await _context.Services
+            .Where(s => s.Slug == slug)
+            .Select(s => s.DurationMinutes)
+            .FirstOrDefaultAsync();
+    }
+
     public void Add(Booking booking) => _context.Bookings.Add(booking);
 
     public Task<List<AdminBookingListItem>> GetAllWithDetailsAsync() =>
@@ -108,7 +120,9 @@ public class BookingsRepository : IBookingsRepository
                         x.Booking.CoverageLocalityName,
                         x.Booking.CoverageLocalityProvince,
                         x.Booking.HomeServiceSurcharge)
-                    : null))
+                    : null,
+                x.Booking.StartDateTime,
+                x.Booking.EndDateTime))
             .ToListAsync();
 
     public Task<List<MyBookingItem>> GetMineAsync(string? emailFilter)
@@ -138,7 +152,9 @@ public class BookingsRepository : IBookingsRepository
                 b.Payment != null ? b.Payment.Status : null,
                 b.Payment != null ? b.Payment.Amount : (decimal?)null,
                 b.Payment != null ? b.Payment.PaidAt : (DateTime?)null,
-                b.Payment != null ? b.Payment.CheckoutUrl : null))
+                b.Payment != null ? b.Payment.CheckoutUrl : null,
+                b.StartDateTime,
+                b.EndDateTime))
             .ToListAsync();
     }
 
@@ -160,7 +176,9 @@ public class BookingsRepository : IBookingsRepository
                 b.TimeSlot.StartDateTime,
                 b.TimeSlot.EndDateTime,
                 b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > argNow,
-                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > argNow))
+                b.Status != BookingStatus.Cancelled && b.TimeSlot.EndDateTime > argNow,
+                b.StartDateTime,
+                b.EndDateTime))
             .ToListAsync();
     }
 

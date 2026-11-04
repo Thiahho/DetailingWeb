@@ -12,6 +12,12 @@ public class Booking : ITenantScoped
     public TimeSlot TimeSlot { get; set; } = null!;
     public int? ProfessionalId { get; set; }
     public Professional? Professional { get; set; }
+
+    // Time the booking occupies, Argentina wall-clock like TimeSlot. Snapshot
+    // set through BookingTimeRange on every write that places the booking at a
+    // time (start = slot start, end = start + service duration, else slot end).
+    public DateTime StartDateTime { get; set; }
+    public DateTime EndDateTime { get; set; }
     public string? Service{get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;

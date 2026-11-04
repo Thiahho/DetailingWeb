@@ -35,6 +35,7 @@ public class ServicesController : ControllerBase
             s.Slug,
             s.Price,
             s.Duration,
+            s.DurationMinutes,
             s.ImageUrl,
             s.Details,
             s.Description,
@@ -63,6 +64,7 @@ public class ServicesController : ControllerBase
             s.Slug,
             s.Price,
             s.Duration,
+            s.DurationMinutes,
             s.ImageUrl,
             s.Details,
             s.Description,
@@ -94,6 +96,7 @@ public class ServicesController : ControllerBase
             service.Slug,
             service.Price,
             service.Duration,
+            service.DurationMinutes,
             service.ImageUrl,
             service.Details,
             service.Description,
@@ -135,6 +138,7 @@ public class ServicesController : ControllerBase
             Slug = request.Slug,
             Price = request.Price,
             Duration = request.Duration,
+            DurationMinutes = request.DurationMinutes,
             ImageUrl = request.ImageUrl,
             Details = request.Details,
             Description = request.Description,
@@ -157,6 +161,7 @@ public class ServicesController : ControllerBase
             service.Slug,
             service.Price,
             service.Duration,
+            service.DurationMinutes,
             service.ImageUrl,
             service.Details,
             service.Description,
@@ -188,6 +193,7 @@ public class ServicesController : ControllerBase
         service.Slug = request.Slug;
         service.Price = request.Price;
         service.Duration = request.Duration;
+        service.DurationMinutes = request.DurationMinutes;
         service.ImageUrl = request.ImageUrl;
         service.Details = request.Details;
         service.Description = request.Description;
@@ -278,6 +284,11 @@ public class ServiceRequest
 
     [StringLength(50)]
     public string? Duration { get; set; } = string.Empty;
+
+    // Full replace like LocationType: the admin form always sends it, and an
+    // omitted value clears it (null = the booking lasts its start slot).
+    [Range(5, 1440, ErrorMessage = "La duración del turno debe estar entre 5 y 1440 minutos")]
+    public int? DurationMinutes { get; set; }
 
     [StringLength(1000)]
     public string ImageUrl { get; set; } = string.Empty;

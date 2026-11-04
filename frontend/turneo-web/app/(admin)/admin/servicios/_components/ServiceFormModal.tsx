@@ -13,6 +13,13 @@ import {
   withLocationType,
   type ServiceLocationType,
 } from "@/src/lib/homeService/serviceLocation";
+import {
+  DURATION_MINUTES_MAX,
+  DURATION_MINUTES_MIN,
+  durationMinutesToInput,
+  validateDurationMinutesInput,
+  withDurationMinutes,
+} from "@/src/lib/services/serviceDuration";
 
 const DIACRITICS_RE = new RegExp("[" + String.fromCharCode(0x0300) + "-" + String.fromCharCode(0x036f) + "]", "g");
 
@@ -36,6 +43,7 @@ export interface Service {
   bufferMinutes: number;
   color: string;
   locationType?: ServiceLocationType;
+  durationMinutes?: number | null;
 }
 
 export interface InsumoOption { id: number; name: string; stock: number; }
@@ -56,6 +64,7 @@ const emptyForm = {
   slug: "",
   price: "",
   duration: "",
+  durationMinutes: "",
   description: "",
   imageUrl: "",
   details: ["", "", ""],
@@ -91,6 +100,7 @@ export default function ServiceFormModal({
           slug: initial.slug,
           price: initial.price,
           duration: initial.duration,
+          durationMinutes: durationMinutesToInput(initial.durationMinutes),
           imageUrl: initial.imageUrl,
           details: initial.details.length >= 3 ? [...initial.details] : [...initial.details, "", "", ""].slice(0, 3),
           isActive: initial.isActive,
@@ -119,6 +129,7 @@ export default function ServiceFormModal({
   const typedInsumo = newRecipeItem.name.trim();
   const matchedInsumo = catalog.find((i) => normalize(i.name) === normalize(typedInsumo));
   const [saving, setSaving] = useState(false);
+  const durationMinutesError = validateDurationMinutesInput(formData.durationMinutes);
 
   useEffect(() => {
     if (!initial) return;
@@ -207,17 +218,25 @@ export default function ServiceFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (durationMinutesError) {
+      onError(durationMinutesError);
+      return;
+    }
     setSaving(true);
 
     const validFields = customFields.filter((f) => f.name.trim() && f.key.trim());
-    // The PUT is a full replace: locationType must always travel or the service resets to OnSite.
-    const payload = withLocationType(
-      {
-        ...formData,
-        details: formData.details.filter((d) => d.trim() !== ""),
-        customFieldsSchema: validFields.length > 0 ? JSON.stringify(validFields) : null,
-      },
-      formData.locationType
+    // The PUT is a full replace: locationType and durationMinutes must always
+    // travel or the service resets to OnSite / loses its duration.
+    const payload = withDurationMinutes(
+      withLocationType(
+        {
+          ...formData,
+          details: formData.details.filter((d) => d.trim() !== ""),
+          customFieldsSchema: validFields.length > 0 ? JSON.stringify(validFields) : null,
+        },
+        formData.locationType
+      ),
+      formData.durationMinutes
     );
 
     try {
@@ -315,6 +334,31 @@ export default function ServiceFormModal({
                 placeholder="4-6 hs"
               />
             </div>
+          </div>
+
+          {/* Duración del turno: cuánto bloquea la agenda */}
+          <div>
+            <label htmlFor="service-form-duration-minutes" className="text-charcoal/60 text-xs font-medium uppercase tracking-wider">
+              Duración del turno (minutos)
+            </label>
+            <input
+              id="service-form-duration-minutes"
+              type="number"
+              inputMode="numeric"
+              min={DURATION_MINUTES_MIN}
+              max={DURATION_MINUTES_MAX}
+              step={1}
+              className="form-input mt-1.5"
+              data-testid="service-form-duration-minutes"
+              value={formData.durationMinutes}
+              onChange={(e) => setFormData((prev) => ({ ...prev, durationMinutes: e.target.value }))}
+              placeholder="180"
+              aria-invalid={durationMinutesError ? true : undefined}
+              aria-describedby="service-form-duration-minutes-help"
+            />
+            <p id="service-form-duration-minutes-help" className={`mt-1 text-[11px] ${durationMinutesError ? "text-red-600" : "text-charcoal/40"}`}>
+              {durationMinutesError ?? "Cuánto tiempo bloquea la agenda. Vacío: dura lo que dura el horario elegido."}
+            </p>
           </div>
 
           {/* Dónde se presta */}

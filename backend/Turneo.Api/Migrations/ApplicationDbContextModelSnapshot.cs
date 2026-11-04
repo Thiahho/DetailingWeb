@@ -173,6 +173,9 @@ namespace Turneo.Api.Migrations
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("EndDateTime")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<decimal?>("FinalPrice")
                         .HasColumnType("decimal(12,2)");
 
@@ -218,6 +221,9 @@ namespace Turneo.Api.Migrations
                     b.Property<string>("Source")
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime>("StartDateTime")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1399,6 +1405,9 @@ namespace Turneo.Api.Migrations
 
                     b.Property<string>("Duration")
                         .HasColumnType("text");
+
+                    b.Property<int?>("DurationMinutes")
+                        .HasColumnType("integer");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()

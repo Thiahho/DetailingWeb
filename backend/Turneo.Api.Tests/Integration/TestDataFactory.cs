@@ -119,6 +119,14 @@ public static class TestDataFactory
         return service;
     }
 
+    public static async Task SetServiceDurationAsync(CustomWebApplicationFactory factory, int serviceId, int? durationMinutes)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await db.Services.IgnoreQueryFilters().Where(s => s.Id == serviceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.DurationMinutes, durationMinutes));
+    }
+
     public static async Task<Professional> CreateProfessionalAsync(CustomWebApplicationFactory factory, int tenantId, string firstName = "Profesional", decimal commission = 10)
     {
         using var scope = factory.Services.CreateScope();
@@ -158,10 +166,14 @@ public static class TestDataFactory
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        // Same time snapshot the API stores for a booking without service duration.
+        var slot = await db.TimeSlots.IgnoreQueryFilters().AsNoTracking().FirstAsync(t => t.Id == timeSlotId);
         var booking = new Booking
         {
             TenantId = tenantId,
             TimeSlotId = timeSlotId,
+            StartDateTime = slot.StartDateTime,
+            EndDateTime = slot.EndDateTime,
             CustomerName = customerName,
             CustomerPhone = phone,
             Email = email,

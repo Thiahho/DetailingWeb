@@ -11,6 +11,9 @@ public interface IBookingsRepository
     Task ReleaseSlotAsync(int timeSlotId);
     Task<bool> SlotExistsAsync(int timeSlotId);
     Task<TimeSlot> GetSlotSnapshotAsync(int timeSlotId);
+    // DurationMinutes of the service with this slug in the current tenant (query
+    // filter); null when the service has none or the slug matches no service.
+    Task<int?> GetServiceDurationMinutesAsync(string? serviceSlug);
     void Add(Booking booking);
     Task<List<AdminBookingListItem>> GetAllWithDetailsAsync();
     // emailFilter null => sin filtro (Admin ve todo); no-null => solo las reservas de ese email (portal de cliente).
@@ -78,7 +81,11 @@ public record AdminBookingListItem(
     string? PhotoUrlsBefore,
     string? PhotoUrlsAfter,
     List<BookingItemSummary> Items,
-    HomeServiceAddressSummary? HomeServiceAddress);
+    HomeServiceAddressSummary? HomeServiceAddress,
+    // Time the booking occupies (see BookingTimeRange). StartDateTime/EndDateTime
+    // above are still the slot times until readers switch to this range.
+    DateTime BookingStartDateTime,
+    DateTime BookingEndDateTime);
 
 // Address snapshot of an at-home booking (null for on-site bookings).
 public record HomeServiceAddressSummary(
@@ -104,7 +111,9 @@ public record MyBookingItem(
     string? PaymentStatus,
     decimal? PaymentAmount,
     DateTime? PaymentPaidAt,
-    string? PaymentCheckoutUrl);
+    string? PaymentCheckoutUrl,
+    DateTime BookingStartDateTime,
+    DateTime BookingEndDateTime);
 
 public record PublicBookingItem(
     int Id,
@@ -116,4 +125,6 @@ public record PublicBookingItem(
     DateTime StartDateTime,
     DateTime EndDateTime,
     bool CanCancel,
-    bool CanReschedule);
+    bool CanReschedule,
+    DateTime BookingStartDateTime,
+    DateTime BookingEndDateTime);
