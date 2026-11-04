@@ -162,7 +162,7 @@ public static class TestDataFactory
         return slot;
     }
 
-    public static async Task<Booking> CreateBookingAsync(CustomWebApplicationFactory factory, int tenantId, int timeSlotId, string customerName, string email, string status = BookingStatus.Pending, string phone = "1122334455")
+    public static async Task<Booking> CreateBookingAsync(CustomWebApplicationFactory factory, int tenantId, int timeSlotId, string customerName, string email, string status = BookingStatus.Pending, string phone = "1122334455", int? professionalId = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -172,6 +172,7 @@ public static class TestDataFactory
         {
             TenantId = tenantId,
             TimeSlotId = timeSlotId,
+            ProfessionalId = professionalId,
             StartDateTime = slot.StartDateTime,
             EndDateTime = slot.EndDateTime,
             CustomerName = customerName,

@@ -449,6 +449,25 @@ public class ProfessionalsController : ControllerBase
         if (professional == null)
             return NotFound(new { message = "Profesional no encontrado" });
 
+        // Deleting sets the professional's bookings to no professional (FK SET
+        // NULL), which can collide with the per-professional overlap constraint
+        // on bookings without professional. Block it while active bookings are
+        // still ahead; past or cancelled ones are fine. Booking times are
+        // Argentina wall-clock (see ArgentinaClock), not UTC.
+        var now = ArgentinaClock.Now();
+        var activeFutureBookings = await _context.Bookings.CountAsync(b =>
+            b.ProfessionalId == id &&
+            b.Status != BookingStatus.Cancelled &&
+            b.EndDateTime > now);
+
+        if (activeFutureBookings > 0)
+        {
+            var message = activeFutureBookings == 1
+                ? "Este profesional tiene 1 turno activo pendiente. Reasignalo o cancelalo antes de eliminarlo."
+                : $"Este profesional tiene {activeFutureBookings} turnos activos pendientes. Reasignalos o cancelalos antes de eliminarlo.";
+            return Conflict(new { message });
+        }
+
         _repository.Remove(professional);
         await _repository.SaveChangesAsync();
 
