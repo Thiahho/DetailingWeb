@@ -10,9 +10,12 @@ public static class BookingWriteConflict
 {
     public const string OverlapConstraint = "EX_Bookings_ProfessionalTimeOverlap";
     public const string EndAfterStartConstraint = "CK_Bookings_EndAfterStart";
+    // Partial unique index: one active booking per start slot.
+    public const string OneActiveBookingPerSlotIndex = "IX_Bookings_TimeSlotId";
 
     public const string OverlapMessage = "Ese horario se superpone con otro turno del mismo profesional";
     public const string InvalidRangeMessage = "El horario del turno no es válido";
+    public const string SlotTakenMessage = "Ese horario ya no está disponible";
 
     // Status code and Spanish message for a failed booking save, or null when
     // the failure is not one of the booking time rules.
@@ -23,6 +26,10 @@ public static class BookingWriteConflict
                 => (StatusCodes.Status409Conflict, OverlapMessage),
             PostgresException { SqlState: PostgresErrorCodes.CheckViolation, ConstraintName: EndAfterStartConstraint }
                 => (StatusCodes.Status400BadRequest, InvalidRangeMessage),
+            // Two concurrent moves onto the same slot: the claim is the first
+            // guard, this index the last one.
+            PostgresException { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: OneActiveBookingPerSlotIndex }
+                => (StatusCodes.Status409Conflict, SlotTakenMessage),
             _ => null
         };
 }

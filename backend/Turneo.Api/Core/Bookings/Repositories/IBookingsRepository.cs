@@ -7,9 +7,10 @@ public interface IBookingsRepository
     Task<bool> ProfessionalIsActiveAsync(int professionalId);
     Task<int> CountThisMonthAsync();
     Task<IDbContextTransaction> BeginTransactionAsync();
-    Task<int> TryClaimSlotAsync(int timeSlotId);
-    Task ReleaseSlotAsync(int timeSlotId);
-    Task<bool> SlotExistsAsync(int timeSlotId);
+    // AsNoTracking copy of the slot, null when it does not exist.
+    Task<TimeSlot?> FindSlotSnapshotAsync(int timeSlotId);
+    // True when the slot has its own active (not cancelled) booking.
+    Task<bool> SlotHasActiveBookingAsync(int timeSlotId);
     Task<TimeSlot> GetSlotSnapshotAsync(int timeSlotId);
     // DurationMinutes of the service with this slug in the current tenant (query
     // filter); null when the service has none or the slug matches no service.

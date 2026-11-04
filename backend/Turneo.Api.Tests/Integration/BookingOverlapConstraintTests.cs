@@ -104,8 +104,11 @@ public class BookingOverlapConstraintTests
         Assert.Equal(BookingStatus.Pending, firstBooking.Status);
         Assert.Equal(start, firstBooking.StartDateTime);
         Assert.Equal(start.AddMinutes(60), firstBooking.EndDateTime);
-        // The claim of the second slot was rolled back with the booking.
-        Assert.True((await ReloadSlotAsync(second.Id)).IsAvailable);
+        // The second slot has no booking of its own: it stays unavailable only
+        // because the first booking's range overlaps it.
+        Assert.False((await ReloadSlotAsync(second.Id)).IsAvailable);
+        Assert.Single(await ActiveBookingsOfSlotAsync(first.Id));
+        Assert.Empty(await ActiveBookingsOfSlotAsync(second.Id));
     }
 
     [Fact]
@@ -279,9 +282,18 @@ public class BookingOverlapConstraintTests
         Assert.Equal(current.Id, booking.TimeSlotId);
         Assert.Equal(current.StartDateTime, booking.StartDateTime);
         Assert.Equal(current.EndDateTime, booking.EndDateTime);
-        // Claim of the target and release of the current slot were rolled back.
+        // The current slot stays taken; the target has no booking of its own
+        // (it is unavailable because the occupied booking's range overlaps it).
         Assert.False((await ReloadSlotAsync(current.Id)).IsAvailable);
-        Assert.True((await ReloadSlotAsync(target.Id)).IsAvailable);
+        Assert.Empty(await ActiveBookingsOfSlotAsync(target.Id));
+    }
+
+    private async Task<List<Booking>> ActiveBookingsOfSlotAsync(int slotId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Bookings.IgnoreQueryFilters()
+            .Where(b => b.TimeSlotId == slotId && b.Status != BookingStatus.Cancelled)
+            .ToListAsync();
     }
 
     [Fact]
@@ -331,11 +343,15 @@ public class BookingOverlapConstraintTests
         Assert.Equal(3, responses.Count(r => r.StatusCode == HttpStatusCode.Conflict));
         foreach (var conflict in responses.Where(r => r.StatusCode == HttpStatusCode.Conflict))
             await AssertOverlapConflictAsync(conflict);
-        // Only the winner's slot stays claimed.
-        var claimed = 0;
+        // Only the winner's slot holds a booking; the others are unavailable
+        // because the winner's range overlaps every one of them.
+        var booked = 0;
         foreach (var slot in slots)
-            if (!(await ReloadSlotAsync(slot.Id)).IsAvailable) claimed++;
-        Assert.Equal(1, claimed);
+        {
+            booked += (await ActiveBookingsOfSlotAsync(slot.Id)).Count;
+            Assert.False((await ReloadSlotAsync(slot.Id)).IsAvailable);
+        }
+        Assert.Equal(1, booked);
     }
 
     // A booking whose range ends at or before its start is rejected by the

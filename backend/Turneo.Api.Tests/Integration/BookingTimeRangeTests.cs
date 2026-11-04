@@ -30,12 +30,16 @@ public class BookingTimeRangeTests
     }
 
     // Whole minutes, far in the future, with its own professional so random
-    // times of other tests never collide with this slot.
+    // times of other tests never collide with this slot. A long open slot right
+    // after it keeps the agenda covered for any service duration used here
+    // (a booking's range must be covered by open slots, see AgendaCoverage).
     private async Task<TimeSlot> SlotAsync(int tenantId, int? professionalId = null)
     {
         professionalId ??= (await TestDataFactory.CreateProfessionalAsync(_factory, tenantId)).Id;
         var start = DateTime.UtcNow.Date.AddDays(40).AddMinutes(Random.Shared.Next(1, 200_000));
-        return await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, start, start.AddMinutes(30), professionalId);
+        var slot = await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, start, start.AddMinutes(30), professionalId);
+        await TestDataFactory.CreateTimeSlotAsync(_factory, tenantId, slot.EndDateTime, slot.EndDateTime.AddHours(12), professionalId);
+        return slot;
     }
 
     private async Task<(int BookingId, string Email)> BookAsync(int slotId, string? serviceSlug)

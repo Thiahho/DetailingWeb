@@ -28,18 +28,11 @@ public class BookingsRepository : IBookingsRepository
     public Task<IDbContextTransaction> BeginTransactionAsync() =>
         _context.Database.BeginTransactionAsync();
 
-    public Task<int> TryClaimSlotAsync(int timeSlotId) =>
-        _context.TimeSlots
-            .Where(t => t.Id == timeSlotId && t.IsAvailable && !t.IsBlocked)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsAvailable, false));
+    public Task<TimeSlot?> FindSlotSnapshotAsync(int timeSlotId) =>
+        _context.TimeSlots.AsNoTracking().FirstOrDefaultAsync(t => t.Id == timeSlotId);
 
-    public Task ReleaseSlotAsync(int timeSlotId) =>
-        _context.TimeSlots
-            .Where(t => t.Id == timeSlotId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(t => t.IsAvailable, true));
-
-    public Task<bool> SlotExistsAsync(int timeSlotId) =>
-        _context.TimeSlots.AnyAsync(t => t.Id == timeSlotId);
+    public Task<bool> SlotHasActiveBookingAsync(int timeSlotId) =>
+        _context.Bookings.AnyAsync(b => b.TimeSlotId == timeSlotId && b.Status != BookingStatus.Cancelled);
 
     public Task<TimeSlot> GetSlotSnapshotAsync(int timeSlotId) =>
         _context.TimeSlots.AsNoTracking().FirstAsync(t => t.Id == timeSlotId);

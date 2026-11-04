@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
-using Turneo.Api.Modules.HomeService.TravelBuffer;
 
 namespace Turneo.Api.Core.Scheduling;
 
@@ -11,14 +10,16 @@ namespace Turneo.Api.Core.Scheduling;
 public class TimeSlotsController : ControllerBase
 {
     private readonly ITimeSlotsRepository _repository;
-    private readonly IHomeServiceTravelBuffer _travelBuffer;
+    private readonly IBookingAvailability _availability;
+
+    public const string OccupiedByOverlapMessage = "Este horario está ocupado por otro turno que se superpone. Liberá ese turno para habilitarlo.";
     private static readonly TimeZoneInfo _argentinaZone =
         TimeZoneInfo.FindSystemTimeZoneById("America/Argentina/Buenos_Aires");
 
-    public TimeSlotsController(ITimeSlotsRepository repository, IHomeServiceTravelBuffer travelBuffer)
+    public TimeSlotsController(ITimeSlotsRepository repository, IBookingAvailability availability)
     {
         _repository = repository;
-        _travelBuffer = travelBuffer;
+        _availability = availability;
     }
 
     private static DateTime NowArgentina() =>
@@ -33,35 +34,45 @@ public class TimeSlotsController : ControllerBase
     }
 
     // GET: api/timeslots/available (público - para clientes)
-    // serviceSlug (optional): for an at-home service, slots inside the travel
-    // buffer of another at-home booking of the same professional are hidden.
+    // serviceSlug (optional): only start slots where a booking of that service
+    // fits are listed (same rule as booking creation, see AgendaSnapshot): its
+    // range [start, start + duration) must overlap no active booking of the
+    // professional, be covered by the open agenda and, for an at-home service,
+    // keep the travel buffer. Without serviceSlug the range is the slot itself.
+    // Unknown slug: 400. bookingEndDateTime = end of the range a booking of the
+    // requested service would occupy (startDateTime/endDateTime stay the slot's).
     [HttpGet("available")]
     [AllowAnonymous]
     [EnableRateLimiting("public-read")]
     public async Task<IActionResult> GetAvailableSlots([FromQuery] int? professionalId, [FromQuery] string? serviceSlug)
     {
+        var service = await _availability.GetServiceProfileAsync(serviceSlug);
+        if (!service.Found)
+            return BadRequest(new { message = "El servicio seleccionado no existe" });
+
         var slots = await _repository.GetAvailableAsync(professionalId, NowArgentina());
+        var bookable = await _availability.FilterBookableStartsAsync(slots, service, professionalId);
 
-        if (await _travelBuffer.IsAtHomeServiceAsync(serviceSlug))
-            slots = await _travelBuffer.ExcludeSlotsInsideBufferAsync(slots, professionalId);
-
-        return Ok(slots.Select(s => new
+        return Ok(bookable.Select(b => new
         {
-            id = s.Id,
-            startDateTime = s.StartDateTime,
-            endDateTime = s.EndDateTime,
-            label = s.StartDateTime.ToString("ddd dd/MMM · HH:mm", new System.Globalization.CultureInfo("es-AR")),
-            professionalId = s.ProfessionalId,
-            professionalName = s.Professional != null
-                ? s.Professional.FirstName + " " + s.Professional.LastName
+            id = b.Slot.Id,
+            startDateTime = b.Slot.StartDateTime,
+            endDateTime = b.Slot.EndDateTime,
+            bookingEndDateTime = b.BookingEnd,
+            label = b.Slot.StartDateTime.ToString("ddd dd/MMM · HH:mm", new System.Globalization.CultureInfo("es-AR")),
+            professionalId = b.Slot.ProfessionalId,
+            professionalName = b.Slot.Professional != null
+                ? b.Slot.Professional.FirstName + " " + b.Slot.Professional.LastName
                 : null,
-            serviceId = s.ServiceId,
-            serviceTitle = s.Service?.Title,
-            serviceSlug = s.Service?.Slug
+            serviceId = b.Slot.ServiceId,
+            serviceTitle = b.Slot.Service?.Title,
+            serviceSlug = b.Slot.Service?.Slug
         }));
     }
 
     // GET: api/timeslots/mine (profesional - solo su propia agenda)
+    // occupiedByBookingId: the active booking that occupies the slot, its own or
+    // one whose real range overlaps it (null when free).
     [HttpGet("mine")]
     [Authorize(Roles = "Professional")]
     public async Task<IActionResult> GetMySlots()
@@ -71,6 +82,7 @@ public class TimeSlotsController : ControllerBase
             return Unauthorized(new { message = "Sesión inválida" });
 
         var slots = await _repository.GetMineAsync(professionalId.Value);
+        var occupiedBy = await _availability.GetOccupyingBookingIdsAsync(slots);
 
         return Ok(slots.Select(s => new
         {
@@ -78,6 +90,7 @@ public class TimeSlotsController : ControllerBase
             startDateTime = s.StartDateTime,
             endDateTime = s.EndDateTime,
             isAvailable = s.IsAvailable,
+            occupiedByBookingId = occupiedBy.TryGetValue(s.Id, out var bookingId) ? bookingId : (int?)null,
             label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
             booking = s.Bookings
                 .Where(b => b.Status != BookingStatus.Cancelled)
@@ -113,6 +126,9 @@ public class TimeSlotsController : ControllerBase
         var slots = await _repository.GetAllWithBookingsAsync(
             from?.Date,
             to?.Date.AddDays(1));
+        // The active booking that occupies each slot: its own, or one whose real
+        // range overlaps it (a long service started in an earlier slot).
+        var occupiedBy = await _availability.GetOccupyingBookingIdsAsync(slots);
 
         return Ok(slots.Select(s => new
         {
@@ -121,6 +137,7 @@ public class TimeSlotsController : ControllerBase
             endDateTime = s.EndDateTime,
             isAvailable = s.IsAvailable,
             isBlocked = s.IsBlocked,
+            occupiedByBookingId = occupiedBy.TryGetValue(s.Id, out var bookingId) ? bookingId : (int?)null,
             bookingsCount = s.Bookings.Count,
             label = s.StartDateTime.ToString("ddd dd/MM/yyyy · HH:mm", new System.Globalization.CultureInfo("es-AR")),
             professionalId = s.ProfessionalId,
@@ -221,6 +238,8 @@ public class TimeSlotsController : ControllerBase
 
         _repository.Add(slot);
         await _repository.SaveChangesAsync();
+        // A slot created inside an existing booking's range starts unavailable.
+        await _availability.RefreshSlotAvailabilityAsync(BookingFootprint.OfSlot(slot));
 
         return Ok(new
         {
@@ -278,6 +297,8 @@ public class TimeSlotsController : ControllerBase
         slot.EndDateTime = request.StartDateTime.AddHours(2);
 
         await _repository.SaveChangesAsync();
+        // At its new time the slot may fall inside an existing booking's range.
+        await _availability.RefreshSlotAvailabilityAsync(BookingFootprint.OfSlot(slot));
 
         return Ok(new
         {
@@ -326,8 +347,18 @@ public class TimeSlotsController : ControllerBase
         // pago registrado: esa también se cancela, el pago nunca se borra.
         // Ya canceladas: se dejan como están (historial y CancelledAt original).
         var active = slot.Bookings.Where(b => b.Status != BookingStatus.Cancelled).ToList();
+
+        // Without its own booking the slot is taken by a longer booking that
+        // starts in another slot: that one is released from its own slot.
+        if (active.Count == 0 && (await _availability.GetOccupyingBookingIdsAsync([slot])).Count > 0)
+        {
+            return Conflict(new { success = false, message = OccupiedByOverlapMessage });
+        }
+
         var toDelete = active.Where(b => b.Status != BookingStatus.Confirmed && b.Payment == null).ToList();
         var toCancel = active.Where(b => b.Status == BookingStatus.Confirmed || b.Payment != null).ToList();
+        // Taken before the bookings are removed: every slot they occupied is freed below.
+        var footprints = active.Select(BookingFootprint.Of).Append(BookingFootprint.OfSlot(slot)).ToArray();
 
         _repository.RemoveBookings(toDelete);
         foreach (var booking in toCancel)
@@ -336,10 +367,11 @@ public class TimeSlotsController : ControllerBase
             booking.CancelledAt = DateTime.UtcNow;
         }
 
-        // Marcar turno como HABILITADO
-        slot.IsAvailable = true;
-
         await _repository.SaveChangesAsync();
+
+        // Marcar como HABILITADOS el turno y los que ocupaba la reserva, salvo que
+        // otra reserva activa los superponga.
+        await _availability.RefreshSlotAvailabilityAsync(footprints);
 
         return Ok(new
         {

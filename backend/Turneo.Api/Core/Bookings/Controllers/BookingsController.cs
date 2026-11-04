@@ -7,7 +7,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Turneo.Api.Core.Notifications;
 using Turneo.Api.Modules.HomeService.BookingAddress;
-using Turneo.Api.Modules.HomeService.TravelBuffer;
 using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Bookings;
@@ -27,12 +26,12 @@ public class BookingsController : ControllerBase
     private readonly IPromotionPricingService _promotionPricing;
     private readonly IHomeServiceBookingPolicy _homeServicePolicy;
     private readonly ICajaRepository _cajaRepository;
-    private readonly IHomeServiceTravelBuffer _travelBuffer;
+    private readonly IBookingAvailability _availability;
 
-    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing, IHomeServiceBookingPolicy homeServicePolicy, ICajaRepository cajaRepository, IHomeServiceTravelBuffer travelBuffer)
+    public BookingsController(IBookingsRepository repository, AuthService authService, IConfiguration configuration, IInsumosRepository insumosRepository, IPlanLimitsService planLimits, ISmartTagsRepository smartTagsRepository, ICurrentTenant currentTenant, IPromotionPricingService promotionPricing, IHomeServiceBookingPolicy homeServicePolicy, ICajaRepository cajaRepository, IBookingAvailability availability)
     {
         _cajaRepository = cajaRepository;
-        _travelBuffer = travelBuffer;
+        _availability = availability;
         _promotionPricing = promotionPricing;
         _homeServicePolicy = homeServicePolicy;
         _repository = repository;
@@ -95,32 +94,24 @@ public class BookingsController : ControllerBase
 
         await using var transaction = await _repository.BeginTransactionAsync();
 
-        var updatedRows = await _repository.TryClaimSlotAsync(request.TimeSlotId);
-
-        if (updatedRows == 0)
-        {
-            var exists = await _repository.SlotExistsAsync(request.TimeSlotId);
-
-            if (!exists)
-            {
-                return NotFound(new { success = false, message = "Turno no encontrado" });
-            }
-
-            return Conflict(new { success = false, message = "turno ya reservado" });
-        }
-
-        var timeSlot = await _repository.GetSlotSnapshotAsync(request.TimeSlotId);
+        var timeSlot = await _repository.FindSlotSnapshotAsync(request.TimeSlotId);
+        if (timeSlot == null)
+            return NotFound(new { success = false, message = "Turno no encontrado" });
 
         // Si el turno ya pertenece a un profesional, manda esa asignación por sobre
         // cualquier valor que haya mandado el cliente (turnos legacy sin dueño mantienen
         // el comportamiento anterior: el profesional lo elige el cliente al reservar).
         var professionalId = timeSlot.ProfessionalId ?? request.ProfessionalId;
 
-        // At-home bookings keep the travel buffer with the professional's other
-        // at-home bookings. Returning before the commit rolls the claim back.
-        if (homeService.Snapshot is not null
-            && await _travelBuffer.IsSlotInsideBufferAsync(request.TimeSlotId, professionalId))
-            return TravelBufferConflict();
+        await _availability.LockProfessionalAsync(professionalId);
+        if (!await _availability.TryClaimStartSlotAsync(request.TimeSlotId))
+            return await SlotNotClaimedAsync(request.TimeSlotId, "turno ya reservado", notFoundWhenMissing: true);
+
+        // Availability rule on the booking's real range (overlap, agenda coverage,
+        // at-home travel buffer). Returning before the commit rolls the claim back.
+        var timeRange = await ResolveTimeRangeAsync(timeSlot.StartDateTime, timeSlot.EndDateTime, request.Service);
+        if (await RejectPlacementAsync(timeSlot, professionalId, timeRange, atHome: homeService.Snapshot is not null) is { } unavailable)
+            return unavailable;
 
         // Se resuelve antes de guardar para que la atribución quede en la misma
         // fila y en la misma transacción que la reserva. El canal solo cuenta
@@ -154,12 +145,13 @@ public class BookingsController : ControllerBase
             Source = smartTagSource
         };
         homeService.Snapshot?.ApplyTo(booking);
-        (await ResolveTimeRangeAsync(timeSlot.StartDateTime, timeSlot.EndDateTime, booking.Service)).ApplyTo(booking);
+        timeRange.ApplyTo(booking);
 
         _repository.Add(booking);
 
         if (await TrySaveBookingAsync() is { } rejected)
             return rejected;
+        await _availability.RefreshSlotAvailabilityAsync(BookingFootprint.Of(booking));
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingCreated, null));
 
@@ -296,6 +288,7 @@ public class BookingsController : ControllerBase
         MarkCancelled(booking);
 
         await _repository.SaveChangesAsync();
+        await _availability.RefreshSlotAvailabilityAsync(BookingFootprint.Of(booking));
         EnqueueCancelledNotification(booking.Id);
 
         return Ok(new
@@ -328,6 +321,9 @@ public class BookingsController : ControllerBase
         var booking = await _repository.GetByIdWithTimeSlotAndPaymentAsync(id);
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
+
+        // The cancel frees slots inside this transaction (see LockProfessionalAsync).
+        await _availability.LockProfessionalAsync(booking.ProfessionalId);
 
         var payment = booking.Payment;
         if (payment?.Status == PaymentStatus.Refunded)
@@ -379,6 +375,7 @@ public class BookingsController : ControllerBase
         _cajaRepository.AddMovement(movement);
 
         await _repository.SaveChangesAsync();
+        await _availability.RefreshSlotAvailabilityAsync(BookingFootprint.Of(booking));
         await transaction.CommitAsync();
         EnqueueCancelledNotification(booking.Id);
 
@@ -392,23 +389,12 @@ public class BookingsController : ControllerBase
         });
     }
 
-    // 409 like the other "slot not available" answers; the client picks another time.
-    private ConflictObjectResult TravelBufferConflict() =>
-        Conflict(new { success = false, message = HomeServiceTravelBuffer.InsideBufferMessage });
-
-    // Reschedule of an at-home booking (HomeServiceSurcharge is set only on those):
-    // the new slot must keep the travel buffer with the professional's other
-    // at-home bookings. The booking itself is left out of the check.
-    private async Task<bool> MovesIntoTravelBufferAsync(Booking booking, int newTimeSlotId) =>
-        booking.HomeServiceSurcharge is not null
-        && await _travelBuffer.IsSlotInsideBufferAsync(newTimeSlotId, booking.ProfessionalId, booking.Id);
-
-    // Shared by every cancel path: status, timestamp and freeing the slot.
+    // Shared by every cancel path: status and timestamp. The caller saves and then
+    // refreshes the slots the booking occupied (RefreshSlotAvailabilityAsync).
     private static void MarkCancelled(Booking booking)
     {
         booking.Status = BookingStatus.Cancelled;
         booking.CancelledAt = DateTime.UtcNow;
-        booking.TimeSlot.IsAvailable = true;
     }
 
     // Every write that places a booking at a time goes through here: the rule
@@ -417,12 +403,43 @@ public class BookingsController : ControllerBase
     private async Task<BookingTimeRange> ResolveTimeRangeAsync(DateTime start, DateTime slotEnd, string? serviceSlug) =>
         BookingTimeRange.From(start, slotEnd, await _repository.GetServiceDurationMinutesAsync(serviceSlug));
 
-    // Reschedule: the booking moves to the new slot and its range is recomputed from it.
-    private async Task MoveToSlotAsync(Booking booking, int newTimeSlotId)
+    // The single availability rule (AgendaSnapshot) for a booking placed at
+    // startSlot with the given range; null when it may be placed, else the 409.
+    // excludeBookingId leaves out the booking being moved or edited.
+    private async Task<IActionResult?> RejectPlacementAsync(TimeSlot startSlot, int? professionalId, BookingTimeRange range, bool atHome, int? excludeBookingId = null)
+    {
+        var verdict = await _availability.CheckAsync(new BookingCandidate(
+            BookingAvailability.ToAgendaSlot(startSlot), professionalId, range.End, atHome, excludeBookingId));
+
+        return verdict == AvailabilityVerdict.Available
+            ? null
+            : Conflict(new { success = false, message = BookingAvailability.MessageFor(verdict) });
+    }
+
+    // A start slot could not be claimed. Free of its own booking and not disabled
+    // means another booking's range overlaps it: answer with the overlap message.
+    private async Task<IActionResult> SlotNotClaimedAsync(int timeSlotId, string takenMessage, bool notFoundWhenMissing)
+    {
+        var slot = await _repository.FindSlotSnapshotAsync(timeSlotId);
+        if (slot == null && notFoundWhenMissing)
+            return NotFound(new { success = false, message = "Turno no encontrado" });
+
+        var overlapped = slot is { IsBlocked: false } && !await _repository.SlotHasActiveBookingAsync(timeSlotId);
+        return Conflict(new { success = false, message = overlapped ? BookingWriteConflict.OverlapMessage : takenMessage });
+    }
+
+    // Reschedule: the new start slot is already claimed; the range is recomputed
+    // from it and checked against the rule leaving the booking itself out.
+    private async Task<IActionResult?> MoveToSlotAsync(Booking booking, int newTimeSlotId)
     {
         var newSlot = await _repository.GetSlotSnapshotAsync(newTimeSlotId);
+        var range = await ResolveTimeRangeAsync(newSlot.StartDateTime, newSlot.EndDateTime, booking.Service);
+        if (await RejectPlacementAsync(newSlot, booking.ProfessionalId, range, booking.HomeServiceSurcharge is not null, booking.Id) is { } rejected)
+            return rejected;
+
         booking.TimeSlotId = newTimeSlotId;
-        (await ResolveTimeRangeAsync(newSlot.StartDateTime, newSlot.EndDateTime, booking.Service)).ApplyTo(booking);
+        range.ApplyTo(booking);
+        return null;
     }
 
     // Save for every write that places a booking at a time. The database
@@ -468,25 +485,22 @@ public class BookingsController : ControllerBase
         if (booking.TimeSlotId == request.NewTimeSlotId)
             return BadRequest(new { success = false, message = "Ya estás en ese horario" });
 
-        // Reservar el nuevo slot (solo si está disponible)
-        var updated = await _repository.TryClaimSlotAsync(request.NewTimeSlotId);
-
-        if (updated == 0)
-            return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
-
-        if (await MovesIntoTravelBufferAsync(booking, request.NewTimeSlotId))
-            return TravelBufferConflict();
+        // Reservar el nuevo slot (solo si está disponible, o tapado solo por esta misma reserva)
+        await _availability.LockProfessionalAsync(booking.ProfessionalId);
+        if (!await _availability.TryClaimStartSlotAsync(request.NewTimeSlotId, booking.Id))
+            return await SlotNotClaimedAsync(request.NewTimeSlotId, BookingWriteConflict.SlotTakenMessage, notFoundWhenMissing: false);
 
         // Antes de pisar el TimeSlotId — es lo único que le queda al job de background
         // para poder avisar "de tal hora a tal hora" (ver NotificationService).
         var previousStartDateTime = booking.TimeSlot.StartDateTime;
+        var previousFootprint = BookingFootprint.Of(booking);
 
-        // Liberar el slot anterior
-        await _repository.ReleaseSlotAsync(booking.TimeSlotId);
-
-        await MoveToSlotAsync(booking, request.NewTimeSlotId);
+        if (await MoveToSlotAsync(booking, request.NewTimeSlotId) is { } unavailable)
+            return unavailable;
         if (await TrySaveBookingAsync() is { } rejected)
             return rejected;
+        // Frees the previous slots (unless something else overlaps them) and takes the new ones.
+        await _availability.RefreshSlotAvailabilityAsync(previousFootprint, BookingFootprint.Of(booking));
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
@@ -531,21 +545,18 @@ public class BookingsController : ControllerBase
         if (booking.TimeSlotId == request.NewTimeSlotId)
             return BadRequest(new { success = false, message = "Ya estás en ese horario" });
 
-        var updated = await _repository.TryClaimSlotAsync(request.NewTimeSlotId);
-
-        if (updated == 0)
-            return Conflict(new { success = false, message = "Ese horario ya no está disponible" });
-
-        if (await MovesIntoTravelBufferAsync(booking, request.NewTimeSlotId))
-            return TravelBufferConflict();
+        await _availability.LockProfessionalAsync(booking.ProfessionalId);
+        if (!await _availability.TryClaimStartSlotAsync(request.NewTimeSlotId, booking.Id))
+            return await SlotNotClaimedAsync(request.NewTimeSlotId, BookingWriteConflict.SlotTakenMessage, notFoundWhenMissing: false);
 
         var previousStartDateTime = booking.TimeSlot.StartDateTime;
+        var previousFootprint = BookingFootprint.Of(booking);
 
-        await _repository.ReleaseSlotAsync(booking.TimeSlotId);
-
-        await MoveToSlotAsync(booking, request.NewTimeSlotId);
+        if (await MoveToSlotAsync(booking, request.NewTimeSlotId) is { } unavailable)
+            return unavailable;
         if (await TrySaveBookingAsync() is { } rejected)
             return rejected;
+        await _availability.RefreshSlotAvailabilityAsync(previousFootprint, BookingFootprint.Of(booking));
         await transaction.CommitAsync();
         BackgroundJob.Enqueue<BookingNotificationJob>(job => job.DispatchAsync(booking.Id, NotificationEventType.BookingRescheduled, previousStartDateTime));
 
@@ -627,20 +638,27 @@ public class BookingsController : ControllerBase
         if (homeService.Error is not null)
             return BadRequest(new { success = false, message = homeService.Error });
 
-        // An on-site booking that becomes at-home must respect the travel buffer
-        // at its current time. Bookings that already were at-home keep their time.
-        if (homeService.Snapshot is not null
-            && booking.HomeServiceSurcharge is null
-            && await _travelBuffer.IsSlotInsideBufferAsync(booking.TimeSlotId, booking.ProfessionalId, booking.Id))
-            return TravelBufferConflict();
-
         // A different service changes how long the booking lasts: recompute the
         // end from the new service, keeping the start. Same service: the range
-        // stays as booked even if the service's duration changed since.
-        if (!string.Equals(booking.Service?.Trim() ?? string.Empty, service ?? string.Empty, StringComparison.Ordinal))
+        // stays as booked even if the service's duration changed since. An
+        // on-site booking that becomes at-home must also respect the travel
+        // buffer; bookings that already were at-home keep their time. Either way
+        // the resulting range goes through the availability rule, leaving the
+        // booking itself out, before any field is touched.
+        var serviceChanged = !string.Equals(booking.Service?.Trim() ?? string.Empty, service ?? string.Empty, StringComparison.Ordinal);
+        var becomesAtHome = homeService.Snapshot is not null && booking.HomeServiceSurcharge is null;
+        BookingFootprint? previousFootprint = null;
+        if (serviceChanged || becomesAtHome)
         {
             await _repository.LoadTimeSlotAsync(booking);
-            (await ResolveTimeRangeAsync(booking.StartDateTime, booking.TimeSlot.EndDateTime, service)).ApplyTo(booking);
+            var range = serviceChanged
+                ? await ResolveTimeRangeAsync(booking.StartDateTime, booking.TimeSlot.EndDateTime, service)
+                : new BookingTimeRange(booking.StartDateTime, booking.EndDateTime);
+            if (await RejectPlacementAsync(booking.TimeSlot, booking.ProfessionalId, range, atHome: homeService.Snapshot is not null, booking.Id) is { } unavailable)
+                return unavailable;
+
+            previousFootprint = BookingFootprint.Of(booking);
+            range.ApplyTo(booking);
         }
 
         booking.CustomerName = request.CustomerName.Trim();
@@ -652,6 +670,8 @@ public class BookingsController : ControllerBase
 
         if (await TrySaveBookingAsync() is { } rejected)
             return rejected;
+        if (previousFootprint is { } previous)
+            await _availability.RefreshSlotAvailabilityAsync(previous, BookingFootprint.Of(booking));
 
         return Ok(new
         {

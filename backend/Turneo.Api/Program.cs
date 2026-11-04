@@ -53,6 +53,7 @@ builder.Services.AddScoped<IServiceInsumosRepository, ServiceInsumosRepository>(
 builder.Services.AddScoped<ICajaRepository, CajaRepository>();
 builder.Services.AddScoped<ITimeSlotsRepository, TimeSlotsRepository>();
 builder.Services.AddScoped<IBookingsRepository, BookingsRepository>();
+builder.Services.AddScoped<IBookingAvailability, BookingAvailability>();
 builder.Services.AddScoped<IPaymentsRepository, PaymentsRepository>();
 builder.Services.AddScoped<IMercadoPagoPaymentGateway, MercadoPagoPaymentGateway>();
 builder.Services.AddScoped<IAutomationRulesRepository, AutomationRulesRepository>();
