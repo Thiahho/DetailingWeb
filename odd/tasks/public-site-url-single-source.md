@@ -35,10 +35,18 @@ fall back to `""`, which silently produces broken canonical/sitemap/metadata URL
 - Branch: `TurnosP-Belleza` (not the default branch).
 
 ## Tasks
-- [ ] T1 — Backend single source (route: delegated, writer trigger: 5 non-trivial files).
+- [x] T1 — Backend single source (route: delegated, writer trigger: 5 non-trivial files).
   Checks: `dotnet build`, `dotnet test` (SmartTags tests at least).
-- [ ] T2 — Frontend single source + env wiring (route: delegated, same writer).
+- [x] T2 — Frontend single source + env wiring (route: delegated, same writer).
   Checks: `npx tsc --noEmit`, `npm run lint`, `npm run build` with and without the variable.
 
 ## Progress
-- 2026-11-06: document created; T1/T2 pending.
+- 2026-11-06: document created.
+- 2026-11-06: T1+T2 done by one delegated writer, commit `c88e2d75`. Evidence: `dotnet build`
+  0 errors (parent re-ran); SmartTags tests 10 passed / 14 failed, all 14 "Docker not running"
+  (Testcontainers, environmental); `tsc --noEmit` 0 errors outside stale `.next/types`;
+  `npm run lint` unavailable (no ESLint config, interactive prompt); `npm run build` OK with the
+  variable set and fails with a clear message when empty. Grep: literal only in
+  `PublicSiteDefaults.cs`; env var read only in `siteUrl.ts`.
+- Pending: Vercel must define `NEXT_PUBLIC_SITE_URL`. Optional cleanup: `layout.tsx`
+  `siteUrl &&` guards are now always true.
