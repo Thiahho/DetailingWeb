@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Check, Clock, Sparkles } from "lucide-react";
 import { API_URL } from "@/src/lib/apiUrl";
+import { SITE_URL } from "@/src/lib/siteUrl";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+const siteUrl = SITE_URL;
 
 interface Service {
   id: number;

@@ -1,11 +1,10 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/src/lib/siteUrl";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+const siteUrl = SITE_URL;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-
-  if (!siteUrl) return [];
 
   return [
     { url: siteUrl, lastModified: now, changeFrequency: "weekly", priority: 1 },

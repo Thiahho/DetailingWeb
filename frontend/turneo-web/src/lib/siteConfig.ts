@@ -1,4 +1,5 @@
 import { getCached, setCached, removeCached } from "@/src/lib/publicDataCache";
+import { SITE_URL } from "@/src/lib/siteUrl";
 
 export interface SocialLink {
   name: string;
@@ -40,7 +41,7 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   location: process.env.NEXT_PUBLIC_LOCATION || "",
   locationShort: process.env.NEXT_PUBLIC_LOCATION_SHORT || "",
   mapEmbedUrl: "",
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "",
+  siteUrl: SITE_URL,
   logoUrl: "/img/LogoPortada.png",
   heroTitle: "",
   heroSubtitle: "",

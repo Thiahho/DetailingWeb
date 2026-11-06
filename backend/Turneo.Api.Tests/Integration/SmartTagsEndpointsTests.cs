@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Tests.Integration;
 
@@ -169,7 +170,7 @@ public class SmartTagsEndpointsTests
         var bytes = await response.Content.ReadAsByteArrayAsync();
 
         var configuration = _factory.Services.GetRequiredService<IConfiguration>();
-        var baseUrl = configuration["SmartTags:PublicBaseUrl"] ?? "https://www.turneobelleza.com";
+        var baseUrl = configuration["SmartTags:PublicBaseUrl"] ?? PublicSiteDefaults.BaseUrl;
 
         Assert.Equal(RenderQr($"{baseUrl}/s/{tag.Token}?src=qr"), bytes);
         Assert.NotEqual(RenderQr($"{baseUrl}/s/{tag.Token}"), bytes);

@@ -6,6 +6,7 @@ using MercadoPago.Config;
 using MercadoPago.Client.Payment;
 using System.Security.Cryptography;
 using System.Text;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.Payments;
 
@@ -76,7 +77,7 @@ public class PaymentsController : ControllerBase
         }
 
         var configuredBaseUrl = _configuration["MercadoPago:BaseUrl"];
-        var baseUrl = (string.IsNullOrWhiteSpace(configuredBaseUrl) ? "https://www.turneobelleza.com" : configuredBaseUrl).TrimEnd('/');
+        var baseUrl = (string.IsNullOrWhiteSpace(configuredBaseUrl) ? PublicSiteDefaults.BaseUrl : configuredBaseUrl).TrimEnd('/');
 
         var preferenceRequest = new PreferenceRequest
         {

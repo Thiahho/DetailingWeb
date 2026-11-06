@@ -52,7 +52,7 @@ export default defineConfig({
       url: WEB_URL,
       timeout: 180_000,
       reuseExistingServer: reuseServers,
-      env: webEnv(),
+      env: { ...webEnv(), NEXT_PUBLIC_SITE_URL: WEB_URL },
     },
   ],
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],

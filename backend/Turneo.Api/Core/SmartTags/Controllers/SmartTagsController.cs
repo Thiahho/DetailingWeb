@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QRCoder;
+using Turneo.Api.Shared.Constants;
 
 namespace Turneo.Api.Core.SmartTags;
 
@@ -24,7 +25,7 @@ public class SmartTagsController : ControllerBase
 
     private string SmartLinkUrl(SmartTag t)
     {
-        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? "https://www.turneobelleza.com";
+        var baseUrl = _configuration["SmartTags:PublicBaseUrl"] ?? PublicSiteDefaults.BaseUrl;
         return $"{baseUrl}/s/{t.Token}";
     }
 

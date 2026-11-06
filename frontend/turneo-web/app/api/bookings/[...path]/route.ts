@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { tenantHeader } from "@/src/lib/tenantHeader";
 import { readBackendBody, relayResponse } from "@/src/lib/proxyResponse";
 import { API_URL } from "@/src/lib/apiUrl";
+import { SITE_URL } from "@/src/lib/siteUrl";
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -180,7 +181,7 @@ async function notifyClientBookingConfirmed(booking: BookingDetail, bookingId: s
 
   const turno = formatDateTime(booking.startDateTime ?? booking.timeSlot?.startDateTime);
   const name = booking.customerName || "Cliente";
-  const cancelUrl = `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.turneobelleza.com"}/cancelar?bookingId=${bookingId}`;
+  const cancelUrl = `${SITE_URL}/cancelar?bookingId=${bookingId}`;
 
   const transporter = createTransporter();
   const info = await transporter.sendMail({

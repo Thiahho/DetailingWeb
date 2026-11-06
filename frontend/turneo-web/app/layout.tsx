@@ -2,6 +2,7 @@
 import "./globals.css";
 import SiteChrome from "@/src/components/shared/SiteChrome";
 import type { Metadata } from "next";
+import { SITE_URL } from "@/src/lib/siteUrl";
 import localFont from "next/font/local";
 
 // Las fuentes van como archivos dentro del repo (app/fonts/) y no por
@@ -35,7 +36,7 @@ const serif = localFont({
 });
 
 const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || "Turneo";
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "";
+const siteUrl = SITE_URL;
 const metaDescription = process.env.NEXT_PUBLIC_META_DESCRIPTION || "";
 
 export const metadata: Metadata = {

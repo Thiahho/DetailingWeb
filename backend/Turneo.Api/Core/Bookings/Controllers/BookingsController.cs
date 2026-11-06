@@ -139,7 +139,7 @@ public class BookingsController : ControllerBase
         {
             success = true,
             message = "Turno agendado exitosamente",
-            myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://www.turneobelleza.com/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}",
+            myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? $"{PublicSiteDefaults.BaseUrl}/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}",
             booking = new
             {
                 id = booking.Id,

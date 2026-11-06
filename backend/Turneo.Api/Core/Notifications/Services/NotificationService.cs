@@ -1,3 +1,4 @@
+using Turneo.Api.Shared.Constants;
 using Microsoft.EntityFrameworkCore;
 
 namespace Turneo.Api.Core.Notifications;
@@ -50,8 +51,8 @@ public class NotificationService
             return;
         }
 
-        var baseCancellationUrl = _configuration["Notifications:CancellationBaseUrl"] ?? "https://www.turneobelleza.com/cancelar";
-        var baseMyBookingsUrl = _configuration["Notifications:MyBookingsBaseUrl"] ?? "https://www.turneobelleza.com/mis-turnos";
+        var baseCancellationUrl = _configuration["Notifications:CancellationBaseUrl"] ?? $"{PublicSiteDefaults.BaseUrl}/cancelar";
+        var baseMyBookingsUrl = _configuration["Notifications:MyBookingsBaseUrl"] ?? $"{PublicSiteDefaults.BaseUrl}/mis-turnos";
         var location = _configuration["Notifications:Location"] ?? "Sucursal principal";
         var accessToken = _authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId);
         var myBookingsLink = $"{baseMyBookingsUrl}?accessToken={Uri.EscapeDataString(accessToken)}";
@@ -272,7 +273,7 @@ public class NotificationService
             if (provider == null) return;
 
             var agendaBaseUrl = _configuration["Notifications:ProfessionalAgendaBaseUrl"]
-                ?? "https://www.turneobelleza.com/profesional/agenda";
+                ?? $"{PublicSiteDefaults.BaseUrl}/profesional/agenda";
             var professionalName = booking.Professional != null
                 ? $"{booking.Professional.FirstName} {booking.Professional.LastName}".Trim()
                 : "";
@@ -366,8 +367,8 @@ public class NotificationService
                 continue;
             }
 
-            var myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? "https://www.turneobelleza.com/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}";
-            var cancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? "https://www.turneobelleza.com/cancelar"}?bookingId={booking.Id}";
+            var myBookingsLink = $"{_configuration["Notifications:MyBookingsBaseUrl"] ?? $"{PublicSiteDefaults.BaseUrl}/mis-turnos"}?accessToken={Uri.EscapeDataString(_authService.CreateClientPortalAccessToken(booking.CustomerEmailNormalized, booking.TenantId))}";
+            var cancellationLink = $"{_configuration["Notifications:CancellationBaseUrl"] ?? $"{PublicSiteDefaults.BaseUrl}/cancelar"}?bookingId={booking.Id}";
             var message = await _templateService.BuildAsync(log.EventType, new NotificationTemplateData
             {
                 CustomerName = booking.CustomerName,
