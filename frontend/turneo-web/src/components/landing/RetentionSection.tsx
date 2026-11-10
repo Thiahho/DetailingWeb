@@ -64,7 +64,7 @@ const QR_PATTERN = [
 ];
 
 // Destinos que puede abrir una etiqueta; el primero va resaltado como el activo.
-const TAG_DESTINATIONS = ["Reservar turno", "Dejar reseña", "Instagram"];
+const TAG_DESTINATIONS = ["Reservar turno", "Dejar reseñas", "Redes"];
 
 function SmartTagPreview() {
   return (
