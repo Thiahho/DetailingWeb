@@ -102,11 +102,10 @@ export default function RetentionSection() {
       <Reveal stagger className="grid gap-x-7 gap-y-12 md:grid-cols-3">
         {RETENTION.items.map(({ id, title, detail, comingSoon, hint }) =>
           comingSoon ? (
-            // Todavía no disponible: el bloque entero queda desenfocado (y fuera
-            // del árbol de accesibilidad, para que no se lea un texto que no se
-            // ve) y encima va el rótulo con una pista corta.
+            // Todavía no disponible: el bloque entero queda atenuado (y fuera
+            // del árbol de accesibilidad) y encima va el rótulo con una pista corta.
             <article key={id} data-testid={`retention-${id}`} data-coming-soon="true" className="relative">
-              <div aria-hidden="true" className="pointer-events-none flex select-none flex-col gap-5 opacity-70 blur-[7px]">
+              <div aria-hidden="true" className="pointer-events-none flex select-none flex-col gap-5 opacity-70">
                 <div className="h-44">{PREVIEWS[id]}</div>
                 <div className="space-y-2">
                   <p className="text-2xl font-semibold tracking-tight text-charcoal">{title}</p>
