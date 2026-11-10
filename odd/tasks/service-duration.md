@@ -68,6 +68,16 @@ Detailing (first niche) has multi-hour services; the agenda must not sell overla
 
 - 2026-11-04: T7 done (parent, inline). `E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md` (not a git repo): home-service marked as finished and merged, new section "Duración real de los servicios" (what it solves, production prerequisites, out of scope), niche matrix and next steps updated. Structural readback only (passive doc). T6 backend gap commit `715c5399`.
 
+- 2026-11-10: Visual check in Chrome (local front + user's backend, admin session). Setup: "Extensiones Pelo por Pelo" set to 180 min, 9 one-hour slots generated for Sandra Sanchez on 12/11 (09:00–17:00). Observed:
+  - `/reservar`: range labels "09:00 – 12:00" … "15:00 – 18:00"; 16:00 and 17:00 not offered (range exceeds the agenda).
+  - Test booking 10:00–13:00 created. A 20-min service for the same professional then hides 10:00, 11:00 and 12:00.
+  - Calendar (day view): one block spanning 10:00–13:00; 11:00 and 12:00 are not shown as free.
+  - Turnos list: "10:00 – 13:00 · Reservado"; 11:00 and 12:00 "OCUPADO · Lo ocupa el turno de Prueba Duracion, que empieza antes", only "Ver turno"; 13:00 enabled.
+  - Panel principal: "10:00 – 13:00"; covered slots hidden; counters consistent (6 available = 9 − 1 booked − 2 covered).
+  - Not checked: professional agenda (needs a professional login); drag-reschedule onto a covered slot.
+  - Minor, outside this feature: service cards show the free-text duration ("60 min"), not `DurationMinutes`; the calendar day view opens on today instead of the selected day; the dashboard "Servicio" column shows the slug.
+  - Service duration restored to empty afterwards. Test booking and the 12/11 slots remain in the local database.
+
 ## Next step
-1. Visual check in a browser (calendar blocks, OCUPADO styling, wizard range labels) — not done yet.
+1. Visual check — done 2026-11-10 (see Progress); professional agenda still unchecked.
 3. Open follow-ups for the user: unused slot-based methods in `HomeServiceTravelBuffer.cs`; admin reschedule keeps the booking's `ProfessionalId`; production `btree_gist` check before deploy.
