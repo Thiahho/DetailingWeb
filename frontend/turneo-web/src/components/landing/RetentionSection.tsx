@@ -63,22 +63,40 @@ const QR_PATTERN = [
   "1110101",
 ];
 
+// Destinos que puede abrir una etiqueta; el primero va resaltado como el activo.
+const TAG_DESTINATIONS = ["Reservar turno", "Dejar reseña", "Instagram"];
+
 function SmartTagPreview() {
   return (
     <div className="flex h-full items-center gap-5 rounded-[1.75rem] bg-porcelain p-6 text-charcoal">
-      <div className="flex h-28 w-28 shrink-0 flex-col items-center justify-center gap-1.5 rounded-full bg-ink text-cream shadow-elevated">
-        <Nfc size={30} strokeWidth={1.6} className="text-blush" />
-        <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-mist">Acercá</span>
-      </div>
-      <div className="min-w-0 space-y-2.5">
-        <div className="grid w-16 grid-cols-7 gap-px rounded-lg bg-ivory p-1.5">
+      {/* La etiqueta física: disco NFC con un mini QR en el borde. */}
+      <div className="relative shrink-0">
+        <div className="flex h-28 w-28 flex-col items-center justify-center gap-1.5 rounded-full bg-ink text-cream shadow-elevated ring-4 ring-ivory">
+          <Nfc size={30} strokeWidth={1.6} className="text-blush" />
+          <span className="text-[9px] font-semibold uppercase tracking-[0.18em] text-mist">Acercá</span>
+        </div>
+        <div className="absolute -bottom-1 -right-1 grid w-11 grid-cols-7 gap-px rounded-md bg-ivory p-1 shadow-soft">
           {QR_PATTERN.join("")
             .split("")
             .map((cell, i) => (
               <span key={i} className={`aspect-square rounded-[1px] ${cell === "1" ? "bg-ink" : "bg-transparent"}`} />
             ))}
         </div>
-        <p className="text-xs font-semibold">Abre: Reservar turno</p>
+      </div>
+      <div className="min-w-0 space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-mauve">Un toque y abre</p>
+        <ul className="space-y-1.5">
+          {TAG_DESTINATIONS.map((label, i) => (
+            <li
+              key={label}
+              className={`truncate rounded-full px-3 py-1 text-xs font-semibold ${
+                i === 0 ? "bg-ink text-cream" : "border border-mauve/30 text-charcoal/70"
+              }`}
+            >
+              {label}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -91,8 +109,7 @@ const PREVIEWS: Record<string, ReactNode> = {
 };
 
 // Retención: ruleta de fidelidad, reseñas y Smart Tags. Tres columnas, cada una
-// con un preview distinto arriba y el texto debajo. Smart Tags va como
-// "Próximamente" (ver `comingSoon` en content.ts).
+// con un preview distinto arriba y el texto debajo.
 export default function RetentionSection() {
   return (
     <section id="fidelizacion" className="scroll-mt-16 mx-auto max-w-6xl space-y-12 px-6 py-20 md:space-y-16 md:py-28">
@@ -100,37 +117,17 @@ export default function RetentionSection() {
         <SectionHeading eyebrow={RETENTION.eyebrow} title={RETENTION.title} tone="cream" />
       </Reveal>
       <Reveal stagger className="grid gap-x-7 gap-y-12 md:grid-cols-3">
-        {RETENTION.items.map(({ id, title, detail, comingSoon, hint }) =>
-          comingSoon ? (
-            // Todavía no disponible: el bloque entero queda atenuado (y fuera
-            // del árbol de accesibilidad) y encima va el rótulo con una pista corta.
-            <article key={id} data-testid={`retention-${id}`} data-coming-soon="true" className="relative">
-              <div aria-hidden="true" className="pointer-events-none flex select-none flex-col gap-5 opacity-70">
-                <div className="h-44">{PREVIEWS[id]}</div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-semibold tracking-tight text-charcoal">{title}</p>
-                  <p className="text-[15px] leading-relaxed text-charcoal/70">{detail}</p>
-                </div>
-              </div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
-                <h3 className="rounded-full bg-ink px-5 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cream shadow-elevated">
-                  Próximamente
-                </h3>
-                {hint && <p className="max-w-[16rem] text-[15px] font-medium leading-snug text-charcoal">{hint}</p>}
-              </div>
-            </article>
-          ) : (
-            <article key={id} data-testid={`retention-${id}`} className="flex flex-col gap-5">
-              <div aria-hidden="true" className="h-44 select-none">
-                {PREVIEWS[id]}
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-semibold tracking-tight text-charcoal">{title}</h3>
-                <p className="text-[15px] leading-relaxed text-charcoal/70">{detail}</p>
-              </div>
-            </article>
-          )
-        )}
+        {RETENTION.items.map(({ id, title, detail }) => (
+          <article key={id} data-testid={`retention-${id}`} className="flex flex-col gap-5">
+            <div aria-hidden="true" className="h-44 select-none">
+              {PREVIEWS[id]}
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-semibold tracking-tight text-charcoal">{title}</h3>
+              <p className="text-[15px] leading-relaxed text-charcoal/70">{detail}</p>
+            </div>
+          </article>
+        ))}
       </Reveal>
     </section>
   );

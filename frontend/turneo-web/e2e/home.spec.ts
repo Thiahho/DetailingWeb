@@ -33,17 +33,15 @@ test.describe("Home comercial de Turneo", () => {
     await Promise.all([page.waitForURL("**/reservar"), cta.click()]);
   });
 
-  test("Smart Tags se anuncia como próximamente, con una pista y sin el detalle", async ({ page }) => {
+  test("la sección de fidelización muestra los tres bloques, Smart Tags incluido", async ({ page }) => {
     await page.goto("/");
 
     const block = page.getByTestId("retention-smart-tags");
     await block.scrollIntoViewIfNeeded();
-    await expect(block.getByRole("heading", { name: "Próximamente" })).toBeVisible();
-    await expect(block.getByText("Algo para tu mostrador")).toBeVisible();
-    // El detalle sigue en el DOM (desenfocado) pero no para lectores de pantalla.
-    await expect(block.getByRole("heading", { name: "Smart Tags" })).toHaveCount(0);
+    await expect(block.getByRole("heading", { name: "Smart Tags" })).toBeVisible();
+    await expect(block.getByText("Etiquetas NFC o QR")).toBeVisible();
+    await expect(block.getByRole("heading", { name: "Próximamente" })).toHaveCount(0);
 
-    // Los otros dos bloques de la sección no cambian.
     await expect(page.getByTestId("retention-ruleta").getByRole("heading", { name: "Ruleta de fidelidad" })).toBeVisible();
     await expect(page.getByTestId("retention-resenas").getByRole("heading", { name: "Reseñas" })).toBeVisible();
   });

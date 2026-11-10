@@ -143,14 +143,10 @@ export const OWN_SITE = {
   demoLabel: "Ver una web en vivo",
 };
 
-// `comingSoon`: el bloque se muestra desenfocado con el rótulo "Próximamente"
-// encima y solo se lee `hint`, una pista corta de lo que viene.
 export interface RetentionItem {
   id: string;
   title: string;
   detail: string;
-  comingSoon?: boolean;
-  hint?: string;
 }
 
 export const RETENTION: { eyebrow: string; title: AccentTitle; items: RetentionItem[] } = {
@@ -171,8 +167,6 @@ export const RETENTION: { eyebrow: string; title: AccentTitle; items: RetentionI
       id: "smart-tags",
       title: "Smart Tags",
       detail: "Etiquetas NFC o QR para el mostrador o el espejo. Acercan el celular y se abre la reserva, la reseña o tu Instagram.",
-      comingSoon: true,
-      hint: "Algo para tu mostrador: se acerca el celular y listo.",
     },
   ],
 };
