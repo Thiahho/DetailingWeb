@@ -32,7 +32,7 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
 - [x] T2 — Backend public catalog endpoints (tenant by host): categories, products by category, product detail with variants and media, variants by ids for cart sync; tests. Route: delegated.
 - [x] T3 — Frontend admin screens: categories, attributes, products (form, variants grid, photos), proxies, permission-aware nav. Route: delegated (screens, proxy, label) + parent inline (sidebar entry "Catálogo online" in "Sitio web", `"Catalogo"` added to `PermissionModuleKey`; tsc clean, pnpm test 198/198).
 - [x] T4 — Frontend public: catalog, product detail with variant picker, cart (per-tenant localStorage), order form → WhatsApp message with optional prices; vitest for cart and message builder. Route: delegated.
-- [ ] T5 — Docs: EMPRENDERS guide (niche day-1 section, next steps), commercial manual note. Route: inline.
+- [x] T5 — Docs: EMPRENDERS guide (niche day-1 section, matrix, next steps), commercial manual (new feature, HOY section, Anexo A notes). Route: inline.
 
 ## Checks
 - `dotnet test backend/Turneo.Api.Tests --artifacts-path <scratch>` (Docker; the running Turneo.Api locks bin/)
@@ -104,4 +104,4 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
   - Test data left in the local database: attribute Talle, category Remeras, product Remera básica.
 
 ## Next step
-T5 (docs).
+All tasks done. Next: user decides merge into `TurneoDV2-Belleza` (feature-branch-chain). Follow-ups: bulk on/off control in the variants grid, clearer selected chips in the product form, per-product page metadata and 404 status, navbar categories request on every page load, Cloudinary cleanup on delete, `CanUseCatalog` plan flag.

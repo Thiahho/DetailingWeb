@@ -17,6 +17,7 @@ Revisión hecha contra el código de la rama `TurneoDV2-Belleza` y las auditorí
 - **Promociones por profesional:** cada profesional crea descuentos automáticos (porcentaje o monto fijo, con fechas) sobre sus servicios; el cliente ve el precio tachado y el precio final.
 - **Turnos pagos protegidos:** un turno ya pagado no se puede cancelar ni editar desde la web pública; el admin lo cancela con devolución registrada en caja.
 - **Reprogramar entre profesionales:** al mover un turno a la agenda de otro profesional, el turno pasa a ser de ese profesional.
+- **Catálogo con pedido por WhatsApp:** el negocio publica productos con fotos, talles/colores y precio opcional; el cliente arma el carrito y manda el pedido por WhatsApp con el detalle y el total ya armados.
 - **Modo solo:** un profesional independiente usa el sistema sin tener que darse de alta como "empleado" de su propio negocio.
 - **Smart Tags:** ahora se mide si cada interacción vino por NFC o por QR, y cada reserva queda atribuida a la etiqueta y al canal que la originó.
 - **Insumos con stock y costo unitario**, vinculados a los servicios (en v1.2 figuraba como "sin construir").
@@ -243,6 +244,12 @@ Cada uno de estos está construido y verificado — no es aspiracional. Usar com
 **Solución:** un turno pagado no se puede cancelar desde la web pública, y un turno pagado o confirmado no se puede editar. El cliente pide la cancelación por WhatsApp, y el admin la hace desde el panel con la devolución registrada en caja, sin posibilidad de devolver dos veces.
 **Resultado:** la plata cobrada siempre cierra con lo que pasó con el turno.
 
+#### Catálogo con pedido por WhatsApp
+
+**Problema:** el negocio que vende productos (un salón que vende sus cremas, una marca de ropa, un fabricante) toma pedidos mandando fotos y precios uno por uno por chat, y después tiene que reconstruir qué pidió cada cliente.
+**Solución:** el negocio carga categorías, atributos (talle, color…) y productos con fotos y precio opcional; las combinaciones se generan solas y cada una se marca "Disponible" o "A pedido". El cliente navega el catálogo en la web del negocio, elige la variante, arma el carrito y toca "Enviar pedido por WhatsApp": se abre el chat con el detalle, los subtotales y el total ya escritos. Sin precio, el producto aparece como "Consultar precio".
+**Resultado:** pedidos ordenados que llegan al WhatsApp de siempre, sin mandar catálogos en PDF ni fotos sueltas.
+
 #### Reservas manuales (mostrador / teléfono)
 
 **Problema:** no todos los clientes reservan solos por la web — muchos llaman o se acercan directo al mostrador, y cargar ese turno a mano no debería significar volver a escribir los datos del cliente si ya está en la ficha, ni que esa reserva quede en un papel aparte del sistema.
@@ -369,7 +376,7 @@ Tabla de referencia rápida para no prometer de más en una llamada de venta. Es
 
 ### ✅ Se puede prometer y demostrar hoy
 
-Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-reserva, duración real de los servicios (sin turnos superpuestos), servicios a domicilio con zonas de cobertura, recargo y tiempo de traslado, promociones por profesional, turnos pagos protegidos con cancelación y devolución desde el admin, reprogramación entre profesionales, reserva manual desde el equipo con alta automática en el CRM, modo solo, multi-profesional con agenda propia, agenda visual (mes/semana/día, drag&drop), servicios con categorías/buffer/precio/insumos, insumos con stock y costo unitario, CRM de clientes, historial por turno, caja diaria y mensual con reconciliación, automatizaciones de reactivación/cumpleaños por email, recordatorio automático por email, estadísticas generales y por profesional, Smart Tags NFC/QR con medición por canal y atribución de reservas, reseñas propias con moderación, sitio público con redes configurables, acciones masivas, aislamiento total de datos entre negocios, roles (Admin, Profesional, Staff con permisos por módulo, Cliente), panel 100% web sin instalación.
+Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-reserva, duración real de los servicios (sin turnos superpuestos), servicios a domicilio con zonas de cobertura, recargo y tiempo de traslado, promociones por profesional, turnos pagos protegidos con cancelación y devolución desde el admin, reprogramación entre profesionales, catálogo de productos con variantes, precio opcional y pedido por WhatsApp, reserva manual desde el equipo con alta automática en el CRM, modo solo, multi-profesional con agenda propia, agenda visual (mes/semana/día, drag&drop), servicios con categorías/buffer/precio/insumos, insumos con stock y costo unitario, CRM de clientes, historial por turno, caja diaria y mensual con reconciliación, automatizaciones de reactivación/cumpleaños por email, recordatorio automático por email, estadísticas generales y por profesional, Smart Tags NFC/QR con medición por canal y atribución de reservas, reseñas propias con moderación, sitio público con redes configurables, acciones masivas, aislamiento total de datos entre negocios, roles (Admin, Profesional, Staff con permisos por módulo, Cliente), panel 100% web sin instalación.
 
 ### 🟡 Con matices — aclarar antes de cerrar
 
@@ -380,6 +387,11 @@ Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-rese
 - **Colores propios del negocio:** el dato existe en el sistema, pero el sitio público no lo aplica. Hoy la marca del negocio se refleja vía logo, contenido y redes, no con colores propios.
 - **Dominio propio por negocio:** el salón en producción hoy funciona en `turneobelleza.com`. Los subdominios por negocio (`negocio.turneobelleza.com`) ya tienen reglas de seguridad: nombres válidos, nombres reservados bloqueados, y un subdominio que no corresponde a ningún negocio da error en vez de mostrar otro. Según el equipo, el DNS comodín de producción está configurado. Igual, hoy hay un solo negocio real en producción, así que hay que confirmar con el equipo técnico antes de prometer un subdominio andando el mismo día.
 - **Servicios a domicilio / detailing:** la zona de cobertura se define por lista de localidades, no por radio en kilómetros. No hay presupuesto previo, ficha del vehículo ni optimización de recorridos.
+- **Catálogo por WhatsApp:**
+  - **Qué no es:** una tienda online. No maneja stock, no cobra online y no guarda los pedidos en el panel: el pedido llega al WhatsApp del negocio y se sigue por ahí.
+  - **El carrito** vive en el navegador del cliente.
+  - **Por plan:** todavía no se limita; cualquier negocio lo puede usar.
+  - **Fotos:** al borrar una foto, el archivo queda guardado en el servicio de imágenes.
 - **Smart Tags en la landing (esta rama):** la función está construida, pero la landing de `TurneoDV2-Belleza` todavía la muestra como "Próximamente". No usar capturas de esta landing como prueba de que está disponible hasta traer el cambio de `TurnosP-Belleza`.
 - **Permisos por rol (Staff):** el bloqueo de acciones sin permiso está cubierto por tests automatizados en los módulos principales. Faltan tests para el resto de los módulos. Se puede vender. Para un cliente que dependa fuerte de ese control (por ejemplo, una franquicia con varios encargados), confirmar antes con el equipo técnico.
 - **Reseñas de Google en la web:** mostrar las reseñas reales de Google junto a las propias requiere que el negocio cargue su Place ID **y** que la clave de Google Places esté activa en el servidor. Hoy no está confirmada para ningún negocio real. Las reseñas (propias y de Google) todavía no tienen tests automatizados dedicados.
@@ -395,7 +407,7 @@ Todo lo listado en la sección 7 "HOY": reservas públicas 24/7, anti doble-rese
 
 - Gimnasios, salud, veterinarias y restaurantes como producto ya disponible — son carpetas vacías en el código. Se puede ofrecer como proyecto Custom, nunca como "ya lo tenemos".
 - Un "Turneo para detailing" completo: hoy existen los servicios a domicilio y los turnos largos, no la ficha del vehículo, los presupuestos ni los boxes de trabajo.
-- Membresías y venta de productos al cliente final con stock. Lo que existe hoy es el control de **insumos** de uso interno (ver sección 7), no una tienda.
+- Membresías, y tienda online con stock y cobro online. Lo que existe hoy es el **catálogo con pedido por WhatsApp** y el control de **insumos** de uso interno (ver sección 7), no una tienda con checkout.
 - Importación automática de datos desde otro sistema (Excel, otro turnero) — se coordina manualmente caso a caso.
 - Funciones de IA como producto vendible por plan — el plan no las controla todavía.
 
