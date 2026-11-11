@@ -8,9 +8,11 @@ import {
 import { formatPrice, parsePriceInput, priceToInput } from "@/src/lib/catalog/price";
 import {
   apiErrorMessage,
+  buildBulkVariantsPayload,
   buildCategoryPayload,
   buildProductPayload,
   buildValuePayload,
+  bulkVariantsNotice,
 } from "@/src/lib/catalog/payloads";
 import {
   attributesForCategory,
@@ -124,6 +126,40 @@ describe("payload builders", () => {
       colorHex: "#FF0000",
     });
     expect(buildValuePayload({ label: "M", sortOrder: 0, colorHex: "" }).colorHex).toBeNull();
+  });
+});
+
+describe("bulk variants change", () => {
+  it("sends only the availability when changing availability", () => {
+    expect(buildBulkVariantsPayload(7, { 1: 10, 2: 20 }, { availability: 1 })).toEqual({
+      productId: 7,
+      valueIds: [10, 20],
+      availability: 1,
+    });
+  });
+
+  it("sends only isActive when turning variants on or off", () => {
+    expect(buildBulkVariantsPayload(7, { 2: 20 }, { isActive: false })).toEqual({
+      productId: 7,
+      valueIds: [20],
+      isActive: false,
+    });
+    expect(buildBulkVariantsPayload(7, {}, { isActive: true })).toEqual({ productId: 7, valueIds: [], isActive: true });
+  });
+
+  it("reports how many variants changed, by kind of change", () => {
+    expect(bulkVariantsNotice({ availability: 0 }, 1)).toBe("1 variante actualizada");
+    expect(bulkVariantsNotice({ availability: 0 }, 3)).toBe("3 variantes actualizadas");
+    expect(bulkVariantsNotice({ isActive: false }, 1)).toBe("1 variante desactivada");
+    expect(bulkVariantsNotice({ isActive: false }, 4)).toBe("4 variantes desactivadas");
+    expect(bulkVariantsNotice({ isActive: true }, 1)).toBe("1 variante activada");
+    expect(bulkVariantsNotice({ isActive: true }, 2)).toBe("2 variantes activadas");
+  });
+
+  it("says so when nothing matched", () => {
+    expect(bulkVariantsNotice({ availability: 0 }, 0)).toBe("No hay variantes activas con esos valores");
+    expect(bulkVariantsNotice({ isActive: false }, 0)).toBe("No hay variantes activas con esos valores");
+    expect(bulkVariantsNotice({ isActive: true }, 0)).toBe("No hay variantes desactivadas a mano con esos valores");
   });
 });
 

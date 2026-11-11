@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { labelClass } from "./CatalogShell";
 import { formatPrice, parsePriceInput } from "@/src/lib/catalog/price";
 import { attributesForCategory, toggleId } from "@/src/lib/catalog/ordering";
@@ -149,8 +150,10 @@ export default function ProductFields({
                         return (
                           <label
                             key={value.id}
-                            className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition focus-within:ring-2 focus-within:ring-blush/40 ${
-                              checked ? "border-blush bg-blush/10 text-blushdark" : "border-mauve/15 text-charcoal/60 hover:border-mauve/30"
+                            className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition focus-within:ring-2 focus-within:ring-blush/40 focus-within:ring-offset-1 ${
+                              checked
+                                ? "border-blush bg-blush font-medium text-white"
+                                : "border-mauve/15 text-charcoal/60 hover:border-mauve/30"
                             }`}
                           >
                             <input
@@ -159,6 +162,7 @@ export default function ProductFields({
                               checked={checked}
                               onChange={() => setForm((prev) => ({ ...prev, allowedValueIds: toggleId(prev.allowedValueIds, value.id) }))}
                             />
+                            {checked && <Check className="h-3 w-3" strokeWidth={3} aria-hidden />}
                             {value.colorHex && (
                               <span className="h-3 w-3 rounded-full border border-mauve/20" style={{ backgroundColor: value.colorHex }} aria-hidden />
                             )}

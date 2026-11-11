@@ -6,11 +6,12 @@ import { labelClass } from "./CatalogShell";
 import { catalogRequest } from "@/src/lib/catalog/api";
 import { AVAILABILITY_OPTIONS, toAvailability } from "@/src/lib/catalog/enums";
 import { attributesForCategory, variantLabel } from "@/src/lib/catalog/ordering";
+import { buildBulkVariantsPayload, bulkVariantsNotice, type BulkVariantsChange } from "@/src/lib/catalog/payloads";
 import type { CatalogAttribute, CatalogAvailability, CatalogVariant } from "@/src/lib/catalog/types";
 
-// Variants of a saved product: availability and active flag per variant, plus a
-// bulk availability change for every active variant matching the chosen values
-// (e.g. every "Rojo" → A pedido).
+// Variants of a saved product: availability and active flag per variant, plus
+// bulk changes for every variant matching the chosen values (e.g. every "Rojo"
+// → A pedido, or every "XL" turned off).
 export default function VariantsGrid({
   productId,
   variants,
@@ -58,11 +59,11 @@ export default function VariantsGrid({
     else onError(result.message);
   };
 
-  const applyBulk = async () => {
+  const applyBulk = async (change: BulkVariantsChange) => {
     setBulkBusy(true);
     const result = await catalogRequest<{ updated: number }>("variants/bulk", {
       method: "PATCH",
-      body: { productId, valueIds: Object.values(bulkValues), availability: bulkAvailability },
+      body: buildBulkVariantsPayload(productId, bulkValues, change),
       fallback: "No se pudo aplicar el cambio",
     });
     setBulkBusy(false);
@@ -70,7 +71,7 @@ export default function VariantsGrid({
       onError(result.message);
       return;
     }
-    onNotice(result.data.updated === 1 ? "1 variante actualizada" : `${result.data.updated} variantes actualizadas`);
+    onNotice(bulkVariantsNotice(change, result.data.updated));
     onReload();
   };
 
@@ -81,7 +82,7 @@ export default function VariantsGrid({
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-mauve/10 bg-white/60 p-4">
-        <p className={`${labelClass} mb-2`}>Cambio masivo de disponibilidad</p>
+        <p className={`${labelClass} mb-2`}>Cambios masivos</p>
         <div className="flex flex-wrap items-end gap-2">
           {filterAttributes.map((attribute) => (
             <select
@@ -119,10 +120,27 @@ export default function VariantsGrid({
               </option>
             ))}
           </select>
-          <Button type="button" size="sm" variant="primary" onClick={applyBulk} disabled={bulkBusy}>
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            onClick={() => applyBulk({ availability: bulkAvailability })}
+            disabled={bulkBusy}
+          >
             {bulkBusy ? "Aplicando..." : "Aplicar a las activas"}
           </Button>
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-mauve/10 pt-3">
+          <Button type="button" size="sm" variant="secondary" onClick={() => applyBulk({ isActive: false })} disabled={bulkBusy}>
+            Desactivar
+          </Button>
+          <Button type="button" size="sm" variant="secondary" onClick={() => applyBulk({ isActive: true })} disabled={bulkBusy}>
+            Activar las desactivadas a mano
+          </Button>
+        </div>
+        <p className="mt-2 text-charcoal/40 text-xs">
+          Los cambios alcanzan a las variantes que tienen los valores elegidos. Sin valores elegidos, a todas.
+        </p>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-mauve/5 bg-ivory">

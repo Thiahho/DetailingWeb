@@ -1,6 +1,8 @@
 // Request bodies for the catalog admin endpoints. Slugs are omitted on
 // purpose: the backend derives them from the name.
 
+import type { CatalogAvailability } from "./types";
+
 function trimOrNull(value: string): string | null {
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
@@ -68,6 +70,38 @@ export function buildValuePayload(form: ValueFormValues) {
     sortOrder: form.sortOrder,
     colorHex: color === "" ? null : color.toUpperCase(),
   };
+}
+
+// One bulk change at a time: either the availability or the active flag.
+export interface BulkVariantsChange {
+  availability?: CatalogAvailability;
+  isActive?: boolean;
+}
+
+// `valuesByAttribute` holds the chosen value per attribute (attribute id → value id);
+// an attribute without a choice does not filter.
+export function buildBulkVariantsPayload(
+  productId: number,
+  valuesByAttribute: Record<number, number>,
+  change: BulkVariantsChange
+) {
+  const valueIds = Object.values(valuesByAttribute);
+  if (change.isActive !== undefined) return { productId, valueIds, isActive: change.isActive };
+  return { productId, valueIds, availability: change.availability };
+}
+
+// Turning on only reaches the variants disabled by hand; the other two changes
+// only reach the active ones.
+export function bulkVariantsNotice(change: BulkVariantsChange, updated: number): string {
+  if (updated === 0) {
+    return change.isActive === true
+      ? "No hay variantes desactivadas a mano con esos valores"
+      : "No hay variantes activas con esos valores";
+  }
+  const one = updated === 1;
+  if (change.isActive === true) return one ? "1 variante activada" : `${updated} variantes activadas`;
+  if (change.isActive === false) return one ? "1 variante desactivada" : `${updated} variantes desactivadas`;
+  return one ? "1 variante actualizada" : `${updated} variantes actualizadas`;
 }
 
 // Backend errors come as `{ success: false, message }` (404/409/400 from the
