@@ -7,10 +7,18 @@ namespace Turneo.Api.Modules.Catalog.Admin;
 public class CatalogProductsController : CatalogControllerBase
 {
     private readonly ICatalogVariantGenerator _generator;
+    private readonly CloudinaryAdminService _cloudinary;
+    private readonly ILogger<CatalogProductsController> _logger;
 
-    public CatalogProductsController(ApplicationDbContext db, ICatalogVariantGenerator generator) : base(db)
+    public CatalogProductsController(
+        ApplicationDbContext db,
+        ICatalogVariantGenerator generator,
+        CloudinaryAdminService cloudinary,
+        ILogger<CatalogProductsController> logger) : base(db)
     {
         _generator = generator;
+        _cloudinary = cloudinary;
+        _logger = logger;
     }
 
     // GET: api/catalog/products?categoryId=
@@ -119,8 +127,9 @@ public class CatalogProductsController : CatalogControllerBase
     }
 
     // DELETE: api/catalog/products/{id}
-    // Variants, allowed values and media rows go with it (cascade). The
-    // Cloudinary assets are not deleted here: the API never holds Cloudinary credentials.
+    // Variants, allowed values and media rows go with it (cascade). The media
+    // URLs are read first, so their Cloudinary files can be destroyed once the
+    // rows are gone.
     [HttpDelete("{id:int}")]
     [RequirePermission(PermissionModules.Catalogo, PermissionActions.Delete)]
     public async Task<IActionResult> Delete(int id)
@@ -128,8 +137,12 @@ public class CatalogProductsController : CatalogControllerBase
         var product = await Db.CatalogProducts.FirstOrDefaultAsync(p => p.Id == id);
         if (product is null) return ProductNotFound();
 
+        var mediaUrls = await Db.CatalogMedia.Where(m => m.ProductId == id).Select(m => m.Url).ToListAsync();
+
         Db.CatalogProducts.Remove(product);
         await Db.SaveChangesAsync();
+
+        await DestroyCloudinaryFilesAsync(mediaUrls, id);
         return NoContent();
     }
 
@@ -207,7 +220,22 @@ public class CatalogProductsController : CatalogControllerBase
 
         Db.CatalogMedia.Remove(media);
         await Db.SaveChangesAsync();
+
+        await DestroyCloudinaryFilesAsync(new[] { media.Url }, media.ProductId);
         return NoContent();
+    }
+
+    // Runs after the rows are deleted and never fails the request: a file that
+    // could not be destroyed (Cloudinary down or not configured, or a URL that
+    // is not a Cloudinary asset) is only logged.
+    private async Task DestroyCloudinaryFilesAsync(IEnumerable<string> urls, int productId)
+    {
+        foreach (var url in urls)
+        {
+            var (destroyed, error) = await _cloudinary.TryDestroyAsync(url);
+            if (!destroyed)
+                _logger.LogWarning("[Catalog] Could not delete {Url} from Cloudinary after deleting it from product {ProductId}: {Error}", url, productId, error);
+        }
     }
 
     // The category and every allowed value are looked up through the tenant

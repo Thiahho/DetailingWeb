@@ -18,8 +18,8 @@ export interface ValueOption {
 
 // Photos and videos of a saved product. Files go straight to Cloudinary from
 // the browser (same unsigned upload as the other admin screens) and only the
-// URL is registered in the API. Deleting removes the record; the Cloudinary
-// file stays, like every other admin screen that removes an image.
+// URL is registered in the API. Deleting removes the record and the API then
+// asks Cloudinary to destroy the file.
 export default function MediaManager({
   productId,
   media,
