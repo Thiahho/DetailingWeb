@@ -1,0 +1,58 @@
+# Catalog with order via WhatsApp
+
+## Objective
+A business can publish a product catalog (categories, attributes, variants, photos, optional price) on its public site; the customer builds a cart and sends the order to the business's WhatsApp as a pre-built message.
+
+## Problem
+- Small businesses that sell products (wholesale catalogs, makers, salons that also sell products) take orders by sending photos and prices by chat.
+- Turneo only has `Core/Products`: an admin-only list (Name, Price, IsActive, Order) used for booking items. No public surface, no categories, images or variants.
+- AccFenix (`D:\Proyectos\AccFenix`) has the catalog + cart → WhatsApp flow, single-tenant, without prices, with open bugs M1 (SKU 120 vs slug 180 → 500), M2 (product save + variant generation not in one transaction), M3 (SKU text can collide between products and is global).
+
+## Why
+EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "Catálogo por WhatsApp". User chose it over finishing priority 1 (2026-11-10).
+
+## Decisions
+- User (2026-11-10): optional price per product. With a price, the catalog shows it and the order sums it; without, "Consultar precio".
+- Parent (defaults, revisable): new generic module `Modules/Catalog`, separate from `Core/Products` (left untouched). Orders are not persisted (AccFenix parity): the cart lives in the browser (localStorage key per tenant) and the order is a `wa.me` message to `SiteConfig.WhatsAppNumber`. M1–M3 are fixed in the port, not in AccFenix. Images reuse Turneo's existing Cloudinary approach (`src/lib/cloudinaryMedia.ts`). New permission module "Catálogo" for Staff.
+
+## Scope
+- In: tenant-scoped catalog model (categories, attributes + values, category ↔ attribute order, products with optional price, allowed values, variants with availability Disponible/A pedido, media); variant generation (cartesian product, deactivate instead of delete) in one transaction with product writes; SKU unique per tenant and never truncated; admin endpoints and screens; public endpoints resolved by tenant host; public catalog, product detail, cart, order form → WhatsApp message with prices when present.
+- Out (later): stock and checkout with Mercado Pago (guide priority 3), persisted orders and order panel, shipping zones/geo, wholesale threshold, plan feature flag `CanUseCatalog` (needs a data migration: SaaSCatalogSeeder only seeds an empty table), price per variant.
+
+## Acceptance criteria
+- An admin creates a category with attributes (e.g. Talle, Color), a product with allowed values and optional price; the variants are generated automatically; renaming or long names never cause a 500; two products never collide on SKU; a failure leaves nothing half-written.
+- Everything is isolated per tenant (query filters + RLS); another tenant's public host never sees the catalog.
+- The public site lists active categories/products, shows the variant picker, price or "Consultar precio", and a cart that survives reloads per tenant.
+- The order opens WhatsApp with items (qty × product — variant values), line prices and total when prices exist, and the customer's contact data.
+- Existing behavior (bookings, `Core/Products`) unchanged; full suites green.
+
+## Tasks
+- [x] T1 — Backend catalog domain: entities, tenant scoping (query filters, RLS migration), per-tenant unique indexes, variant generator with M1–M3 fixed, admin endpoints with permission module "Catálogo", integration tests. Route: delegated (writer trigger: 2+ non-trivial files).
+- [ ] T2 — Backend public catalog endpoints (tenant by host): categories, products by category, product detail with variants and media, variants by ids for cart sync; tests. Route: delegated.
+- [ ] T3 — Frontend admin screens: categories, attributes, products (form, variants grid, photos), proxies, permission-aware nav. Route: delegated.
+- [ ] T4 — Frontend public: catalog, product detail with variant picker, cart (per-tenant localStorage), order form → WhatsApp message with optional prices; vitest for cart and message builder. Route: delegated.
+- [ ] T5 — Docs: EMPRENDERS guide (niche day-1 section, next steps), commercial manual note. Route: inline.
+
+## Checks
+- `dotnet test backend/Turneo.Api.Tests --artifacts-path <scratch>` (Docker; the running Turneo.Api locks bin/)
+- `frontend/turneo-web`: `pnpm test`, `pnpm exec tsc --noEmit -p .`, `pnpm build`
+
+## Delivery
+- Branch `feat/catalog-whatsapp` from `TurneoDV2-Belleza` (`5a2cc6fd`).
+- Forecast: well above ~400 authored lines (AccFenix catalog ≈ 1.1k backend + 2.5k frontend lines). Strategy reused from the previous features: `feature-branch-chain` (work-unit commits on the feature branch, one merge into `TurneoDV2-Belleza`). Push/merge are user decisions.
+- RDD: off for this clone (as in previous features).
+
+## Progress
+- 2026-11-10: Created. Mapping by a read-only explorer (AccFenix model, flow, bugs; Turneo `Core/Products`, `SiteConfig.WhatsAppNumber`, no plan flag for catalog).
+- 2026-11-11: T1 done (delegated writer). Commits `16feb881` (model, migration, generator, unit tests) and the following `feat(catalog): add admin catalog endpoints…` commit (controllers, permission, integration tests, this entry).
+  - Module `backend/Turneo.Api/Modules/Catalog/` (namespace `Turneo.Api.Modules.Catalog`): `Domain/` (CatalogCategory + CatalogCategoryAttribute, CatalogAttribute + CatalogAttributeValue, CatalogProduct + CatalogProductAllowedValue, CatalogVariant + CatalogVariantValue, CatalogMedia; enums `CatalogAvailability` Disponible=0/APedido=1, `CatalogMediaType` Image=0/Video=1), `CatalogLimits`, `CatalogSlug`, `Variants/VariantPlanner` (pure) + `CatalogVariantGenerator` (`ICatalogVariantGenerator`, scoped), `Admin/` controllers.
+  - Migration `20261111004022_AddCatalog`: 9 tables, all with `TenantId` + tenant query filter + forced RLS `tenant_isolation` policy (join tables included). Unique: (TenantId, Slug) category/attribute/product, (TenantId, Sku) and (ProductId, CombinationKey) variant, (AttributeId, Label) value. `dotnet ef migrations has-pending-model-changes`: no changes.
+  - SKU rule: `P{productId}` + `-{combinationKey}` when the product has attributes (combination key = sorted value ids joined by '-'). Built only from ids → unique per tenant, never collides between products (M3), stable on rename. Length bounded by max 10 attributes per category (≤121 chars vs column 200; `SkuFor` throws if ever exceeded) (M1). Slugs are truncated to their column length.
+  - M2: product create/update and category update (attribute change → regenerates its products) run the writes + generation inside one DB transaction; a generator failure rolls everything back (integration test with a throwing generator).
+  - Endpoints (`[Authorize(Roles = "Admin,Staff")]` + `RequirePermission(PermissionModules.Catalogo, …)`, new module `"Catalogo"` in `PermissionModules.All`): `api/catalog/categories` (GET, GET {id}, POST, PUT, DELETE), `api/catalog/attributes` (GET, POST, PUT, DELETE, POST {id}/values), `api/catalog/attribute-values/{id}` (PUT, DELETE), `api/catalog/products` (GET ?categoryId, GET {id}, POST, PUT, DELETE, POST {id}/variants/generate, POST {id}/media, PUT {id}/media/order), `api/catalog/media/{id}` (DELETE), `api/catalog/variants/{id}` (PATCH), `api/catalog/variants/bulk` (PATCH). Errors `{ success: false, message }` in neutral Spanish; 409 for duplicates/in-use; DataAnnotations → 400 ProblemDetails. Media URL must be absolute https.
+  - RED: `dotnet build backend/Turneo.Api.Tests` failed with CS0234/CS0246 (namespace `Turneo.Api.Modules.Catalog`, `ICatalogVariantGenerator`, `VariantSyncResult`, `VariantValueRef` missing). GREEN: catalog filter 28/28; full suite `dotnet test backend/Turneo.Api.Tests --artifacts-path <scratch>` 560/560 (baseline 532 + 28 new).
+  - Size: ~1.4k production + ~750 test lines (above the ~400 heuristic: the model, generator and five controllers are one coherent unit; split into two work-unit commits).
+  - Residual risks: deleting a product/media does not delete the Cloudinary asset (no server SDK; T3 should decide); enums serialize as integers (frontend must map); RLS is asserted by policy presence (tests run as superuser, which bypasses RLS); `PermissionModules.Catalogo` needs a label in the frontend permission matrix (T3).
+
+## Next step
+T2.
