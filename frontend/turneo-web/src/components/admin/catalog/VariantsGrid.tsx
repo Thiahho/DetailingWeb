@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/src/components/shared/Button";
+import { useConfirm } from "@/src/components/shared/ConfirmDialog";
 import { labelClass } from "./CatalogShell";
 import { catalogRequest } from "@/src/lib/catalog/api";
 import { AVAILABILITY_OPTIONS, toAvailability } from "@/src/lib/catalog/enums";
@@ -38,6 +39,7 @@ export default function VariantsGrid({
   const [bulkValues, setBulkValues] = useState<Record<number, number>>({});
   const [bulkAvailability, setBulkAvailability] = useState<CatalogAvailability>(1);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   // Only attributes/values the product actually combines can filter the bulk update.
   const filterAttributes = attributesForCategory(categoryAttributeIds, attributes)
@@ -75,12 +77,31 @@ export default function VariantsGrid({
     onReload();
   };
 
+  // Without a chosen value the change reaches every active variant, which
+  // takes the product off the public catalog: ask first.
+  const deactivateBulk = async () => {
+    const activeCount = variants.length - inactiveCount;
+    if (Object.keys(bulkValues).length === 0 && activeCount > 0) {
+      const ok = await confirm({
+        title: "Desactivar todas las variantes",
+        message:
+          activeCount === 1
+            ? "No elegiste ningún valor: se va a desactivar la única variante activa del producto. ¿Continuar?"
+            : `No elegiste ningún valor: se van a desactivar las ${activeCount} variantes activas del producto. ¿Continuar?`,
+        confirmLabel: "Desactivar todas",
+      });
+      if (!ok) return;
+    }
+    await applyBulk({ isActive: false });
+  };
+
   if (variants.length === 0) {
     return <p className="text-charcoal/40 text-sm">No hay variantes. Se generan al guardar el producto.</p>;
   }
 
   return (
     <div className="space-y-4">
+      {ConfirmDialog}
       <div className="rounded-xl border border-mauve/10 bg-white/60 p-4">
         <p className={`${labelClass} mb-2`}>Cambios masivos</p>
         <div className="flex flex-wrap items-end gap-2">
@@ -131,7 +152,7 @@ export default function VariantsGrid({
           </Button>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-mauve/10 pt-3">
-          <Button type="button" size="sm" variant="secondary" onClick={() => applyBulk({ isActive: false })} disabled={bulkBusy}>
+          <Button type="button" size="sm" variant="secondary" onClick={deactivateBulk} disabled={bulkBusy}>
             Desactivar
           </Button>
           <Button type="button" size="sm" variant="secondary" onClick={() => applyBulk({ isActive: true })} disabled={bulkBusy}>
