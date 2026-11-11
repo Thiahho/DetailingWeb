@@ -29,7 +29,7 @@ Out: any change to bookings, payments or other modules; a plan-flags framework f
 - [x] T2 — Public product page rendered with server data: real 404 for an unknown slug, per-product title, description and Open Graph image; the server fetch forwards the tenant host; the client view receives the product and does not fetch it again. Route: delegated.
 - [x] T3 — Navbar: remember whether the tenant has a catalog in the public data cache so the categories request is not repeated on every page load. Route: delegated.
 - [x] T4 — Backend: delete Cloudinary files when a product or a photo is deleted. Route: delegated.
-- [ ] T5 — `CanUseCatalog` plan flag. BLOCKED on a product decision: which plans include the catalog. Needs a data migration (existing databases) plus the seeder, enforcement in the admin and public catalog controllers, and tests.
+- [ ] T5 — `CanUseCatalog` plan flag. DEFERRED by the user on 2026-11-11: plans are left for the end, so the catalog stays available to every tenant for now. Still needs the product decision of which plans include the catalog. Needs a data migration (existing databases) plus the seeder, enforcement in the admin and public catalog controllers, and tests.
 
 ## Acceptance criteria
 - T1: with a value filter chosen, "turn off" deactivates the matching active variants and "turn on" reactivates only the hand-disabled ones; the grid reloads and reports how many changed. A selected chip is recognizable at a glance (filled background and a check mark), also by keyboard focus.
@@ -56,4 +56,4 @@ Out: any change to bookings, payments or other modules; a plan-flags framework f
 - 2026-11-11 — Running total after T1–T4: ~820 authored changed lines (additions plus deletions), about 390 of them tests; over the ~550 forecast mainly because T2 and T4 carry more test code than planned.
 
 ## Next step
-Ask the user which plans include the catalog (T5). T1–T4 are committed on `feat/catalog-followups`; a browser check of the four changes (bulk buttons, chips, product page 404/metadata, navbar request) is still pending. Push, pull request and merge are the user's decisions.
+T5 is deferred to the end by the user's decision (2026-11-11); do not start it until they bring plans back. T1–T4 are committed on `feat/catalog-followups`; a browser check of the four changes (bulk buttons, chips, product page 404/metadata, navbar request) is still pending. Push, pull request and merge are the user's decisions.
