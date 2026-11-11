@@ -96,5 +96,12 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
   - RED: compile error CS1739 (`ExistingVariant` without `DisabledManually`), then with the parameter only: 2 new planner tests and 3 of 4 new integration tests (`CatalogManualDeactivationTests`) failed. GREEN: catalog filter 42/42; full suite `dotnet test backend/Turneo.Api.Tests --artifacts-path <scratch>` 574/574 (568 + 6); `dotnet ef migrations has-pending-model-changes --configuration Release`: no changes; frontend `pnpm exec tsc --noEmit -p .` exit 0, `pnpm test` 224/224.
   - Residual risks: single `PATCH isActive=true` can still turn on an obsolete variant (pre-existing behavior; the generator turns it off again on the next save since it is not flagged); the grid has no bulk on/off control yet (API only).
 
+- 2026-11-11: Browser check in Chrome (local front, user's backend restarted on this branch so `AddCatalog` and `AddCatalogVariantDisabledManually` applied; admin session). Observed:
+  - Admin: attribute "Talle" with S, M; category "Remeras" with Talle; product "Remera básica" $12.000 with S, M → variants `P1-1`, `P1-2` generated. M turned off by hand, product saved and page reloaded → M still off ("Mostrar inactivas (1)").
+  - Public: navbar shows "Catálogo" and the cart; `/catalogo` card with "$12.000"; product page disables M, adds 2 × S; `/pedido` shows $24.000 line and total; "Enviar pedido por WhatsApp" (window.open stubbed) builds `wa.me/541122692061` with greeting, "*Remeras*", "• 2 × Remera básica — S — $24.000", "*Total: $24.000*" and contact data; "¿Se abrió WhatsApp?" → "Ya lo envié, vaciar pedido" empties the cart.
+  - Not checked: photo upload/reorder (needs a file), "Consultar precio" path (covered by unit tests), phone layout, a real WhatsApp tab.
+  - Minor: selected value chips in the product form are hard to tell apart from unselected ones; local business name came from e2e data ("Studio E2E …").
+  - Test data left in the local database: attribute Talle, category Remeras, product Remera básica.
+
 ## Next step
 T5 (docs).
