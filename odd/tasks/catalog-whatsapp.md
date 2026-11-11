@@ -29,7 +29,7 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
 ## Tasks
 - [x] T1 — Backend catalog domain: entities, tenant scoping (query filters, RLS migration), per-tenant unique indexes, variant generator with M1–M3 fixed, admin endpoints with permission module "Catálogo", integration tests. Route: delegated (writer trigger: 2+ non-trivial files).
 - [x] T2 — Backend public catalog endpoints (tenant by host): categories, products by category, product detail with variants and media, variants by ids for cart sync; tests. Route: delegated.
-- [ ] T3 — Frontend admin screens: categories, attributes, products (form, variants grid, photos), proxies, permission-aware nav. Route: delegated.
+- [ ] T3 — Frontend admin screens: categories, attributes, products (form, variants grid, photos), proxies, permission-aware nav. Route: delegated. Screens, proxy and permission label done; sidebar entry pending (needs `src/hooks/usePermissions.ts`, outside the delegated surface).
 - [ ] T4 — Frontend public: catalog, product detail with variant picker, cart (per-tenant localStorage), order form → WhatsApp message with optional prices; vitest for cart and message builder. Route: delegated.
 - [ ] T5 — Docs: EMPRENDERS guide (niche day-1 section, next steps), commercial manual note. Route: inline.
 
@@ -67,5 +67,15 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
   - Size: ~200 production + ~300 test lines.
   - Residual risks: no response caching (each page view hits the DB); variants-by-ids uses a GET query string (200 ids ≈ 1.4k chars, well under URL limits).
 
+- 2026-11-11: T3 screens done (delegated writer), sidebar entry pending. Commits `a9eb2f33` (helpers + proxy + tests) and the following `feat(catalog): add admin catalog screens` commit (screens, permission label, this entry).
+  - Proxy: `app/api/catalog/[...path]/route.ts` (GET/POST/PUT/PATCH/DELETE, Bearer from `admin_token`/`client_token`/`token` cookie, `tenantHeader`, query string forwarded, `cache: "no-store"`, `relayResponse` so backend status and empty 204 bodies are relayed). T4 can add more specific `app/api/catalog/public/...` routes (they win over the catch-all) if it wants caching.
+  - Helpers `src/lib/catalog/`: `types`, `enums` (availability 0 Disponible / 1 A pedido, media 0 Imagen / 1 Video), `price` (optional price: empty → `null` → "Consultar precio"; accepts `1500`, `12,5`, `1.500,75`), `payloads` (product/category/value bodies, `apiErrorMessage` for `{ message }` and ProblemDetails), `ordering` (moveItem, attributesForCategory, variantLabel, cloudinaryPublicId), `api` (`catalogRequest`).
+  - Screens: `/admin/catalogo` (products list: category filter, active filter, cover, price or "Consultar precio", variant counts, delete), `/admin/catalogo/productos/[id]` (`nuevo` = create; fields + allowed values per category attribute; after save: photos/videos via `CloudinaryUpload` folder `Turneo/catalogo`, optional link to an allowed value at upload, reorder, remove; variants grid with per-variant availability/active and bulk availability by values), `/admin/catalogo/categorias` (CRUD, ordered attributes with up/down, confirm before changing attributes of a category with products), `/admin/catalogo/atributos` (CRUD + values: label, order, optional `#RRGGBB` color). Components in `src/components/admin/catalog/`. Permissions page labels `Catalogo` as "Catálogo (pedidos por WhatsApp)".
+  - Cloudinary on delete: same as the other admin screens (customers, history photos): the record is removed, the Cloudinary file stays. `publicId` is derived from the URL and stored for a future cleanup.
+  - Test-first: RED `vitest run src/lib/catalog` failed (modules missing); GREEN 23/23. Components are not unit-tested in this repo (node env, no Testing Library).
+  - Checks: `pnpm test` 198/198 (19 files); `pnpm exec tsc --noEmit -p .` clean; `pnpm build` compiled (routes `/admin/catalogo`, `/admin/catalogo/atributos`, `/admin/catalogo/categorias`, `/admin/catalogo/productos/[id]`, `/api/catalog/[...path]`).
+  - Size: ~2.3k lines (four screens + five components + helpers/tests); split into two work-unit commits.
+  - Residual risks: not exercised in a browser against a running API; the media–value link can only be set at upload (no update endpoint); a manually deactivated variant is reactivated by the generator on the next product save if its combination is still wanted (the grid says so); the sidebar entry needs `PermissionModuleKey` to include `"Catalogo"`.
+
 ## Next step
-T3 (admin screens) and T4 (public frontend, contract above).
+Finish T3: add `"Catalogo"` to `PermissionModuleKey` (`src/hooks/usePermissions.ts`) and a "Catálogo" item (module `Catalogo`) in the "Sitio web" group of `AdminSidebar`. Then T4 (public frontend, contract above).

@@ -46,6 +46,7 @@ const MODULE_LABELS: Record<string, string> = {
   Servicios: "Servicios",
   Productos: "Productos",
   Insumos: "Insumos",
+  Catalogo: "Catálogo (pedidos por WhatsApp)",
   Profesionales: "Equipo",
   Caja: "Caja",
   Contenido: "Contenido",
