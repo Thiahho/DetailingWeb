@@ -41,8 +41,11 @@ import {
   productOpenGraphImage,
 } from "@/src/lib/catalog/productPage";
 import { tenantHeaderFromHeaders } from "@/src/lib/tenantHeader";
+import { HAS_CATALOG_MAX_AGE_MS, categoriesAnswer, createCatalogPresence } from "@/src/lib/catalog/catalogPresence";
+import type { CatalogResult } from "@/src/lib/catalog/api";
 import type {
   PublicAttribute,
+  PublicCategory,
   PublicMedia,
   PublicProductDetail,
   PublicVariant,
@@ -416,5 +419,87 @@ describe("tenant headers from a headers object", () => {
       if (previous === undefined) delete process.env.PROXY_SHARED_SECRET;
       else process.env.PROXY_SHARED_SECRET = previous;
     }
+  });
+});
+
+describe("catalog presence (navbar link)", () => {
+  const categories = (count: number): CatalogResult<PublicCategory[]> => ({
+    ok: true,
+    status: 200,
+    message: "",
+    data: Array.from({ length: count }, (_, i) => ({ slug: `c${i}`, name: `C${i}`, description: null, productCount: 1 })),
+  });
+  const failure: CatalogResult<PublicCategory[]> = { ok: false, status: 500, message: "x", data: null };
+
+  function setup(stored: boolean | null, ...answers: CatalogResult<PublicCategory[]>[]) {
+    const state = { stored, requests: 0 };
+    const presence = createCatalogPresence({
+      read: () => state.stored,
+      write: (value) => {
+        state.stored = value;
+      },
+      fetchCategories: async () => answers[Math.min(state.requests++, answers.length - 1)],
+    });
+    return { state, presence };
+  }
+
+  it("reads the answer from a categories response", () => {
+    expect(categoriesAnswer(categories(2))).toBe(true);
+    expect(categoriesAnswer(categories(0))).toBe(false);
+    expect(categoriesAnswer(failure)).toBeNull();
+    expect(categoriesAnswer({ ok: true, status: 200, message: "", data: null })).toBeNull();
+  });
+
+  it("answers from a fresh stored entry without a request", async () => {
+    const yes = setup(true, categories(0));
+    expect(await yes.presence.check()).toBe(true);
+    expect(yes.state.requests).toBe(0);
+
+    const no = setup(false, categories(3));
+    expect(await no.presence.check()).toBe(false);
+    expect(no.state.requests).toBe(0);
+  });
+
+  it("requests once when nothing is stored, and stores the answer", async () => {
+    const { state, presence } = setup(null, categories(2));
+    expect(await Promise.all([presence.check(), presence.check()])).toEqual([true, true]);
+    expect(await presence.check()).toBe(true);
+    expect(state.requests).toBe(1);
+    expect(state.stored).toBe(true);
+  });
+
+  it("stores that there is no catalog", async () => {
+    const { state, presence } = setup(null, categories(0));
+    expect(await presence.check()).toBe(false);
+    expect(state.stored).toBe(false);
+  });
+
+  it("does not store a failure and retries on the next check", async () => {
+    const { state, presence } = setup(null, failure, categories(1));
+    expect(await presence.check()).toBe(false);
+    expect(state.stored).toBeNull();
+    expect(await presence.check()).toBe(true);
+    expect(state.requests).toBe(2);
+    expect(state.stored).toBe(true);
+  });
+
+  it("is corrected by any successful categories response", async () => {
+    const { state, presence } = setup(true, categories(0));
+    expect(await presence.check()).toBe(true);
+    presence.remember(categories(0));
+    expect(state.stored).toBe(false);
+    expect(await presence.check()).toBe(false);
+    expect(state.requests).toBe(0);
+  });
+
+  it("keeps the stored answer when a later categories response fails", async () => {
+    const { state, presence } = setup(true, categories(1));
+    presence.remember(failure);
+    expect(state.stored).toBe(true);
+    expect(await presence.check()).toBe(true);
+  });
+
+  it("keeps entries for one hour", () => {
+    expect(HAS_CATALOG_MAX_AGE_MS).toBe(60 * 60 * 1000);
   });
 });

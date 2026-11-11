@@ -1,14 +1,23 @@
 // Client-side calls to the anonymous catalog endpoints, through the catalog
 // proxy (app/api/catalog/[...path]) that forwards the tenant host — the same
 // pattern the rest of the public site uses (/api/services, /api/siteconfig).
+import { getCached, setCached } from "@/src/lib/publicDataCache";
 import { catalogRequest, type CatalogResult } from "./api";
+import { HAS_CATALOG_CACHE_KEY, HAS_CATALOG_MAX_AGE_MS, createCatalogPresence } from "./catalogPresence";
 import type { PublicCategory, PublicProductCard, PublicProductDetail, PublicVariantStatus } from "./publicTypes";
 
 // The backend accepts up to 200 ids per call.
 const VARIANT_IDS_PER_CALL = 200;
 
-export function fetchPublicCategories(): Promise<CatalogResult<PublicCategory[]>> {
+function requestPublicCategories(): Promise<CatalogResult<PublicCategory[]>> {
   return catalogRequest<PublicCategory[]>("public/categories", { fallback: "No se pudo cargar el catálogo" });
+}
+
+// Every successful answer also refreshes what hasPublicCatalog() remembers.
+export async function fetchPublicCategories(): Promise<CatalogResult<PublicCategory[]>> {
+  const res = await requestPublicCategories();
+  catalogPresence.remember(res);
+  return res;
 }
 
 export function fetchPublicProducts(categorySlug?: string): Promise<CatalogResult<PublicProductCard[]>> {
@@ -35,20 +44,21 @@ export async function fetchVariantStatuses(ids: number[]): Promise<PublicVariant
   return result;
 }
 
-// Whether the tenant publishes a catalog (≥1 public category). Cached for the
-// page's lifetime: the navbar asks on every mount.
-let catalogCheck: Promise<boolean> | null = null;
+// Whether the tenant publishes a catalog (≥1 public category). The navbar asks
+// on every mount of every public page: the answer is kept for the page's
+// lifetime and, with the "preferences" consent, for an hour across page loads
+// (see catalogPresence.ts), so most page loads make no categories request.
+const catalogPresence = createCatalogPresence({
+  read: () => {
+    const stored = getCached<boolean>(HAS_CATALOG_CACHE_KEY, HAS_CATALOG_MAX_AGE_MS);
+    return typeof stored === "boolean" ? stored : null;
+  },
+  write: (hasCatalog) => setCached(HAS_CATALOG_CACHE_KEY, hasCatalog),
+  fetchCategories: requestPublicCategories,
+});
 
 export function hasPublicCatalog(): Promise<boolean> {
-  if (!catalogCheck) {
-    catalogCheck = fetchPublicCategories().then((res) => {
-      const has = res.ok && Array.isArray(res.data) && res.data.length > 0;
-      // A failed check is retried on the next mount instead of hiding the catalog for good.
-      if (!res.ok) catalogCheck = null;
-      return has;
-    });
-  }
-  return catalogCheck;
+  return catalogPresence.check();
 }
 
 export interface OrderSettings {
