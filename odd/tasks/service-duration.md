@@ -78,6 +78,8 @@ Detailing (first niche) has multi-hour services; the agenda must not sell overla
   - Minor, outside this feature: service cards show the free-text duration ("60 min"), not `DurationMinutes`; the calendar day view opens on today instead of the selected day; the dashboard "Servicio" column shows the slug.
   - Service duration restored to empty afterwards. Test booking and the 12/11 slots remain in the local database.
 
+- 2026-11-10: Follow-up done (parent, inline). `HomeServiceTravelBuffer` reduced to a static class with `InsideBufferMessage` and `IsInsideBuffer` (the only members still used, by `BookingAvailability` and `AgendaAvailability`); removed `IHomeServiceTravelBuffer`, the slot-based methods and its DI registration in `Program.cs`. Backend 529/529 (Docker, `--artifacts-path`).
+
 ## Next step
 1. Visual check — done 2026-11-10 (see Progress); professional agenda still unchecked.
 3. Open follow-ups for the user: unused slot-based methods in `HomeServiceTravelBuffer.cs`; admin reschedule keeps the booking's `ProfessionalId`; production `btree_gist` check before deploy.
