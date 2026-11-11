@@ -5,9 +5,13 @@ import Link from "next/link";
 import { LogIn, LogOut, Menu, X, LayoutDashboard } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSiteConfig } from "@/src/lib/siteConfig";
+import CartButton from "@/src/components/public/catalog/CartButton";
+import { hasPublicCatalog } from "@/src/lib/catalog/publicApi";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Catalog link and cart only for businesses that publish at least one category.
+  const [hasCatalog, setHasCatalog] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [businessName, setBusinessName] = useState(
     process.env.NEXT_PUBLIC_BUSINESS_NAME || ""
@@ -33,6 +37,7 @@ export default function Navbar() {
     getSiteConfig().then((config) => {
       if (config.businessName) setBusinessName(config.businessName);
     });
+    hasPublicCatalog().then(setHasCatalog);
   }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
@@ -79,6 +84,11 @@ export default function Navbar() {
             <Link href="/reservar#preguntas" onClick={(e) => handleNavClick(e, "preguntas")} className="transition hover:text-charcoal">
               Preguntas
             </Link>
+            {hasCatalog && (
+              <Link href="/catalogo" className="transition hover:text-charcoal">
+                Catálogo
+              </Link>
+            )}
             <Link
               href="/mis-turnos"
               className="transition hover:text-charcoal"
@@ -92,6 +102,7 @@ export default function Navbar() {
             >
               Contacto
             </Link>
+            {hasCatalog && <CartButton />}
             {isLoggedIn ? (
               <button
                 onClick={() => router.push("/admin")}
@@ -108,9 +119,12 @@ export default function Navbar() {
           </nav>
 
           {/* MOBILE TOGGLE */}
-          <button className="md:hidden p-1.5 text-charcoal" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-          </button>
+          <div className="flex items-center gap-1 md:hidden">
+            {hasCatalog && <CartButton onClick={close} />}
+            <button className="p-1.5 text-charcoal" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -162,6 +176,15 @@ export default function Navbar() {
               >
                 Preguntas
               </Link>
+              {hasCatalog && (
+                <Link
+                  href="/catalogo"
+                  onClick={close}
+                  className="flex items-center px-4 py-3.5 rounded-xl bg-white border border-mauve/10 text-charcoal hover:bg-blush/10 hover:border-blush/40 transition text-sm font-medium"
+                >
+                  Catálogo
+                </Link>
+              )}
               <Link
                 href="/mis-turnos"
                 onClick={close}
