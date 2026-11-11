@@ -29,7 +29,7 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
 ## Tasks
 - [x] T1 — Backend catalog domain: entities, tenant scoping (query filters, RLS migration), per-tenant unique indexes, variant generator with M1–M3 fixed, admin endpoints with permission module "Catálogo", integration tests. Route: delegated (writer trigger: 2+ non-trivial files).
 - [x] T2 — Backend public catalog endpoints (tenant by host): categories, products by category, product detail with variants and media, variants by ids for cart sync; tests. Route: delegated.
-- [ ] T3 — Frontend admin screens: categories, attributes, products (form, variants grid, photos), proxies, permission-aware nav. Route: delegated. Screens, proxy and permission label done; sidebar entry pending (needs `src/hooks/usePermissions.ts`, outside the delegated surface).
+- [x] T3 — Frontend admin screens: categories, attributes, products (form, variants grid, photos), proxies, permission-aware nav. Route: delegated (screens, proxy, label) + parent inline (sidebar entry "Catálogo online" in "Sitio web", `"Catalogo"` added to `PermissionModuleKey`; tsc clean, pnpm test 198/198).
 - [ ] T4 — Frontend public: catalog, product detail with variant picker, cart (per-tenant localStorage), order form → WhatsApp message with optional prices; vitest for cart and message builder. Route: delegated.
 - [ ] T5 — Docs: EMPRENDERS guide (niche day-1 section, next steps), commercial manual note. Route: inline.
 
@@ -78,4 +78,4 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
   - Residual risks: not exercised in a browser against a running API; the media–value link can only be set at upload (no update endpoint); a manually deactivated variant is reactivated by the generator on the next product save if its combination is still wanted (the grid says so); the sidebar entry needs `PermissionModuleKey` to include `"Catalogo"`.
 
 ## Next step
-Finish T3: add `"Catalogo"` to `PermissionModuleKey` (`src/hooks/usePermissions.ts`) and a "Catálogo" item (module `Catalogo`) in the "Sitio web" group of `AdminSidebar`. Then T4 (public frontend, contract above).
+T4 (public frontend, contract above). Open question for the user: the variant generator reactivates a variant deactivated by hand when the product is saved again (AccFenix behavior).

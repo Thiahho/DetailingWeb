@@ -5,7 +5,7 @@ import { getRole } from "@/src/lib/auth";
 
 export type PermissionModuleKey =
   | "Turnos" | "Clientes" | "Servicios" | "Productos" | "Insumos"
-  | "Profesionales" | "Caja" | "Contenido" | "Galeria" | "Automatizaciones" | "SmartTags" | "Ruleta" | "Resenas";
+  | "Profesionales" | "Caja" | "Contenido" | "Galeria" | "Automatizaciones" | "SmartTags" | "Ruleta" | "Resenas" | "Catalogo";
 
 export type PermissionAction = "View" | "Create" | "Edit" | "Delete";
 

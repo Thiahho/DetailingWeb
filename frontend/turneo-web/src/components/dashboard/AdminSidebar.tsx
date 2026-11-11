@@ -10,7 +10,7 @@ import {
   CalendarDays, BarChart2, Wrench, Globe,
   LogOut,
   List, LayoutDashboard, Menu, X, ClipboardList, KeyRound, Clapperboard, Image, Users, UserCog,
-  MoreHorizontal, ChevronDown, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star, MapPin,
+  MoreHorizontal, ChevronDown, Building2, Package, Wallet, Zap, Boxes, ShieldCheck, Nfc, Gift, ShieldAlert, Star, MapPin, ShoppingBag,
 } from "lucide-react";
 
 // `module`: a qué PermissionModule pertenece este link — un Staff sin permiso
@@ -77,6 +77,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/galeria", label: "Galería", icon: Image, module: "Galeria" },
       { href: "/admin/contenido", label: "Contenido", icon: Clapperboard, module: "Contenido" },
+      { href: "/admin/catalogo", label: "Catálogo online", icon: ShoppingBag, module: "Catalogo" },
     ],
   },
   {
