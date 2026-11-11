@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 const TENANCY_BASE_DOMAIN = process.env.NEXT_PUBLIC_TENANCY_BASE_DOMAIN || "turneo.app";
 
@@ -17,11 +17,22 @@ const TENANCY_BASE_DOMAIN = process.env.NEXT_PUBLIC_TENANCY_BASE_DOMAIN || "turn
 // clientIpHeaders). Solo se importa desde código de servidor (rutas
 // `app/api/**`): el secreto nunca debe llegar a un componente cliente.
 export function tenantHeader(request: NextRequest, tenantSlugOverride?: string | null): Record<string, string> {
-  const clientIp = clientIpHeaders(request);
+  return tenantHeaderFromHeaders(request.headers, tenantSlugOverride);
+}
+
+// The part of `Headers` these helpers read: a route handler passes
+// `request.headers`, a server component passes `headers()` from `next/headers`.
+export interface HeaderReader {
+  get(name: string): string | null;
+}
+
+// Same as tenantHeader() for server components, which have no NextRequest.
+export function tenantHeaderFromHeaders(headers: HeaderReader, tenantSlugOverride?: string | null): Record<string, string> {
+  const clientIp = clientIpHeadersFromHeaders(headers);
   if (tenantSlugOverride) {
     return { "X-Tenant-Host": `${tenantSlugOverride}.${TENANCY_BASE_DOMAIN}`, ...clientIp };
   }
-  const host = request.headers.get("host");
+  const host = headers.get("host");
   return host ? { "X-Tenant-Host": host, ...clientIp } : clientIp;
 }
 
@@ -35,11 +46,13 @@ export function tenantHeader(request: NextRequest, tenantSlugOverride?: string |
 // Exportada para las rutas proxy sin tenant (ruleta de captación, login de
 // plataforma, webhook de pagos), que no pasan por `tenantHeader()`.
 export function clientIpHeaders(request: NextRequest): Record<string, string> {
+  return clientIpHeadersFromHeaders(request.headers);
+}
+
+export function clientIpHeadersFromHeaders(headers: HeaderReader): Record<string, string> {
   const secret = process.env.PROXY_SHARED_SECRET;
   if (!secret) return {};
 
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip")?.trim();
+  const ip = headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip")?.trim();
   return ip ? { "X-Client-IP": ip, "X-Proxy-Secret": secret } : {};
 }

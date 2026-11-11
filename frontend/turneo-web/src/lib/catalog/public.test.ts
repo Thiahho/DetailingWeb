@@ -31,7 +31,23 @@ import {
   selectValue,
   selectionLabel,
 } from "@/src/lib/catalog/variants";
-import type { PublicAttribute, PublicMedia, PublicVariant, PublicVariantStatus } from "@/src/lib/catalog/publicTypes";
+import {
+  FALLBACK_OG_IMAGE,
+  META_DESCRIPTION_MAX,
+  buildProductMetadata,
+  isProductDetail,
+  productLoadKind,
+  productMetaDescription,
+  productOpenGraphImage,
+} from "@/src/lib/catalog/productPage";
+import { tenantHeaderFromHeaders } from "@/src/lib/tenantHeader";
+import type {
+  PublicAttribute,
+  PublicMedia,
+  PublicProductDetail,
+  PublicVariant,
+  PublicVariantStatus,
+} from "@/src/lib/catalog/publicTypes";
 
 function item(overrides: Partial<CartItem> = {}): CartItem {
   return {
@@ -301,5 +317,104 @@ describe("variant picker", () => {
     ];
     expect(galleryItems(media, [4]).map((m) => m.id)).toEqual([3, 1]);
     expect(galleryItems(media, []).map((m) => m.id)).toEqual([1, 2, 3]);
+  });
+});
+
+describe("product page", () => {
+  const product: PublicProductDetail = {
+    slug: "remera",
+    name: "Remera básica",
+    description: "  Algodón peinado.\n\nCorte  recto.  ",
+    price: 1500,
+    categorySlug: "ropa",
+    categoryName: "Ropa",
+    attributes: [],
+    variants: [],
+    media: [
+      { id: 1, url: "https://x/clip.mp4", type: 1, attributeValueId: null },
+      { id: 2, url: "https://x/a.jpg", type: 0, attributeValueId: null },
+      { id: 3, url: "https://x/b.jpg", type: 0, attributeValueId: 4 },
+    ],
+  };
+
+  it("maps the backend status to found, not found or error", () => {
+    expect(productLoadKind(200)).toBe("found");
+    expect(productLoadKind(404)).toBe("notFound");
+    expect(productLoadKind(500)).toBe("error");
+    expect(productLoadKind(429)).toBe("error");
+    expect(productLoadKind(204)).toBe("error");
+  });
+
+  it("accepts only bodies that look like a product", () => {
+    expect(isProductDetail(product)).toBe(true);
+    expect(isProductDetail(null)).toBe(false);
+    expect(isProductDetail({ success: false, message: "x" })).toBe(false);
+    expect(isProductDetail({ ...product, media: null })).toBe(false);
+  });
+
+  it("collapses the description into one line", () => {
+    expect(productMetaDescription(product)).toBe("Algodón peinado. Corte recto.");
+  });
+
+  it("cuts a long description at a word, within the limit", () => {
+    const long = { ...product, description: "palabra ".repeat(60) };
+    const result = productMetaDescription(long);
+    expect(result.length).toBeLessThanOrEqual(META_DESCRIPTION_MAX);
+    expect(result.endsWith("palabra…")).toBe(true);
+  });
+
+  it("falls back to a sentence with the product name when there is no description", () => {
+    const expected = "Remera básica en nuestro catálogo. Hacé tu pedido por WhatsApp.";
+    expect(productMetaDescription({ ...product, description: null })).toBe(expected);
+    expect(productMetaDescription({ ...product, description: "   " })).toBe(expected);
+  });
+
+  it("picks the first image, never a video, for Open Graph", () => {
+    expect(productOpenGraphImage(product.media)).toBe("https://x/a.jpg");
+    expect(productOpenGraphImage([product.media[0]])).toBeNull();
+    expect(productOpenGraphImage([])).toBeNull();
+  });
+
+  it("builds the metadata with the product name, description and photo", () => {
+    const metadata = buildProductMetadata(product);
+    expect(metadata.title).toBe("Remera básica");
+    expect(metadata.description).toBe("Algodón peinado. Corte recto.");
+    expect(metadata.openGraph).toMatchObject({
+      title: "Remera básica",
+      description: "Algodón peinado. Corte recto.",
+      images: [{ url: "https://x/a.jpg", alt: "Remera básica" }],
+    });
+    expect(metadata.twitter).toMatchObject({ title: "Remera básica", images: ["https://x/a.jpg"] });
+  });
+
+  it("keeps the site image when the product has no photo", () => {
+    const metadata = buildProductMetadata({ ...product, media: [] });
+    expect(metadata.openGraph.images).toEqual([{ url: FALLBACK_OG_IMAGE, alt: "Remera básica" }]);
+  });
+});
+
+describe("tenant headers from a headers object", () => {
+  const reader = (values: Record<string, string>) => ({ get: (name: string) => values[name] ?? null });
+
+  it("forwards the visited host", () => {
+    expect(tenantHeaderFromHeaders(reader({ host: "salon.turneo.app" }))["X-Tenant-Host"]).toBe("salon.turneo.app");
+  });
+
+  it("adds the visitor IP only when the proxy secret is configured", () => {
+    const headers = reader({ host: "salon.turneo.app", "x-forwarded-for": "203.0.113.7, 10.0.0.1" });
+    const previous = process.env.PROXY_SHARED_SECRET;
+    try {
+      delete process.env.PROXY_SHARED_SECRET;
+      expect(tenantHeaderFromHeaders(headers)).toEqual({ "X-Tenant-Host": "salon.turneo.app" });
+      process.env.PROXY_SHARED_SECRET = "s3cret";
+      expect(tenantHeaderFromHeaders(headers)).toEqual({
+        "X-Tenant-Host": "salon.turneo.app",
+        "X-Client-IP": "203.0.113.7",
+        "X-Proxy-Secret": "s3cret",
+      });
+    } finally {
+      if (previous === undefined) delete process.env.PROXY_SHARED_SECRET;
+      else process.env.PROXY_SHARED_SECRET = previous;
+    }
   });
 });

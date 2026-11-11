@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, Minus, PackageSearch, Plus } from "lucide-react";
 import AvailabilityBadge from "@/src/components/public/catalog/AvailabilityBadge";
@@ -15,10 +15,15 @@ import { findVariant, initialSelection, isValueEnabled, selectValue, selectionLa
 
 type LoadState = { kind: "loading" } | { kind: "notFound" } | { kind: "error"; message: string } | { kind: "ready"; product: PublicProductDetail };
 
-export default function ProductView({ slug }: { slug: string }) {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+// `initialProduct` comes from the server page; without it (the server could not
+// load the product) the view fetches it from the browser.
+export default function ProductView({ slug, initialProduct = null }: { slug: string; initialProduct?: PublicProductDetail | null }) {
+  const [state, setState] = useState<LoadState>(
+    initialProduct ? { kind: "ready", product: initialProduct } : { kind: "loading" }
+  );
 
   useEffect(() => {
+    if (initialProduct) return;
     let active = true;
     fetchPublicProduct(slug).then((res) => {
       if (!active) return;
@@ -29,31 +34,49 @@ export default function ProductView({ slug }: { slug: string }) {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [slug, initialProduct]);
 
+  return (
+    <ProductShell>
+      {state.kind === "loading" && (
+        <div className="grid gap-8 md:grid-cols-2">
+          <div className="glass-card aspect-square animate-pulse bg-mauve/5" />
+          <div className="space-y-4">
+            <div className="h-10 w-2/3 animate-pulse rounded-xl bg-mauve/10" />
+            <div className="h-40 animate-pulse rounded-2xl bg-mauve/5" />
+          </div>
+        </div>
+      )}
+      {state.kind === "notFound" && <ProductNotFound />}
+      {state.kind === "error" && (
+        <div className="glass-card px-6 py-14 text-center">
+          <p className="font-medium">{state.message}</p>
+          <p className="mt-1 text-sm text-charcoal/60">Probá de nuevo en unos minutos.</p>
+        </div>
+      )}
+      {state.kind === "ready" && <ProductPicker product={state.product} />}
+    </ProductShell>
+  );
+}
+
+// The server page's 404 (not-found.tsx next to it) shows the same view the
+// client fallback shows.
+export function ProductNotFoundView() {
+  return (
+    <ProductShell>
+      <ProductNotFound />
+    </ProductShell>
+  );
+}
+
+function ProductShell({ children }: { children: ReactNode }) {
   return (
     <main className="min-h-screen bg-cream px-4 py-10 text-charcoal sm:px-6 md:py-14">
       <div className="mx-auto max-w-6xl">
         <Link href="/catalogo" className="mb-6 inline-flex items-center gap-1.5 text-sm text-charcoal/60 transition hover:text-charcoal">
           <ArrowLeft size={16} aria-hidden /> Catálogo
         </Link>
-        {state.kind === "loading" && (
-          <div className="grid gap-8 md:grid-cols-2">
-            <div className="glass-card aspect-square animate-pulse bg-mauve/5" />
-            <div className="space-y-4">
-              <div className="h-10 w-2/3 animate-pulse rounded-xl bg-mauve/10" />
-              <div className="h-40 animate-pulse rounded-2xl bg-mauve/5" />
-            </div>
-          </div>
-        )}
-        {state.kind === "notFound" && <ProductNotFound />}
-        {state.kind === "error" && (
-          <div className="glass-card px-6 py-14 text-center">
-            <p className="font-medium">{state.message}</p>
-            <p className="mt-1 text-sm text-charcoal/60">Probá de nuevo en unos minutos.</p>
-          </div>
-        )}
-        {state.kind === "ready" && <ProductPicker product={state.product} />}
+        {children}
       </div>
     </main>
   );
