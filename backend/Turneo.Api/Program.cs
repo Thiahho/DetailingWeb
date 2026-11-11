@@ -62,6 +62,7 @@ builder.Services.AddScoped<ISmartTagsRepository, SmartTagsRepository>();
 builder.Services.AddScoped<IReviewsRepository, ReviewsRepository>();
 builder.Services.AddScoped<ICoverageLocalitiesRepository, CoverageLocalitiesRepository>();
 builder.Services.AddScoped<IHomeServiceBookingPolicy, HomeServiceBookingPolicy>();
+builder.Services.AddScoped<Turneo.Api.Modules.Catalog.ICatalogVariantGenerator, Turneo.Api.Modules.Catalog.CatalogVariantGenerator>();
 
 builder.Services.AddScoped<TenantSessionInterceptor>();
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>

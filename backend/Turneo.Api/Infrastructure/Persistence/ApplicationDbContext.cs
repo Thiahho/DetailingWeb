@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MercadoPago.Resource.Customer;
+using Turneo.Api.Modules.Catalog;
 using Turneo.Api.Modules.HomeService.ServiceArea;
 
 namespace Turneo.Api.Infrastructure.Persistence;
@@ -58,6 +59,17 @@ public class ApplicationDbContext : DbContext
 
     // Modules/HomeService
     public DbSet<CoverageLocality> CoverageLocalities { get; set; }
+
+    // Modules/Catalog
+    public DbSet<CatalogCategory> CatalogCategories { get; set; }
+    public DbSet<CatalogCategoryAttribute> CatalogCategoryAttributes { get; set; }
+    public DbSet<CatalogAttribute> CatalogAttributes { get; set; }
+    public DbSet<CatalogAttributeValue> CatalogAttributeValues { get; set; }
+    public DbSet<CatalogProduct> CatalogProducts { get; set; }
+    public DbSet<CatalogProductAllowedValue> CatalogProductAllowedValues { get; set; }
+    public DbSet<CatalogVariant> CatalogVariants { get; set; }
+    public DbSet<CatalogVariantValue> CatalogVariantValues { get; set; }
+    public DbSet<CatalogMedia> CatalogMedia { get; set; }
 
     public DbSet<User> Users { get; set; }
     public DbSet<ModulePermission> ModulePermissions { get; set; }
@@ -225,6 +237,8 @@ public class ApplicationDbContext : DbContext
 
             entity.HasQueryFilter(e => e.TenantId == _currentTenant.TenantId);
         });
+
+        ConfigureCatalog(modelBuilder);
 
         // ── Modules/HomeService ──────────────────────────────────────────
         modelBuilder.Entity<CoverageLocality>(entity =>
@@ -926,6 +940,102 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(x => x.PrizeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+    }
+
+    // ── Modules/Catalog ──────────────────────────────────────────────────
+    // Every catalog table, joins included, carries TenantId with the tenant
+    // query filter and its own RLS policy (migration AddCatalog), so no row is
+    // reachable across tenants even through a join.
+    private void ConfigureCatalog(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CatalogCategory>(e =>
+        {
+            e.HasIndex(x => new { x.TenantId, x.Slug }).IsUnique();
+            e.Property(x => x.Name).HasMaxLength(CatalogLimits.CategoryNameMaxLength);
+            e.Property(x => x.Slug).HasMaxLength(CatalogLimits.CategorySlugMaxLength);
+            e.Property(x => x.Description).HasMaxLength(CatalogLimits.DescriptionMaxLength);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogAttribute>(e =>
+        {
+            e.HasIndex(x => new { x.TenantId, x.Slug }).IsUnique();
+            e.Property(x => x.Name).HasMaxLength(CatalogLimits.AttributeNameMaxLength);
+            e.Property(x => x.Slug).HasMaxLength(CatalogLimits.AttributeSlugMaxLength);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogAttributeValue>(e =>
+        {
+            e.HasIndex(x => new { x.AttributeId, x.Label }).IsUnique();
+            e.Property(x => x.Label).HasMaxLength(CatalogLimits.ValueLabelMaxLength);
+            e.Property(x => x.ColorHex).HasMaxLength(7);
+            e.HasOne(x => x.Attribute).WithMany(a => a.Values).HasForeignKey(x => x.AttributeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogCategoryAttribute>(e =>
+        {
+            e.HasKey(x => new { x.CategoryId, x.AttributeId });
+            e.HasOne(x => x.Category).WithMany(c => c.Attributes).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Attribute).WithMany().HasForeignKey(x => x.AttributeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogProduct>(e =>
+        {
+            e.HasIndex(x => new { x.TenantId, x.Slug }).IsUnique();
+            e.Property(x => x.Name).HasMaxLength(CatalogLimits.ProductNameMaxLength);
+            e.Property(x => x.Slug).HasMaxLength(CatalogLimits.ProductSlugMaxLength);
+            e.Property(x => x.Description).HasMaxLength(CatalogLimits.DescriptionMaxLength);
+            e.Property(x => x.Price).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.Category).WithMany(c => c.Products).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogProductAllowedValue>(e =>
+        {
+            e.HasKey(x => new { x.ProductId, x.AttributeValueId });
+            e.HasOne(x => x.Product).WithMany(p => p.AllowedValues).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AttributeValue).WithMany().HasForeignKey(x => x.AttributeValueId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogVariant>(e =>
+        {
+            e.HasIndex(x => new { x.TenantId, x.Sku }).IsUnique();
+            e.HasIndex(x => new { x.ProductId, x.CombinationKey }).IsUnique();
+            e.Property(x => x.Sku).HasMaxLength(CatalogLimits.SkuMaxLength);
+            e.Property(x => x.CombinationKey).HasMaxLength(CatalogLimits.CombinationKeyMaxLength);
+            e.HasOne(x => x.Product).WithMany(p => p.Variants).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogVariantValue>(e =>
+        {
+            e.HasKey(x => new { x.VariantId, x.AttributeValueId });
+            e.HasOne(x => x.Variant).WithMany(v => v.Values).HasForeignKey(x => x.VariantId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AttributeValue).WithMany().HasForeignKey(x => x.AttributeValueId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
+        });
+
+        modelBuilder.Entity<CatalogMedia>(e =>
+        {
+            e.Property(x => x.Url).HasMaxLength(CatalogLimits.MediaUrlMaxLength);
+            e.Property(x => x.PublicId).HasMaxLength(CatalogLimits.MediaPublicIdMaxLength);
+            e.HasOne(x => x.Product).WithMany(p => p.Media).HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AttributeValue).WithMany().HasForeignKey(x => x.AttributeValueId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<Tenant>().WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
             e.HasQueryFilter(x => x.TenantId == _currentTenant.TenantId);
         });
     }

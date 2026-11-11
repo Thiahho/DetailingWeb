@@ -1993,6 +1993,322 @@ namespace Turneo.Api.Migrations
                     b.ToTable("Treatments");
                 });
 
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogAttribute", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("CatalogAttributes");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogAttributeValue", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttributeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ColorHex")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("AttributeId", "Label")
+                        .IsUnique();
+
+                    b.ToTable("CatalogAttributeValues");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("CatalogCategories");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogCategoryAttribute", b =>
+                {
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AttributeId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CategoryId", "AttributeId");
+
+                    b.HasIndex("AttributeId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("CatalogCategoryAttributes");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogMedia", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AttributeValueId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicId")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttributeValueId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("CatalogMedia");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("TenantId", "Slug")
+                        .IsUnique();
+
+                    b.ToTable("CatalogProducts");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogProductAllowedValue", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AttributeValueId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ProductId", "AttributeValueId");
+
+                    b.HasIndex("AttributeValueId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("CatalogProductAllowedValues");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogVariant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Availability")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CombinationKey")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "CombinationKey")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "Sku")
+                        .IsUnique();
+
+                    b.ToTable("CatalogVariants");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogVariantValue", b =>
+                {
+                    b.Property<int>("VariantId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AttributeValueId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("VariantId", "AttributeValueId");
+
+                    b.HasIndex("AttributeValueId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("CatalogVariantValues");
+                });
+
             modelBuilder.Entity("Turneo.Api.Modules.HomeService.ServiceArea.CoverageLocality", b =>
                 {
                     b.Property<int>("Id")
@@ -2958,6 +3274,174 @@ namespace Turneo.Api.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogAttribute", b =>
+                {
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogAttributeValue", b =>
+                {
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogAttribute", "Attribute")
+                        .WithMany("Values")
+                        .HasForeignKey("AttributeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attribute");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogCategory", b =>
+                {
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogCategoryAttribute", b =>
+                {
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogAttribute", "Attribute")
+                        .WithMany()
+                        .HasForeignKey("AttributeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogCategory", "Category")
+                        .WithMany("Attributes")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attribute");
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogMedia", b =>
+                {
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogAttributeValue", "AttributeValue")
+                        .WithMany()
+                        .HasForeignKey("AttributeValueId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogProduct", "Product")
+                        .WithMany("Media")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AttributeValue");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogProduct", b =>
+                {
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogCategory", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogProductAllowedValue", b =>
+                {
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogAttributeValue", "AttributeValue")
+                        .WithMany()
+                        .HasForeignKey("AttributeValueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogProduct", "Product")
+                        .WithMany("AllowedValues")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AttributeValue");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogVariant", b =>
+                {
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogProduct", "Product")
+                        .WithMany("Variants")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogVariantValue", b =>
+                {
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogAttributeValue", "AttributeValue")
+                        .WithMany()
+                        .HasForeignKey("AttributeValueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Turneo.Api.Modules.Catalog.CatalogVariant", "Variant")
+                        .WithMany("Values")
+                        .HasForeignKey("VariantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AttributeValue");
+
+                    b.Navigation("Variant");
+                });
+
             modelBuilder.Entity("Turneo.Api.Modules.HomeService.ServiceArea.CoverageLocality", b =>
                 {
                     b.HasOne("Turneo.Api.SaaS.Tenants.Tenant", "Tenant")
@@ -3083,6 +3567,32 @@ namespace Turneo.Api.Migrations
             modelBuilder.Entity("Turneo.Api.Core.Scheduling.TimeSlot", b =>
                 {
                     b.Navigation("Bookings");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogAttribute", b =>
+                {
+                    b.Navigation("Values");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogCategory", b =>
+                {
+                    b.Navigation("Attributes");
+
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogProduct", b =>
+                {
+                    b.Navigation("AllowedValues");
+
+                    b.Navigation("Media");
+
+                    b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("Turneo.Api.Modules.Catalog.CatalogVariant", b =>
+                {
+                    b.Navigation("Values");
                 });
 #pragma warning restore 612, 618
         }
