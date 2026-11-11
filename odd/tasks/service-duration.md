@@ -80,6 +80,8 @@ Detailing (first niche) has multi-hour services; the agenda must not sell overla
 
 - 2026-11-10: Follow-up done (parent, inline). `HomeServiceTravelBuffer` reduced to a static class with `InsideBufferMessage` and `IsInsideBuffer` (the only members still used, by `BookingAvailability` and `AgendaAvailability`); removed `IHomeServiceTravelBuffer`, the slot-based methods and its DI registration in `Program.cs`. Backend 529/529 (Docker, `--artifacts-path`).
 
+- 2026-11-10: Admin reschedule to another professional (user decision: the booking takes the new slot's professional). `AdminRescheduleBooking` sets `ProfessionalId` from the target slot (an unassigned slot keeps the booking's professional), locks both professionals in a fixed order, and checks overlap/coverage on the target professional's agenda. A `Professional` caller moving a booking to another professional's slot gets 403 "Solo podés mover turnos dentro de tu propia agenda". This also fixes a defect: before, a booking moved onto another professional's slot was checked against its old professional, so it could overlap a booking of the new one. Tests in `RangeAvailabilityTests` (3; RED: ProfessionalId unchanged, 200 instead of 409, 200 instead of 403). Backend 532/532.
+
 ## Next step
 1. Visual check — done 2026-11-10 (see Progress); professional agenda still unchecked.
 3. Open follow-ups for the user: unused slot-based methods in `HomeServiceTravelBuffer.cs`; admin reschedule keeps the booking's `ProfessionalId`; production `btree_gist` check before deploy.

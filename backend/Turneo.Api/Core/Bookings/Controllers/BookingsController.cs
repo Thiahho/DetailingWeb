@@ -545,12 +545,22 @@ public class BookingsController : ControllerBase
         if (booking.TimeSlotId == request.NewTimeSlotId)
             return BadRequest(new { success = false, message = "Ya estás en ese horario" });
 
-        await _availability.LockProfessionalAsync(booking.ProfessionalId);
+        // The booking takes the professional of the slot it is moved to; an
+        // unassigned slot keeps the booking's professional. A professional may
+        // only move bookings within their own agenda.
+        var targetProfessionalId = (await _repository.FindSlotSnapshotAsync(request.NewTimeSlotId))?.ProfessionalId ?? booking.ProfessionalId;
+        if (targetProfessionalId != booking.ProfessionalId && User.IsInRole("Professional"))
+            return StatusCode(StatusCodes.Status403Forbidden, new { success = false, message = "Solo podés mover turnos dentro de tu propia agenda" });
+
+        // Both agendas change: lock them in a fixed order to avoid deadlocks.
+        foreach (var professionalId in new[] { booking.ProfessionalId, targetProfessionalId }.Distinct().OrderBy(id => id ?? 0))
+            await _availability.LockProfessionalAsync(professionalId);
         if (!await _availability.TryClaimStartSlotAsync(request.NewTimeSlotId, booking.Id))
             return await SlotNotClaimedAsync(request.NewTimeSlotId, BookingWriteConflict.SlotTakenMessage, notFoundWhenMissing: false);
 
         var previousStartDateTime = booking.TimeSlot.StartDateTime;
         var previousFootprint = BookingFootprint.Of(booking);
+        booking.ProfessionalId = targetProfessionalId;
 
         if (await MoveToSlotAsync(booking, request.NewTimeSlotId) is { } unavailable)
             return unavailable;

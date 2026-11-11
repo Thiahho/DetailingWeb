@@ -391,6 +391,81 @@ public class RangeAvailabilityTests
         Assert.Equal(slots[10].StartDateTime.AddMinutes(180), booking.GetProperty("bookingEndDateTime").GetDateTime());
     }
 
+    // --- Admin reschedule to another professional's slot -----------------------
+
+    [Fact]
+    public async Task AdminReschedule_ToAnotherProfessionalsSlot_ReassignsTheBooking()
+    {
+        var setup = await CreateSetupAsync();
+        var other = await TestDataFactory.CreateProfessionalAsync(_factory, setup.Tenant.Id, "Otra");
+        var threeHours = await ServiceAsync(setup, 180);
+        var own = await HourlySlotsAsync(setup, 10, 14);
+        var theirs = await HourlySlotsAsync(setup, 10, 15, other.Id);
+        var bookingId = await BookAsync(setup, own[10].Id, threeHours);
+        var admin = await AdminClientAsync(setup);
+
+        var response = await admin.PostAsJsonAsync($"/api/bookings/{bookingId}/admin-reschedule", new { newTimeSlotId = theirs[11].Id });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var booking = await ReloadAsync(bookingId);
+        Assert.Equal(other.Id, booking.ProfessionalId);
+        Assert.Equal(theirs[11].Id, booking.TimeSlotId);
+        Assert.Equal(setup.Day.AddHours(14), booking.EndDateTime);
+        Assert.True(await IsAvailableAsync(own[10]));
+        Assert.True(await IsAvailableAsync(own[11]));
+        Assert.True(await IsAvailableAsync(own[12]));
+        Assert.False(await IsAvailableAsync(theirs[11]));
+        Assert.False(await IsAvailableAsync(theirs[13]));
+        Assert.True(await IsAvailableAsync(theirs[14]));
+    }
+
+    [Fact]
+    public async Task AdminReschedule_ToAnotherProfessional_OverlappingHerBooking_IsRejectedAndKeepsTheBooking()
+    {
+        var setup = await CreateSetupAsync();
+        var other = await TestDataFactory.CreateProfessionalAsync(_factory, setup.Tenant.Id, "Otra");
+        var threeHours = await ServiceAsync(setup, 180);
+        var noDuration = await ServiceAsync(setup, null);
+        var own = await HourlySlotsAsync(setup, 10, 14);
+        var theirs = await HourlySlotsAsync(setup, 10, 15, other.Id);
+        await BookAsync(setup, theirs[12].Id, noDuration);
+        var bookingId = await BookAsync(setup, own[10].Id, threeHours);
+        var admin = await AdminClientAsync(setup);
+
+        var response = await admin.PostAsJsonAsync($"/api/bookings/{bookingId}/admin-reschedule", new { newTimeSlotId = theirs[11].Id });
+
+        await AssertConflictAsync(response, OverlapMessage);
+        var booking = await ReloadAsync(bookingId);
+        Assert.Equal(setup.Professional.Id, booking.ProfessionalId);
+        Assert.Equal(own[10].Id, booking.TimeSlotId);
+        Assert.True(await IsAvailableAsync(theirs[11]));
+        Assert.False(await IsAvailableAsync(own[11]));
+    }
+
+    [Fact]
+    public async Task ProfessionalReschedule_ToAnotherProfessionalsSlot_IsForbidden()
+    {
+        var setup = await CreateSetupAsync();
+        var other = await TestDataFactory.CreateProfessionalAsync(_factory, setup.Tenant.Id, "Otra");
+        var noDuration = await ServiceAsync(setup, null);
+        var own = await HourlySlotsAsync(setup, 10, 12);
+        var theirs = await HourlySlotsAsync(setup, 10, 12, other.Id);
+        var bookingId = await BookAsync(setup, own[10].Id, noDuration);
+        var user = await TestDataFactory.CreateProfessionalUserAsync(_factory, setup.Tenant.Id, setup.Professional.Id, $"pro-{Guid.NewGuid():N}@test.com", "Password123");
+        await TestDataFactory.GrantModulePermissionAsync(_factory, setup.Tenant.Id, user.Id, Turneo.Api.Core.Roles.PermissionModules.Turnos, canView: true, canEdit: true);
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            TestJwtFactory.CreateToken(_factory, user.Id, user.Email, "Professional", setup.Tenant.Id, setup.Professional.Id));
+
+        var response = await client.PostAsJsonAsync($"/api/bookings/{bookingId}/admin-reschedule", new { newTimeSlotId = theirs[11].Id });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        var booking = await ReloadAsync(bookingId);
+        Assert.Equal(setup.Professional.Id, booking.ProfessionalId);
+        Assert.Equal(own[10].Id, booking.TimeSlotId);
+        Assert.True(await IsAvailableAsync(theirs[11]));
+    }
+
     // --- Reschedule and edit exclude the booking itself ------------------------
 
     [Fact]
