@@ -28,7 +28,7 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
 
 ## Tasks
 - [x] T1 — Backend catalog domain: entities, tenant scoping (query filters, RLS migration), per-tenant unique indexes, variant generator with M1–M3 fixed, admin endpoints with permission module "Catálogo", integration tests. Route: delegated (writer trigger: 2+ non-trivial files).
-- [ ] T2 — Backend public catalog endpoints (tenant by host): categories, products by category, product detail with variants and media, variants by ids for cart sync; tests. Route: delegated.
+- [x] T2 — Backend public catalog endpoints (tenant by host): categories, products by category, product detail with variants and media, variants by ids for cart sync; tests. Route: delegated.
 - [ ] T3 — Frontend admin screens: categories, attributes, products (form, variants grid, photos), proxies, permission-aware nav. Route: delegated.
 - [ ] T4 — Frontend public: catalog, product detail with variant picker, cart (per-tenant localStorage), order form → WhatsApp message with optional prices; vitest for cart and message builder. Route: delegated.
 - [ ] T5 — Docs: EMPRENDERS guide (niche day-1 section, next steps), commercial manual note. Route: inline.
@@ -54,5 +54,18 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
   - Size: ~1.4k production + ~750 test lines (above the ~400 heuristic: the model, generator and five controllers are one coherent unit; split into two work-unit commits).
   - Residual risks: deleting a product/media does not delete the Cloudinary asset (no server SDK; T3 should decide); enums serialize as integers (frontend must map); RLS is asserted by policy presence (tests run as superuser, which bypasses RLS); `PermissionModules.Catalogo` needs a label in the frontend permission matrix (T3).
 
+- 2026-11-11: T2 done (delegated writer). Commit `feat(catalog): add anonymous public catalog endpoints` (controller, tests, this entry).
+  - `backend/Turneo.Api/Modules/Catalog/Public/CatalogPublicController.cs`: `[AllowAnonymous]` + `[EnableRateLimiting("public-read")]` (same as the other public reads; no response caching exists elsewhere, none added). Tenant by host via TenantResolutionMiddleware (`X-Tenant-Host` or Host); unknown tenant subdomain → 404 from the middleware; unresolved/bypassed tenant → empty lists / 404. Visible = active product in an active category; active variants only. Inactive or other-tenant rows behave as nonexistent. Enums kept as integers (`availability` 0 Disponible / 1 A pedido, media `type` 0 Image / 1 Video).
+  - Contract for T4 (camelCase JSON):
+    - `GET api/catalog/public/categories` → `[{ slug, name, description, productCount }]` (active, ≥1 active product; SortOrder, Name).
+    - `GET api/catalog/public/products?category={slug}` → `[{ slug, name, price|null, imageUrl|null, categorySlug, categoryName }]` (category SortOrder/Name, product SortOrder/Name; `imageUrl` = first image by media order; unknown category → `[]`).
+    - `GET api/catalog/public/products/{slug}` → `{ slug, name, description, price|null, categorySlug, categoryName, attributes: [{ id, name, slug, values: [{ id, label, colorHex, sortOrder }] }], variants: [{ id, sku, valueIds (sorted), availability }], media: [{ id, url, type, attributeValueId|null }] }`; attributes in the category's combination order with only the product's allowed values; 404 `{ success:false, message:"Producto no encontrado" }`.
+    - `GET api/catalog/public/variants?ids=1,2,3` → `[{ id, sku, availability, productSlug, productName, price|null, categoryName, values: [label…] }]` (labels in the category's attribute order; unknown/inactive/foreign ids dropped; no ids → `[]`; >200 distinct ids or a non-positive/non-numeric id → 400 `{ success:false, message }`).
+    - WhatsApp number: already public in `GET api/siteconfig` (`whatsAppNumber`); not duplicated.
+  - RED: 7/8 new tests failed with 404 (endpoints missing; the unknown-subdomain test already passed via the middleware). GREEN: `CatalogPublicTests` 8/8; full suite `dotnet test backend/Turneo.Api.Tests --artifacts-path <scratch>` 568/568 (560 + 8).
+  - Test note: the first full run failed 11 unrelated public-read tests with 429 (the suite shares one 60/min `public-read` window per IP); `CatalogPublicTests` sends its anonymous calls through `factory.WithConfigOverrides(RateLimiting:PublicReadPermitLimit=10000)`. A cleaner suite-wide fix is to raise that limit in `CustomWebApplicationFactory` (outside T2's surface).
+  - Size: ~200 production + ~300 test lines.
+  - Residual risks: no response caching (each page view hits the DB); variants-by-ids uses a GET query string (200 ids ≈ 1.4k chars, well under URL limits).
+
 ## Next step
-T2.
+T3 (admin screens) and T4 (public frontend, contract above).
