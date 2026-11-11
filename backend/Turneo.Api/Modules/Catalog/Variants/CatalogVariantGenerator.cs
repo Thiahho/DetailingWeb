@@ -34,7 +34,7 @@ public class CatalogVariantGenerator : ICatalogVariantGenerator
         var plan = VariantPlanner.Plan(
             product.Category.Attributes.OrderBy(a => a.SortOrder).Select(a => a.AttributeId).ToList(),
             product.AllowedValues.Select(a => new VariantValueRef(a.AttributeValue.Id, a.AttributeValue.AttributeId, a.AttributeValue.SortOrder)),
-            product.Variants.Select(v => new ExistingVariant(v.CombinationKey, v.IsActive)));
+            product.Variants.Select(v => new ExistingVariant(v.CombinationKey, v.IsActive, v.DisabledManually)));
 
         foreach (var planned in plan.ToCreate)
         {

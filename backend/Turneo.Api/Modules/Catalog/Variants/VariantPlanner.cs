@@ -2,7 +2,9 @@ namespace Turneo.Api.Modules.Catalog;
 
 public sealed record VariantValueRef(int Id, int AttributeId, int SortOrder);
 
-public sealed record ExistingVariant(string CombinationKey, bool IsActive);
+// DisabledManually: an admin turned the variant off by hand; the planner never
+// turns it back on (only a manual activation clears the flag).
+public sealed record ExistingVariant(string CombinationKey, bool IsActive, bool DisabledManually = false);
 
 public sealed record PlannedVariant(string CombinationKey, IReadOnlyList<int> ValueIds);
 
@@ -15,7 +17,9 @@ public sealed record VariantPlan(
 // Pure variant planning, free of EF so it can be unit-tested: the wanted
 // combinations are the cartesian product of the product's allowed values,
 // grouped by the category's attribute order. Existing variants are matched by
-// combination key; obsolete ones are deactivated, never deleted.
+// combination key; obsolete ones are deactivated, never deleted. Inactive
+// variants whose combination is wanted again are reactivated unless they were
+// disabled by hand.
 public static class VariantPlanner
 {
     public static VariantPlan Plan(
@@ -46,7 +50,7 @@ public static class VariantPlanner
 
             if (!existingByKey.TryGetValue(key, out var variant))
                 toCreate.Add(new PlannedVariant(key, combo));
-            else if (!variant.IsActive)
+            else if (!variant.IsActive && !variant.DisabledManually)
                 toReactivate.Add(key);
         }
 

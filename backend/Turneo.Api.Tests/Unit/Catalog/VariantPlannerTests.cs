@@ -79,6 +79,41 @@ public class VariantPlannerTests
     }
 
     [Fact]
+    public void Plan_NeverReactivatesAVariantDisabledByHand()
+    {
+        var allowed = new[] { Value(10, 1), Value(11, 1) };
+        var existing = new[]
+        {
+            new ExistingVariant("10", IsActive: false, DisabledManually: true),   // turned off by an admin → stays off
+            new ExistingVariant("11", IsActive: false, DisabledManually: false),  // turned off by the generator → back on
+        };
+
+        var plan = VariantPlanner.Plan(AttributeOrder, allowed, existing);
+
+        Assert.Empty(plan.ToCreate);
+        Assert.Equal(new[] { "11" }, plan.ToReactivate);
+        Assert.Empty(plan.ToDeactivate);
+        // The combination is still wanted, so it counts towards the total.
+        Assert.Equal(2, plan.Total);
+    }
+
+    [Fact]
+    public void Plan_ObsoleteThenValidAgain_KeepsAHandDisabledVariantOff()
+    {
+        var existing = new[] { new ExistingVariant("10", IsActive: false, DisabledManually: true) };
+
+        // Value 10 removed: the variant is obsolete and already inactive → nothing to do.
+        var obsolete = VariantPlanner.Plan(AttributeOrder, new[] { Value(11, 1) }, existing);
+        Assert.DoesNotContain("10", obsolete.ToDeactivate);
+        Assert.DoesNotContain("10", obsolete.ToReactivate);
+
+        // Value 10 allowed again: the manual decision still wins.
+        var validAgain = VariantPlanner.Plan(AttributeOrder, new[] { Value(10, 1), Value(11, 1) }, existing);
+        Assert.DoesNotContain("10", validAgain.ToReactivate);
+        Assert.DoesNotContain(validAgain.ToCreate, c => c.CombinationKey == "10");
+    }
+
+    [Fact]
     public void SkuFor_IsDerivedFromProductIdAndCombinationKey()
     {
         Assert.Equal("P42-10-20", VariantPlanner.SkuFor(42, "10-20"));

@@ -13,6 +13,7 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
 
 ## Decisions
 - User (2026-11-10): optional price per product. With a price, the catalog shows it and the order sums it; without, "Consultar precio".
+- User (2026-11-11): "Si una variante está apagada, por más que se edite el producto debe mantenerse en ese estado, hasta volver a activarla." A variant deactivated by hand (single or bulk patch) stays inactive across product saves, category saves and explicit regenerate until an admin activates it by hand; variants the generator deactivated as obsolete still come back on their own when the combination applies again.
 - Parent (defaults, revisable): new generic module `Modules/Catalog`, separate from `Core/Products` (left untouched). Orders are not persisted (AccFenix parity): the cart lives in the browser (localStorage key per tenant) and the order is a `wa.me` message to `SiteConfig.WhatsAppNumber`. M1–M3 are fixed in the port, not in AccFenix. Images reuse Turneo's existing Cloudinary approach (`src/lib/cloudinaryMedia.ts`). New permission module "Catálogo" for Staff.
 
 ## Scope
@@ -88,5 +89,12 @@ EMPRENDERS guide (`E:\Proyectos\EMPRENDERS\guia-nichos\GUIA.md`), priority 2: "C
   - Size: ~1.7k lines (≈500 pure modules + tests, ≈1.2k UI); split into two work-unit commits.
   - Residual risks: not exercised in a browser against a running API (layout, popup behavior, cross-tab sync); the unknown-product view is client-rendered so the HTTP status is 200, not 404; product pages have a generic `<title>` (no per-product metadata/OG, client fetch); the navbar adds one categories request per full page load for every tenant; the blank tab is opened before the pre-send sync to avoid popup blockers and is closed if the cart changed.
 
+- 2026-11-11: Follow-up (user decision above): manual deactivation survives regeneration (delegated writer). Commit `fix(catalog): keep hand-disabled variants off across regeneration`.
+  - `CatalogVariant.DisabledManually` (non-null bool, default false; migration `20261111015927_AddCatalogVariantDisabledManually`, existing rows false). Set by a manual deactivation, cleared by a manual activation (`PATCH api/catalog/variants/{id}` and `PATCH api/catalog/variants/bulk`). `VariantPlanner` (still pure) never reactivates a variant with the flag; obsolete → valid again keeps a flagged variant off and reactivates unflagged ones.
+  - Bulk API (additive): `availability` is now optional and `isActive` was added; at least one is required (400 "Se requiere la disponibilidad o el estado"). Availability alone and `isActive=false` touch the matching active variants; `isActive=true` turns back on only the matching hand-disabled variants (never obsolete ones the generator deactivated).
+  - Admin responses (product detail variants, single patch) include `disabledManually`; frontend `CatalogVariant` type gained it and the grid note now says hand-disabled variants stay off until reactivated. Public endpoints unchanged (active variants only).
+  - RED: compile error CS1739 (`ExistingVariant` without `DisabledManually`), then with the parameter only: 2 new planner tests and 3 of 4 new integration tests (`CatalogManualDeactivationTests`) failed. GREEN: catalog filter 42/42; full suite `dotnet test backend/Turneo.Api.Tests --artifacts-path <scratch>` 574/574 (568 + 6); `dotnet ef migrations has-pending-model-changes --configuration Release`: no changes; frontend `pnpm exec tsc --noEmit -p .` exit 0, `pnpm test` 224/224.
+  - Residual risks: single `PATCH isActive=true` can still turn on an obsolete variant (pre-existing behavior; the generator turns it off again on the next save since it is not flagged); the grid has no bulk on/off control yet (API only).
+
 ## Next step
-T5 (docs). Open question for the user: the variant generator reactivates a variant deactivated by hand when the product is saved again (AccFenix behavior).
+T5 (docs).

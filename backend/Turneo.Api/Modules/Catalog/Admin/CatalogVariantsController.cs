@@ -19,7 +19,7 @@ public class CatalogVariantsController : CatalogControllerBase
         if (variant is null) return NotFoundMessage("Variante no encontrada");
 
         if (request.Availability is { } availability) variant.Availability = availability;
-        if (request.IsActive is { } isActive) variant.IsActive = isActive;
+        if (request.IsActive is { } isActive) SetActiveByHand(variant, isActive);
         await Db.SaveChangesAsync();
 
         return Ok(new
@@ -29,24 +29,43 @@ public class CatalogVariantsController : CatalogControllerBase
             variant.CombinationKey,
             ValueIds = variant.Values.Select(v => v.AttributeValueId).Order().ToList(),
             variant.Availability,
-            variant.IsActive
+            variant.IsActive,
+            variant.DisabledManually
         });
     }
 
     // PATCH: api/catalog/variants/bulk
-    // Sets the availability of every active variant of the product that contains
-    // all the given values (empty list = all), e.g. every "Rojo" → on request.
+    // Updates every variant of the product that contains all the given values
+    // (empty list = all), e.g. every "Rojo" → on request, or every "Rojo" off.
+    // Availability alone and isActive=false touch the active variants;
+    // isActive=true turns back on only the variants disabled by hand (never the
+    // ones the generator deactivated because their combination is obsolete).
     // A product of another tenant matches nothing through the tenant filter.
     [HttpPatch("bulk")]
     [RequirePermission(PermissionModules.Catalogo, PermissionActions.Edit)]
     public async Task<IActionResult> Bulk([FromBody] CatalogVariantBulkRequest request)
     {
-        var availability = request.Availability!.Value;
-        var query = Db.CatalogVariants.Where(v => v.ProductId == request.ProductId && v.IsActive);
+        var query = Db.CatalogVariants.Where(v => v.ProductId == request.ProductId);
+        query = request.IsActive == true ? query.Where(v => v.DisabledManually) : query.Where(v => v.IsActive);
         foreach (var valueId in request.ValueIds.Distinct())
             query = query.Where(v => v.Values.Any(x => x.AttributeValueId == valueId));
 
-        var updated = await query.ExecuteUpdateAsync(s => s.SetProperty(v => v.Availability, availability));
-        return Ok(new { updated });
+        var variants = await query.ToListAsync();
+        foreach (var variant in variants)
+        {
+            if (request.Availability is { } availability) variant.Availability = availability;
+            if (request.IsActive is { } isActive) SetActiveByHand(variant, isActive);
+        }
+        await Db.SaveChangesAsync();
+        return Ok(new { updated = variants.Count });
+    }
+
+    // A manual deactivation is remembered so that generation (product save,
+    // category save, regenerate) never turns the variant back on; a manual
+    // activation clears it.
+    private static void SetActiveByHand(CatalogVariant variant, bool isActive)
+    {
+        variant.IsActive = isActive;
+        variant.DisabledManually = !isActive;
     }
 }

@@ -52,6 +52,8 @@ export interface CatalogVariant {
   valueIds: number[];
   availability: CatalogAvailability;
   isActive: boolean;
+  // Turned off by hand: product/category saves never reactivate it.
+  disabledManually: boolean;
 }
 
 export interface CatalogMedia {

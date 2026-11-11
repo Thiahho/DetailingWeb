@@ -86,18 +86,27 @@ public class CatalogVariantPatchRequest
     public bool? IsActive { get; set; }
 }
 
-public class CatalogVariantBulkRequest
+public class CatalogVariantBulkRequest : IValidatableObject
 {
     [Range(1, int.MaxValue, ErrorMessage = "El producto es requerido")]
     public int ProductId { get; set; }
 
-    // Variants containing all of these values are updated (empty = all active variants).
+    // Variants containing all of these values are updated (empty = all of the product's variants).
     [MaxLength(CatalogLimits.MaxAttributesPerCategory, ErrorMessage = "Se admiten hasta 10 valores")]
     public List<int> ValueIds { get; set; } = new();
 
-    [Required(ErrorMessage = "La disponibilidad es requerida")]
     [EnumDataType(typeof(CatalogAvailability), ErrorMessage = "La disponibilidad no es válida")]
     public CatalogAvailability? Availability { get; set; }
+
+    // false = turn the matching active variants off by hand; true = turn the
+    // matching hand-disabled variants back on.
+    public bool? IsActive { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Availability is null && IsActive is null)
+            yield return new ValidationResult("Se requiere la disponibilidad o el estado", new[] { nameof(Availability) });
+    }
 }
 
 public class CatalogMediaRequest

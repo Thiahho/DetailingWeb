@@ -180,8 +180,9 @@ export default function VariantsGrid({
         </button>
       )}
       <p className="text-charcoal/40 text-xs">
-        Al guardar el producto se vuelven a generar las combinaciones: las que siguen vigentes quedan activas y las que ya no
-        corresponden se desactivan.
+        Al guardar el producto se vuelven a generar las combinaciones: las que ya no corresponden se desactivan y vuelven a
+        activarse solas si vuelven a corresponder. Una variante que desactivas a mano queda desactivada, aunque edites el
+        producto o la categoría, hasta que la vuelvas a activar.
       </p>
     </div>
   );

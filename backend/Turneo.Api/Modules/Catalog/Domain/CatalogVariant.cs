@@ -24,6 +24,9 @@ public class CatalogVariant : ITenantScoped
     public string CombinationKey { get; set; } = string.Empty;
     public CatalogAvailability Availability { get; set; } = CatalogAvailability.Disponible;
     public bool IsActive { get; set; } = true;
+    // Set when an admin deactivates the variant by hand, cleared when an admin
+    // activates it again. While set, generation never reactivates the variant.
+    public bool DisabledManually { get; set; }
 
     public List<CatalogVariantValue> Values { get; set; } = new();
 }

@@ -2264,6 +2264,9 @@ namespace Turneo.Api.Migrations
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
 
+                    b.Property<bool>("DisabledManually")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 

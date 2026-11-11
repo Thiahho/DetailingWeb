@@ -277,7 +277,8 @@ public class CatalogProductsController : CatalogControllerBase
                 v.CombinationKey,
                 ValueIds = v.Values.Select(x => x.AttributeValueId).Order().ToList(),
                 v.Availability,
-                v.IsActive
+                v.IsActive,
+                v.DisabledManually
             }).ToList(),
             Media = p.Media.OrderBy(m => m.SortOrder).Select(ToResponse).ToList()
         };
