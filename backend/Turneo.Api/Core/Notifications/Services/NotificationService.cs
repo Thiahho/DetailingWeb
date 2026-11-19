@@ -211,7 +211,8 @@ public class NotificationService
                 Location         = _configuration["Notifications:Location"] ?? "Sucursal principal",
                 CancellationLink = "",
                 MyBookingsLink   = "",
-                CustomerPhone    = booking.CustomerPhone
+                CustomerPhone    = booking.CustomerPhone,
+                AgendaLink       = $"{_configuration["Notifications:AdminAgendaBaseUrl"] ?? $"{PublicSiteDefaults.BaseUrl}/admin/turnos"}?bookingId={booking.Id}"
             };
 
             var message = await _templateService.BuildAsync(adminEventType, templateData, cancellationToken);
