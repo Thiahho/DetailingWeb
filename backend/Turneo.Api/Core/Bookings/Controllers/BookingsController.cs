@@ -397,16 +397,16 @@ public class BookingsController : ControllerBase
     // PATCH: api/bookings/{id}/confirm (admin, o el profesional dueño del turno)
     [HttpPatch("{id}/confirm")]
     [Authorize(Roles = "Admin,Staff,Professional")]
-    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit, alsoCheckProfessional: true)]
+    [RequirePermission(PermissionModules.Turnos, PermissionActions.Edit)]
     public async Task<IActionResult> ConfirmBooking(int id)
     {
         var booking = await _repository.FindAsync(id);
         if (booking == null)
             return NotFound(new { success = false, message = "Reserva no encontrada" });
 
-        // Un profesional solo puede confirmar turnos propios — RequirePermission
-        // arriba no lo restringe (solo acota a Staff, ver su comentario), así que
-        // la propiedad del turno se valida acá.
+        // Confirmar un turno propio es autogestión del profesional (botón de su
+        // agenda), así que no exige un ModulePermission otorgado por el admin: acá
+        // solo se acota a Staff, y la propiedad del turno se valida a continuación.
         if (User.IsInRole("Professional"))
         {
             var claim = User.FindFirst("professional_id")?.Value;
